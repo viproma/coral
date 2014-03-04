@@ -1,0 +1,4 @@
+@PACKAGE_INIT@
+include ("@PACKAGE_exportFileConfig@")
+set (dsb_LIBRARIES "dsb")
+set_and_check (dsb_INCLUDE_DIRS "@PACKAGE_includeDirsConfig@")
