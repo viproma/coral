@@ -33,7 +33,8 @@ set (publicHeaderDir "${CMAKE_SOURCE_DIR}/include")
 #
 set (targetInstallDestinations ARCHIVE DESTINATION "lib"
                                LIBRARY DESTINATION "lib"
-                               RUNTIME DESTINATION "bin")
+                               RUNTIME DESTINATION "bin"
+                               INCLUDES DESTINATION "include")
 
 # Special-purpose and/or platform dependent installation directories.
 # Mostly useful in the present file.
