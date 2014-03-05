@@ -2,6 +2,6 @@
 #ifndef DSB_INTERNAL_HPP
 #define DSB_INTERNAL_HPP
 
-int bar();
+int Bar();
 
 #endif DSB_INTERNAL_HPP

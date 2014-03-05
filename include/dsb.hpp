@@ -2,6 +2,6 @@
 #ifndef DSB_HPP
 #define DSB_HPP
 
-void foo();
+int Foo(int i);
 
 #endif DSB_HPP

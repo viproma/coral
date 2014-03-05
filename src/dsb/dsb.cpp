@@ -2,5 +2,5 @@
 #include "dsb.hpp"
 #include "dsb_internal.hpp"
 
-void foo() { bar(); }
-int bar() { return 0; }
+int Foo(int i) { return Bar() + i + 2; }
+int Bar() { return 3; }

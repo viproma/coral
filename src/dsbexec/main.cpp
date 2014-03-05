@@ -3,6 +3,5 @@
 
 int main()
 {
-    foo();
-    return 0;
+    return Foo(1);
 }
