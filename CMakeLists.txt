@@ -1,10 +1,6 @@
 cmake_minimum_required (VERSION 2.8)
 
-# CMake guidelines for this project:
-#
-# - Avoid using the literal "dsb" in strings (e.g. in target names).
-#   Instead, use ${CMAKE_PROJECT_NAME}, which is set by the project()
-#   command below.  This makes it easier to change the name later.
+# CMake guidelines/tips for this project:
 #
 # - The "Common variables" section (below) contains variables which are useful
 #   not only in here in the top-level file, but in subdirectories as well.
@@ -12,8 +8,6 @@ cmake_minimum_required (VERSION 2.8)
 # - In install() commands, use the directories specified in the "Common
 #   variables" section, and avoid using absolute directories.  This makes for a
 #   consistent directory structure and allows for easy packaging with CPack.
-#
-# - More will follow... :)
 #
 project ("dsb")
 set (projectSummary "Distributed Simulation Bus")
@@ -88,9 +82,8 @@ add_definitions("-DBOOST_SYSTEM_NO_DEPRECATED") # Disable some deprecated stuff.
 # ==============================================================================
 # Subdirectories
 # ==============================================================================
-#add_subdirectory ("src/dsb")
-#add_subdirectory ("src/dsbexec")
-#add_subdirectory ("src/dsbslave")
+add_subdirectory ("src/dsb")
+add_subdirectory ("src/dsbexec")
 
 # ==============================================================================
 # API documentation generation
