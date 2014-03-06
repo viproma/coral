@@ -4,4 +4,4 @@
 
 int Foo(int i);
 
-#endif DSB_HPP
+#endif // DSB_HPP

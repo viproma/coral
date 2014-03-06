@@ -4,4 +4,4 @@
 
 int Bar();
 
-#endif DSB_INTERNAL_HPP
+#endif // DSB_INTERNAL_HPP
