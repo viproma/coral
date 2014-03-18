@@ -28,3 +28,4 @@ target_link_libraries (${_testTarget} ${_target} "gtest_main")
 target_include_directories(
     ${_testTarget}
     PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>")
+add_test (NAME ${_testTarget} COMMAND ${_testTarget})

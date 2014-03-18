@@ -80,7 +80,8 @@ set (Boost_USE_STATIC_LIBS ON)
 add_definitions("-DBOOST_ALL_NO_LIB") # Disables Boost's auto-linking feature.
 add_definitions("-DBOOST_SYSTEM_NO_DEPRECATED") # Disable some deprecated stuff.
 
-# Load Google Test
+# Enable testing and load Google Test
+enable_testing ()
 set (gtest_force_shared_crt ON CACHE INTERNAL "Google Test setting override")
 add_subdirectory ("external/gtest-1.7.0")
 
