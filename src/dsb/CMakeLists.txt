@@ -12,7 +12,7 @@ set (_publicHeadersFull)
 foreach (_hdr ${_publicHeaders})
     list (APPEND _publicHeadersFull "${publicHeaderDir}/${_hdr}")
 endforeach ()
-source_group ("Public Header Files" ${_publicHeadersFull})
+source_group ("Public Header Files" FILES ${_publicHeadersFull})
 
 # Main library target
 add_library (${_target} STATIC

@@ -62,7 +62,8 @@ set (exportTarget "${CMAKE_PROJECT_NAME}-targets")
 # Compiler/language settings
 if (CMAKE_COMPILER_IS_GNUCXX)
     # Use C++11 features, treat all warnings as errors.
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror")
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror -Wno-unused-function")
 elseif (MSVC)
     # Compile with warning level 3 and treat all warnings as errors,
     # but disable the following warnings:
@@ -80,10 +81,17 @@ set (Boost_USE_STATIC_LIBS ON)
 add_definitions("-DBOOST_ALL_NO_LIB") # Disables Boost's auto-linking feature.
 add_definitions("-DBOOST_SYSTEM_NO_DEPRECATED") # Disable some deprecated stuff.
 
+# ==============================================================================
+# Other initialisation
+# ==============================================================================
+
 # Enable testing and load Google Test
 enable_testing ()
 set (gtest_force_shared_crt ON CACHE INTERNAL "Google Test setting override")
 add_subdirectory ("external/gtest-1.7.0")
+
+# Allow local CMake modules (e.g. find scripts) under cmake/
+list (APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # ==============================================================================
 # Subdirectories
