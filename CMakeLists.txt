@@ -52,6 +52,9 @@ endif ()
 # The export name to use for libraries.
 set (exportTarget "${CMAKE_PROJECT_NAME}-targets")
 
+# Location of header-only external projects.
+set (CPPZMQ_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/external/cppzmq")
+
 # ==============================================================================
 # Build settings
 # ==============================================================================
