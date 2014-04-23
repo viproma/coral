@@ -99,7 +99,7 @@ list (APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # ==============================================================================
 # Subdirectories
 # ==============================================================================
-add_subdirectory ("src/dsb")
+add_subdirectory ("src/broker")
 add_subdirectory ("src/dsbexec")
 
 # ==============================================================================
