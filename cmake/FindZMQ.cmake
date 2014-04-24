@@ -151,23 +151,16 @@ function (_findWinLibs releaseDll releaseLib debugDll debugLib includeDir)
 endfunction ()
 
 # The function which searches for the libraries and headers on *NIX.
-function (_findUnixLibs releaseLib debugLib includeDir)
-    find_library (ZMQ_RELEASE_LIB
-        NAMES ${releaseLibNames}
+function (_findUnixLibs library includeDir)
+    find_library (ZMQ_LIBRARY "zmq"
         PATHS $ENV{ZMQ_DIR}
         PATH_SUFFIXES "lib")
-    _getHintsDirective(hints ${ZMQ_RELEASE_LIB})
-    find_library (ZMQ_DEBUG_LIB
-        NAMES ${debugLibNames}
-        ${hints}
-        PATHS $ENV{ZMQ_DIR}
-        PATH_SUFFIXES "lib")
+    _getHintsDirective(hints ${ZMQ_LIBRARY})
     find_path (ZMQ_HEADER_DIR "zmq.h"
         ${_hints}
         PATHS $ENV{ZMQ_DIR}
         PATH_SUFFIXES "include")
-    set (${releaseLib} "${ZMQ_RELEASE_LIB}" PARENT_SCOPE)
-    set (${debugLib}   "${ZMQ_DEBUG_LIB}"   PARENT_SCOPE)
+    set (${library} "${ZMQ_LIBRARY}" PARENT_SCOPE)
     set (${includeDir} "${ZMQ_HEADER_DIR}"  PARENT_SCOPE)
 endfunction ()
 
@@ -192,11 +185,12 @@ if (WIN32)
     set (_releaseLinkLib _releaseImplib)
     set (_debugLinkLib _debugImplib)
 else ()
-    _findUnixLibs(_releaseLocation _debugLocation ZMQ_INCLUDE_DIRS)
+    _findUnixLibs(_releaseLocation ZMQ_INCLUDE_DIRS)
     unset (_releaseImplib)
+    unset (_debugLocation)
     unset (_debugImplib)
     set (_releaseLinkLib _releaseLocation)
-    set (_debugLinkLib _debugLocation)
+    unset (_debugLinkLib)
 endif ()
 
 if (_releaseLinkLib OR _debugLinkLib)
