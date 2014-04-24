@@ -15,143 +15,220 @@
 cmake_minimum_required (VERSION 2.8.11)
 
 
-# The following function generates a list of version names on the form
-# [3,4]_[0,9]_[0,9], excluding versions lower than verMajor_verMinor_verPatch.
-function (_generateVersionNames targetVarName verMajor verMinor verPatch)
-    set (${targetVarName} "" PARENT_SCOPE)
-    foreach (i RANGE ${verMajor} 4)
-        if (j EQUAL verMajor)
-            set (jMin ${verMinor})
-        else ()
-            set (jMin 0)
-        endif ()
-        foreach (j RANGE ${jMin} 9)
-            if ((i EQUAL verMajor) AND (j EQUAL verMinor))
-                set (kMin ${verPatch})
-            else ()
-                set (kMin 0)
-            endif ()
-            foreach (k RANGE ${kMin} 9)
-                list (APPEND ${targetVarName} "${i}_${j}_${k}")
-            endforeach()
-        endforeach ()
-    endforeach ()
-endfunction ()
-
-# This function prefixes all strings in a list with a string.
+# A function which prefixes all items in a list with a string.
 function (_prefixStrings targetVarName prefix)
-    set (${targetVarName} "" PARENT_SCOPE)
+    set (v)
     foreach (s ${ARGN})
-        list (APPEND ${targetVarName} "${prefix}${s}")
+        list (APPEND v "${prefix}${s}")
     endforeach ()
+    set (${targetVarName} ${v} PARENT_SCOPE)
 endfunction ()
 
-# On Windows, ZMQ uses a library file naming scheme that includes
-# compiler versions, release/debug mode, etc.  In addition, libraries
-# are typically installed in subfolders of the standard prefix path(s).
-set (_canFind TRUE)
-set (_extraPrefixPaths)
-if (WIN32)
-    # Compiler versions
-    if (MSVC90)
-        set (_compiler "v90")
-    elseif (MSVC10)
-        set (_compiler "v100")
-    elseif (MSVC11)
-        set (_compiler "v110")
-    elseif (MSVC12)
-        set (_compiler "v120")
+# Generates a HINTS directive for a find_XXX command, based on
+# a known file path.
+function (_getHintsDirective targetVarName knownPath)
+    if (existingPath)
+        get_filename_component (d "${knownPath}" DIRECTORY)
+        set (${targetVarName} "HINTS" "${d}/.." PARENT_SCOPE)
     else ()
-        set (_canFind FALSE)
-        message (WARNING "Compiler version not supported by the FindZMQ module; ZMQ not found.")
+        set (${targetVarName} "" PARENT_SCOPE)
+    endif ()
+endfunction ()
+
+
+# The function which searches for the DLLs, their corresponding import
+# libraries, and include files on Windows.
+function (_findWinLibs releaseDll releaseLib debugDll debugLib includeDir)
+    set (canFind TRUE)
+
+    # Extra search paths (typically "C:/Program Files/ZeroMQ ...")
+    set (extraPrefixPaths)
+    foreach (p ${CMAKE_SYSTEM_PREFIX_PATH})
+        file (GLOB d "${p}/zeromq*" "${p}/zmq*")
+        list (APPEND extraPrefixPaths ${d})
+    endforeach ()
+
+    # Supported compilers
+    if (MSVC90)
+        set (compiler "v90")
+    elseif (MSVC10)
+        set (compiler "v100")
+    elseif (MSVC11)
+        set (compiler "v110")
+    elseif (MSVC12)
+        set (compiler "v120")
+    else ()
+        set (compiler "NOTFOUND")
+        set (canFind FALSE)
+        message (WARNING "Compiler version not supported by the FindZMQ module")
     endif ()
 
-    # Extra search paths
-    foreach (_prefix ${CMAKE_SYSTEM_PREFIX_PATH})
-        file (GLOB _dirs "${_prefix}/zeromq*" "${_prefix}/zmq*")
-        list (APPEND _extraPrefixPaths ${_dirs})
-        unset (_dirs)
-    endforeach ()
-
-    # Version names
+    # If no version is requested, start at 3.0.0.
     if (NOT ZMQ_FIND_VERSION)
         set (ZMQ_FIND_VERSION_MAJOR 3)
         set (ZMQ_FIND_VERSION_MINOR 0)
         set (ZMQ_FIND_VERSION_PATCH 0)
     endif ()
-    if ((ZMQ_FIND_VERSION_MAJOR GREATER 2) AND (ZMQ_FIND_VERSION_MAJOR LESS 5))
-        _generateVersionNames(_versionNames
-            ${ZMQ_FIND_VERSION_MAJOR} ${ZMQ_FIND_VERSION_MINOR} ${ZMQ_FIND_VERSION_PATCH})
-        _prefixStrings(_releaseLibs "libzmq-${_compiler}-mt-"    ${_versionNames})
-        _prefixStrings(_debugLibs   "libzmq-${_compiler}-mt-gd-" ${_versionNames})
-        message (STATUS "Searching for ZMQ. This may take a while...")
+
+    # Make a list of possible version names, starting with the one we are
+    # asked to search for.
+    set (versionNames)
+    if (ZMQ_FIND_VERSION_MAJOR EQUAL 3)
+        foreach (m RANGE ${ZMQ_FIND_VERSION_MINOR} 2)
+            set (pMin 0)
+            if (m EQUAL ZMQ_FIND_VERSION_MINOR)
+                set (pMin ${ZMQ_FIND_VERSION_PATCH})
+            endif ()
+            foreach (p RANGE ${pMin} 5)
+                list (APPEND versionNames "3_${m}_${p}") 
+            endforeach()
+        endforeach ()
+    endif ()
+    set (mMin 0)
+    if (ZMQ_FIND_VERSION_MAJOR EQUAL 4)
+        set (mMin ${ZMQ_FIND_VERSION_MINOR})
+    endif ()
+    foreach (m RANGE ${mMin} 4)
+        set (pMin 0)
+        if ((ZMQ_FIND_VERSION_MAJOR EQUAL 4) AND (m EQUAL ZMQ_FIND_VERSION_MINOR))
+            set (pMin ${ZMQ_FIND_VERSION_PATCH})
+        endif ()
+        foreach (p RANGE ${pMin} 9)
+            list (APPEND versionNames "4_${m}_${p}") 
+        endforeach()
+    endforeach ()
+
+    # Generate possible library file names
+    if ((ZMQ_FIND_VERSION_MAJOR GREATER 2) AND (ZMQ_FIND_VERSION_MINOR LESS 5))
+        _prefixStrings(releaseLibNames "libzmq-${compiler}-mt-"    ${versionNames})
+        _prefixStrings(debugLibNames   "libzmq-${compiler}-mt-gd-" ${versionNames})
     else ()
-        set (_canFind FALSE)
+        set (canFind FALSE)
         message (WARNING "ZMQ version not supported by the FindZMQ module: ${ZMQ_FIND_VERSION}")
     endif ()
-else ()
-    # We don't need any special adaptations on *NIX.
-    set (_releaseLibs "zmq")
-    unset (_debugLibs)
-endif ()
+
+    if (canFind)
+        message (STATUS "Searching for ZMQ files. This may take a while...")
+        set (CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
+        find_library (ZMQ_RELEASE_LIB
+            NAMES ${releaseLibNames}
+            PATHS $ENV{ZMQ_DIR} ${extraPrefixPaths}
+            PATH_SUFFIXES "lib")
+        _getHintsDirective(hints ${ZMQ_RELEASE_LIB})
+        find_library (ZMQ_DEBUG_LIB
+            NAMES ${debugLibNames}
+            ${hints}
+            PATHS $ENV{ZMQ_DIR} ${extraPrefixPaths}
+            PATH_SUFFIXES "lib")
+        set (CMAKE_FIND_LIBRARY_SUFFIXES ".dll")
+        find_library (ZMQ_RELEASE_DLL
+            NAMES ${releaseLibNames}
+            ${hints}
+            PATHS $ENV{ZMQ_DIR} ${extraPrefixPaths}
+            PATH_SUFFIXES "bin" "lib")
+        find_library (ZMQ_DEBUG_DLL
+            NAMES ${debugLibNames}
+            ${hints}
+            PATHS $ENV{ZMQ_DIR} ${extraPrefixPaths}
+            PATH_SUFFIXES "bin" "lib")
+        find_path (ZMQ_HEADER_DIR "zmq.h"
+            ${_hints}
+            PATHS $ENV{ZMQ_DIR} ${extraPrefixPaths}
+            PATH_SUFFIXES "include")
+
+        set (${releaseDll} "${ZMQ_RELEASE_DLL}" PARENT_SCOPE)
+        set (${releaseLib} "${ZMQ_RELEASE_LIB}" PARENT_SCOPE)
+        set (${debugDll}   "${ZMQ_DEBUG_DLL}"   PARENT_SCOPE)
+        set (${debugLib}   "${ZMQ_DEBUG_LIB}"   PARENT_SCOPE)
+        set (${includeDir} "${ZMQ_HEADER_DIR}"  PARENT_SCOPE)
+    else ()
+        set (${releaseDll} "NOTFOUND" PARENT_SCOPE)
+        set (${releaseLib} "NOTFOUND" PARENT_SCOPE)
+        set (${debugDll}   "NOTFOUND" PARENT_SCOPE)
+        set (${debugLib}   "NOTFOUND" PARENT_SCOPE)
+        set (${includeDir} "NOTFOUND" PARENT_SCOPE)
+    endif ()
+endfunction ()
+
+# The function which searches for the libraries and headers on *NIX.
+function (_findUnixLibs releaseLib debugLib includeDir)
+    find_library (ZMQ_RELEASE_LIB
+        NAMES ${releaseLibNames}
+        PATHS $ENV{ZMQ_DIR}
+        PATH_SUFFIXES "lib")
+    _getHintsDirective(hints ${ZMQ_RELEASE_LIB})
+    find_library (ZMQ_DEBUG_LIB
+        NAMES ${debugLibNames}
+        ${hints}
+        PATHS $ENV{ZMQ_DIR}
+        PATH_SUFFIXES "lib")
+    find_path (ZMQ_HEADER_DIR "zmq.h"
+        ${_hints}
+        PATHS $ENV{ZMQ_DIR}
+        PATH_SUFFIXES "include")
+    set (${releaseLib} "${ZMQ_RELEASE_LIB}" PARENT_SCOPE)
+    set (${debugLib}   "${ZMQ_DEBUG_LIB}"   PARENT_SCOPE)
+    set (${includeDir} "${ZMQ_HEADER_DIR}"  PARENT_SCOPE)
+endfunction ()
+
+# A function which extracts the ZMQ version from macro definitions in zmq.h.
+function (_getZMQVersion targetVarName includeDir)
+    file (STRINGS "${includeDir}/zmq.h" versionDefines REGEX "define +ZMQ_VERSION_")
+    if (versionDefines)
+        string (REGEX REPLACE
+            ".*MAJOR ([0-9]+).*MINOR ([0-9]+).*PATCH ([0-9]+).*"
+            "\\1.\\2.\\3" versionString "${versionDefines}")
+    endif ()
+    set (${targetVarName} "${versionString}" PARENT_SCOPE)
+endfunction ()
+
 
 unset (ZMQ_LIBRARIES)
 unset (ZMQ_INCLUDE_DIRS)
 unset (ZMQ_VERSION_STRING)
-if (_canFind)
-    # Find "normal" library
-    find_library (_libzmq_release
-        NAMES ${_releaseLibs}
-        PATHS $ENV{ZMQ_DIR} ${_extraPrefixPaths}
-        PATH_SUFFIXES "lib")
 
-    # Find "debug" library (Windows only)
-    unset (_libzmq_debug)
-    if (_debugLibs)
-        find_library (_libzmq_debug
-            NAMES ${_debugLibs}
-            PATHS $ENV{ZMQ_DIR} ${_extraPrefixPaths}
-            PATH_SUFFIXES "lib")
-    endif ()
-
-    # Find include directory
-    find_path (ZMQ_INCLUDE_DIRS "zmq.h"
-        PATHS $ENV{ZMQ_DIR} ${_extraPrefixPaths}
-        PATH_SUFFIXES "include")
-
-    if (_libzmq_release OR _libzmq_debug)
-        add_library("zmq" SHARED IMPORTED)
-        set_target_properties ("zmq" PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${ZMQ_INCLUDE_DIRS}"
-        )
-        if (_libzmq_release)
-            set_property (TARGET "zmq" APPEND PROPERTY IMPORTED_CONFIGURATIONS "RELEASE")
-            set_target_properties ("zmq" PROPERTIES
-                IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
-                IMPORTED_LOCATION_RELEASE "${_libzmq_release}"
-            )
-        endif ()
-        if (_libzmq_debug)
-            set_property (TARGET "zmq" APPEND PROPERTY IMPORTED_CONFIGURATIONS "DEBUG")
-            set_target_properties ("zmq" PROPERTIES
-                IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
-                IMPORTED_LOCATION_DEBUG "${_libzmq_debug}"
-            )
-        endif ()
-        set (ZMQ_LIBRARIES "zmq")
-    endif ()
-    unset (_libzmq_release)
-    unset (_libzmq_debug)
+if (WIN32)
+    _findWinLibs(_releaseLocation _releaseImplib _debugLocation _debugImplib ZMQ_INCLUDE_DIRS)
+    set (_releaseLinkLib _releaseImplib)
+    set (_debugLinkLib _debugImplib)
+else ()
+    _findUnixLibs(_releaseLocation _debugLocation ZMQ_INCLUDE_DIRS)
+    unset (_releaseImplib)
+    unset (_debugImplib)
+    set (_releaseLinkLib _releaseLocation)
+    set (_debugLinkLib _debugLocation)
 endif ()
 
-# Determine ZMQ version from the #defines in zmq.h
-if (ZMQ_INCLUDE_DIRS)
-    file (STRINGS "${ZMQ_INCLUDE_DIRS}/zmq.h" _versionDefines REGEX "define +ZMQ_VERSION_")
-    if (_versionDefines)
-        string (REGEX REPLACE
-            ".*MAJOR ([0-9]+).*MINOR ([0-9]+).*PATCH ([0-9]+).*"
-            "\\1.\\2.\\3" ZMQ_VERSION_STRING "${_versionDefines}")
+if (_releaseLinkLib OR _debugLinkLib)
+    add_library ("zmq" SHARED IMPORTED)
+    set (ZMQ_LIBRARIES "zmq")
+    set_target_properties ("zmq" PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${ZMQ_INCLUDE_DIRS}"
+    )
+    if (_releaseLinkLib)
+        set_property (TARGET "zmq" APPEND PROPERTY IMPORTED_CONFIGURATIONS "RELEASE")
+        set_property (TARGET "zmq" PROPERTY IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C")
+        if (_releaseLocation)
+            set_property (TARGET "zmq" PROPERTY IMPORTED_LOCATION_RELEASE "${_releaseLocation}")
+        endif ()
+        if (_releaseImplib)
+            set_property (TARGET "zmq" PROPERTY IMPORTED_IMPLIB_RELEASE "${_releaseImplib}")
+        endif ()
     endif ()
+    if (_debugLinkLib)
+        set_property (TARGET "zmq" APPEND PROPERTY IMPORTED_CONFIGURATIONS "DEBUG")
+        set_property (TARGET "zmq" PROPERTY IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C")
+        if (_debugLocation)
+            set_property (TARGET "zmq" PROPERTY IMPORTED_LOCATION_DEBUG "${_debugLocation}")
+        endif ()
+        if (_debugImplib)
+            set_property (TARGET "zmq" PROPERTY IMPORTED_IMPLIB_DEBUG "${_debugImplib}")
+        endif ()
+    endif ()
+endif ()
+
+if (ZMQ_INCLUDE_DIRS)
+    _getZMQVersion(ZMQ_VERSION_STRING "${ZMQ_INCLUDE_DIRS}")
 endif ()
 
 include (FindPackageHandleStandardArgs)
