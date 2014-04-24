@@ -16,7 +16,7 @@ source_group ("Public Header Files" FILES ${_publicHeadersFull})
 
 # Dependencies
 find_package (Boost REQUIRED COMPONENTS "thread" "system")
-set (ZMQ_LIBRARIES "zmq")
+find_package (ZMQ REQUIRED)
 
 # Main library target
 foreach (_target "pubsub" "control")
