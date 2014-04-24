@@ -1,22 +1,58 @@
-# Finds ZeroMQ, sets ZMQ_LIBRARIES and ZMQ_INCLUDE_DIRS
+# - Finds ZeroMQ 3.x or 4.x
+#
+# The following variables are set if ZeroMQ is found:
+#
+#   ZMQ_FOUND           - Set to TRUE
+#   ZMQ_LIBRARIES       - The name of an imported target that refers to the
+#                         ZeroMQ libraries.
+#   ZMQ_INCLUDE_DIRS    - The ZeroMQ include directory (which contains zmq.h).
+#                         This is also added as a dependency to the imported
+#                         target.
+#   ZMQ_VERSION_STRING  - The version of ZeroMQ which was found
+#
+# If ZeroMQ was not found, ZMQ_FOUND is set to false.
+#
 cmake_minimum_required (VERSION 2.8.11)
 
-unset (ZMQ_LIBRARIES)
-unset (ZMQ_INCLUDE_DIRS)
-unset (ZMQ_VERSION_STRING)
 
+# The following function generates a list of version names on the form
+# [3,4]_[0,9]_[0,9], excluding versions lower than verMajor_verMinor_verPatch.
+function (_generateVersionNames targetVarName verMajor verMinor verPatch)
+    set (${targetVarName} "" PARENT_SCOPE)
+    foreach (i RANGE ${verMajor} 4)
+        if (j EQUAL verMajor)
+            set (jMin ${verMinor})
+        else ()
+            set (jMin 0)
+        endif ()
+        foreach (j RANGE ${jMin} 9)
+            if ((i EQUAL verMajor) AND (j EQUAL verMinor))
+                set (kMin ${verPatch})
+            else ()
+                set (kMin 0)
+            endif ()
+            foreach (k RANGE ${kMin} 9)
+                list (APPEND ${targetVarName} "${i}_${j}_${k}")
+            endforeach()
+        endforeach ()
+    endforeach ()
+endfunction ()
+
+# This function prefixes all strings in a list with a string.
+function (_prefixStrings targetVarName prefix)
+    set (${targetVarName} "" PARENT_SCOPE)
+    foreach (s ${ARGN})
+        list (APPEND ${targetVarName} "${prefix}${s}")
+    endforeach ()
+endfunction ()
+
+# On Windows, ZMQ uses a library file naming scheme that includes
+# compiler versions, release/debug mode, etc.  In addition, libraries
+# are typically installed in subfolders of the standard prefix path(s).
 set (_canFind TRUE)
 set (_extraPrefixPaths)
 if (WIN32)
-    # ZMQ may be, and usually is, installed in a folder below the standard prefix.
-    foreach (_prefix ${CMAKE_SYSTEM_PREFIX_PATH})
-        file (GLOB _dirs "${_prefix}/zeromq*" "${_prefix}/zmq*")
-        list (APPEND _extraPrefixPaths ${_dirs})
-        unset (_dirs)
-    endforeach ()
-
-    # On Windows, ZMQ uses a library file naming scheme that includes
-    # compiler versions, release/debug mode, etc.
+    # Compiler versions
     if (MSVC90)
         set (_compiler "v90")
     elseif (MSVC10)
@@ -30,54 +66,55 @@ if (WIN32)
         message (WARNING "Compiler version not supported by the FindZMQ module; ZMQ not found.")
     endif ()
 
-    # If version is not requested, assume lowest supported version
+    # Extra search paths
+    foreach (_prefix ${CMAKE_SYSTEM_PREFIX_PATH})
+        file (GLOB _dirs "${_prefix}/zeromq*" "${_prefix}/zmq*")
+        list (APPEND _extraPrefixPaths ${_dirs})
+        unset (_dirs)
+    endforeach ()
+
+    # Version names
     if (NOT ZMQ_FIND_VERSION)
         set (ZMQ_FIND_VERSION_MAJOR 3)
         set (ZMQ_FIND_VERSION_MINOR 0)
         set (ZMQ_FIND_VERSION_PATCH 0)
     endif ()
-
-    # Generate a list of all possible library file names.
-
     if ((ZMQ_FIND_VERSION_MAJOR GREATER 2) AND (ZMQ_FIND_VERSION_MAJOR LESS 5))
-        if ("${ZMQ_FIND_MAX_VERSION_MINOR}" STREQUAL "")
-            set (ZMQ_FIND_MAX_VERSION_MINOR 5)
-        endif ()
-        if ("${ZMQ_FIND_MAX_VERSION_PATCH}" STREQUAL "")
-            set (ZMQ_FIND_MAX_VERSION_PATCH 9)
-        endif ()
-        set (_releaseLibs)
-        set (_debugLibs)
-        foreach (_majorVer RANGE ${ZMQ_FIND_VERSION_MAJOR} 4)
-            foreach (_minorVer RANGE ${ZMQ_FIND_VERSION_MINOR} ${ZMQ_FIND_MAX_VERSION_MINOR})
-                foreach (_patchVer RANGE ${ZMQ_FIND_VERSION_PATCH} ${ZMQ_FIND_MAX_VERSION_PATCH})
-                    set (_version "${_majorVer}_${_minorVer}_${_patchVer}")
-                    list (APPEND _releaseLibs "libzmq-${_compiler}-mt-${_version}")
-                    list (APPEND _debugLibs   "libzmq-${_compiler}-mt-gd-${_version}")
-                    unset (_version)
-                endforeach ()
-            endforeach ()
-        endforeach ()
+        _generateVersionNames(_versionNames
+            ${ZMQ_FIND_VERSION_MAJOR} ${ZMQ_FIND_VERSION_MINOR} ${ZMQ_FIND_VERSION_PATCH})
+        _prefixStrings(_releaseLibs "libzmq-${_compiler}-mt-"    ${_versionNames})
+        _prefixStrings(_debugLibs   "libzmq-${_compiler}-mt-gd-" ${_versionNames})
         message (STATUS "Searching for ZMQ. This may take a while...")
     else ()
         set (_canFind FALSE)
         message (WARNING "ZMQ version not supported by the FindZMQ module: ${ZMQ_FIND_VERSION}")
     endif ()
 else ()
-    # On *NIX, it's just "libzmq" as usual.
+    # We don't need any special adaptations on *NIX.
     set (_releaseLibs "zmq")
-    set (_debugLibs ${_releaseLibs})
+    unset (_debugLibs)
 endif ()
 
+unset (ZMQ_LIBRARIES)
+unset (ZMQ_INCLUDE_DIRS)
+unset (ZMQ_VERSION_STRING)
 if (_canFind)
+    # Find "normal" library
     find_library (_libzmq_release
         NAMES ${_releaseLibs}
         PATHS $ENV{ZMQ_DIR} ${_extraPrefixPaths}
         PATH_SUFFIXES "lib")
-    find_library (_libzmq_debug
-        NAMES ${_debugLibs}
-        PATHS $ENV{ZMQ_DIR} ${_extraPrefixPaths}
-        PATH_SUFFIXES "lib")
+
+    # Find "debug" library (Windows only)
+    unset (_libzmq_debug)
+    if (_debugLibs)
+        find_library (_libzmq_debug
+            NAMES ${_debugLibs}
+            PATHS $ENV{ZMQ_DIR} ${_extraPrefixPaths}
+            PATH_SUFFIXES "lib")
+    endif ()
+
+    # Find include directory
     find_path (ZMQ_INCLUDE_DIRS "zmq.h"
         PATHS $ENV{ZMQ_DIR} ${_extraPrefixPaths}
         PATH_SUFFIXES "include")
