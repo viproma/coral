@@ -1,0 +1,25 @@
+package dsbproto;
+
+enum VarType
+{
+    REAL    = 1;
+    INTEGER = 2;
+    BOOLEAN = 3;
+    STRING  = 4;
+    BYTE    = 5;
+}
+
+enum VarCausality
+{
+    PARAMETER   = 1;
+    INPUT       = 3;
+    OUTPUT      = 4;
+}
+
+message VarInfo
+{
+    required int32 id = 1;
+    required string name = 2;
+    required VarType type = 3;
+    required VarCausality causality = 4;
+}
