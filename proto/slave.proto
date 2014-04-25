@@ -1,14 +1,15 @@
 package dsbproto;
 
+// The FMI variable data types.
 enum VarType
 {
     REAL    = 1;
     INTEGER = 2;
     BOOLEAN = 3;
     STRING  = 4;
-    BYTE    = 5;
 }
 
+// Currently supported FMI variable causalities.
 enum VarCausality
 {
     PARAMETER   = 1;
@@ -16,10 +17,59 @@ enum VarCausality
     OUTPUT      = 4;
 }
 
+// The value of a variable
+message VarValue
+{
+    optional double realValue = 1;
+    optional int32 integerValue = 2;
+    optional bool booleanValue = 3;
+    optional string stringValue = 4;
+}
+
+// The information a slave needs to transfer to the master about one of
+// its variables.
 message VarInfo
 {
     required int32 id = 1;
     required string name = 2;
     required VarType type = 3;
     required VarCausality causality = 4;
+}
+
+// The information a slave needs to transfer to the master about itself.
+message SlaveDescription
+{
+    required int32 id = 1;
+    required string name = 2;
+    repeated VarInfo variables = 10;
+}
+
+// A message that acts as a unique identifier for a certain variable for
+// a certain slave.
+message Variable
+{
+    required int32 slaveId = 1;
+    required int32 varId = 2;
+}
+
+// A message that instructs a slave to connect one of its input variables
+// to another slave's output variable.
+message PortConnection
+{
+    required int32 inputVarId = 1;
+    required Variable outputVar = 2;
+}
+
+// An initial value for one of a slave's variables.
+message VarInit
+{
+    required int32 varId = 1;
+    required VarValue value = 2;
+}
+
+// A message that is sent by the master to a slave to initialize it.
+message SlaveInitialization
+{
+    repeated PortConnection connections = 1;
+    repeated VarInit initialValues = 2;
 }
