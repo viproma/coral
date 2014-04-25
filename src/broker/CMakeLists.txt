@@ -27,7 +27,7 @@ foreach (_target "pubsub" "control")
         ${_sources})
     target_include_directories (${_target}
         PRIVATE ${Boost_INCLUDE_DIRS} ${CPPZMQ_INCLUDE_DIRS})
-    target_link_libraries (${_target} ${Boost_LIBRARIES} ${ZMQ_LIBRARIES})
+    target_link_libraries (${_target} "dsbproto" ${Boost_LIBRARIES} ${ZMQ_LIBRARIES})
 endforeach ()
 #install (TARGETS ${_target} ${targetInstallDestinations})
 
