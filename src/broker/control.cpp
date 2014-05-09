@@ -8,7 +8,7 @@
 #include "boost/thread.hpp"
 
 #include "zmq.hpp"
-#include "slave.pb.h"
+#include "control.pb.h"
 
 
 const long SECONDS = 1000;
@@ -65,11 +65,11 @@ void slave(const char* namez)
     control.setsockopt(ZMQ_IDENTITY, name.data(), name.size());
     control.connect("ipc://broker_slaveControl");
 
-    dsbproto::VarInfo varInfo;
+    dsbproto::control::VarInfo varInfo;
     varInfo.set_id(123);
     varInfo.set_name("myvar");
-    varInfo.set_type(dsbproto::VarType::INTEGER);
-    varInfo.set_causality(dsbproto::VarCausality::OUTPUT);
+    varInfo.set_type(dsbproto::control::VarType::INTEGER);
+    varInfo.set_causality(dsbproto::control::VarCausality::OUTPUT);
     send(control, "HELLO", true);
     sendPB(control, varInfo);
 
@@ -118,7 +118,7 @@ void master(const size_t slaveCount)
         const auto cmd = toString(msg[2]);
         if (cmd == "HELLO") {
             std::cout << "Master: Slave connected: " << slaveId << std::endl;
-            dsbproto::VarInfo varInfo;
+            dsbproto::control::VarInfo varInfo;
             readPB(msg[3], varInfo);
             std::cout << " -- " << varInfo.id() << " " << varInfo.name() << " "
                       << varInfo.type() << " " << varInfo.causality() << std::endl;

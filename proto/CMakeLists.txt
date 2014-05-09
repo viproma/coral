@@ -1,6 +1,6 @@
 # Creates a library target that contains the generated protocol buffers code.
 set (target "dsbproto")
-set (protoFiles "slave.proto")
+set (protoFiles "control.proto")
 
 find_package (Protobuf REQUIRED)
 PROTOBUF_GENERATE_CPP (sources headers ${protoFiles})
