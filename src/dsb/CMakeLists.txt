@@ -2,10 +2,18 @@ set (_target "dsb")
 
 set (_publicHeaders )
 set (_privateHeaders
-    "dsb/util/encoding.hpp")
+    "dsb/comm/helpers.hpp"
+    "dsb/util/encoding.hpp"
+)
 set (_internalHeaders ) # Only visible inside the "dsb" module.
-set (_sources "dsb_util_encoding.cpp")
-set (_testSources "dsb_util_encoding_test.cpp")
+set (_sources
+    "dsb_comm_helpers.cpp"
+    "dsb_util_encoding.cpp"
+)
+set (_testSources
+    "dsb_comm_helpers_test.cpp"
+    "dsb_util_encoding_test.cpp"
+)
 
 # Add full path to non-internal headers
 set (_publicHeadersFull)
@@ -22,18 +30,24 @@ source_group ("Private Header Files" FILES ${_privateHeadersFull})
 source_group ("Internal Header Files" FILES ${_internalHeaders})
 include_directories (${publicHeaderDir} ${privateHeaderDir})
 
+# Dependencies
+find_package (ZMQ REQUIRED)
+
 # Main library target
 add_library (${_target} STATIC
     ${_publicHeadersFull}
     ${_privateHeadersFull}
     ${_internalHeaders}
     ${_sources})
+target_include_directories(${_target}
+    PRIVATE "$<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>"
+            ${ZMQ_INCLUDE_DIRS})
 install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
 
 # Test target
 set (_testTarget "${_target}_test")
 add_executable (${_testTarget} ${_testSources})
-target_link_libraries (${_testTarget} ${_target} "gtest_main")
+target_link_libraries (${_testTarget} ${_target} "gtest_main" "dsbproto" ${ZMQ_LIBRARIES})
 target_include_directories(
     ${_testTarget}
     PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>")

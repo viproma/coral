@@ -1,5 +1,13 @@
 package dsbproto.control;
 
+// Message identifiers.
+enum MessageType
+{
+    HELLO = 0;
+    DESCRIBE = 1;
+}
+
+
 // The FMI variable data types.
 enum VarType
 {
