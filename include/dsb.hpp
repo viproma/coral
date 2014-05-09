@@ -1,7 +1,13 @@
-// Placeholder
+/**
+\file
+\brief  A header file that includes the entire API.
+*/
 #ifndef DSB_HPP
 #define DSB_HPP
 
-int Foo(int i);
+#include "dsb/util.hpp"
 
-#endif // DSB_HPP
+/// A namespace for all DSB functionality.
+namespace dsb { }
+
+#endif // header guard

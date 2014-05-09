@@ -1,13 +1,15 @@
 set (_target "dsb")
 
-set (_publicHeaders "dsb.hpp")
-set (_internalHeaders "dsb_internal.hpp")
-set (_sources "dsb.cpp")
-set (_testSources "dsb_test.cpp")
+set (_publicHeaders
+    "dsb.hpp"
+    "dsb/util.hpp"
+    "dsb/util/encoding.hpp")
+set (_internalHeaders )
+set (_sources "dsb_util_encoding.cpp")
+set (_testSources "dsb_util_encoding_test.cpp")
 
 # Public API headers are located elsewhere
 include_directories (${publicHeaderDir})
-
 set (_publicHeadersFull)
 foreach (_hdr ${_publicHeaders})
     list (APPEND _publicHeadersFull "${publicHeaderDir}/${_hdr}")
