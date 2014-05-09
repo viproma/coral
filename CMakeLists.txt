@@ -105,9 +105,7 @@ list (APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Subdirectories
 # ==============================================================================
 add_subdirectory ("proto")
-add_subdirectory ("src/broker")
-add_subdirectory ("src/dsb")
-add_subdirectory ("src/dsbexec")
+add_subdirectory ("src")
 
 # ==============================================================================
 # API documentation generation

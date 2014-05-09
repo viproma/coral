@@ -1,24 +1,31 @@
 set (_target "dsb")
 
-set (_publicHeaders
-    "dsb.hpp"
-    "dsb/util.hpp"
+set (_publicHeaders )
+set (_privateHeaders
     "dsb/util/encoding.hpp")
-set (_internalHeaders )
+set (_internalHeaders ) # Only visible inside the "dsb" module.
 set (_sources "dsb_util_encoding.cpp")
 set (_testSources "dsb_util_encoding_test.cpp")
 
-# Public API headers are located elsewhere
-include_directories (${publicHeaderDir})
+# Add full path to non-internal headers
 set (_publicHeadersFull)
-foreach (_hdr ${_publicHeaders})
-    list (APPEND _publicHeadersFull "${publicHeaderDir}/${_hdr}")
+foreach (h ${_publicHeaders})
+    list (APPEND _publicHeadersFull "${publicHeaderDir}/${h}")
 endforeach ()
+set (_privateHeadersFull)
+foreach (h ${_privateHeaders})
+    list (APPEND _privateHeadersFull "${privateHeaderDir}/${h}")
+endforeach ()
+
 source_group ("Public Header Files" FILES ${_publicHeadersFull})
+source_group ("Private Header Files" FILES ${_privateHeadersFull})
+source_group ("Internal Header Files" FILES ${_internalHeaders})
+include_directories (${publicHeaderDir} ${privateHeaderDir})
 
 # Main library target
 add_library (${_target} STATIC
     ${_publicHeadersFull}
+    ${_privateHeadersFull}
     ${_internalHeaders}
     ${_sources})
 install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
