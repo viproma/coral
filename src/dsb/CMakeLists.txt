@@ -2,21 +2,24 @@ set (_target "dsb")
 
 set (_publicHeaders )
 set (_privateHeaders
-    "dsb/comm/error.hpp"
     "dsb/comm/helpers.hpp"
-    "dsb/comm/protobuf.hpp"
+    "dsb/protobuf.hpp"
+    "dsb/protocol/control.hpp"
+    "dsb/protocol/error.hpp"
     "dsb/util/encoding.hpp"
     "dsb/util/error.hpp"
 )
 set (_internalHeaders ) # Only visible inside the "dsb" module.
 set (_sources
     "dsb_comm_helpers.cpp"
-    "dsb_comm_protobuf.cpp"
+    "dsb_protobuf.cpp"
+    "dsb_protocol_control.cpp"
     "dsb_util_encoding.cpp"
 )
 set (_testSources
     "dsb_comm_helpers_test.cpp"
-    "dsb_comm_protobuf_test.cpp"
+    "dsb_protobuf_test.cpp"
+    "dsb_protocol_control_test.cpp"
     "dsb_util_encoding_test.cpp"
 )
 

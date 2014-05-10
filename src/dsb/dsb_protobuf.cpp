@@ -1,9 +1,12 @@
-#include "dsb/comm/protobuf.hpp"
+#include "dsb/protobuf.hpp"
 
 #include "dsb/util/error.hpp"
 
 
-void dsb::comm::SerializeToFrame(
+namespace dsb { namespace protobuf {
+
+
+void SerializeToFrame(
     const google::protobuf::MessageLite& source,
     zmq::message_t* target)
 {
@@ -14,10 +17,13 @@ void dsb::comm::SerializeToFrame(
 }
 
 
-void dsb::comm::ParseFromFrame(
+void ParseFromFrame(
     const zmq::message_t& source,
     google::protobuf::MessageLite* target)
 {
     DSB_INPUT_CHECK(target != nullptr);
     target->ParseFromArray(source.data(), source.size());
 }
+
+
+}} // namespace

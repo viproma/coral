@@ -1,10 +1,11 @@
 #include "gtest/gtest.h"
-#include "dsb/comm/protobuf.hpp"
+#include "dsb/protobuf.hpp"
 #include "testing.pb.h"
 
-using namespace dsb::comm;
 
-TEST(dsb_comm_protobuf, SerializeAndParse)
+using namespace dsb::protobuf;
+
+TEST(dsb_protobuf, SerializeAndParse)
 {
     dsbproto::testing::IntString pbSrc;
     pbSrc.set_i(123);
