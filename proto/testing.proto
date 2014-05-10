@@ -1,0 +1,8 @@
+// The message types in this file are only used for testing purposes.
+package dsbproto.testing;
+
+message IntString
+{
+   optional int32 i = 1;
+   optional string s = 2;
+}

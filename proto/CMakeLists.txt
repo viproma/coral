@@ -1,9 +1,13 @@
 # Creates a library target that contains the generated protocol buffers code.
-set (target "dsbproto")
-set (protoFiles "control.proto")
+set (protoFiles
+    "control.proto"
+    "testing.proto"
+    "variable.proto"
+)
 
 find_package (Protobuf REQUIRED)
 PROTOBUF_GENERATE_CPP (sources headers ${protoFiles})
+set (target "dsbproto")
 add_library (${target} STATIC ${sources} ${headers})
 target_include_directories (${target}
     INTERFACE ${CMAKE_CURRENT_BINARY_DIR}

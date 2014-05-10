@@ -3,9 +3,8 @@
 
 #include <cstdint>
 
-
-namespace dsb { namespace util {
-
+namespace dsb { namespace util
+{
 
 /// Encodes a 16-bit unsigned integer using little-endian byte order.
 void EncodeUint16(uint16_t source, char target[2]);

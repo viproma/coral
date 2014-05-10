@@ -68,8 +68,8 @@ void slave(const char* namez)
     dsbproto::control::VarInfo varInfo;
     varInfo.set_id(123);
     varInfo.set_name("myvar");
-    varInfo.set_type(dsbproto::control::VarType::INTEGER);
-    varInfo.set_causality(dsbproto::control::VarCausality::OUTPUT);
+    varInfo.set_type(dsbproto::variable::DataType::INTEGER);
+    varInfo.set_causality(dsbproto::variable::Causality::OUTPUT);
     send(control, "HELLO", true);
     sendPB(control, varInfo);
 
