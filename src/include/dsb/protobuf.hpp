@@ -5,6 +5,7 @@
 #ifndef DSB_PROTOBUF_HPP
 #define DSB_PROTOBUF_HPP
 
+#include <stdexcept>
 #include "google/protobuf/message_lite.h"
 #include "zmq.hpp"
 
@@ -27,6 +28,19 @@ void SerializeToFrame(
 void ParseFromFrame(
     const zmq::message_t& source,
     google::protobuf::MessageLite& target);
+
+
+/// Exception that signals failure to serialize or deserialize a message.
+class SerializationException : public std::runtime_error
+{
+public:
+    enum Action { SERIALIZE, PARSE };
+
+    SerializationException(Action action)
+        : std::runtime_error(action == SERIALIZE ? "Failed to serialize message"
+                                                 : "Failed to parse message")
+    { }
+};
 
 
 }}      // namespace

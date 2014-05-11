@@ -1,6 +1,7 @@
 #include "dsb/control.hpp"
 
 #include <cstring>
+#include <sstream>
 
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
@@ -22,6 +23,54 @@ uint16_t dsb::control::ParseMessageType(const zmq::message_t& header)
     }
     return dsb::util::DecodeUint16(static_cast<const char*>(header.data()));
 }
+
+
+uint16_t dsb::control::NonErrorMessageType(
+    const std::deque<zmq::message_t>& message)
+{
+    DSB_INPUT_CHECK(!message.empty());
+    const auto type = ParseMessageType(message.front());
+    if (type == dsbproto::control::ERROR) {
+        dsbproto::control::ErrorInfo errorInfo;
+        if (message.size() > 1) {
+            dsb::protobuf::ParseFromFrame(message[1], errorInfo);
+        }
+        throw RemoteErrorException(errorInfo);
+    }
+    return type;
+}
+
+
+namespace
+{
+    // Returns a standard error message corresponding to the given code.
+    const char* RemoteErrorString(const dsbproto::control::ErrorInfo::Code& code)
+    {
+        switch (code) {
+            case dsbproto::control::ErrorInfo::INVALID_REQUEST:
+                return "Invalid request";
+            default:
+                return "Unknown error";
+        }
+    }
+
+    // Returns a detailed error message on the form
+    // "standard msg. (details)"
+    std::string DetailedRemoteErrorString(
+        const dsbproto::control::ErrorInfo& errorInfo)
+    {
+        std::stringstream s;
+        s << RemoteErrorString(errorInfo.code())
+          << " (" << errorInfo.details() << ')';
+        return s.str();
+    }
+}
+
+
+dsb::control::RemoteErrorException::RemoteErrorException(
+    const dsbproto::control::ErrorInfo& errorInfo)
+    : std::runtime_error(DetailedRemoteErrorString(errorInfo))
+{ }
 
 
 void dsb::control::CreateHelloMessage(

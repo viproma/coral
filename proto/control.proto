@@ -3,11 +3,34 @@ package dsbproto.control;
 import "variable.proto";
 
 
-// Message identifiers.
+// Message type identifiers.
 enum MessageType
 {
-    HELLO = 0;
-    DESCRIBE = 1;
+    HELLO       =  0;
+    ERROR       =  1;
+    TERMINATE   =  2;
+    DESCRIBE    =  3;
+    INITIALIZE  =  4;
+    INITIALIZED =  5;
+    SUBSCRIBE   =  6;
+    READY       =  7;
+    STEP        =  8;
+    STEP_FAIL   =  9;
+    COMMUNICATE = 10;
+}
+
+
+// The body of an ERROR message.
+message ErrorInfo
+{
+    enum Code
+    {
+        UNKNOWN_ERROR   =  0;
+        INVALID_REQUEST =  1;
+    }
+
+    optional Code code = 1 [default = UNKNOWN_ERROR];
+    optional string details = 2;
 }
 
 

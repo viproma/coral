@@ -7,7 +7,9 @@ void dsb::protobuf::SerializeToFrame(
 {
     const auto size = source.ByteSize();
     target.rebuild(size);
-    source.SerializeToArray(target.data(), size);
+    if (!source.SerializeToArray(target.data(), size)) {
+        throw SerializationException(SerializationException::SERIALIZE);
+    }
 }
 
 
@@ -15,5 +17,7 @@ void dsb::protobuf::ParseFromFrame(
     const zmq::message_t& source,
     google::protobuf::MessageLite& target)
 {
-    target.ParseFromArray(source.data(), source.size());
+    if (!target.ParseFromArray(source.data(), source.size());
+        throw SerializationException(SerializationException::PARSE);
+    }
 }

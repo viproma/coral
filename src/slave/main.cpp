@@ -5,9 +5,35 @@
 
 #include "dsb/comm.hpp"
 #include "dsb/control.hpp"
+#include "dsb/error.hpp"
 #include "dsb/util.hpp"
 
 #include "control.pb.h"
+
+
+class Shutdown : std::exception
+{
+public:
+    const char* what() const noexcept { return "Normal shutdown requested by master"; }
+};
+
+
+dsbproto::control::MessageType NormalMessageType(const std::deque<zmq::message_t>& msg)
+{
+    const auto mt = dsb::control::NonErrorMessageType(msg.front());
+    if (mt == dsbproto::control::SHUTDOWN) throw Shutdown();
+    return mt;
+}
+
+
+void EnforceMessageType(
+    const std::deque<zmq::message_t>& msg,
+    dsbproto::control::MessageType expectedType)
+{
+    if (NormalMessageType(msg) != expectedType) {
+        throw dsb::error::ProtocolViolationException();
+    }
+}
 
 
 int main(int argc, const char** argv)
@@ -43,4 +69,29 @@ int main(int argc, const char** argv)
         dsbproto::control::MessageType::DESCRIBE,
         msg);
     dsb::comm::Send(control, msg);
+
+    // Receive INITIALIZE
+    dsb::comm::Receive(control, msg);
+    EnforceMessageType(msg, dsbproto::control::INITIALIZE);
+
+    // Send INITIALIZED
+    dsb::control::CreateMessage(
+        dsbproto::control::MessageType::INITIALIZED,
+        msg);
+    dsb::comm::Send(control, msg);
+
+    // Receive SUBSCRIBE
+    dsb::comm::Receive(control, msg);
+    EnforceMessageType(msg, dsbproto::control::SUBSCRIBE);
+
+    // READY loop
+    for (;;) {
+        dsb::control::CreateMessage(
+            dsbproto::control::MessageType::READY,
+            msg);
+        dsb::comm::Send(control, msg);
+
+        dsb::comm::Receive(control, msg);
+        const auto msgType = NormalMessageType(msg);
+    }
 }
