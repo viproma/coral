@@ -5,12 +5,17 @@
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/error.hpp"
 #include "dsb/util/encoding.hpp"
+#include "dsb/util/error.hpp"
 
 
-namespace dsb { namespace protocol { namespace control {
+namespace
+{
+    const size_t helloPrefixSize = 6;
+    const char helloPrefix[helloPrefixSize] = { '\x00', '\x00', 'D', 'S', 'C', 'P' };
+}
 
 
-uint16_t ParseMessageType(const zmq::message_t& header)
+uint16_t dsb::protocol::control::ParseMessageType(const zmq::message_t& header)
 {
     if (header.size() < 2) {
         throw ProtocolViolationException("Invalid message header (frame too short)");
@@ -19,47 +24,45 @@ uint16_t ParseMessageType(const zmq::message_t& header)
 }
 
 
-void SendHello(
-    zmq::socket_t& socket,
+void dsb::protocol::control::CreateHelloMessage(
     uint16_t protocolVersion,
-    const google::protobuf::MessageLite& body)
+    const google::protobuf::MessageLite& body,
+    std::deque<zmq::message_t>* message)
 {
-    const size_t headerSize = 8;
-    char headerFrame[headerSize] = { '\x00', '\x00', 'D', 'S', 'C', 'P', '\xFF', '\xFF' };
-    dsb::util::EncodeUint16(static_cast<uint16_t>(protocolVersion), headerFrame + 6);
+    DSB_INPUT_CHECK(message != nullptr);
+    message->clear();
 
-    zmq::message_t bodyFrame;
-    dsb::protobuf::SerializeToFrame(body, &bodyFrame);
+    message->emplace_back(helloPrefixSize + 2);
+    const auto headerBuf = static_cast<char*>(message->back().data());
+    std::memcpy(headerBuf, helloPrefix, helloPrefixSize);
+    dsb::util::EncodeUint16(protocolVersion, headerBuf + helloPrefixSize);
 
-    socket.send(headerFrame, headerSize, ZMQ_SNDMORE);
-    socket.send(bodyFrame);
+    message->emplace_back();
+    dsb::protobuf::SerializeToFrame(body, &message->back());
 }
 
 
-uint16_t ParseProtocolVersion(const zmq::message_t& header)
+uint16_t dsb::protocol::control::ParseProtocolVersion(const zmq::message_t& header)
 {
-    if (header.size() != 8 || std::memcmp(header.data(), "\x00\x00""DSCP", 6) != 0) {
-        throw ProtocolViolationException("Invalid message header (not a HELLO message)");
+    if (header.size() != 8
+        || std::memcmp(header.data(), helloPrefix, helloPrefixSize) != 0) {
+        throw ProtocolViolationException(
+            "Invalid message header (not a HELLO message)");
     }
-    return dsb::util::DecodeUint16(static_cast<const char*>(header.data()) + 6);
+    return dsb::util::DecodeUint16(
+        static_cast<const char*>(header.data()) + helloPrefixSize);
 }
 
 
-void SendMessage(
-    zmq::socket_t& socket,
+void dsb::protocol::control::CreateMessage(
     dsbproto::control::MessageType type,
-    const google::protobuf::MessageLite& body)
+    const google::protobuf::MessageLite& body,
+    std::deque<zmq::message_t>* message)
 {
-    const size_t headerSize = 2;
-    char headerFrame[headerSize] = { '\xFF', '\xFF' };
-    dsb::util::EncodeUint16(static_cast<uint16_t>(type), headerFrame);
-
-    zmq::message_t bodyFrame;
-    dsb::protobuf::SerializeToFrame(body, &bodyFrame);
-
-    socket.send(headerFrame, headerSize, ZMQ_SNDMORE);
-    socket.send(bodyFrame);
+    DSB_INPUT_CHECK(message != nullptr);
+    message->clear();
+    message->emplace_back(2);
+    dsb::util::EncodeUint16(type, static_cast<char*>(message->back().data()));
+    message->emplace_back();
+    dsb::protobuf::SerializeToFrame(body, &message->back());
 }
-
-
-}}} // namespace
