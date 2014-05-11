@@ -1,14 +1,32 @@
 /**
 \file
-\brief  General error handling utilities.
+\brief  Main header file for dsb::error.
 */
-#ifndef DSB_UTIL_ERROR_HPP
-#define DSB_UTIL_ERROR_HPP
+#ifndef DSB_ERROR_HPP
+#define DSB_ERROR_HPP
 
 #include <sstream>
+#include <stdexcept>
 
-namespace dsb { namespace util
+
+namespace dsb
 {
+
+/// Exception types and error handling facilities.
+namespace error
+{
+
+
+/// Exception thrown when communication fails due to a protocol violation.
+class ProtocolViolationException : public std::runtime_error
+{
+public:
+    explicit ProtocolViolationException(const std::string& whatArg)
+        : std::runtime_error(whatArg) { }
+
+    explicit ProtocolViolationException(const char* whatArg)
+        : std::runtime_error(whatArg) { }
+};
 
 
 /**
@@ -60,13 +78,12 @@ the exception and its accompanying error message: namely, other developers
 who will be using your function, and who will be using the exception to
 debug their code.
 
-\param[in]  test    An expression which can be implicitly converted to
-                    `bool`.
+\param[in] test An expression which can be implicitly converted to `bool`.
 */
 #define DSB_INPUT_CHECK(test)                                                  \
     do {                                                                       \
         if (!(test)) {                                                         \
-            dsb::util::InternalThrow<std::invalid_argument>                   \
+            dsb::error::InternalThrow<std::invalid_argument >                  \
                 (__FUNCTION__, -1, "Input requirement not satisfied", #test);  \
         }                                                                      \
     } while(false)

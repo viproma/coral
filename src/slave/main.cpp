@@ -3,9 +3,9 @@
 #include <stdexcept>
 #include <string>
 
-#include "dsb/comm/helpers.hpp"
-#include "dsb/protocol/control.hpp"
-#include "dsb/util/encoding.hpp"
+#include "dsb/comm.hpp"
+#include "dsb/control.hpp"
+#include "dsb/util.hpp"
 
 #include "control.pb.h"
 
@@ -29,17 +29,17 @@ int main(int argc, const char** argv)
 
     // Send HELLO
     std::deque<zmq::message_t> msg;
-    dsb::protocol::control::CreateHelloMessage(0, msg);
+    dsb::control::CreateHelloMessage(0, msg);
     dsb::comm::Send(control, msg);
 
     // Receive HELLO
     dsb::comm::Receive(control, msg);
-    if (dsb::protocol::control::ParseProtocolVersion(msg.front()) != 0) {
+    if (dsb::control::ParseProtocolVersion(msg.front()) != 0) {
         throw std::runtime_error("Master required unsupported protocol");
     }
 
     // Send DESCRIBE
-    dsb::protocol::control::CreateMessage(
+    dsb::control::CreateMessage(
         dsbproto::control::MessageType::DESCRIBE,
         msg);
     dsb::comm::Send(control, msg);

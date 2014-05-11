@@ -1,11 +1,11 @@
 #include <cstring>
 #include "gtest/gtest.h"
-#include "dsb/comm/helpers.hpp"
+#include "dsb/comm.hpp"
 
 using namespace dsb::comm;
 
 
-TEST(dsb_comm_helpers, SendReceiveMessage)
+TEST(dsb_comm, SendReceiveMessage)
 {
     auto ctx = zmq::context_t();
     auto sender = zmq::socket_t(ctx, ZMQ_PUSH);
@@ -14,7 +14,7 @@ TEST(dsb_comm_helpers, SendReceiveMessage)
         + ::testing::UnitTest::GetInstance()->current_test_info()->test_case_name();
     recver.bind(endpoint.c_str());
     sender.connect(endpoint.c_str());
-    
+
     std::deque<zmq::message_t> srcMsg;
     srcMsg.emplace_back(123);
     srcMsg.emplace_back();
@@ -29,7 +29,7 @@ TEST(dsb_comm_helpers, SendReceiveMessage)
     EXPECT_EQ(321, tgtMsg[2].size());
 }
 
-TEST(dsb_comm_helpers, SendReceiveAddressedMessage)
+TEST(dsb_comm, SendReceiveAddressedMessage)
 {
     auto ctx = zmq::context_t();
     auto sender = zmq::socket_t(ctx, ZMQ_PUSH);
@@ -38,7 +38,7 @@ TEST(dsb_comm_helpers, SendReceiveAddressedMessage)
         + ::testing::UnitTest::GetInstance()->current_test_info()->test_case_name();
     recver.bind(endpoint.c_str());
     sender.connect(endpoint.c_str());
-    
+
     std::deque<zmq::message_t> srcMsg;
     srcMsg.emplace_back(123);
     srcMsg.emplace_back(321);
@@ -54,7 +54,7 @@ TEST(dsb_comm_helpers, SendReceiveAddressedMessage)
     EXPECT_EQ(321, tgtMsg[3].size());
 }
 
-TEST(dsb_comm_helpers, PopMessageEnvelope)
+TEST(dsb_comm, PopMessageEnvelope)
 {
     std::deque<zmq::message_t> msg;
     msg.emplace_back(123);
@@ -72,7 +72,7 @@ TEST(dsb_comm_helpers, PopMessageEnvelope)
     EXPECT_EQ(97, msg[0].size());
 }
 
-TEST(dsb_comm_helpers, PopMessageEnvelope_emptyEnvelope)
+TEST(dsb_comm, PopMessageEnvelope_emptyEnvelope)
 {
     std::deque<zmq::message_t> msg;
     msg.emplace_back();
@@ -90,7 +90,7 @@ TEST(dsb_comm_helpers, PopMessageEnvelope_emptyEnvelope)
     EXPECT_EQ( 97, msg[2].size());
 }
 
-TEST(dsb_comm_helpers, PopMessageEnvelope_noEnvelope)
+TEST(dsb_comm, PopMessageEnvelope_noEnvelope)
 {
     std::deque<zmq::message_t> msg;
     msg.emplace_back(123);
@@ -107,7 +107,7 @@ TEST(dsb_comm_helpers, PopMessageEnvelope_noEnvelope)
     EXPECT_EQ( 97, msg[2].size());
 }
 
-TEST(dsb_comm_helpers, PopMessageEnvelope_dropEnvelope)
+TEST(dsb_comm, PopMessageEnvelope_dropEnvelope)
 {
     std::deque<zmq::message_t> msg;
     msg.emplace_back(123);
@@ -121,7 +121,7 @@ TEST(dsb_comm_helpers, PopMessageEnvelope_dropEnvelope)
 }
 
 
-TEST(dsb_comm_helpers, ToString)
+TEST(dsb_comm, ToString)
 {
     zmq::message_t msg(3);
     std::memcpy(msg.data(), "foo", 3);

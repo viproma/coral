@@ -1,19 +1,19 @@
 #include "gtest/gtest.h"
+#include "dsb/control.hpp"
+#include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
-#include "dsb/protocol/control.hpp"
-#include "dsb/protocol/error.hpp"
 #include "testing.pb.h"
 
-using namespace dsb::protocol::control;
+using namespace dsb::control;
 
-TEST(dsb_protocol_control, ParseMessageType_error)
+TEST(dsb_control, ParseMessageType_error)
 {
     zmq::message_t msg;
     ASSERT_THROW(ParseMessageType(msg),
-                 dsb::protocol::ProtocolViolationException);
+                 dsb::error::ProtocolViolationException);
 }
 
-TEST(dsb_protocol_control, CreateHelloMessage)
+TEST(dsb_control, CreateHelloMessage)
 {
     dsbproto::testing::IntString pbSrc;
     pbSrc.set_i(314);
@@ -30,14 +30,14 @@ TEST(dsb_protocol_control, CreateHelloMessage)
     EXPECT_EQ("Hello", pbTgt.s());
 }
 
-TEST(dsb_protocol_control, ParseProtocolVersion_error)
+TEST(dsb_control, ParseProtocolVersion_error)
 {
     zmq::message_t msg(4);
     ASSERT_THROW(ParseProtocolVersion(msg),
-                 dsb::protocol::ProtocolViolationException);
+                 dsb::error::ProtocolViolationException);
 }
 
-TEST(dsb_protocol_control, CreateMessage)
+TEST(dsb_control, CreateMessage)
 {
     dsbproto::testing::IntString pbSrc;
     pbSrc.set_i(314);

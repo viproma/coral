@@ -1,8 +1,8 @@
-#include "dsb/comm/helpers.hpp"
+#include "dsb/comm.hpp"
 
 #include <algorithm>
 #include <cstring>
-#include "dsb/util/error.hpp"
+#include "dsb/error.hpp"
 
 
 void dsb::comm::Send(zmq::socket_t& socket, std::deque<zmq::message_t>& message)

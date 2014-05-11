@@ -1,7 +1,5 @@
 #include "dsb/protobuf.hpp"
 
-#include "dsb/util/error.hpp"
-
 
 void dsb::protobuf::SerializeToFrame(
     const google::protobuf::MessageLite& source,

@@ -1,9 +1,9 @@
 #include "gtest/gtest.h"
-#include "dsb/util/encoding.hpp"
+#include "dsb/util.hpp"
 
 using namespace dsb::util;
 
-TEST(dsb_util_encoding, EncodeUint16) {
+TEST(dsb_util, EncodeUint16) {
     char b[2] = { '\xFF', '\xFF' };
 
     EncodeUint16(0, b);
@@ -27,8 +27,7 @@ TEST(dsb_util_encoding, EncodeUint16) {
     EXPECT_EQ('\x3B', b[1]);
 }
 
-TEST(dsb_util_encoding, DecodeUint16) {
-
+TEST(dsb_util, DecodeUint16) {
     EXPECT_EQ(    0, DecodeUint16("\x00\x00"));
     EXPECT_EQ(65535, DecodeUint16("\xFF\xFF"));
     EXPECT_EQ( 4608, DecodeUint16("\x00\x12"));

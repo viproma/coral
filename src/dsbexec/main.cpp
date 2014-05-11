@@ -6,9 +6,9 @@
 #include <stdexcept>
 #include <string>
 
-#include "dsb/comm/helpers.hpp"
-#include "dsb/protocol/control.hpp"
-#include "dsb/util/encoding.hpp"
+#include "dsb/comm.hpp"
+#include "dsb/control.hpp"
+#include "dsb/util.hpp"
 
 #include "control.pb.h"
 
@@ -64,17 +64,17 @@ int main(int argc, const char** argv)
         const auto slaveId = dsb::comm::ToString(envelope.front());
         std::clog << "Received message from slave '" << slaveId << "':";
 
-        switch (dsb::protocol::control::ParseMessageType(msg.front())) {
+        switch (dsb::control::ParseMessageType(msg.front())) {
             case dsbproto::control::MessageType::HELLO: {
                 std::clog << "HELLO" << std::endl;
-                const auto slaveProtocol = dsb::protocol::control::ParseProtocolVersion(msg.front());
+                const auto slaveProtocol = dsb::control::ParseProtocolVersion(msg.front());
                 if (slaveProtocol > 0) {
                     std::clog << "Warning: Slave requested newer protocol version"
                               << std::endl;
                     break;
                 }
                 slaves[slaveId] = Slave(slaveProtocol);
-                dsb::protocol::control::CreateHelloMessage(0, msg);
+                dsb::control::CreateHelloMessage(0, msg);
                 dsb::comm::AddressedSend(control, slaveId, msg);
                 break;
             }
@@ -95,12 +95,12 @@ int main(int argc, const char** argv)
         }
     }
 /*
-    dsb::protocol::control::CreateHelloMessage(0, msg);
+    dsb::control::CreateHelloMessage(0, msg);
     dsb::comm::Send(control, msg);
 
     // Receive HELLO
     dsb::comm::Receive(control, msg);
-    if (dsb::protocol::control::ParseProtocolVersion(msg.front()) != 0) {
+    if (dsb::control::ParseProtocolVersion(msg.front()) != 0) {
         throw std::runtime_error("Master required unsupported protocol");
     }
 */

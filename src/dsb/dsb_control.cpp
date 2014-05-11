@@ -1,10 +1,10 @@
-#include "dsb/protocol/control.hpp"
+#include "dsb/control.hpp"
 
 #include <cstring>
 
+#include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
-#include "dsb/protocol/error.hpp"
-#include "dsb/util/encoding.hpp"
+#include "dsb/util.hpp"
 
 
 namespace
@@ -14,16 +14,17 @@ namespace
 }
 
 
-uint16_t dsb::protocol::control::ParseMessageType(const zmq::message_t& header)
+uint16_t dsb::control::ParseMessageType(const zmq::message_t& header)
 {
     if (header.size() < 2) {
-        throw ProtocolViolationException("Invalid message header (frame too short)");
+        throw dsb::error::ProtocolViolationException(
+            "Invalid message header (frame too short)");
     }
     return dsb::util::DecodeUint16(static_cast<const char*>(header.data()));
 }
 
 
-void dsb::protocol::control::CreateHelloMessage(
+void dsb::control::CreateHelloMessage(
     uint16_t protocolVersion,
     std::deque<zmq::message_t>& message)
 {
@@ -35,7 +36,7 @@ void dsb::protocol::control::CreateHelloMessage(
 }
 
 
-void dsb::protocol::control::CreateHelloMessage(
+void dsb::control::CreateHelloMessage(
     uint16_t protocolVersion,
     const google::protobuf::MessageLite& body,
     std::deque<zmq::message_t>& message)
@@ -46,11 +47,11 @@ void dsb::protocol::control::CreateHelloMessage(
 }
 
 
-uint16_t dsb::protocol::control::ParseProtocolVersion(const zmq::message_t& header)
+uint16_t dsb::control::ParseProtocolVersion(const zmq::message_t& header)
 {
     if (header.size() != 8
         || std::memcmp(header.data(), helloPrefix, helloPrefixSize) != 0) {
-        throw ProtocolViolationException(
+        throw dsb::error::ProtocolViolationException(
             "Invalid message header (not a HELLO message)");
     }
     return dsb::util::DecodeUint16(
@@ -58,7 +59,7 @@ uint16_t dsb::protocol::control::ParseProtocolVersion(const zmq::message_t& head
 }
 
 
-void dsb::protocol::control::CreateMessage(
+void dsb::control::CreateMessage(
     dsbproto::control::MessageType type,
     std::deque<zmq::message_t>& message)
 {
@@ -68,7 +69,7 @@ void dsb::protocol::control::CreateMessage(
 }
 
 
-void dsb::protocol::control::CreateMessage(
+void dsb::control::CreateMessage(
     dsbproto::control::MessageType type,
     const google::protobuf::MessageLite& body,
     std::deque<zmq::message_t>& message)

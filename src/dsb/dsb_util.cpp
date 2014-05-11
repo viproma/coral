@@ -1,4 +1,4 @@
-#include "dsb/util/encoding.hpp"
+#include "dsb/util.hpp"
 #include <cstdio>
 
 void dsb::util::EncodeUint16(uint16_t source, char target[2])

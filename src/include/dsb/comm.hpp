@@ -1,12 +1,20 @@
-#ifndef DSB_COMM_HELPERS_HPP
-#define DSB_COMM_HELPERS_HPP
+/**
+\file
+\brief Main header file for dsb::comm.
+*/
+#ifndef DSB_COMM_HPP
+#define DSB_COMM_HPP
 
 #include <deque>
 #include <string>
 #include "zmq.hpp"
 
 
-namespace dsb { namespace comm
+namespace dsb
+{
+
+/// Helper functions for communication over ZMQ sockets.
+namespace comm
 {
 
 
@@ -34,6 +42,7 @@ void AddressedSend(
     zmq::socket_t& socket,
     const std::string& recipient,
     std::deque<zmq::message_t>& message);
+
 
 /**
 \brief Receives a message.

@@ -1,6 +1,6 @@
 /**
 \file
-\brief  Functions for using ZMQ and Protobuf together.
+\brief Main header file for dsb::protobuf.
 */
 #ifndef DSB_PROTOBUF_HPP
 #define DSB_PROTOBUF_HPP
@@ -9,7 +9,11 @@
 #include "zmq.hpp"
 
 
-namespace dsb { namespace protobuf
+namespace dsb
+{
+
+/// Functions for using Protobuf with ZMQ.
+namespace protobuf
 {
 
 

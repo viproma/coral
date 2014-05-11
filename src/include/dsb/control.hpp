@@ -1,9 +1,9 @@
 /**
- * \file
- * \brief Functions for communication over the "control" protocol.
- * */
-#ifndef DSB_PROTOCOL_CONTROL_HPP
-#define DSB_PROTOCOL_CONTROL_HPP
+\file
+\brief Main header file for dsb::control.
+*/
+#ifndef DSB_CONTROL_HPP
+#define DSB_CONTROL_HPP
 
 #include <cstdint>
 #include <deque>
@@ -12,7 +12,11 @@
 #include "control.pb.h"
 
 
-namespace dsb { namespace protocol { namespace control
+namespace dsb
+{
+
+/// Functions for communication over the "control" protocol.
+namespace control
 {
 
 
@@ -39,5 +43,5 @@ void CreateMessage(
     std::deque<zmq::message_t>& message);
 
 
-}}}     // namespace
+}}      // namespace
 #endif  // header guard
