@@ -5,7 +5,6 @@
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/error.hpp"
 #include "dsb/util/encoding.hpp"
-#include "dsb/util/error.hpp"
 
 
 namespace
@@ -26,19 +25,24 @@ uint16_t dsb::protocol::control::ParseMessageType(const zmq::message_t& header)
 
 void dsb::protocol::control::CreateHelloMessage(
     uint16_t protocolVersion,
-    const google::protobuf::MessageLite& body,
-    std::deque<zmq::message_t>* message)
+    std::deque<zmq::message_t>& message)
 {
-    DSB_INPUT_CHECK(message != nullptr);
-    message->clear();
-
-    message->emplace_back(helloPrefixSize + 2);
-    const auto headerBuf = static_cast<char*>(message->back().data());
+    message.clear();
+    message.emplace_back(helloPrefixSize + 2);
+    const auto headerBuf = static_cast<char*>(message.back().data());
     std::memcpy(headerBuf, helloPrefix, helloPrefixSize);
     dsb::util::EncodeUint16(protocolVersion, headerBuf + helloPrefixSize);
+}
 
-    message->emplace_back();
-    dsb::protobuf::SerializeToFrame(body, &message->back());
+
+void dsb::protocol::control::CreateHelloMessage(
+    uint16_t protocolVersion,
+    const google::protobuf::MessageLite& body,
+    std::deque<zmq::message_t>& message)
+{
+    CreateHelloMessage(protocolVersion, message);
+    message.emplace_back();
+    dsb::protobuf::SerializeToFrame(body, message.back());
 }
 
 
@@ -56,13 +60,20 @@ uint16_t dsb::protocol::control::ParseProtocolVersion(const zmq::message_t& head
 
 void dsb::protocol::control::CreateMessage(
     dsbproto::control::MessageType type,
-    const google::protobuf::MessageLite& body,
-    std::deque<zmq::message_t>* message)
+    std::deque<zmq::message_t>& message)
 {
-    DSB_INPUT_CHECK(message != nullptr);
-    message->clear();
-    message->emplace_back(2);
-    dsb::util::EncodeUint16(type, static_cast<char*>(message->back().data()));
-    message->emplace_back();
-    dsb::protobuf::SerializeToFrame(body, &message->back());
+    message.clear();
+    message.emplace_back(2);
+    dsb::util::EncodeUint16(type, static_cast<char*>(message.back().data()));
+}
+
+
+void dsb::protocol::control::CreateMessage(
+    dsbproto::control::MessageType type,
+    const google::protobuf::MessageLite& body,
+    std::deque<zmq::message_t>& message)
+{
+    CreateMessage(type, message);
+    message.emplace_back();
+    dsb::protobuf::SerializeToFrame(body, message.back());
 }

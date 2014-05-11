@@ -12,10 +12,10 @@ TEST(dsb_protobuf, SerializeAndParse)
     pbSrc.set_s("Hello World!");
 
     zmq::message_t zMsg;
-    SerializeToFrame(pbSrc, &zMsg);
+    SerializeToFrame(pbSrc, zMsg);
 
     dsbproto::testing::IntString pbTgt;
-    ParseFromFrame(zMsg, &pbTgt);
+    ParseFromFrame(zMsg, pbTgt);
     EXPECT_EQ(123, pbTgt.i());
     EXPECT_EQ("Hello World!", pbTgt.s());
 }

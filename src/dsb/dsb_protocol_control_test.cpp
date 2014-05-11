@@ -19,13 +19,13 @@ TEST(dsb_protocol_control, CreateHelloMessage)
     pbSrc.set_i(314);
     pbSrc.set_s("Hello");
     std::deque<zmq::message_t> msg;
-    CreateHelloMessage(3, pbSrc, &msg);
+    CreateHelloMessage(3, pbSrc, msg);
 
     ASSERT_EQ(2, msg.size());
     EXPECT_EQ(dsbproto::control::MessageType::HELLO, ParseMessageType(msg[0]));
     EXPECT_EQ(3, ParseProtocolVersion(msg[0]));
     dsbproto::testing::IntString pbTgt;
-    dsb::protobuf::ParseFromFrame(msg[1], &pbTgt);
+    dsb::protobuf::ParseFromFrame(msg[1], pbTgt);
     EXPECT_EQ(314, pbTgt.i());
     EXPECT_EQ("Hello", pbTgt.s());
 }
@@ -43,12 +43,12 @@ TEST(dsb_protocol_control, CreateMessage)
     pbSrc.set_i(314);
     pbSrc.set_s("Hello");
     std::deque<zmq::message_t> msg;
-    CreateMessage(dsbproto::control::MessageType::DESCRIBE, pbSrc, &msg);
+    CreateMessage(dsbproto::control::MessageType::DESCRIBE, pbSrc, msg);
 
     ASSERT_EQ(2, msg.size());
     EXPECT_EQ(dsbproto::control::MessageType::DESCRIBE, ParseMessageType(msg[0]));
     dsbproto::testing::IntString pbTgt;
-    dsb::protobuf::ParseFromFrame(msg[1], &pbTgt);
+    dsb::protobuf::ParseFromFrame(msg[1], pbTgt);
     EXPECT_EQ(314, pbTgt.i());
     EXPECT_EQ("Hello", pbTgt.s());
 }

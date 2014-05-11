@@ -1,26 +1,46 @@
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
-#include "boost/lexical_cast.hpp"
-#include "zmq.hpp"
-
+#include "dsb/comm/helpers.hpp"
+#include "dsb/protocol/control.hpp"
 #include "dsb/util/encoding.hpp"
+
 #include "control.pb.h"
 
 
 int main(int argc, const char** argv)
 {
-    std::set_terminate(__gnu_cxx::__verbose_terminate_handler);
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <id>\n"
-                  << "  id = a number in the range 0 - 65535" << std::endl;
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <id> <address>\n"
+                  << "  id      = a number in the range 0 - 65535\n"
+                  << "  address = DSB server endpoint (e.g. tcp://myhost:5432)"
+                  << std::endl;
         return 0;
     }
-
-    const auto id = boost::lexical_cast<uint16_t>(argv[1]);
-    std::clog << "Using ID " << id << std::endl;
+    const auto id = std::string(argv[1]);
+    const auto endpoint = std::string(argv[2]);
 
     auto context = zmq::context_t();
     auto control = zmq::socket_t(context, ZMQ_REQ);
+    control.setsockopt(ZMQ_IDENTITY, id.data(), id.size());
+    control.connect(endpoint.c_str());
+
+    // Send HELLO
+    std::deque<zmq::message_t> msg;
+    dsb::protocol::control::CreateHelloMessage(0, msg);
+    dsb::comm::Send(control, msg);
+
+    // Receive HELLO
+    dsb::comm::Receive(control, msg);
+    if (dsb::protocol::control::ParseProtocolVersion(msg.front()) != 0) {
+        throw std::runtime_error("Master required unsupported protocol");
+    }
+
+    // Send DESCRIBE
+    dsb::protocol::control::CreateMessage(
+        dsbproto::control::MessageType::DESCRIBE,
+        msg);
+    dsb::comm::Send(control, msg);
 }

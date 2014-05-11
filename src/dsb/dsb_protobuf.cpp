@@ -3,27 +3,19 @@
 #include "dsb/util/error.hpp"
 
 
-namespace dsb { namespace protobuf {
-
-
-void SerializeToFrame(
+void dsb::protobuf::SerializeToFrame(
     const google::protobuf::MessageLite& source,
-    zmq::message_t* target)
+    zmq::message_t& target)
 {
-    DSB_INPUT_CHECK(target != nullptr);
     const auto size = source.ByteSize();
-    target->rebuild(size);
-    source.SerializeToArray(target->data(), size);
+    target.rebuild(size);
+    source.SerializeToArray(target.data(), size);
 }
 
 
-void ParseFromFrame(
+void dsb::protobuf::ParseFromFrame(
     const zmq::message_t& source,
-    google::protobuf::MessageLite* target)
+    google::protobuf::MessageLite& target)
 {
-    DSB_INPUT_CHECK(target != nullptr);
-    target->ParseFromArray(source.data(), source.size());
+    target.ParseFromArray(source.data(), source.size());
 }
-
-
-}} // namespace

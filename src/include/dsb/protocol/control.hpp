@@ -20,15 +20,23 @@ uint16_t ParseMessageType(const zmq::message_t& header);
 
 void CreateHelloMessage(
     uint16_t protocolVersion,
+    std::deque<zmq::message_t>& message);
+
+void CreateHelloMessage(
+    uint16_t protocolVersion,
     const google::protobuf::MessageLite& body,
-    std::deque<zmq::message_t>* message);
+    std::deque<zmq::message_t>& message);
 
 uint16_t ParseProtocolVersion(const zmq::message_t& header);
 
 void CreateMessage(
     dsbproto::control::MessageType type,
+    std::deque<zmq::message_t>& message);
+
+void CreateMessage(
+    dsbproto::control::MessageType type,
     const google::protobuf::MessageLite& body,
-    std::deque<zmq::message_t>* message);
+    std::deque<zmq::message_t>& message);
 
 
 }}}     // namespace

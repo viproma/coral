@@ -13,22 +13,16 @@ namespace dsb { namespace protobuf
 {
 
 
-/**
-\brief  Serializes a Protobuf message into a ZMQ message.
-\throws std::invalid_argument if `target` is null.
-*/
+/// Serializes a Protobuf message into a ZMQ message.
 void SerializeToFrame(
     const google::protobuf::MessageLite& source,
-    zmq::message_t* target);
+    zmq::message_t& target);
 
 
-/**
-\brief  Deserializes a Protobuf message from a ZMQ message.
-\throws std::invalid_argument if `target` is null.
-*/
+/// Deserializes a Protobuf message from a ZMQ message.
 void ParseFromFrame(
     const zmq::message_t& source,
-    google::protobuf::MessageLite* target);
+    google::protobuf::MessageLite& target);
 
 
 }}      // namespace
