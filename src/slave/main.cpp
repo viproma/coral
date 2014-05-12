@@ -14,6 +14,10 @@
 #include "control.pb.h"
 
 
+#if defined(_MSC_VER) && _MSC_VER <= 1800
+#   define noexcept
+#endif
+
 class Shutdown : std::exception
 {
 public:
@@ -24,7 +28,7 @@ public:
 uint16_t NormalMessageType(const std::deque<zmq::message_t>& msg)
 {
     const auto mt = dsb::control::NonErrorMessageType(msg);
-    if (mt == dsbproto::control::TERMINATE) throw Shutdown();
+    if (mt == dsbproto::control::MSG_TERMINATE) throw Shutdown();
     return mt;
 }
 
@@ -59,7 +63,7 @@ int main(int argc, const char** argv)
 
     // Send HELLO
     std::deque<zmq::message_t> msg;
-    dsb::control::CreateHelloMessage(0, msg);
+    dsb::control::CreateHelloMessage(msg, 0);
     dsb::comm::Send(control, msg);
 
     // Receive HELLO
@@ -68,37 +72,31 @@ int main(int argc, const char** argv)
         throw std::runtime_error("Master required unsupported protocol");
     }
 
-    // Send DESCRIBE
-    dsb::control::CreateMessage(
-        dsbproto::control::MessageType::DESCRIBE,
-        msg);
+    // Send MSG_DESCRIBE
+    dsb::control::CreateMessage(msg, dsbproto::control::MSG_DESCRIBE);
     dsb::comm::Send(control, msg);
 
-    // Receive INITIALIZE
+    // Receive MSG_INITIALIZE
     dsb::comm::Receive(control, msg);
-    EnforceMessageType(msg, dsbproto::control::INITIALIZE);
+    EnforceMessageType(msg, dsbproto::control::MSG_INITIALIZE);
 
-    // Send INITIALIZED
-    dsb::control::CreateMessage(
-        dsbproto::control::MessageType::INITIALIZED,
-        msg);
+    // Send MSG_INITIALIZED
+    dsb::control::CreateMessage(msg, dsbproto::control::MSG_INITIALIZED);
     dsb::comm::Send(control, msg);
 
-    // Receive SUBSCRIBE
+    // Receive MSG_SUBSCRIBE
     dsb::comm::Receive(control, msg);
-    EnforceMessageType(msg, dsbproto::control::SUBSCRIBE);
+    EnforceMessageType(msg, dsbproto::control::MSG_SUBSCRIBE);
 
-    // READY loop
+    // MSG_READY loop
     for (;;) {
-        dsb::control::CreateMessage(
-            dsbproto::control::MessageType::READY,
-            msg);
+        dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
         dsb::comm::Send(control, msg);
 
         dsb::comm::Receive(control, msg);
         const auto msgType = NormalMessageType(msg);
         switch (msgType) {
-            case dsbproto::control::STEP:
+            case dsbproto::control::MSG_STEP:
                 std::cout << "Performing time step" << std::endl;
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
                 break;

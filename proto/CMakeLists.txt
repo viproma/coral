@@ -4,6 +4,7 @@ set (protoFiles
     "testing.proto"
     "variable.proto"
 )
+source_group("Protobuf Files" FILES ${protoFiles})
 
 find_package (Protobuf REQUIRED)
 PROTOBUF_GENERATE_CPP (sources headers ${protoFiles})

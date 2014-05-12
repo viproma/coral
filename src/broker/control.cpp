@@ -45,7 +45,11 @@ void recvMulti(zmq::socket_t& socket, std::vector<zmq::message_t>& vec)
 {
     assert(vec.empty());
     do {
+#if defined(_MSC_VER) && _MSC_VER <= 1600
+        vec.emplace_back(zmq::message_t());
+#else
         vec.emplace_back();
+#endif
         socket.recv(&vec.back(), 0);
     } while (vec.back().more());
 }
@@ -68,8 +72,8 @@ void slave(const char* namez)
     dsbproto::control::VarInfo varInfo;
     varInfo.set_id(123);
     varInfo.set_name("myvar");
-    varInfo.set_type(dsbproto::variable::DataType::INTEGER);
-    varInfo.set_causality(dsbproto::variable::Causality::OUTPUT);
+    varInfo.set_type(dsbproto::variable::INTEGER);
+    varInfo.set_causality(dsbproto::variable::OUTPUT);
     send(control, "HELLO", true);
     sendPB(control, varInfo);
 

@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <string>
 
+#ifdef _WIN32
+#   define NOMINMAX
+#endif
 #include "dsb/comm.hpp"
 #include "dsb/control.hpp"
 #include "dsb/util.hpp"
@@ -70,7 +73,7 @@ namespace
         dsbproto::control::MessageType type)
     {
         std::deque<zmq::message_t> msg;
-        dsb::control::CreateMessage(type, msg);
+        dsb::control::CreateMessage(msg, type);
         dsb::comm::AddressedSend(socket, slaveId, msg);
     }
 
@@ -103,8 +106,8 @@ int main(int argc, const char** argv)
         std::clog << "Received message from slave '" << slaveId << "': ";
 
         switch (dsb::control::ParseMessageType(msg.front())) {
-            case dsbproto::control::HELLO: {
-                std::clog << "HELLO" << std::endl;
+            case dsbproto::control::MSG_HELLO: {
+                std::clog << "MSG_HELLO" << std::endl;
                 const auto slaveProtocol = dsb::control::ParseProtocolVersion(msg.front());
                 if (slaveProtocol > 0) {
                     std::clog << "Warning: Slave requested newer protocol version"
@@ -113,33 +116,33 @@ int main(int argc, const char** argv)
                 }
                 slaves[slaveId] = Slave(slaveProtocol);
                 dsb::control::CreateHelloMessage(
-                    std::min(MAX_PROTOCOL, slaveProtocol),
-                    msg);
+                    msg,
+                    std::min(MAX_PROTOCOL, slaveProtocol));
                 dsb::comm::AddressedSend(control, slaveId, msg);
                 break;
             }
-            case dsbproto::control::DESCRIBE:
-                std::clog << "DESCRIBE" << std::endl;
+            case dsbproto::control::MSG_DESCRIBE:
+                std::clog << "MSG_DESCRIBE" << std::endl;
                 if (UpdateSlaveState(slaves, slaveId, SLAVE_CONNECTED, SLAVE_INTRODUCED)) {
-                    SendEmptyMessage(control, slaveId, dsbproto::control::INITIALIZE);
+                    SendEmptyMessage(control, slaveId, dsbproto::control::MSG_INITIALIZE);
                 } else {
                     SendInvalidRequest(control, slaveId);
                 }
                 break;
 
-            case dsbproto::control::INITIALIZED:
-                std::clog << "INITIALIZED" << std::endl;
+            case dsbproto::control::MSG_INITIALIZED:
+                std::clog << "MSG_INITIALIZED" << std::endl;
                 if (UpdateSlaveState(slaves, slaveId, SLAVE_INTRODUCED, SLAVE_INITIALIZED)) {
-                    SendEmptyMessage(control, slaveId, dsbproto::control::SUBSCRIBE);
+                    SendEmptyMessage(control, slaveId, dsbproto::control::MSG_SUBSCRIBE);
                 } else {
                     SendInvalidRequest(control, slaveId);
                 }
                 break;
 
-            case dsbproto::control::READY:
-                std::clog << "READY" << std::endl;
+            case dsbproto::control::MSG_READY:
+                std::clog << "MSG_READY" << std::endl;
                 if (UpdateSlaveState(slaves, slaveId, SLAVE_INITIALIZED | SLAVE_READY, SLAVE_READY)) {
-                    SendEmptyMessage(control, slaveId, dsbproto::control::STEP);
+                    SendEmptyMessage(control, slaveId, dsbproto::control::MSG_STEP);
                 } else {
                     SendInvalidRequest(control, slaveId);
                 }

@@ -20,7 +20,11 @@ void dsb::control::CreateHelloMessage(
     uint16_t protocolVersion)
 {
     message.clear();
+#if defined(_MSC_VER) && _MSC_VER <= 1600
+    message.emplace_back(zmq::message_t(helloPrefixSize + 2));
+#else
     message.emplace_back(helloPrefixSize + 2);
+#endif
     const auto headerBuf = static_cast<char*>(message.back().data());
     std::memcpy(headerBuf, helloPrefix, helloPrefixSize);
     dsb::util::EncodeUint16(protocolVersion, headerBuf + helloPrefixSize);
@@ -33,7 +37,11 @@ void dsb::control::CreateHelloMessage(
     const google::protobuf::MessageLite& body)
 {
     CreateHelloMessage(message, protocolVersion);
+#if defined(_MSC_VER) && _MSC_VER <= 1600
+    message.emplace_back(zmq::message_t());
+#else
     message.emplace_back();
+#endif
     dsb::protobuf::SerializeToFrame(body, message.back());
 }
 
@@ -43,7 +51,11 @@ void dsb::control::CreateMessage(
     dsbproto::control::MessageType type)
 {
     message.clear();
+#if defined(_MSC_VER) && _MSC_VER <= 1600
+    message.emplace_back(zmq::message_t(2));
+#else
     message.emplace_back(2);
+#endif
     dsb::util::EncodeUint16(type, static_cast<char*>(message.back().data()));
 }
 
@@ -54,7 +66,11 @@ void dsb::control::CreateMessage(
     const google::protobuf::MessageLite& body)
 {
     CreateMessage(message, type);
+#if defined(_MSC_VER) && _MSC_VER <= 1600
+    message.emplace_back(zmq::message_t());
+#else
     message.emplace_back();
+#endif
     dsb::protobuf::SerializeToFrame(body, message.back());
 }
 
@@ -69,7 +85,7 @@ void dsb::control::CreateErrorMessage(
     if (!details.empty()) {
         errorInfo.set_details(details);
     }
-    CreateMessage(message, dsbproto::control::ERROR, errorInfo);
+    CreateMessage(message, dsbproto::control::MSG_ERROR, errorInfo);
 }
 
 
@@ -88,7 +104,7 @@ uint16_t dsb::control::NonErrorMessageType(
 {
     DSB_INPUT_CHECK(!message.empty());
     const auto type = ParseMessageType(message.front());
-    if (type == dsbproto::control::ERROR) {
+    if (type == dsbproto::control::MSG_ERROR) {
         dsbproto::control::ErrorInfo errorInfo;
         if (message.size() > 1) {
             dsb::protobuf::ParseFromFrame(message[1], errorInfo);

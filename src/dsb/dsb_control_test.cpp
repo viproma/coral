@@ -15,7 +15,7 @@ TEST(dsb_control, CreateHelloMessage)
     CreateHelloMessage(msg, 3, pbSrc);
 
     ASSERT_EQ(2, msg.size());
-    EXPECT_EQ(dsbproto::control::MessageType::HELLO, ParseMessageType(msg[0]));
+    EXPECT_EQ(dsbproto::control::MSG_HELLO, ParseMessageType(msg[0]));
     EXPECT_EQ(3, ParseProtocolVersion(msg[0]));
     dsbproto::testing::IntString pbTgt;
     dsb::protobuf::ParseFromFrame(msg[1], pbTgt);
@@ -29,10 +29,10 @@ TEST(dsb_control, CreateMessage)
     pbSrc.set_i(314);
     pbSrc.set_s("Hello");
     std::deque<zmq::message_t> msg;
-    CreateMessage(msg, dsbproto::control::DESCRIBE, pbSrc);
+    CreateMessage(msg, dsbproto::control::MSG_DESCRIBE, pbSrc);
 
     ASSERT_EQ(2, msg.size());
-    EXPECT_EQ(dsbproto::control::DESCRIBE, ParseMessageType(msg[0]));
+    EXPECT_EQ(dsbproto::control::MSG_DESCRIBE, ParseMessageType(msg[0]));
     dsbproto::testing::IntString pbTgt;
     dsb::protobuf::ParseFromFrame(msg[1], pbTgt);
     EXPECT_EQ(314, pbTgt.i());
@@ -42,8 +42,8 @@ TEST(dsb_control, CreateMessage)
 TEST(dsb_control, CreateMessage_NonErrorMessage)
 {
     std::deque<zmq::message_t> msg;
-    CreateMessage(msg, dsbproto::control::READY);
-    EXPECT_EQ(dsbproto::control::READY, NonErrorMessageType(msg));
+    CreateMessage(msg, dsbproto::control::MSG_READY);
+    EXPECT_EQ(dsbproto::control::MSG_READY, NonErrorMessageType(msg));
 }
 
 TEST(dsb_control, CreateErrorMessage_NonErrorMessage)
@@ -56,7 +56,7 @@ TEST(dsb_control, CreateErrorMessage_NonErrorMessage)
     try {
         NonErrorMessageType(msg);
         ADD_FAILURE();
-    } catch (const RemoteErrorException& e) {
+    } catch (const RemoteErrorException&) {
         SUCCEED();
     }
 }

@@ -48,14 +48,18 @@ add_library (${_target} STATIC
     ${_sources})
 target_include_directories(${_target}
     PRIVATE "$<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>"
-            ${ZMQ_INCLUDE_DIRS})
+            ${ZMQ_INCLUDE_DIRS}
+            ${CPPZMQ_INCLUDE_DIRS}
+)
 install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
 
 # Test target
 set (_testTarget "${_target}_test")
 add_executable (${_testTarget} ${_testSources})
 target_link_libraries (${_testTarget} ${_target} "gtest_main" "dsbproto" ${ZMQ_LIBRARIES})
-target_include_directories(
-    ${_testTarget}
-    PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>")
+target_include_directories(${_testTarget}
+    PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>"
+            ${ZMQ_INCLUDE_DIRS}
+            ${CPPZMQ_INCLUDE_DIRS}
+)
 add_test (NAME ${_testTarget} COMMAND ${_testTarget})

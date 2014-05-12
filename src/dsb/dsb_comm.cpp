@@ -43,7 +43,11 @@ void dsb::comm::Receive(
 {
     message.clear();
     do {
+#if defined(_MSC_VER) && _MSC_VER <= 1600
+        message.emplace_back(zmq::message_t());
+#else
         message.emplace_back();
+#endif
         socket.recv(&message.back());
     } while (message.back().more());
 }

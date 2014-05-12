@@ -15,7 +15,7 @@ endforeach ()
 source_group ("Public Header Files" FILES ${_publicHeadersFull})
 
 # Dependencies
-find_package (Boost REQUIRED COMPONENTS "thread" "system")
+find_package (Boost REQUIRED COMPONENTS "thread" "chrono" "system")
 find_package (ZMQ REQUIRED)
 
 # Main library target

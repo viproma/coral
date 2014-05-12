@@ -10,15 +10,15 @@ TEST(dsb_comm, SendReceiveMessage)
     auto ctx = zmq::context_t();
     auto sender = zmq::socket_t(ctx, ZMQ_PUSH);
     auto recver = zmq::socket_t(ctx, ZMQ_PULL);
-    const auto endpoint = std::string("ipc://")
+    const auto endpoint = std::string("inproc://")
         + ::testing::UnitTest::GetInstance()->current_test_info()->test_case_name();
     recver.bind(endpoint.c_str());
     sender.connect(endpoint.c_str());
 
     std::deque<zmq::message_t> srcMsg;
-    srcMsg.emplace_back(123);
-    srcMsg.emplace_back();
-    srcMsg.emplace_back(321);
+    srcMsg.push_back(zmq::message_t(123));
+    srcMsg.push_back(zmq::message_t());
+    srcMsg.push_back(zmq::message_t(321));
     Send(sender, srcMsg);
 
     std::deque<zmq::message_t> tgtMsg(1);
@@ -34,14 +34,14 @@ TEST(dsb_comm, SendReceiveAddressedMessage)
     auto ctx = zmq::context_t();
     auto sender = zmq::socket_t(ctx, ZMQ_PUSH);
     auto recver = zmq::socket_t(ctx, ZMQ_PULL);
-    const auto endpoint = std::string("ipc://")
+    const auto endpoint = std::string("inproc://")
         + ::testing::UnitTest::GetInstance()->current_test_info()->test_case_name();
     recver.bind(endpoint.c_str());
     sender.connect(endpoint.c_str());
 
     std::deque<zmq::message_t> srcMsg;
-    srcMsg.emplace_back(123);
-    srcMsg.emplace_back(321);
+    srcMsg.push_back(zmq::message_t(123));
+    srcMsg.push_back(zmq::message_t(321));
     AddressedSend(sender, "foo", srcMsg);
 
     std::deque<zmq::message_t> tgtMsg(1);
@@ -57,12 +57,12 @@ TEST(dsb_comm, SendReceiveAddressedMessage)
 TEST(dsb_comm, PopMessageEnvelope)
 {
     std::deque<zmq::message_t> msg;
-    msg.emplace_back(123);
-    msg.emplace_back(321);
-    msg.emplace_back();
-    msg.emplace_back(97);
+    msg.push_back(zmq::message_t(123));
+    msg.push_back(zmq::message_t(321));
+    msg.push_back(zmq::message_t());
+    msg.push_back(zmq::message_t(97));
     std::deque<zmq::message_t> env;
-    env.emplace_back();
+    env.push_back(zmq::message_t());
     const auto size = PopMessageEnvelope(msg, &env);
     EXPECT_EQ(3, size);
     ASSERT_EQ(2, env.size());
@@ -75,12 +75,12 @@ TEST(dsb_comm, PopMessageEnvelope)
 TEST(dsb_comm, PopMessageEnvelope_emptyEnvelope)
 {
     std::deque<zmq::message_t> msg;
-    msg.emplace_back();
-    msg.emplace_back(123);
-    msg.emplace_back(321);
-    msg.emplace_back(97);
+    msg.push_back(zmq::message_t());
+    msg.push_back(zmq::message_t(123));
+    msg.push_back(zmq::message_t(321));
+    msg.push_back(zmq::message_t(97));
     std::deque<zmq::message_t> env;
-    env.emplace_back();
+    env.push_back(zmq::message_t());
     const auto size = PopMessageEnvelope(msg, &env);
     EXPECT_EQ(1, size);
     EXPECT_EQ(0, env.size());
@@ -93,11 +93,11 @@ TEST(dsb_comm, PopMessageEnvelope_emptyEnvelope)
 TEST(dsb_comm, PopMessageEnvelope_noEnvelope)
 {
     std::deque<zmq::message_t> msg;
-    msg.emplace_back(123);
-    msg.emplace_back(321);
-    msg.emplace_back(97);
+    msg.push_back(zmq::message_t(123));
+    msg.push_back(zmq::message_t(321));
+    msg.push_back(zmq::message_t(97));
     std::deque<zmq::message_t> env;
-    env.emplace_back();
+    env.push_back(zmq::message_t());
     const auto size = PopMessageEnvelope(msg, &env);
     EXPECT_EQ(0, size);
     EXPECT_EQ(0, env.size());
@@ -110,10 +110,10 @@ TEST(dsb_comm, PopMessageEnvelope_noEnvelope)
 TEST(dsb_comm, PopMessageEnvelope_dropEnvelope)
 {
     std::deque<zmq::message_t> msg;
-    msg.emplace_back(123);
-    msg.emplace_back(321);
-    msg.emplace_back();
-    msg.emplace_back(97);
+    msg.push_back(zmq::message_t(123));
+    msg.push_back(zmq::message_t(321));
+    msg.push_back(zmq::message_t());
+    msg.push_back(zmq::message_t(97));
     const auto size = PopMessageEnvelope(msg);
     EXPECT_EQ(3, size);
     ASSERT_EQ(1, msg.size());
