@@ -27,8 +27,8 @@ namespace control
 Any pre-existing contents of `message` will be replaced.
 */
 void CreateHelloMessage(
-    uint16_t protocolVersion,
-    std::deque<zmq::message_t>& message);
+    std::deque<zmq::message_t>& message,
+    uint16_t protocolVersion);
 
 
 /**
@@ -38,9 +38,9 @@ void CreateHelloMessage(
 Any pre-existing contents of `message` will be replaced.
 */
 void CreateHelloMessage(
+    std::deque<zmq::message_t>& message,
     uint16_t protocolVersion,
-    const google::protobuf::MessageLite& body,
-    std::deque<zmq::message_t>& message);
+    const google::protobuf::MessageLite& body);
 
 
 /**
@@ -49,8 +49,8 @@ void CreateHelloMessage(
 Any pre-existing contents of `message` will be replaced.
 */
 void CreateMessage(
-    dsbproto::control::MessageType type,
-    std::deque<zmq::message_t>& message);
+    std::deque<zmq::message_t>& message,
+    dsbproto::control::MessageType type);
 
 
 /**
@@ -59,9 +59,9 @@ void CreateMessage(
 Any pre-existing contents of `message` will be replaced.
 */
 void CreateMessage(
+    std::deque<zmq::message_t>& message,
     dsbproto::control::MessageType type,
-    const google::protobuf::MessageLite& body,
-    std::deque<zmq::message_t>& message);
+    const google::protobuf::MessageLite& body);
 
 
 /**

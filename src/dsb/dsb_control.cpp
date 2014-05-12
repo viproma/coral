@@ -16,8 +16,8 @@ namespace
 
 
 void dsb::control::CreateHelloMessage(
-    uint16_t protocolVersion,
-    std::deque<zmq::message_t>& message)
+    std::deque<zmq::message_t>& message,
+    uint16_t protocolVersion)
 {
     message.clear();
     message.emplace_back(helloPrefixSize + 2);
@@ -28,19 +28,19 @@ void dsb::control::CreateHelloMessage(
 
 
 void dsb::control::CreateHelloMessage(
+    std::deque<zmq::message_t>& message,
     uint16_t protocolVersion,
-    const google::protobuf::MessageLite& body,
-    std::deque<zmq::message_t>& message)
+    const google::protobuf::MessageLite& body)
 {
-    CreateHelloMessage(protocolVersion, message);
+    CreateHelloMessage(message, protocolVersion);
     message.emplace_back();
     dsb::protobuf::SerializeToFrame(body, message.back());
 }
 
 
 void dsb::control::CreateMessage(
-    dsbproto::control::MessageType type,
-    std::deque<zmq::message_t>& message)
+    std::deque<zmq::message_t>& message,
+    dsbproto::control::MessageType type)
 {
     message.clear();
     message.emplace_back(2);
@@ -49,11 +49,11 @@ void dsb::control::CreateMessage(
 
 
 void dsb::control::CreateMessage(
+    std::deque<zmq::message_t>& message,
     dsbproto::control::MessageType type,
-    const google::protobuf::MessageLite& body,
-    std::deque<zmq::message_t>& message)
+    const google::protobuf::MessageLite& body)
 {
-    CreateMessage(type, message);
+    CreateMessage(message, type);
     message.emplace_back();
     dsb::protobuf::SerializeToFrame(body, message.back());
 }
@@ -69,7 +69,7 @@ void dsb::control::CreateErrorMessage(
     if (!details.empty()) {
         errorInfo.set_details(details);
     }
-    CreateMessage(dsbproto::control::ERROR, errorInfo, message);
+    CreateMessage(message, dsbproto::control::ERROR, errorInfo);
 }
 
 

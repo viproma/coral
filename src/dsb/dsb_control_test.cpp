@@ -6,20 +6,13 @@
 
 using namespace dsb::control;
 
-TEST(dsb_control, ParseMessageType_error)
-{
-    zmq::message_t msg;
-    ASSERT_THROW(ParseMessageType(msg),
-                 dsb::error::ProtocolViolationException);
-}
-
 TEST(dsb_control, CreateHelloMessage)
 {
     dsbproto::testing::IntString pbSrc;
     pbSrc.set_i(314);
     pbSrc.set_s("Hello");
     std::deque<zmq::message_t> msg;
-    CreateHelloMessage(3, pbSrc, msg);
+    CreateHelloMessage(msg, 3, pbSrc);
 
     ASSERT_EQ(2, msg.size());
     EXPECT_EQ(dsbproto::control::MessageType::HELLO, ParseMessageType(msg[0]));
@@ -30,25 +23,54 @@ TEST(dsb_control, CreateHelloMessage)
     EXPECT_EQ("Hello", pbTgt.s());
 }
 
-TEST(dsb_control, ParseProtocolVersion_error)
-{
-    zmq::message_t msg(4);
-    ASSERT_THROW(ParseProtocolVersion(msg),
-                 dsb::error::ProtocolViolationException);
-}
-
 TEST(dsb_control, CreateMessage)
 {
     dsbproto::testing::IntString pbSrc;
     pbSrc.set_i(314);
     pbSrc.set_s("Hello");
     std::deque<zmq::message_t> msg;
-    CreateMessage(dsbproto::control::MessageType::DESCRIBE, pbSrc, msg);
+    CreateMessage(msg, dsbproto::control::DESCRIBE, pbSrc);
 
     ASSERT_EQ(2, msg.size());
-    EXPECT_EQ(dsbproto::control::MessageType::DESCRIBE, ParseMessageType(msg[0]));
+    EXPECT_EQ(dsbproto::control::DESCRIBE, ParseMessageType(msg[0]));
     dsbproto::testing::IntString pbTgt;
     dsb::protobuf::ParseFromFrame(msg[1], pbTgt);
     EXPECT_EQ(314, pbTgt.i());
     EXPECT_EQ("Hello", pbTgt.s());
+}
+
+TEST(dsb_control, CreateMessage_NonErrorMessage)
+{
+    std::deque<zmq::message_t> msg;
+    CreateMessage(msg, dsbproto::control::READY);
+    EXPECT_EQ(dsbproto::control::READY, NonErrorMessageType(msg));
+}
+
+TEST(dsb_control, CreateErrorMessage_NonErrorMessage)
+{
+    std::deque<zmq::message_t> msg;
+    CreateErrorMessage(
+        msg,
+        dsbproto::control::ErrorInfo::INVALID_REQUEST,
+        "some error");
+    try {
+        NonErrorMessageType(msg);
+        ADD_FAILURE();
+    } catch (const RemoteErrorException& e) {
+        SUCCEED();
+    }
+}
+
+TEST(dsb_control, ParseMessageType_error)
+{
+    zmq::message_t msg;
+    ASSERT_THROW(ParseMessageType(msg),
+                 dsb::error::ProtocolViolationException);
+}
+
+TEST(dsb_control, ParseProtocolVersion_error)
+{
+    zmq::message_t msg(4);
+    ASSERT_THROW(ParseProtocolVersion(msg),
+                 dsb::error::ProtocolViolationException);
 }
