@@ -17,24 +17,62 @@ namespace
 {
     enum SlaveState
     {
-        SlaveState_unknown,
-        SlaveState_connected,
-        SlaveState_introduced,
-        SlaveState_initialized,
-        SlaveState_ready,
+        SLAVE_UNKNOWN       = 1,
+        SLAVE_CONNECTED     = 1 << 1,
+        SLAVE_INTRODUCED    = 1 << 2,
+        SLAVE_INITIALIZED   = 1 << 3,
+        SLAVE_READY         = 1 << 4,
     };
 
     struct Slave
     {
         Slave()
-            : protocol(0xFFFF), state(SlaveState_unknown) { }
+            : protocol(0xFFFF), state(SLAVE_UNKNOWN) { }
 
         Slave(uint16_t protocol_)
-            : protocol(protocol_), state(SlaveState_connected) { }
+            : protocol(protocol_), state(SLAVE_CONNECTED) { }
 
         uint16_t protocol;
         SlaveState state;
     };
+
+    bool UpdateSlaveState(
+        std::map<std::string, Slave>& slaves,
+        const std::string& slaveId,
+        int oldStates,
+        SlaveState newState)
+    {
+        auto slaveIt = slaves.find(slaveId);
+        if (slaveIt != slaves.end() && slaveIt->second.state & oldStates) {
+            slaveIt->second.state = newState;
+            return true;
+        } else {
+            std::clog << "Warning: Slave not found or in wrong state" << std::endl;
+            return false;
+        }
+    }
+
+    void SendInvalidRequest(
+        zmq::socket_t& socket,
+        const std::string& slaveId)
+    {
+        std::deque<zmq::message_t> msg;
+        dsb::control::CreateErrorMessage(
+            msg,
+            dsbproto::control::ErrorInfo::INVALID_REQUEST,
+            "Slave ID not seen before, or slave was expected to be in different state");
+        dsb::comm::AddressedSend(socket, slaveId, msg);
+    }
+
+    void SendEmptyMessage(
+        zmq::socket_t& socket,
+        const std::string& slaveId,
+        dsbproto::control::MessageType type)
+    {
+        std::deque<zmq::message_t> msg;
+        dsb::control::CreateMessage(type, msg);
+        dsb::comm::AddressedSend(socket, slaveId, msg);
+    }
 
     const uint16_t MAX_PROTOCOL = 0;
 }
@@ -62,10 +100,10 @@ int main(int argc, const char** argv)
         std::deque<zmq::message_t> envelope;
         dsb::comm::PopMessageEnvelope(msg, &envelope);
         const auto slaveId = dsb::comm::ToString(envelope.front());
-        std::clog << "Received message from slave '" << slaveId << "':";
+        std::clog << "Received message from slave '" << slaveId << "': ";
 
         switch (dsb::control::ParseMessageType(msg.front())) {
-            case dsbproto::control::MessageType::HELLO: {
+            case dsbproto::control::HELLO: {
                 std::clog << "HELLO" << std::endl;
                 const auto slaveProtocol = dsb::control::ParseProtocolVersion(msg.front());
                 if (slaveProtocol > 0) {
@@ -74,34 +112,43 @@ int main(int argc, const char** argv)
                     break;
                 }
                 slaves[slaveId] = Slave(slaveProtocol);
-                dsb::control::CreateHelloMessage(0, msg);
+                dsb::control::CreateHelloMessage(
+                    std::min(MAX_PROTOCOL, slaveProtocol),
+                    msg);
                 dsb::comm::AddressedSend(control, slaveId, msg);
                 break;
             }
-            case dsbproto::control::MessageType::DESCRIBE: {
+            case dsbproto::control::DESCRIBE:
                 std::clog << "DESCRIBE" << std::endl;
-                auto slaveIt = slaves.find(slaveId);
-                if (slaveIt != slaves.end() && slaveIt->second.state == SlaveState_connected) {
-                    slaveIt->second.state = SlaveState_introduced;
+                if (UpdateSlaveState(slaves, slaveId, SLAVE_CONNECTED, SLAVE_INTRODUCED)) {
+                    SendEmptyMessage(control, slaveId, dsbproto::control::INITIALIZE);
                 } else {
-                    std::clog << "Warning: Slave not found or in wrong state"
-                              << std::endl;
+                    SendInvalidRequest(control, slaveId);
                 }
                 break;
-            }
+
+            case dsbproto::control::INITIALIZED:
+                std::clog << "INITIALIZED" << std::endl;
+                if (UpdateSlaveState(slaves, slaveId, SLAVE_INTRODUCED, SLAVE_INITIALIZED)) {
+                    SendEmptyMessage(control, slaveId, dsbproto::control::SUBSCRIBE);
+                } else {
+                    SendInvalidRequest(control, slaveId);
+                }
+                break;
+
+            case dsbproto::control::READY:
+                std::clog << "READY" << std::endl;
+                if (UpdateSlaveState(slaves, slaveId, SLAVE_INITIALIZED | SLAVE_READY, SLAVE_READY)) {
+                    SendEmptyMessage(control, slaveId, dsbproto::control::STEP);
+                } else {
+                    SendInvalidRequest(control, slaveId);
+                }
+                break;
+
             default:
                 std::clog << "Warning: Invalid message received from client: "
                           << slaveId << std::endl;
+                SendInvalidRequest(control, slaveId);
         }
     }
-/*
-    dsb::control::CreateHelloMessage(0, msg);
-    dsb::comm::Send(control, msg);
-
-    // Receive HELLO
-    dsb::comm::Receive(control, msg);
-    if (dsb::control::ParseProtocolVersion(msg.front()) != 0) {
-        throw std::runtime_error("Master required unsupported protocol");
-    }
-*/
 }

@@ -3,6 +3,9 @@
 #include <stdexcept>
 #include <string>
 
+#include "boost/chrono.hpp"
+#include "boost/thread.hpp"
+
 #include "dsb/comm.hpp"
 #include "dsb/control.hpp"
 #include "dsb/error.hpp"
@@ -93,5 +96,15 @@ int main(int argc, const char** argv)
         dsb::comm::Send(control, msg);
 
         dsb::comm::Receive(control, msg);
+        const auto msgType = NormalMessageType(msg);
+        switch (msgType) {
+            case dsbproto::control::STEP:
+                std::cout << "Performing time step" << std::endl;
+                boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
+                break;
+            default:
+                throw dsb::error::ProtocolViolationException(
+                    "Invalid reply from master");
+        }
     }
 }
