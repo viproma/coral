@@ -17,7 +17,7 @@ void dsb::protobuf::ParseFromFrame(
     const zmq::message_t& source,
     google::protobuf::MessageLite& target)
 {
-    if (!target.ParseFromArray(source.data(), source.size());
+    if (!target.ParseFromArray(source.data(), source.size())) {
         throw SerializationException(SerializationException::PARSE);
     }
 }

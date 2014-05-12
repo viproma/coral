@@ -18,10 +18,10 @@ public:
 };
 
 
-dsbproto::control::MessageType NormalMessageType(const std::deque<zmq::message_t>& msg)
+uint16_t NormalMessageType(const std::deque<zmq::message_t>& msg)
 {
-    const auto mt = dsb::control::NonErrorMessageType(msg.front());
-    if (mt == dsbproto::control::SHUTDOWN) throw Shutdown();
+    const auto mt = dsb::control::NonErrorMessageType(msg);
+    if (mt == dsbproto::control::TERMINATE) throw Shutdown();
     return mt;
 }
 
@@ -31,7 +31,8 @@ void EnforceMessageType(
     dsbproto::control::MessageType expectedType)
 {
     if (NormalMessageType(msg) != expectedType) {
-        throw dsb::error::ProtocolViolationException();
+        throw dsb::error::ProtocolViolationException(
+            "Invalid reply from master");
     }
 }
 
@@ -92,6 +93,5 @@ int main(int argc, const char** argv)
         dsb::comm::Send(control, msg);
 
         dsb::comm::Receive(control, msg);
-        const auto msgType = NormalMessageType(msg);
     }
 }
