@@ -15,6 +15,64 @@ namespace
 }
 
 
+void dsb::control::CreateHelloMessage(
+    uint16_t protocolVersion,
+    std::deque<zmq::message_t>& message)
+{
+    message.clear();
+    message.emplace_back(helloPrefixSize + 2);
+    const auto headerBuf = static_cast<char*>(message.back().data());
+    std::memcpy(headerBuf, helloPrefix, helloPrefixSize);
+    dsb::util::EncodeUint16(protocolVersion, headerBuf + helloPrefixSize);
+}
+
+
+void dsb::control::CreateHelloMessage(
+    uint16_t protocolVersion,
+    const google::protobuf::MessageLite& body,
+    std::deque<zmq::message_t>& message)
+{
+    CreateHelloMessage(protocolVersion, message);
+    message.emplace_back();
+    dsb::protobuf::SerializeToFrame(body, message.back());
+}
+
+
+void dsb::control::CreateMessage(
+    dsbproto::control::MessageType type,
+    std::deque<zmq::message_t>& message)
+{
+    message.clear();
+    message.emplace_back(2);
+    dsb::util::EncodeUint16(type, static_cast<char*>(message.back().data()));
+}
+
+
+void dsb::control::CreateMessage(
+    dsbproto::control::MessageType type,
+    const google::protobuf::MessageLite& body,
+    std::deque<zmq::message_t>& message)
+{
+    CreateMessage(type, message);
+    message.emplace_back();
+    dsb::protobuf::SerializeToFrame(body, message.back());
+}
+
+
+void dsb::control::CreateErrorMessage(
+    std::deque<zmq::message_t>& message,
+    dsbproto::control::ErrorInfo::Code code,
+    const std::string& details)
+{
+    dsbproto::control::ErrorInfo errorInfo;
+    errorInfo.set_code(code);
+    if (!details.empty()) {
+        errorInfo.set_details(details);
+    }
+    CreateMessage(dsbproto::control::ERROR, errorInfo, message);
+}
+
+
 uint16_t dsb::control::ParseMessageType(const zmq::message_t& header)
 {
     if (header.size() < 2) {
@@ -73,29 +131,6 @@ dsb::control::RemoteErrorException::RemoteErrorException(
 { }
 
 
-void dsb::control::CreateHelloMessage(
-    uint16_t protocolVersion,
-    std::deque<zmq::message_t>& message)
-{
-    message.clear();
-    message.emplace_back(helloPrefixSize + 2);
-    const auto headerBuf = static_cast<char*>(message.back().data());
-    std::memcpy(headerBuf, helloPrefix, helloPrefixSize);
-    dsb::util::EncodeUint16(protocolVersion, headerBuf + helloPrefixSize);
-}
-
-
-void dsb::control::CreateHelloMessage(
-    uint16_t protocolVersion,
-    const google::protobuf::MessageLite& body,
-    std::deque<zmq::message_t>& message)
-{
-    CreateHelloMessage(protocolVersion, message);
-    message.emplace_back();
-    dsb::protobuf::SerializeToFrame(body, message.back());
-}
-
-
 uint16_t dsb::control::ParseProtocolVersion(const zmq::message_t& header)
 {
     if (header.size() != 8
@@ -105,25 +140,4 @@ uint16_t dsb::control::ParseProtocolVersion(const zmq::message_t& header)
     }
     return dsb::util::DecodeUint16(
         static_cast<const char*>(header.data()) + helloPrefixSize);
-}
-
-
-void dsb::control::CreateMessage(
-    dsbproto::control::MessageType type,
-    std::deque<zmq::message_t>& message)
-{
-    message.clear();
-    message.emplace_back(2);
-    dsb::util::EncodeUint16(type, static_cast<char*>(message.back().data()));
-}
-
-
-void dsb::control::CreateMessage(
-    dsbproto::control::MessageType type,
-    const google::protobuf::MessageLite& body,
-    std::deque<zmq::message_t>& message)
-{
-    CreateMessage(type, message);
-    message.emplace_back();
-    dsb::protobuf::SerializeToFrame(body, message.back());
 }
