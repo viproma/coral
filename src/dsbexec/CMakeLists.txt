@@ -1,10 +1,11 @@
 set (_headers
     "model.hpp"
+    "model_parser.hpp"
 )
 set (_sources
     "main.cpp"
     "model.cpp"
-    "model_parse.cpp"
+    "model_parser.cpp"
 )
 
 find_package (Boost REQUIRED)

@@ -1,8 +1,14 @@
-#ifndef DSBEXEC_MODEL_HPP
-#define DSBEXEC_MODEL_HPP
+#ifndef DSB_MODEL_HPP
+#define DSB_MODEL_HPP
 
 #include <map>
 #include <string>
+
+
+namespace dsb
+{
+namespace model
+{
 
 
 class Slave
@@ -53,6 +59,5 @@ private:
 };
 
 
-Model ParseModelFile(const std::string& path);
-
-#endif // header guard
+}}      // namespace
+#endif  // header guard

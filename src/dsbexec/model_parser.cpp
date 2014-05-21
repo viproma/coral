@@ -1,4 +1,4 @@
-#include "model.hpp"
+#include "model_parser.hpp"
 
 #include "boost/foreach.hpp"
 #include "boost/property_tree/info_parser.hpp"
@@ -15,8 +15,9 @@ namespace
     }
 }
 
-Model ParseModelFile(const std::string& path)
+dsb::model::Model ParseModelFile(const std::string& path)
 {
+    using namespace dsb::model;
     const auto ptree = ReadPtreeInfoFile(path);
     Model model;
     BOOST_FOREACH (const auto& slaveNode,
