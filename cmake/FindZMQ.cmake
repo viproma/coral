@@ -27,7 +27,7 @@ endfunction ()
 # Generates a HINTS directive for a find_XXX command, based on
 # a known file path.
 function (_getHintsDirective targetVarName knownPath)
-    if (existingPath)
+    if (knownPath)
         get_filename_component (d "${knownPath}" DIRECTORY)
         set (${targetVarName} "HINTS" "${d}/.." PARENT_SCOPE)
     else ()
@@ -157,7 +157,7 @@ function (_findUnixLibs library includeDir)
         PATH_SUFFIXES "lib")
     _getHintsDirective(hints ${ZMQ_LIBRARY})
     find_path (ZMQ_HEADER_DIR "zmq.h"
-        ${_hints}
+        ${hints}
         PATHS $ENV{ZMQ_DIR}
         PATH_SUFFIXES "include")
     set (${library} "${ZMQ_LIBRARY}" PARENT_SCOPE)
