@@ -6,6 +6,7 @@ set (_privateHeaders
     "dsb/control.hpp"
     "dsb/error.hpp"
     "dsb/protobuf.hpp"
+    "dsb/sequence.hpp"
     "dsb/util.hpp"
 )
 set (_internalHeaders ) # Only visible inside the "dsb" module.
@@ -19,6 +20,7 @@ set (_testSources
     "dsb_comm_test.cpp"
     "dsb_protobuf_test.cpp"
     "dsb_control_test.cpp"
+    "dsb_sequence_test.cpp"
     "dsb_util_test.cpp"
 )
 
