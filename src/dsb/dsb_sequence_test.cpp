@@ -107,6 +107,8 @@ TEST(dsb_sequence, MapValueSequence)
 
 TEST(dsb_sequence, EmptySequence)
 {
-    Sequence<int> s = EmptySequence<int>();
-    EXPECT_TRUE(s.Empty());
+    Sequence<int> s1 = EmptySequence<int>();
+    EXPECT_TRUE(s1.Empty());
+    Sequence<int&> s2 = EmptySequence<int&>();
+    EXPECT_TRUE(s2.Empty());
 }
