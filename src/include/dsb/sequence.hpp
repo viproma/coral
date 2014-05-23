@@ -293,5 +293,31 @@ Sequence<typename Map::mapped_type> MapValueSequence(Map& map)
 }
 
 
+/**
+\brief  An implementation of an empty sequence, i.e. one for which Empty()
+        is always `true`.
+*/
+template<typename ValueT>
+class EmptySequenceImpl : public ISequenceImpl<ValueT>
+{
+public:
+    bool Empty() { return true; }
+
+    ValueT& Next()
+    {
+        assert(!"Next() called on empty sequence");
+        return *(static_cast<ValueT*>(nullptr));
+    }
+};
+
+
+/// Returns an empty sequence, i.e. one for which Empty() is always `true`.
+template<typename ValueT>
+Sequence<ValueT> EmptySequence()
+{
+    return Sequence<ValueT>(std::make_shared<EmptySequenceImpl<ValueT>>());
+}
+
+
 }}      // namespace
 #endif  // header guard

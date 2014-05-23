@@ -103,3 +103,10 @@ TEST(dsb_sequence, MapValueSequence)
     EXPECT_EQ("foo", s.Next());
     EXPECT_TRUE(s.Empty());
 }
+
+
+TEST(dsb_sequence, EmptySequence)
+{
+    Sequence<int> s = EmptySequence<int>();
+    EXPECT_TRUE(s.Empty());
+}
