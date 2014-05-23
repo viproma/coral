@@ -10,7 +10,7 @@
 namespace dsb
 {
 
-/// Misc. utilities (i.e., stuff that didn't really fit anywhere else.
+/// Misc. utilities (i.e., stuff that didn't really fit anywhere else).
 namespace util
 {
 
