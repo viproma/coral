@@ -29,7 +29,7 @@ namespace sequence
 
 To create a new sequence type (e.g. to support a new kind of backing storage),
 create a class which inherits and implements this interface, and pass an
-object of this class to the Sequence constructor.
+object of that class to the Sequence constructor.
 
 `ValueT` is the type of the elements in the sequence.
 
@@ -49,6 +49,9 @@ public:
     It is OK to assume that Empty() has, or would have, returned `false`
     before this function is called (but good practice to verify it with
     an assertion).
+
+    The returned reference is only required to be valid until the next
+    time Next() is called.
     */
     virtual ValueT& Next() = 0;
 
@@ -64,9 +67,15 @@ public:
 This class defines two functions, Empty() and Next().  The former returns
 whether we have reached the end of the sequence, and the latter returns
 a reference to the element at the head of the range and simultaneously
-iterates past it.
+iterates past it.  The idiomatic way to iterate a sequence is thus:
+~~~~{.cpp}
+while (!sequence.Empty()) {
+    auto& element = seq.Next();
+    // Do stuff with element here
+}
+~~~~
 
-Sequence objects thus fulfil the main purpose of standard iterators, but
+Sequence objects fulfil the main purpose of standard iterators, but
 are different from them in several ways, some of which are advantages
 and others of which are drawbacks, depending on the situation:
 
@@ -91,20 +100,16 @@ and others of which are drawbacks, depending on the situation:
     `int`s.
 
   - A Sequence typically has worse performance than an iterator.  This is
-    related to the previous point.  To hide the type of the underlying
-    container we use polymorphic classes "under the hood", which both
-    means that calls to Empty() and Next() are indirect (virtual), and
-    that we need to allocate memory for the underlying objects dynamically.
-    This may or may not be an issue, depending on the situation.
+    related to the previous point.  Polymorphic classes are used "under the
+    hood" to hide the type of the underlying container, which means that
+    calls to Empty() and Next() are indirect (virtual), and that memory for
+    the underlying objects has to be dynamically allocated.
 
 The Sequence class is just a thin wrapper around a `std::shared_ptr` to
 an object of type ISequenceImpl, which contains the actual implementation
-of the sequence.  (This is how we hide the type of the underlying container.)
-This is what gives the Sequence object its reference semantics, and it
-means that memory is automatically managed using reference counting.
-
-To create a new sequence type it is necessary to implement the ISequenceImpl
-interface.
+of the sequence.  (This is how the type of the underlying container gets
+hidden.)  To create a new sequence type it is therefore necessary to
+create a class that implements the ISequenceImpl interface.
 
 Like iterators, a Sequence object may be invalidated by changes to the
 underlying storage.  The circumstances under which this does or doesn't
@@ -121,8 +126,22 @@ public:
     { }
 
     typedef ValueT ValueType;
+
+    /// Returns whether we have reached the end of the sequence.
     bool Empty() { return !m_impl.get() || m_impl->Empty(); }
+
+    /**
+    \brief  Returns the element currently at the front of the sequence
+            and iterates one step past it.
+
+    Calling this function is only allowed if Empty() has, or would have,
+    returned `false`.
+
+    In general, the returned reference is only guaranteed to be valid until
+    the next time Next() is called.
+    */
     ValueT& Next() { return m_impl->Next(); }
+
 private:
     std::shared_ptr<ISequenceImpl<ValueT>> m_impl;
 };
@@ -153,7 +172,8 @@ class IteratorSequenceImpl : public ISequenceImpl<
 {
 public:
     /**
-    \brief  Constructor that take the "begin" and "end" iterators of a sequence.
+    \brief  Constructor that takes the "begin" and "end" iterators of a
+            sequence.
 
     The two iterators must be comparable.
     */
