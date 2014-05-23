@@ -15,6 +15,10 @@ set (versionMajor "0")
 set (versionMinor "1")
 set (versionPatch "0")
 
+option (DOCUMENT_PRIVATE_API
+        "Whether to generate API documentation for the non-public API"
+        OFF)
+
 # ==============================================================================
 # Common variables
 # ==============================================================================
@@ -112,6 +116,11 @@ add_subdirectory ("src")
 # ==============================================================================
 find_package (Doxygen)
 if (DOXYGEN_FOUND)
+    set (documentedDirectories "\"${CMAKE_SOURCE_DIR}/include\"")
+    if (DOCUMENT_PRIVATE_API)
+        set (documentedDirectories
+             "${documentedDirectories} \"${CMAKE_SOURCE_DIR}/src/include\"")
+    endif ()
     set (doxyfile "${CMAKE_BINARY_DIR}/Doxyfile")
     configure_file ("${CMAKE_SOURCE_DIR}/cmake/Doxyfile.in" ${doxyfile} @ONLY)
     add_custom_target ("doc" ALL ${DOXYGEN_EXECUTABLE} ${doxyfile}
