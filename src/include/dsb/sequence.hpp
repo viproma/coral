@@ -240,5 +240,58 @@ Sequence<ValueT> ArraySequence(ValueT* pointer, size_t length)
 }
 
 
+/**
+\brief  A sequence implementation that allows iteration over the mapped values
+        of a `std::map` or `std::unordered_map` (or any other type that has
+        the same API).
+
+The class stores and uses a pair of map iterators, so the sequence remains
+valid under the same circumstances as the iterators.
+*/
+template<typename Map>
+class MapValueSequenceImpl : public ISequenceImpl<typename Map::mapped_type>
+{
+public:
+    /// Constructor that takes a map object.
+    MapValueSequenceImpl(Map& map)
+        : m_begin(map.begin()), m_end(map.end())
+    { }
+
+    bool Empty()
+    {
+        return m_begin == m_end;
+    }
+
+    typename Map::mapped_type& Next()
+    {
+        return (m_begin++)->second;
+    }
+
+private:
+    typename Map::iterator m_begin;
+    typename Map::iterator m_end;
+};
+
+
+/**
+\brief  Convenience function that returns a sequence representation of the
+        mapped values in a `std::map` or `std::unordered_map` (or any other
+        type that has the same API).
+
+This function allows for easy construction of a Sequence backed by a
+MapValueSequenceImpl, for example:
+~~~{.cpp}
+std::map<int, double> m;
+Sequence<double> s = MapValueSequence(m);
+~~~
+*/
+template<typename Map>
+Sequence<typename Map::mapped_type> MapValueSequence(Map& map)
+{
+    return Sequence<typename Map::mapped_type>(
+        std::make_shared<MapValueSequenceImpl<Map>>(map));
+}
+
+
 }}      // namespace
 #endif  // header guard

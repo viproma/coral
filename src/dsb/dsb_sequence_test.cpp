@@ -1,3 +1,4 @@
+#include <map>
 #include <string>
 #include <vector>
 #include "gtest/gtest.h"
@@ -87,4 +88,18 @@ TEST(dsb_sequence, ArraySequence)
     ASSERT_FALSE(r.Empty());
     EXPECT_EQ(4, r.Next());
     EXPECT_TRUE(r.Empty());
+}
+
+
+TEST(dsb_sequence, MapValueSequence)
+{
+    std::map<int, std::string> m;
+    m[123] = "foo";
+    m[7] = "bar";
+    auto s = MapValueSequence(m);
+    ASSERT_FALSE(s.Empty());
+    EXPECT_EQ("bar", s.Next());
+    ASSERT_FALSE(s.Empty());
+    EXPECT_EQ("foo", s.Next());
+    EXPECT_TRUE(s.Empty());
 }
