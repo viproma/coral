@@ -1,6 +1,8 @@
 set (_target "dsb")
 
-set (_publicHeaders )
+set (_publicHeaders
+    "dsb/config.h"
+)
 set (_privateHeaders
     "dsb/comm.hpp"
     "dsb/control.hpp"
