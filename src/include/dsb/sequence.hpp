@@ -317,5 +317,30 @@ Sequence<ElementT> EmptySequence()
 }
 
 
+// A read-only view of another sequence; see ConstSequence().
+template<typename DerefElementT>
+class ConstSequenceImpl : public ISequenceImpl<const DerefElementT&>
+{
+public:
+    ConstSequenceImpl(Sequence<DerefElementT&> wrapThis) : m_wrapped(wrapThis) { }
+    bool Empty() DSB_FINAL override { return m_wrapped.Empty(); }
+    const DerefElementT& Next() DSB_FINAL override { return m_wrapped.Next(); }
+private:
+    Sequence<DerefElementT&> m_wrapped;
+};
+
+
+/**
+\brief  Returns a sequence which provides a read-only view of the elements in
+        another sequence.
+*/
+template<typename DerefElementT>
+Sequence<const DerefElementT&> ConstSequence(Sequence<DerefElementT&> sequence)
+{
+    return Sequence<const DerefElementT&>(
+        std::make_shared<ConstSequenceImpl<DerefElementT>>(sequence));
+}
+
+
 }}      // namespace
 #endif  // header guard
