@@ -17,7 +17,7 @@ namespace dsb
 
 /**
 \brief  Module that defines a sequence iteration abstraction, similar to
-        iterators, but simpler.
+        standard iterators, but simpler.
 
 The central class in this module is dsb::sequence::Sequence.  Please see
 its documentation for more information.
@@ -150,8 +150,7 @@ private:
 
 
 /**
-\brief  A sequence implementation that allows iteration with a pair of
-        standard iterators.
+\brief  A sequence implementation that wraps a pair of standard iterators.
 
 `Iterator` is the iterator type.  The sequence is valid as long as the
 iterators are valid (which again depends on the type of container iterated).
