@@ -1,6 +1,6 @@
 #include <map>
 #include <string>
-#include <vector>
+#include <list>
 #include "gtest/gtest.h"
 #include "dsb/sequence.hpp"
 
@@ -47,9 +47,27 @@ TEST(dsb_sequence, ConstElements)
 }
 
 
+TEST(dsb_sequence, IteratorSequence)
+{
+    std::list<std::string> v;
+    v.push_back("foo");
+    v.push_back("bar");
+    v.push_back("baz");
+
+    auto r = IteratorSequence(v.begin(), v.end());
+    ASSERT_FALSE(r.Empty());
+    EXPECT_EQ("foo", r.Next());
+    ASSERT_FALSE(r.Empty());
+    EXPECT_EQ("bar", r.Next());
+    ASSERT_FALSE(r.Empty());
+    EXPECT_EQ("baz", r.Next());
+    EXPECT_TRUE(r.Empty());
+}
+
+
 TEST(dsb_sequence, ContainerSequence)
 {
-    std::vector<std::string> v;
+    std::list<std::string> v;
     v.push_back("foo");
     v.push_back("bar");
     v.push_back("baz");
@@ -67,7 +85,7 @@ TEST(dsb_sequence, ContainerSequence)
 
 TEST(dsb_sequence, ConstContainerSequence)
 {
-    const std::vector<std::string> v(2);
+    const std::list<std::string> v(2);
     auto r = ContainerSequence(v);
     ASSERT_FALSE(r.Empty());
     EXPECT_EQ("", r.Next());
@@ -111,4 +129,22 @@ TEST(dsb_sequence, EmptySequence)
     EXPECT_TRUE(s1.Empty());
     Sequence<int&> s2 = EmptySequence<int&>();
     EXPECT_TRUE(s2.Empty());
+}
+
+
+TEST(dsb_sequence, ConstSequence)
+{
+    std::list<std::string> v;
+    v.push_back("foo");
+    v.push_back("bar");
+    v.push_back("baz");
+
+    Sequence<const std::string&> r = ConstSequence(ContainerSequence(v));
+    ASSERT_FALSE(r.Empty());
+    EXPECT_EQ("foo", r.Next());
+    ASSERT_FALSE(r.Empty());
+    EXPECT_EQ("bar", r.Next());
+    ASSERT_FALSE(r.Empty());
+    EXPECT_EQ("baz", r.Next());
+    EXPECT_TRUE(r.Empty());
 }

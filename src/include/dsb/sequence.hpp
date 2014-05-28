@@ -8,6 +8,7 @@
 #include <cassert>
 #include <iterator>
 #include <memory>
+#include <type_traits>
 
 #include "dsb/config.h"
 
@@ -149,33 +150,15 @@ private:
 };
 
 
-/**
-\brief  A sequence implementation that wraps a pair of standard iterators.
-
-`Iterator` is the iterator type.  The sequence is valid as long as the
-iterators are valid (which again depends on the type of container iterated).
-
-\see ArraySequence, ContainerSequence
-*/
+// Implementation class for IteratorSequence()
 template<typename Iterator>
 class IteratorSequenceImpl
     : public ISequenceImpl<typename std::iterator_traits<Iterator>::reference>
 {
 public:
-    /**
-    \brief  Constructor that takes the "begin" and "end" iterators of a
-            sequence.
+    IteratorSequenceImpl(Iterator begin, Iterator end) : m_begin(begin), m_end(end) { }
 
-    The two iterators must be comparable.
-    */
-    IteratorSequenceImpl(Iterator begin, Iterator end)
-        : m_begin(begin), m_end(end)
-    { }
-
-    bool Empty() DSB_FINAL override
-    {
-        return m_begin == m_end;
-    }
+    bool Empty() DSB_FINAL override { return m_begin == m_end; }
 
     typename std::iterator_traits<Iterator>::reference Next() DSB_FINAL override
     {
@@ -189,19 +172,34 @@ private:
 
 
 /**
+\brief  Returns a sequence that wraps a pair of standard iterators.
+
+The sequence is valid as long as the iterators are valid (which again depends
+on the type of container iterated).
+
+\see ArraySequence, ContainerSequence
+*/
+template<typename Iterator>
+Sequence<typename std::iterator_traits<Iterator>::reference> IteratorSequence(
+    Iterator begin, Iterator end)
+{
+    return Sequence<typename std::iterator_traits<Iterator>::reference>(
+        std::make_shared<IteratorSequenceImpl<Iterator>>(begin, end));
+}
+
+
+/**
 \brief  Convenience function which returns a Sequence that iterates over the
         entire contents of a standard container.
 
-The sequence is backed by an IteratorSequenceImpl.
+This function simply forwards to IteratorSequence(), using the "begin" and "end"
+iterators of `c`.
 */
 template<typename Container>
 Sequence<typename std::iterator_traits<typename Container::iterator>::reference>
     ContainerSequence(Container& c)
 {
-    typedef typename Container::iterator I;
-    typedef typename std::iterator_traits<I>::reference E;
-    return Sequence<E>(std::make_shared<IteratorSequenceImpl<I>>(
-        c.begin(), c.end()));
+    return IteratorSequence(c.begin(), c.end());
 }
 
 // Same as the above, but for const containers.
@@ -209,10 +207,7 @@ template<typename Container>
 Sequence<typename std::iterator_traits<typename Container::const_iterator>::reference>
     ContainerSequence(const Container& c)
 {
-    typedef typename Container::const_iterator I;
-    typedef typename std::iterator_traits<I>::reference E;
-    return Sequence<E>(std::make_shared<IteratorSequenceImpl<I>>(
-        c.cbegin(), c.cend()));
+    return IteratorSequence(c.cbegin(), c.cend());
 }
 
 
@@ -220,24 +215,17 @@ Sequence<typename std::iterator_traits<typename Container::const_iterator>::refe
 \brief  Convenience function which returns a Sequence that iterates over the
         entire contents of an array.
 
-The sequence is backed by an IteratorSequenceImpl.
+This function simply forwards to IteratorSequence(), using `pointer` and
+`pointer+length` as iterators.
 */
 template<typename ElementT>
 Sequence<ElementT&> ArraySequence(ElementT* pointer, size_t length)
 {
-    return Sequence<ElementT&>(std::make_shared<IteratorSequenceImpl<ElementT*>>(
-        pointer, pointer + length));
+    return IteratorSequence(pointer, pointer + length);
 }
 
 
-/**
-\brief  A sequence implementation that allows iteration over the mapped values
-        of a `std::map` or `std::unordered_map` (or any other type that has
-        the same API).
-
-The class stores and uses a pair of map iterators, so the sequence remains
-valid under the same circumstances as the iterators.
-*/
+// Implementation class for MapValueSequence()
 template<typename Map>
 class MapValueSequenceImpl : public ISequenceImpl<typename Map::mapped_type&>
 {
@@ -264,12 +252,14 @@ private:
 
 
 /**
-\brief  Convenience function that returns a sequence representation of the
-        mapped values in a `std::map` or `std::unordered_map` (or any other
-        type that has the same API).
+\brief  Returns a sequence representation of the mapped values in a `std::map`
+        or `std::unordered_map` (or any other type with a compatible API).
 
-This function allows for easy construction of a Sequence backed by a
-MapValueSequenceImpl, for example:
+The sequence stores and uses a pair of map iterators (i.e., those returned
+by `map.begin()` and `map.end()`), and thus remains valid under the same
+circumstances as the iterators.
+
+Example:
 ~~~{.cpp}
 std::map<int, double> m;
 Sequence<double> s = MapValueSequence(m);
@@ -283,18 +273,7 @@ Sequence<typename Map::mapped_type&> MapValueSequence(Map& map)
 }
 
 
-namespace detail
-{
-    // Helper template that strips the & off a reference type.
-    template<typename T> struct ValueType { typedef T Type; };
-    template<typename T> struct ValueType<T&> { typedef T Type; };
-}
-
-
-/**
-\brief  An implementation of an empty sequence, i.e. one for which Empty()
-        is always `true`.
-*/
+// Implementation class for EmptySequence()
 template<typename ElementT>
 class EmptySequenceImpl : public ISequenceImpl<ElementT>
 {
@@ -304,7 +283,7 @@ public:
     ElementT Next() DSB_FINAL override
     {
         assert(!"Next() called on empty sequence");
-        return *(static_cast<typename detail::ValueType<ElementT>::Type*>(nullptr));
+        return *(static_cast<typename std::remove_reference<ElementT>::type*>(nullptr));
     }
 };
 
@@ -317,7 +296,7 @@ Sequence<ElementT> EmptySequence()
 }
 
 
-// A read-only view of another sequence; see ConstSequence().
+// Implementation class for ConstSequence().
 template<typename DerefElementT>
 class ConstSequenceImpl : public ISequenceImpl<const DerefElementT&>
 {
@@ -333,6 +312,8 @@ private:
 /**
 \brief  Returns a sequence which provides a read-only view of the elements in
         another sequence.
+
+This function is only defined for reference sequences.
 */
 template<typename DerefElementT>
 Sequence<const DerefElementT&> ConstSequence(Sequence<DerefElementT&> sequence)
