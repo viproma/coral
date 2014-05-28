@@ -5,6 +5,7 @@ set (_publicHeaders
 )
 set (_privateHeaders
     "dsb/comm.hpp"
+    "dsb/compat_helpers.hpp"
     "dsb/control.hpp"
     "dsb/error.hpp"
     "dsb/protobuf.hpp"
