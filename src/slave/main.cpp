@@ -21,7 +21,7 @@
 class Shutdown : std::exception
 {
 public:
-    const char* what() const noexcept { return "Normal shutdown requested by master"; }
+    const char* what() const noexcept override { return "Normal shutdown requested by master"; }
 };
 
 
