@@ -12,7 +12,6 @@
 #include "dsb/comm.hpp"
 #include "dsb/control.hpp"
 #include "dsb/util.hpp"
-
 #include "control.pb.h"
 
 
@@ -27,12 +26,12 @@ namespace
         SLAVE_READY         = 1 << 4,
     };
 
-    struct Slave
+    struct SlaveTracker
     {
-        Slave()
+        SlaveTracker()
             : protocol(0xFFFF), state(SLAVE_UNKNOWN) { }
 
-        Slave(uint16_t protocol_)
+        SlaveTracker(uint16_t protocol_)
             : protocol(protocol_), state(SLAVE_CONNECTED) { }
 
         uint16_t protocol;
@@ -40,7 +39,7 @@ namespace
     };
 
     bool UpdateSlaveState(
-        std::map<std::string, Slave>& slaves,
+        std::map<std::string, SlaveTracker>& slaves,
         const std::string& slaveId,
         int oldStates,
         SlaveState newState)
@@ -95,7 +94,7 @@ int main(int argc, const char** argv)
     auto control = zmq::socket_t(context, ZMQ_ROUTER);
     control.bind(endpoint.c_str());
 
-    std::map<std::string, Slave> slaves;
+    std::map<std::string, SlaveTracker> slaves;
     for (;;) {
         std::deque<zmq::message_t> msg;
         dsb::comm::Receive(control, msg);
@@ -114,7 +113,7 @@ int main(int argc, const char** argv)
                               << std::endl;
                     break;
                 }
-                slaves[slaveId] = Slave(slaveProtocol);
+                slaves[slaveId] = SlaveTracker(slaveProtocol);
                 dsb::control::CreateHelloMessage(
                     msg,
                     std::min(MAX_PROTOCOL, slaveProtocol));
