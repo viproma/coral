@@ -62,15 +62,20 @@ enum Variability
 struct VariableInfo
 {
     VariableInfo(
+        int reference_,
         const std::string& name_,
         DataType dataType_,
         Causality causality_,
         Variability variability_)
-        : name(name_),
+        : reference(reference_),
+          name(name_),
           dataType(dataType_),
           causality(causality_),
           variability(variability_)
     { }
+
+    /// The variable reference number.
+    int reference;
 
     /// The variable name.
     std::string name;

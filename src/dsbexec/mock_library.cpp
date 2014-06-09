@@ -16,22 +16,24 @@ namespace
             // mass_1d
             {
                 std::vector<VariableInfo> vars;
-                vars.push_back(VariableInfo("force_x", REAL_DATATYPE, INPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
-                vars.push_back(VariableInfo("pos_x", REAL_DATATYPE, OUTPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
-                vars.push_back(VariableInfo("state_pos_x", REAL_DATATYPE, LOCAL_CAUSALITY, CONTINUOUS_VARIABILITY));
-                vars.push_back(VariableInfo("mass", REAL_DATATYPE, PARAMETER_CAUSALITY, TUNABLE_VARIABILITY));
+                vars.push_back(VariableInfo(0, "force_x", REAL_DATATYPE, INPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
+                vars.push_back(VariableInfo(1, "pos_x", REAL_DATATYPE, OUTPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
+                vars.push_back(VariableInfo(1, "state_pos_x", REAL_DATATYPE, LOCAL_CAUSALITY, CONTINUOUS_VARIABILITY));
+                vars.push_back(VariableInfo(2, "vel_x", REAL_DATATYPE, OUTPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
+                vars.push_back(VariableInfo(2, "state_vel_x", REAL_DATATYPE, LOCAL_CAUSALITY, CONTINUOUS_VARIABILITY));
+                vars.push_back(VariableInfo(3, "mass", REAL_DATATYPE, PARAMETER_CAUSALITY, TUNABLE_VARIABILITY));
                 m_slaveTypes.push_back(SlaveType("mass_1d", vars.begin(), vars.end()));
             }
 
             // spring_1d
             {
                 std::vector<VariableInfo> vars;
-                vars.push_back(VariableInfo("pos_a_x", REAL_DATATYPE, INPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
-                vars.push_back(VariableInfo("pos_b_x", REAL_DATATYPE, INPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
-                vars.push_back(VariableInfo("force_a_x", REAL_DATATYPE, OUTPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
-                vars.push_back(VariableInfo("force_b_x", REAL_DATATYPE, OUTPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
-                vars.push_back(VariableInfo("length", REAL_DATATYPE, PARAMETER_CAUSALITY, FIXED_VARIABILITY));
-                vars.push_back(VariableInfo("stiffness", REAL_DATATYPE, PARAMETER_CAUSALITY, TUNABLE_VARIABILITY));
+                vars.push_back(VariableInfo(0, "pos_a_x", REAL_DATATYPE, INPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
+                vars.push_back(VariableInfo(1, "pos_b_x", REAL_DATATYPE, INPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
+                vars.push_back(VariableInfo(2, "force_a_x", REAL_DATATYPE, OUTPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
+                vars.push_back(VariableInfo(3, "force_b_x", REAL_DATATYPE, OUTPUT_CAUSALITY, CONTINUOUS_VARIABILITY));
+                vars.push_back(VariableInfo(4, "length", REAL_DATATYPE, PARAMETER_CAUSALITY, FIXED_VARIABILITY));
+                vars.push_back(VariableInfo(5, "stiffness", REAL_DATATYPE, PARAMETER_CAUSALITY, TUNABLE_VARIABILITY));
                 m_slaveTypes.push_back(SlaveType("spring_1d", vars.begin(), vars.end()));
             }
         }

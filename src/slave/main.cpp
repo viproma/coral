@@ -13,6 +13,8 @@
 
 #include "control.pb.h"
 
+#include "mock_slaves.hpp"
+
 
 #if defined(_MSC_VER) && _MSC_VER <= 1800
 #   define noexcept
@@ -46,8 +48,8 @@ void EnforceMessageType(
 
 int main(int argc, const char** argv)
 {
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <id> <address>\n"
+    if (argc < 4) {
+        std::cerr << "Usage: " << argv[0] << " <id> <address> <slave type>\n"
                   << "  id      = a number in the range 0 - 65535\n"
                   << "  address = DSB server endpoint (e.g. tcp://myhost:5432)"
                   << std::endl;
@@ -55,6 +57,9 @@ int main(int argc, const char** argv)
     }
     const auto id = std::string(argv[1]);
     const auto endpoint = std::string(argv[2]);
+    const auto slaveType = std::string(argv[3]);
+
+    auto instance = NewSlave(slaveType);
 
     auto context = zmq::context_t();
     auto control = zmq::socket_t(context, ZMQ_REQ);
