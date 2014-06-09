@@ -9,14 +9,12 @@ enum MessageType
     MSG_HELLO       =  0;
     MSG_ERROR       =  1;
     MSG_TERMINATE   =  2;
-    MSG_DESCRIBE    =  3;
-    MSG_INITIALIZE  =  4;
-    MSG_INITIALIZED =  5;
-    MSG_SUBSCRIBE   =  6;
-    MSG_READY       =  7;
-    MSG_STEP        =  8;
-    MSG_STEP_FAIL   =  9;
-    MSG_COMMUNICATE = 10;
+    MSG_INIT_READY  =  3;
+    MSG_INIT_DONE   =  4;
+    MSG_READY       =  5;
+    MSG_SET_VARS    =  6;
+    MSG_STEP        =  7;
+    MSG_STEP_FAILED =  8;
 }
 
 

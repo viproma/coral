@@ -29,10 +29,10 @@ TEST(dsb_control, CreateMessage)
     pbSrc.set_i(314);
     pbSrc.set_s("Hello");
     std::deque<zmq::message_t> msg;
-    CreateMessage(msg, dsbproto::control::MSG_DESCRIBE, pbSrc);
+    CreateMessage(msg, dsbproto::control::MSG_READY, pbSrc);
 
     ASSERT_EQ(2, msg.size());
-    EXPECT_EQ(dsbproto::control::MSG_DESCRIBE, ParseMessageType(msg[0]));
+    EXPECT_EQ(dsbproto::control::MSG_READY, ParseMessageType(msg[0]));
     dsbproto::testing::IntString pbTgt;
     dsb::protobuf::ParseFromFrame(msg[1], pbTgt);
     EXPECT_EQ(314, pbTgt.i());

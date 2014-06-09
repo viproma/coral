@@ -21,9 +21,8 @@ namespace
     {
         SLAVE_UNKNOWN       = 1,
         SLAVE_CONNECTED     = 1 << 1,
-        SLAVE_INTRODUCED    = 1 << 2,
-        SLAVE_INITIALIZED   = 1 << 3,
-        SLAVE_READY         = 1 << 4,
+        SLAVE_INITIALIZING  = 1 << 2,
+        SLAVE_READY         = 1 << 3,
     };
 
     struct SlaveTracker
@@ -120,19 +119,10 @@ int main(int argc, const char** argv)
                 dsb::comm::AddressedSend(control, slaveId, msg);
                 break;
             }
-            case dsbproto::control::MSG_DESCRIBE:
-                std::clog << "MSG_DESCRIBE" << std::endl;
-                if (UpdateSlaveState(slaves, slaveId, SLAVE_CONNECTED, SLAVE_INTRODUCED)) {
-                    SendEmptyMessage(control, slaveId, dsbproto::control::MSG_INITIALIZE);
-                } else {
-                    SendInvalidRequest(control, slaveId);
-                }
-                break;
-
-            case dsbproto::control::MSG_INITIALIZED:
-                std::clog << "MSG_INITIALIZED" << std::endl;
-                if (UpdateSlaveState(slaves, slaveId, SLAVE_INTRODUCED, SLAVE_INITIALIZED)) {
-                    SendEmptyMessage(control, slaveId, dsbproto::control::MSG_SUBSCRIBE);
+            case dsbproto::control::MSG_INIT_READY:
+                std::clog << "MSG_INIT_READY" << std::endl;
+                if (UpdateSlaveState(slaves, slaveId, SLAVE_CONNECTED | SLAVE_INITIALIZING, SLAVE_INITIALIZING)) {
+                    SendEmptyMessage(control, slaveId, dsbproto::control::MSG_INIT_DONE);
                 } else {
                     SendInvalidRequest(control, slaveId);
                 }
@@ -140,7 +130,7 @@ int main(int argc, const char** argv)
 
             case dsbproto::control::MSG_READY:
                 std::clog << "MSG_READY" << std::endl;
-                if (UpdateSlaveState(slaves, slaveId, SLAVE_INITIALIZED | SLAVE_READY, SLAVE_READY)) {
+                if (UpdateSlaveState(slaves, slaveId, SLAVE_INITIALIZING | SLAVE_READY, SLAVE_READY)) {
                     SendEmptyMessage(control, slaveId, dsbproto::control::MSG_STEP);
                 } else {
                     SendInvalidRequest(control, slaveId);

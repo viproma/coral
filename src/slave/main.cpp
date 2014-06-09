@@ -72,21 +72,13 @@ int main(int argc, const char** argv)
         throw std::runtime_error("Master required unsupported protocol");
     }
 
-    // Send MSG_DESCRIBE
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_DESCRIBE);
+    // Send MSG_INIT_READY
+    dsb::control::CreateMessage(msg, dsbproto::control::MSG_INIT_READY);
     dsb::comm::Send(control, msg);
 
-    // Receive MSG_INITIALIZE
+    // Receive MSG_INIT_DONE
     dsb::comm::Receive(control, msg);
-    EnforceMessageType(msg, dsbproto::control::MSG_INITIALIZE);
-
-    // Send MSG_INITIALIZED
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_INITIALIZED);
-    dsb::comm::Send(control, msg);
-
-    // Receive MSG_SUBSCRIBE
-    dsb::comm::Receive(control, msg);
-    EnforceMessageType(msg, dsbproto::control::MSG_SUBSCRIBE);
+    EnforceMessageType(msg, dsbproto::control::MSG_INIT_DONE);
 
     // MSG_READY loop
     for (;;) {
