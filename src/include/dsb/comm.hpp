@@ -31,17 +31,17 @@ void Send(zmq::socket_t& socket, std::deque<zmq::message_t>& message);
 /**
 \brief  Sends an addressed message.
 
-This function sends `message`, prepended with an envelope consisting of two
-frames: a frame with the contents of `recipient` and an empty delimiter frame.
+This function sends a multipart message consisting of the frames in `envelope`
+followed by an empty delimiter frame and the frames in `body`.
 
-The message content will be cleared on return.
+Both `envelope` and `body` will be cleared on return.
 
-\throws std::invalid_argument if `recipient` or `message` is empty.
+\throws std::invalid_argument if either of `envelope` or `body` are empty.
 */
 void AddressedSend(
     zmq::socket_t& socket,
-    const std::string& recipient,
-    std::deque<zmq::message_t>& message);
+    std::deque<zmq::message_t>& envelope,
+    std::deque<zmq::message_t>& body);
 
 
 /**

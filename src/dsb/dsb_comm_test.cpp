@@ -39,10 +39,13 @@ TEST(dsb_comm, SendReceiveAddressedMessage)
     recver.bind(endpoint.c_str());
     sender.connect(endpoint.c_str());
 
+    std::deque<zmq::message_t> env;
+    env.push_back(zmq::message_t(3));
+    std::memcpy(env.back().data(), "foo", 3);
     std::deque<zmq::message_t> srcMsg;
     srcMsg.push_back(zmq::message_t(123));
     srcMsg.push_back(zmq::message_t(321));
-    AddressedSend(sender, "foo", srcMsg);
+    AddressedSend(sender, env, srcMsg);
 
     std::deque<zmq::message_t> tgtMsg(1);
     Receive(recver, tgtMsg);

@@ -5,35 +5,45 @@
 #include "dsb/error.hpp"
 
 
+namespace
+{
+    void SendFrames(
+        zmq::socket_t& socket,
+        std::deque<zmq::message_t>& message,
+        bool moreComing)
+    {
+        assert (!message.empty());
+        for (auto it = message.begin(); ; ) {
+            auto m = it++;
+            if (it == message.end()) {
+                if (moreComing) socket.send(*m, ZMQ_SNDMORE);
+                else            socket.send(*m);
+                break;
+            } else {
+                socket.send(*m, ZMQ_SNDMORE);
+            }
+        }
+        message.clear();
+    }
+}
+
 void dsb::comm::Send(zmq::socket_t& socket, std::deque<zmq::message_t>& message)
 {
     DSB_INPUT_CHECK(!message.empty());
-    for (auto it = message.begin(); ; ) {
-        auto m = it++;
-        if (it == message.end()) {
-            socket.send(*m);
-            break;
-        } else {
-            socket.send(*m, ZMQ_SNDMORE);
-        }
-    }
-    message.clear();
+    SendFrames(socket, message, false);
 }
 
 
 void dsb::comm::AddressedSend(
     zmq::socket_t& socket,
-    const std::string& recipient,
-    std::deque<zmq::message_t>& message)
+    std::deque<zmq::message_t>& envelope,
+    std::deque<zmq::message_t>& body)
 {
-    DSB_INPUT_CHECK(!recipient.empty());
-    DSB_INPUT_CHECK(!message.empty());
-
-    zmq::message_t env(recipient.size());
-    std::memcpy(env.data(), recipient.data(), recipient.size());
-    socket.send(env, ZMQ_SNDMORE);
-    socket.send(env, ZMQ_SNDMORE); // env is empty after the previous send
-    Send(socket, message);
+    DSB_INPUT_CHECK(!envelope.empty());
+    DSB_INPUT_CHECK(!body.empty());
+    SendFrames(socket, envelope, true);
+    socket.send("", 0, ZMQ_SNDMORE);
+    SendFrames(socket, body, false);
 }
 
 

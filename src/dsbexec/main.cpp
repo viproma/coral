@@ -55,24 +55,24 @@ namespace
 
     void SendInvalidRequest(
         zmq::socket_t& socket,
-        const std::string& slaveId)
+        std::deque<zmq::message_t>& slaveEnvelope)
     {
         std::deque<zmq::message_t> msg;
         dsb::control::CreateErrorMessage(
             msg,
             dsbproto::control::ErrorInfo::INVALID_REQUEST,
             "Slave ID not seen before, or slave was expected to be in different state");
-        dsb::comm::AddressedSend(socket, slaveId, msg);
+        dsb::comm::AddressedSend(socket, slaveEnvelope, msg);
     }
 
     void SendEmptyMessage(
         zmq::socket_t& socket,
-        const std::string& slaveId,
+        std::deque<zmq::message_t>& slaveEnvelope,
         dsbproto::control::MessageType type)
     {
         std::deque<zmq::message_t> msg;
         dsb::control::CreateMessage(msg, type);
-        dsb::comm::AddressedSend(socket, slaveId, msg);
+        dsb::comm::AddressedSend(socket, slaveEnvelope, msg);
     }
 
     const uint16_t MAX_PROTOCOL = 0;
@@ -91,7 +91,7 @@ int main(int argc, const char** argv)
 
     auto context = zmq::context_t();
     auto control = zmq::socket_t(context, ZMQ_ROUTER);
-    control.bind(endpoint.c_str());
+    control.connect(endpoint.c_str());
 
     std::map<std::string, SlaveTracker> slaves;
     for (;;) {
@@ -100,7 +100,7 @@ int main(int argc, const char** argv)
 
         std::deque<zmq::message_t> envelope;
         dsb::comm::PopMessageEnvelope(msg, &envelope);
-        const auto slaveId = dsb::comm::ToString(envelope.front());
+        const auto slaveId = dsb::comm::ToString(envelope.back());
         std::clog << "Received message from slave '" << slaveId << "': ";
 
         switch (dsb::control::ParseMessageType(msg.front())) {
@@ -116,31 +116,31 @@ int main(int argc, const char** argv)
                 dsb::control::CreateHelloMessage(
                     msg,
                     std::min(MAX_PROTOCOL, slaveProtocol));
-                dsb::comm::AddressedSend(control, slaveId, msg);
+                dsb::comm::AddressedSend(control, envelope, msg);
                 break;
             }
             case dsbproto::control::MSG_INIT_READY:
                 std::clog << "MSG_INIT_READY" << std::endl;
                 if (UpdateSlaveState(slaves, slaveId, SLAVE_CONNECTED | SLAVE_INITIALIZING, SLAVE_INITIALIZING)) {
-                    SendEmptyMessage(control, slaveId, dsbproto::control::MSG_INIT_DONE);
+                    SendEmptyMessage(control, envelope, dsbproto::control::MSG_INIT_DONE);
                 } else {
-                    SendInvalidRequest(control, slaveId);
+                    SendInvalidRequest(control, envelope);
                 }
                 break;
 
             case dsbproto::control::MSG_READY:
                 std::clog << "MSG_READY" << std::endl;
                 if (UpdateSlaveState(slaves, slaveId, SLAVE_INITIALIZING | SLAVE_READY, SLAVE_READY)) {
-                    SendEmptyMessage(control, slaveId, dsbproto::control::MSG_STEP);
+                    SendEmptyMessage(control, envelope, dsbproto::control::MSG_STEP);
                 } else {
-                    SendInvalidRequest(control, slaveId);
+                    SendInvalidRequest(control, envelope);
                 }
                 break;
 
             default:
                 std::clog << "Warning: Invalid message received from client: "
                           << slaveId << std::endl;
-                SendInvalidRequest(control, slaveId);
+                SendInvalidRequest(control, envelope);
         }
     }
 }
