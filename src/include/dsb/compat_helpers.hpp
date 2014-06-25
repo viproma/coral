@@ -26,13 +26,13 @@
         unique_ptr<T> make_unique() { return unique_ptr<T>(new T()); }
 
         template<typename T, typename A1>
-        unique_ptr<T> make_unique(A1&& arg1) { return unique_ptr<T>(new T(arg1)); }
+        unique_ptr<T> make_unique(A1&& arg1) { return unique_ptr<T>(new T(std::forward<A1>(arg1))); }
 
         template<typename T, typename A1, typename A2>
-        unique_ptr<T> make_unique(A1&& arg1, A2&& arg2) { return unique_ptr<T>(new T(arg1, arg2)); }
+        unique_ptr<T> make_unique(A1&& arg1, A2&& arg2) { return unique_ptr<T>(new T(std::forward<A1>(arg1), std::forward<A2>(arg2))); }
 
         template<typename T, typename A1, typename A2, typename A3>
-        unique_ptr<T> make_unique(A1&& arg1, A2&& arg2, A3&& arg3) { return unique_ptr<T>(new T(arg1)); }
+        unique_ptr<T> make_unique(A1&& arg1, A2&& arg2, A3&& arg3) { return unique_ptr<T>(new T(std::forward<A1>(arg1), std::forward<A2>(arg2), std::forward<A3>(arg3))); }
 
         // ...continue adding more as necessary
     }
