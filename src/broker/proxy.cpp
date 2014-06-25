@@ -49,8 +49,12 @@ namespace
         */
         Unique(Unique& source) : m_payload(std::move(source.m_payload)) { }
 
+        /// Move constructor.
+        Unique(Unique&& source) : m_payload(std::move(source.m_payload)) { }
+
         /// Returns a reference to the payload value.
         T& Payload() { return m_payload; }
+
     private:
         T m_payload;
     };
@@ -182,7 +186,7 @@ dsb::broker::Proxy dsb::broker::SpawnProxy(
     auto controlSocket = zmq::socket_t(*context, ZMQ_PAIR);
     controlSocket.bind(controlEndpoint.c_str());
 
-    auto thread = boost::thread::thread(ProxyFunctor(
+    auto thread = boost::thread(ProxyFunctor(
             context,
             Unique<zmq::socket_t>(std::move(socket1)),
             Unique<zmq::socket_t>(std::move(socket2)),
