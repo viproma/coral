@@ -21,4 +21,15 @@ be a valid C header.  C++-specific code should therefore be placed in
 #   endif
 #endif
 
+// Visual Studio versions prior to 2012 have a different emplace_back()
+// signature than the standard one, due to lack of support for variadic
+// templates.
+#ifdef __cplusplus
+#   if defined(_MSC_VER) && _MSC_VER < 1700
+#       define DSB_HAS_VARARG_EMPLACE_BACK 0
+#   else
+#       define DSB_HAS_VARARG_EMPLACE_BACK 1
+#   endif
+#endif
+
 #endif // header guard
