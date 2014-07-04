@@ -16,10 +16,12 @@
 #endif
 
 
-// VS2010 and GCC<4.9 do not have std::make_unique(), so we define it ourselves.
-// Why do we want this so badly?  Check out section 3 here:
+// std::make_unique() is introduced in C++14, so for non-compliant compilers,
+// we have to define it ourselves.  Why do we want this so badly, you ask?
+// Check out section 3 here for an excellent answer:
 // http://herbsutter.com/2013/05/29/gotw-89-solution-smart-pointers/
-#if (defined(_MSC_VER) && _MSC_VER < 1800) || (defined(DSB_GNUC_VERSION) && DSB_GNUC_VERSION < 40900)
+// (TL;DR: Exception safety, mainly.)
+#if defined(__cplusplus) && (__cplusplus <= 201103L)
     namespace std
     {
         template<typename T>

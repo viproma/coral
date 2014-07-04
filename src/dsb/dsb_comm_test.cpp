@@ -23,10 +23,10 @@ TEST(dsb_comm, SendReceiveMessage)
 
     std::deque<zmq::message_t> tgtMsg(1);
     Receive(recver, tgtMsg);
-    ASSERT_EQ(3, tgtMsg.size());
-    EXPECT_EQ(123, tgtMsg[0].size());
-    EXPECT_EQ(  0, tgtMsg[1].size());
-    EXPECT_EQ(321, tgtMsg[2].size());
+    ASSERT_EQ(  3U, tgtMsg.size());
+    EXPECT_EQ(123U, tgtMsg[0].size());
+    EXPECT_EQ(  0U, tgtMsg[1].size());
+    EXPECT_EQ(321U, tgtMsg[2].size());
 }
 
 TEST(dsb_comm, SendReceiveAddressedMessage)
@@ -49,12 +49,12 @@ TEST(dsb_comm, SendReceiveAddressedMessage)
 
     std::deque<zmq::message_t> tgtMsg(1);
     Receive(recver, tgtMsg);
-    ASSERT_EQ(4, tgtMsg.size());
-    ASSERT_EQ(3, tgtMsg[0].size());
+    ASSERT_EQ(4U, tgtMsg.size());
+    ASSERT_EQ(3U, tgtMsg[0].size());
     EXPECT_EQ(0, std::memcmp(tgtMsg[0].data(), "foo", 3));
-    EXPECT_EQ(  0, tgtMsg[1].size());
-    EXPECT_EQ(123, tgtMsg[2].size());
-    EXPECT_EQ(321, tgtMsg[3].size());
+    EXPECT_EQ(  0U, tgtMsg[1].size());
+    EXPECT_EQ(123U, tgtMsg[2].size());
+    EXPECT_EQ(321U, tgtMsg[3].size());
 }
 
 TEST(dsb_comm, PopMessageEnvelope)
@@ -67,12 +67,12 @@ TEST(dsb_comm, PopMessageEnvelope)
     std::deque<zmq::message_t> env;
     env.push_back(zmq::message_t());
     const auto size = PopMessageEnvelope(msg, &env);
-    EXPECT_EQ(3, size);
-    ASSERT_EQ(2, env.size());
-    EXPECT_EQ(123, env[0].size());
-    EXPECT_EQ(321, env[1].size());
-    ASSERT_EQ(1, msg.size());
-    EXPECT_EQ(97, msg[0].size());
+    EXPECT_EQ(  3U, size);
+    ASSERT_EQ(  2U, env.size());
+    EXPECT_EQ(123U, env[0].size());
+    EXPECT_EQ(321U, env[1].size());
+    ASSERT_EQ(  1U, msg.size());
+    EXPECT_EQ( 97U, msg[0].size());
 }
 
 TEST(dsb_comm, PopMessageEnvelope_emptyEnvelope)
@@ -85,12 +85,12 @@ TEST(dsb_comm, PopMessageEnvelope_emptyEnvelope)
     std::deque<zmq::message_t> env;
     env.push_back(zmq::message_t());
     const auto size = PopMessageEnvelope(msg, &env);
-    EXPECT_EQ(1, size);
-    EXPECT_EQ(0, env.size());
-    ASSERT_EQ(3, msg.size());
-    EXPECT_EQ(123, msg[0].size());
-    EXPECT_EQ(321, msg[1].size());
-    EXPECT_EQ( 97, msg[2].size());
+    EXPECT_EQ(  1U, size);
+    EXPECT_EQ(  0U, env.size());
+    ASSERT_EQ(  3U, msg.size());
+    EXPECT_EQ(123U, msg[0].size());
+    EXPECT_EQ(321U, msg[1].size());
+    EXPECT_EQ( 97U, msg[2].size());
 }
 
 TEST(dsb_comm, PopMessageEnvelope_noEnvelope)
@@ -102,12 +102,12 @@ TEST(dsb_comm, PopMessageEnvelope_noEnvelope)
     std::deque<zmq::message_t> env;
     env.push_back(zmq::message_t());
     const auto size = PopMessageEnvelope(msg, &env);
-    EXPECT_EQ(0, size);
-    EXPECT_EQ(0, env.size());
-    ASSERT_EQ(3, msg.size());
-    EXPECT_EQ(123, msg[0].size());
-    EXPECT_EQ(321, msg[1].size());
-    EXPECT_EQ( 97, msg[2].size());
+    EXPECT_EQ(  0U, size);
+    EXPECT_EQ(  0U, env.size());
+    ASSERT_EQ(  3U, msg.size());
+    EXPECT_EQ(123U, msg[0].size());
+    EXPECT_EQ(321U, msg[1].size());
+    EXPECT_EQ( 97U, msg[2].size());
 }
 
 TEST(dsb_comm, PopMessageEnvelope_dropEnvelope)
@@ -118,9 +118,9 @@ TEST(dsb_comm, PopMessageEnvelope_dropEnvelope)
     msg.push_back(zmq::message_t());
     msg.push_back(zmq::message_t(97));
     const auto size = PopMessageEnvelope(msg);
-    EXPECT_EQ(3, size);
-    ASSERT_EQ(1, msg.size());
-    EXPECT_EQ(97, msg[0].size());
+    EXPECT_EQ( 3U, size);
+    ASSERT_EQ( 1U, msg.size());
+    EXPECT_EQ(97U, msg[0].size());
 }
 
 

@@ -14,7 +14,7 @@ TEST(dsb_control, CreateHelloMessage)
     std::deque<zmq::message_t> msg;
     CreateHelloMessage(msg, 3, pbSrc);
 
-    ASSERT_EQ(2, msg.size());
+    ASSERT_EQ(2U, msg.size());
     EXPECT_EQ(dsbproto::control::MSG_HELLO, ParseMessageType(msg[0]));
     EXPECT_EQ(3, ParseProtocolVersion(msg[0]));
     dsbproto::testing::IntString pbTgt;
@@ -31,7 +31,7 @@ TEST(dsb_control, CreateMessage)
     std::deque<zmq::message_t> msg;
     CreateMessage(msg, dsbproto::control::MSG_READY, pbSrc);
 
-    ASSERT_EQ(2, msg.size());
+    ASSERT_EQ(2U, msg.size());
     EXPECT_EQ(dsbproto::control::MSG_READY, ParseMessageType(msg[0]));
     dsbproto::testing::IntString pbTgt;
     dsb::protobuf::ParseFromFrame(msg[1], pbTgt);
