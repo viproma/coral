@@ -6,16 +6,6 @@
 #include <memory>
 
 
-// Having a single macro for the GCC version is sometimes useful.
-#ifdef __GNUC__
-#   ifdef __GNUC_PATCHLEVEL__
-#       define DSB_GNUC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
-#   else
-#       define DSB_GNUC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100)
-#   endif
-#endif
-
-
 // std::make_unique() is introduced in C++14, so for non-compliant compilers,
 // we have to define it ourselves.  Why do we want this so badly, you ask?
 // Check out section 3 here for an excellent answer:
