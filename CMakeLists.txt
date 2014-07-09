@@ -64,6 +64,11 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     # Use C++11 features, treat all warnings as errors.
     set(CMAKE_CXX_FLAGS
         "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror -Wno-unused-function")
+
+    # Workaround to make Google Test compile with MinGW
+    if (MINGW)
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wno-unused-variable")
+    endif()
 elseif (MSVC)
     # Compile with warning level 3 and treat all warnings as errors,
     # but disable the following warnings:
