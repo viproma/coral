@@ -1,0 +1,28 @@
+package dsbproto.variable;
+
+
+// The FMI variable data types.
+enum DataType
+{
+    REAL    = 1;
+    INTEGER = 2;
+    BOOLEAN = 3;
+    STRING  = 4;
+}
+
+// Currently supported FMI variable causalities.
+enum Causality
+{
+    PARAMETER   = 1;
+    INPUT       = 3;
+    OUTPUT      = 4;
+}
+
+// The value of a variable
+message ScalarValue
+{
+    optional double realValue = 1;
+    optional int32 integerValue = 2;
+    optional bool booleanValue = 3;
+    optional string stringValue = 4;
+}

@@ -15,6 +15,10 @@ set (versionMajor "0")
 set (versionMinor "1")
 set (versionPatch "0")
 
+option (DOCUMENT_PRIVATE_API
+        "Whether to generate API documentation for the non-public API"
+        OFF)
+
 # ==============================================================================
 # Common variables
 # ==============================================================================
@@ -51,6 +55,9 @@ endif ()
 
 # The export name to use for libraries.
 set (exportTarget "${CMAKE_PROJECT_NAME}-targets")
+
+# Location of header-only external projects.
+set (CPPZMQ_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/external/cppzmq")
 
 # ==============================================================================
 # Build settings
@@ -90,6 +97,11 @@ add_definitions("-DBOOST_SYSTEM_NO_DEPRECATED") # Disable some deprecated stuff.
 # Other initialisation
 # ==============================================================================
 
+# Get rid of a CMake warning wrt. INTERFACE_LINK_LIBRARIES target property.
+# Note: This has to be done globally due to some issues with policy scope and
+# whatnot.  (Otherwise it would be defined in proto/CMakeLists.txt.)
+cmake_policy (SET CMP0022 NEW)
+
 # Enable testing and load Google Test
 enable_testing ()
 set (gtest_force_shared_crt ON CACHE INTERNAL "Google Test setting override")
@@ -101,14 +113,19 @@ list (APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # ==============================================================================
 # Subdirectories
 # ==============================================================================
-add_subdirectory ("src/dsb")
-add_subdirectory ("src/dsbexec")
+add_subdirectory ("proto")
+add_subdirectory ("src")
 
 # ==============================================================================
 # API documentation generation
 # ==============================================================================
 find_package (Doxygen)
 if (DOXYGEN_FOUND)
+    set (documentedDirectories "\"${CMAKE_SOURCE_DIR}/include\"")
+    if (DOCUMENT_PRIVATE_API)
+        set (documentedDirectories
+             "${documentedDirectories} \"${CMAKE_SOURCE_DIR}/src/include\"")
+    endif ()
     set (doxyfile "${CMAKE_BINARY_DIR}/Doxyfile")
     configure_file ("${CMAKE_SOURCE_DIR}/cmake/Doxyfile.in" ${doxyfile} @ONLY)
     add_custom_target ("doc" ALL ${DOXYGEN_EXECUTABLE} ${doxyfile}

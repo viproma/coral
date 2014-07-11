@@ -1,0 +1,82 @@
+package dsbproto.control;
+
+import "variable.proto";
+
+
+// Message type identifiers.
+enum MessageType
+{
+    MSG_HELLO       =  0;
+    MSG_ERROR       =  1;
+    MSG_TERMINATE   =  2;
+    MSG_INIT_READY  =  3;
+    MSG_INIT_DONE   =  4;
+    MSG_READY       =  5;
+    MSG_SET_VARS    =  6;
+    MSG_STEP        =  7;
+    MSG_STEP_FAILED =  8;
+}
+
+
+// The body of an ERROR message.
+message ErrorInfo
+{
+    enum Code
+    {
+        UNKNOWN_ERROR   =  0;
+        INVALID_REQUEST =  1;
+    }
+
+    optional Code code = 1 [default = UNKNOWN_ERROR];
+    optional string details = 2;
+}
+
+
+// The information a slave needs to transfer to the master about one of
+// its variables.
+message VarInfo
+{
+    required int32 id = 1;
+    required string name = 2;
+    required variable.DataType type = 3;
+    required variable.Causality causality = 4;
+}
+
+
+// The information a slave needs to transfer to the master about itself.
+message SlaveDescription
+{
+    required int32 id = 1;
+    required string name = 2;
+    repeated VarInfo variables = 10;
+}
+
+// A message that acts as a unique identifier for a certain variable for
+// a certain slave.
+message Variable
+{
+    required int32 slaveId = 1;
+    required int32 varId = 2;
+}
+
+// A message that instructs a slave to connect one of its input variables
+// to another slave's output variable.
+message PortConnection
+{
+    required int32 inputVarId = 1;
+    required Variable outputVar = 2;
+}
+
+// An initial value for one of a slave's variables.
+message VarInit
+{
+    required int32 varId = 1;
+    required variable.ScalarValue value = 2;
+}
+
+// A message that is sent by the master to a slave to initialize it.
+message SlaveInitialization
+{
+    repeated PortConnection connections = 1;
+    repeated VarInit initialValues = 2;
+}
