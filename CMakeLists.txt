@@ -121,7 +121,7 @@ add_subdirectory ("src")
 # ==============================================================================
 find_package (Doxygen)
 if (DOXYGEN_FOUND)
-    set (documentedDirectories "\"${CMAKE_SOURCE_DIR}/include\"")
+    set (documentedDirectories "\"${CMAKE_SOURCE_DIR}/include\" \"${CMAKE_SOURCE_DIR}/src/include\"")
     if (DOCUMENT_PRIVATE_API)
         set (documentedDirectories
              "${documentedDirectories} \"${CMAKE_SOURCE_DIR}/src/include\"")
