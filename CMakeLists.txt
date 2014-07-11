@@ -15,7 +15,7 @@ set (versionMajor "0")
 set (versionMinor "1")
 set (versionPatch "0")
 
-option (DOCUMENT_PRIVATE_API
+option (DSB_BUILD_PRIVATE_API_DOCS
         "Whether to generate API documentation for the non-public API"
         OFF)
 
@@ -121,8 +121,8 @@ add_subdirectory ("src")
 # ==============================================================================
 find_package (Doxygen)
 if (DOXYGEN_FOUND)
-    set (documentedDirectories "\"${CMAKE_SOURCE_DIR}/include\" \"${CMAKE_SOURCE_DIR}/src/include\"")
-    if (DOCUMENT_PRIVATE_API)
+    set (documentedDirectories "\"${CMAKE_SOURCE_DIR}/include\"")
+    if (DSB_BUILD_PRIVATE_API_DOCS)
         set (documentedDirectories
              "${documentedDirectories} \"${CMAKE_SOURCE_DIR}/src/include\"")
     endif ()
