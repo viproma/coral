@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include "dsb/config.h"
 #include "dsb/error.hpp"
 
 
@@ -53,7 +54,7 @@ void dsb::comm::Receive(
 {
     message.clear();
     do {
-#if defined(_MSC_VER) && _MSC_VER <= 1600
+#if DSB_USE_MSVC_EMPLACE_WORKAROUND
         message.emplace_back(zmq::message_t());
 #else
         message.emplace_back();

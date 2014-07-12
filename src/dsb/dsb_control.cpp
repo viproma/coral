@@ -3,6 +3,7 @@
 #include <cstring>
 #include <sstream>
 
+#include "dsb/config.h"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/util.hpp"
@@ -20,7 +21,7 @@ void dsb::control::CreateHelloMessage(
     uint16_t protocolVersion)
 {
     message.clear();
-#if defined(_MSC_VER) && _MSC_VER <= 1600
+#if DSB_USE_MSVC_EMPLACE_WORKAROUND
     message.emplace_back(zmq::message_t(helloPrefixSize + 2));
 #else
     message.emplace_back(helloPrefixSize + 2);
@@ -37,7 +38,7 @@ void dsb::control::CreateHelloMessage(
     const google::protobuf::MessageLite& body)
 {
     CreateHelloMessage(message, protocolVersion);
-#if defined(_MSC_VER) && _MSC_VER <= 1600
+#if DSB_USE_MSVC_EMPLACE_WORKAROUND
     message.emplace_back(zmq::message_t());
 #else
     message.emplace_back();
@@ -51,7 +52,7 @@ void dsb::control::CreateMessage(
     dsbproto::control::MessageType type)
 {
     message.clear();
-#if defined(_MSC_VER) && _MSC_VER <= 1600
+#if DSB_USE_MSVC_EMPLACE_WORKAROUND
     message.emplace_back(zmq::message_t(2));
 #else
     message.emplace_back(2);
@@ -66,7 +67,7 @@ void dsb::control::CreateMessage(
     const google::protobuf::MessageLite& body)
 {
     CreateMessage(message, type);
-#if defined(_MSC_VER) && _MSC_VER <= 1600
+#if DSB_USE_MSVC_EMPLACE_WORKAROUND
     message.emplace_back(zmq::message_t());
 #else
     message.emplace_back();

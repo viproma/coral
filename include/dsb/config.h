@@ -26,9 +26,9 @@ be a valid C header.  C++-specific code should therefore be placed in
 // templates.
 #ifdef __cplusplus
 #   if defined(_MSC_VER) && _MSC_VER < 1700
-#       define DSB_HAS_VARARG_EMPLACE_BACK 0
+#       define DSB_USE_MSVC_EMPLACE_WORKAROUND 1
 #   else
-#       define DSB_HAS_VARARG_EMPLACE_BACK 1
+#       define DSB_USE_MSVC_EMPLACE_WORKAROUND 0
 #   endif
 #endif
 
