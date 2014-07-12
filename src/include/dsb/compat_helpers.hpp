@@ -4,6 +4,7 @@
 #define DSB_COMPAT_HELPERS_HPP
 
 #include <memory>
+#include <utility>
 
 
 // std::make_unique() is introduced in C++14, so for non-compliant compilers,
