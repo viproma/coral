@@ -21,6 +21,7 @@ set (_sources
 )
 set (_testSources
     "dsb_comm_test.cpp"
+    "dsb_compat_helpers_test.cpp"
     "dsb_protobuf_test.cpp"
     "dsb_control_test.cpp"
     "dsb_sequence_test.cpp"
