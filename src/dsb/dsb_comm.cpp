@@ -1,6 +1,7 @@
 #include "dsb/comm.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cstring>
 #include "dsb/config.h"
 #include "dsb/error.hpp"
@@ -32,6 +33,7 @@ void dsb::comm::Send(zmq::socket_t& socket, std::deque<zmq::message_t>& message)
 {
     DSB_INPUT_CHECK(!message.empty());
     SendFrames(socket, message, false);
+    assert (message.empty());
 }
 
 
@@ -45,6 +47,8 @@ void dsb::comm::AddressedSend(
     SendFrames(socket, envelope, true);
     socket.send("", 0, ZMQ_SNDMORE);
     SendFrames(socket, body, false);
+    assert (envelope.empty());
+    assert (body.empty());
 }
 
 
