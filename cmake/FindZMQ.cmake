@@ -1,5 +1,10 @@
 # - Finds ZeroMQ 3.x or 4.x
 #
+# This script is run by the command find_package(ZMQ), and will attempt to
+# locate installed ZeroMQ libraries and header files. A CMake variable or
+# environment variable named ZMQ_DIR may be used to provide an explicit
+# location. (If both are set, the CMake variable takes precedence.)
+#
 # The following variables are set if ZeroMQ is found:
 #
 #   ZMQ_FOUND           - Set to TRUE
@@ -10,8 +15,8 @@
 #                         target.
 #   ZMQ_VERSION_STRING  - The version of ZeroMQ which was found
 #
-# If ZeroMQ was not found, ZMQ_FOUND is set to false.
-#
+# If ZeroMQ is not found, ZMQ_FOUND is set to false.
+
 cmake_minimum_required (VERSION 2.8.11)
 set (ZMQ_DIR "${ZMQ_DIR}" CACHE FILEPATH
     "The directory where ZeroMQ is installed, i.e., the parent directory of the 'bin', 'lib' and 'include' directories that contain the ZeroMQ libraries and headers."
