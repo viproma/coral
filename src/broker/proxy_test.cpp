@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "dsb/config.h"
 #include "proxy.hpp"
 
 using namespace dsb::broker;
@@ -39,10 +40,10 @@ TEST(dsb_broker, proxy_bidirectional_multiclient)
     const int CLIENT_COUNT = 10;
     std::vector<zmq::socket_t> clients;
     for (int k = 0; k < CLIENT_COUNT; ++k) {
-#if DSB_HAS_VARARG_EMPLACE_BACK
-        clients.emplace_back(*ctx, ZMQ_REQ);
-#else
+#if DSB_USE_MSVC_EMPLACE_WORKAROUND
         clients.emplace_back(zmq::socket_t(*ctx, ZMQ_REQ));
+#else
+        clients.emplace_back(*ctx, ZMQ_REQ);
 #endif
         clients.back().connect("inproc://dsb_proxy_test_frontend");
     }

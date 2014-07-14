@@ -6,9 +6,10 @@ void dsb::protobuf::SerializeToFrame(
     zmq::message_t& target)
 {
     const auto size = source.ByteSize();
+    assert (size >= 0);
     target.rebuild(size);
     if (!source.SerializeToArray(target.data(), size)) {
-        throw SerializationException(SerializationException::SERIALIZE);
+        throw SerializationException("Failed to serialize message");
     }
 }
 
@@ -18,6 +19,12 @@ void dsb::protobuf::ParseFromFrame(
     google::protobuf::MessageLite& target)
 {
     if (!target.ParseFromArray(source.data(), source.size())) {
-        throw SerializationException(SerializationException::PARSE);
+        throw SerializationException("Failed to parse message");
     }
+}
+
+
+dsb::protobuf::SerializationException::SerializationException(const std::string& msg)
+    : std::runtime_error(msg)
+{
 }

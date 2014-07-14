@@ -18,13 +18,22 @@ namespace protobuf
 {
 
 
-/// Serializes a Protobuf message into a ZMQ message.
+/**
+\brief  Serializes a Protobuf message into a ZMQ message.
+
+Any existing contents of `target` will be replaced.
+
+\throws SerializationException on failure.
+*/
 void SerializeToFrame(
     const google::protobuf::MessageLite& source,
     zmq::message_t& target);
 
 
-/// Deserializes a Protobuf message from a ZMQ message.
+/**
+\brief  Deserializes a Protobuf message from a ZMQ message.
+\throws SerializationException on failure.
+*/
 void ParseFromFrame(
     const zmq::message_t& source,
     google::protobuf::MessageLite& target);
@@ -34,12 +43,7 @@ void ParseFromFrame(
 class SerializationException : public std::runtime_error
 {
 public:
-    enum Action { SERIALIZE, PARSE };
-
-    SerializationException(Action action)
-        : std::runtime_error(action == SERIALIZE ? "Failed to serialize message"
-                                                 : "Failed to parse message")
-    { }
+    SerializationException(const std::string& msg);
 };
 
 
