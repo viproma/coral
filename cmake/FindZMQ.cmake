@@ -1,5 +1,10 @@
 # - Finds ZeroMQ 3.x or 4.x
 #
+# This script is run by the command find_package(ZMQ), and will attempt to
+# locate installed ZeroMQ libraries and header files. A CMake variable or
+# environment variable named ZMQ_DIR may be used to provide an explicit
+# location. (If both are set, the CMake variable takes precedence.)
+#
 # The following variables are set if ZeroMQ is found:
 #
 #   ZMQ_FOUND           - Set to TRUE
@@ -10,10 +15,12 @@
 #                         target.
 #   ZMQ_VERSION_STRING  - The version of ZeroMQ which was found
 #
-# If ZeroMQ was not found, ZMQ_FOUND is set to false.
-#
-cmake_minimum_required (VERSION 2.8.11)
+# If ZeroMQ is not found, ZMQ_FOUND is set to false.
 
+cmake_minimum_required (VERSION 2.8.11)
+set (ZMQ_DIR "${ZMQ_DIR}" CACHE FILEPATH
+    "The directory where ZeroMQ is installed, i.e., the parent directory of the 'bin', 'lib' and 'include' directories that contain the ZeroMQ libraries and headers."
+)
 
 # A function which prefixes all items in a list with a string.
 function (_prefixStrings targetVarName prefix)
@@ -112,29 +119,34 @@ function (_findWinLibs releaseDll releaseLib debugDll debugLib includeDir)
         set (CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
         find_library (ZMQ_RELEASE_LIB
             NAMES ${releaseLibNames}
-            PATHS $ENV{ZMQ_DIR} ${extraPrefixPaths}
+            PATHS ${ZMQ_DIR} $ENV{ZMQ_DIR} ${extraPrefixPaths}
             PATH_SUFFIXES "lib")
         _getHintsDirective(hints ${ZMQ_RELEASE_LIB})
         find_library (ZMQ_DEBUG_LIB
             NAMES ${debugLibNames}
             ${hints}
-            PATHS $ENV{ZMQ_DIR} ${extraPrefixPaths}
+            PATHS ${ZMQ_DIR} $ENV{ZMQ_DIR} ${extraPrefixPaths}
             PATH_SUFFIXES "lib")
         set (CMAKE_FIND_LIBRARY_SUFFIXES ".dll")
         find_library (ZMQ_RELEASE_DLL
             NAMES ${releaseLibNames}
             ${hints}
-            PATHS $ENV{ZMQ_DIR} ${extraPrefixPaths}
+            PATHS ${ZMQ_DIR} $ENV{ZMQ_DIR} ${extraPrefixPaths}
             PATH_SUFFIXES "bin" "lib")
         find_library (ZMQ_DEBUG_DLL
             NAMES ${debugLibNames}
             ${hints}
-            PATHS $ENV{ZMQ_DIR} ${extraPrefixPaths}
+            PATHS ${ZMQ_DIR} $ENV{ZMQ_DIR} ${extraPrefixPaths}
             PATH_SUFFIXES "bin" "lib")
         find_path (ZMQ_HEADER_DIR "zmq.h"
             ${_hints}
-            PATHS $ENV{ZMQ_DIR} ${extraPrefixPaths}
+            PATHS ${ZMQ_DIR} $ENV{ZMQ_DIR} ${extraPrefixPaths}
             PATH_SUFFIXES "include")
+        mark_as_advanced (
+            ZMQ_RELEASE_LIB ZMQ_DEBUG_LIB
+            ZMQ_RELEASE_DLL ZMQ_DEBUG_DLL
+            ZMQ_HEADER_DIR
+        )
 
         set (${releaseDll} "${ZMQ_RELEASE_DLL}" PARENT_SCOPE)
         set (${releaseLib} "${ZMQ_RELEASE_LIB}" PARENT_SCOPE)
@@ -153,13 +165,14 @@ endfunction ()
 # The function which searches for the libraries and headers on *NIX.
 function (_findUnixLibs library includeDir)
     find_library (ZMQ_LIBRARY "zmq"
-        PATHS $ENV{ZMQ_DIR}
+        PATHS ${ZMQ_DIR} $ENV{ZMQ_DIR}
         PATH_SUFFIXES "lib")
     _getHintsDirective(hints ${ZMQ_LIBRARY})
     find_path (ZMQ_HEADER_DIR "zmq.h"
         ${hints}
-        PATHS $ENV{ZMQ_DIR}
+        PATHS ${ZMQ_DIR} $ENV{ZMQ_DIR}
         PATH_SUFFIXES "include")
+    mark_as_advanced (ZMQ_LIBRARY ZMQ_HEADER_DIR)
     set (${library} "${ZMQ_LIBRARY}" PARENT_SCOPE)
     set (${includeDir} "${ZMQ_HEADER_DIR}"  PARENT_SCOPE)
 endfunction ()
