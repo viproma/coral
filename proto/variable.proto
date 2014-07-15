@@ -21,8 +21,8 @@ enum Causality
 // The value of a variable
 message ScalarValue
 {
-    optional double realValue = 1;
-    optional int32 integerValue = 2;
-    optional bool booleanValue = 3;
-    optional string stringValue = 4;
+    optional double real_value = 1;
+    optional int32 integer_value = 2;
+    optional bool boolean_value = 3;
+    optional string string_value = 4;
 }
