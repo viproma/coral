@@ -48,35 +48,35 @@ message SlaveDescription
 {
     required int32 id = 1;
     required string name = 2;
-    repeated VarInfo variables = 10;
+    repeated VarInfo variable = 10;
 }
 
 // A message that acts as a unique identifier for a certain variable for
 // a certain slave.
 message Variable
 {
-    required int32 slaveId = 1;
-    required int32 varId = 2;
+    required int32 slave_id = 1;
+    required int32 var_id = 2;
 }
 
 // A message that instructs a slave to connect one of its input variables
 // to another slave's output variable.
 message PortConnection
 {
-    required int32 inputVarId = 1;
-    required Variable outputVar = 2;
+    required int32 input_var_id = 1;
+    required Variable output_var = 2;
 }
 
 // An initial value for one of a slave's variables.
 message VarInit
 {
-    required int32 varId = 1;
+    required int32 var_id = 1;
     required variable.ScalarValue value = 2;
 }
 
 // A message that is sent by the master to a slave to initialize it.
 message SlaveInitialization
 {
-    repeated PortConnection connections = 1;
-    repeated VarInit initialValues = 2;
+    repeated PortConnection connection = 1;
+    repeated VarInit initial_value = 2;
 }
