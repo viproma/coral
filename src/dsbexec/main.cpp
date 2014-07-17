@@ -44,7 +44,7 @@ namespace
         SlaveState newState)
     {
         auto slaveIt = slaves.find(slaveId);
-        if (slaveIt != slaves.end() && slaveIt->second.state & oldStates) {
+        if (slaveIt != slaves.end() && (slaveIt->second.state & oldStates)) {
             slaveIt->second.state = newState;
             return true;
         } else {
