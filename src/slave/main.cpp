@@ -132,11 +132,11 @@ int main(int argc, const char** argv)
                 dsb::protobuf::ParseFromFrame(msg[1], stepInfo);
 
                 // Perform time step
-//                std::cout << "Performing time step: " << stepInfo.timepoint()
-//                          << std::endl;
                 slaveInstance->DoStep(stepInfo.timepoint(), stepInfo.stepsize());
+                // Pretend to work really hard
+                boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
                 const auto newTime = stepInfo.timepoint() + stepInfo.stepsize();
-                std::cout << /*"f(" << newTime << ") = " <<*/ slaveInstance->GetVariable(outVarRef) << std::endl;
+                std::cout << newTime << " " << slaveInstance->GetVariable(outVarRef) << std::endl;
 
                 // Get value of output variable
                 dsbproto::variable::TimestampedValue outVar;
@@ -163,7 +163,6 @@ int main(int argc, const char** argv)
 
                 // Set our input variable.
                 slaveInstance->SetVariable(inVarRef, inVar.value().real_value());
-                boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
                 break; }
             default:
                 throw dsb::error::ProtocolViolationException(

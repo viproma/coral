@@ -74,6 +74,11 @@ size_t PopMessageEnvelope(
     std::deque<zmq::message_t>* envelope = nullptr);
 
 
+void CopyMessage(
+    std::deque<zmq::message_t>& source,
+    std::deque<zmq::message_t>& target);
+
+
 /// Returns the content of a message frame as a `std::string`.
 std::string ToString(const zmq::message_t& frame);
 
