@@ -93,6 +93,9 @@ int main(int argc, const char** argv)
     auto control = zmq::socket_t(context, ZMQ_ROUTER);
     control.connect(endpoint.c_str());
 
+    double time = 0.0;
+    const double stepSize = 0.01;
+
     std::map<std::string, SlaveTracker> slaves;
     for (;;) {
         std::deque<zmq::message_t> msg;
@@ -131,7 +134,15 @@ int main(int argc, const char** argv)
             case dsbproto::control::MSG_READY:
                 std::clog << "MSG_READY" << std::endl;
                 if (UpdateSlaveState(slaves, slaveId, SLAVE_INITIALIZING | SLAVE_READY, SLAVE_READY)) {
-                    SendEmptyMessage(control, envelope, dsbproto::control::MSG_STEP);
+                    // Create the STEP message body
+                    dsbproto::control::StepData stepData;
+                    stepData.set_timepoint(time);
+                    stepData.set_stepsize(stepSize);
+                    // Create the multipart STEP message
+                    std::deque<zmq::message_t> stepMsg;
+                    dsb::control::CreateMessage(stepMsg, dsbproto::control::MSG_STEP, stepData);
+                    // Send it on the "control" socket to the slave identified by "envelope"
+                    dsb::comm::AddressedSend(control, envelope, stepMsg);
                 } else {
                     SendInvalidRequest(control, envelope);
                 }
