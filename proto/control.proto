@@ -80,3 +80,10 @@ message SlaveInitialization
     repeated PortConnection connection = 1;
     repeated VarInit initial_value = 2;
 }
+
+// The body of a STEP message
+message StepData
+{
+    required double timepoint = 1;
+    required double stepsize = 2;
+}

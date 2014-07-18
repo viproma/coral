@@ -56,15 +56,15 @@ private:
 class Spring1D : public SlaveInstance
 {
 public:
-    Spring1D() : m_length(1.0), m_stiffness(1.0), m_pos_a_x(0.0), m_pos_b_x(1.0),
+    Spring1D() : m_length(2.0), m_stiffness(1.0), m_pos_a_x(0.0), m_pos_b_x(1.0),
                  m_force_a_x(0.0), m_force_b_x(0.0) { }
 
     double GetVariable(int varRef) override
     {
         switch (varRef) {
             case 0: return m_pos_a_x;   break;
-            case 1: return m_pos_b_x;   break;
-            case 2: return m_force_a_x; break;
+            case 1: return m_force_a_x; break;
+            case 2: return m_pos_b_x;   break;
             case 3: return m_force_b_x; break;
             case 4: return m_length;    break;
             case 5: return m_stiffness; break;
@@ -78,8 +78,8 @@ public:
     {
         switch (varRef) {
             case 0: m_pos_a_x = value;   break;
-            case 1: m_pos_b_x = value;   break;
-            case 2: m_force_a_x = value; break;
+            case 1: m_force_a_x = value; break;
+            case 2: m_pos_b_x = value;   break;
             case 3: m_force_b_x = value; break;
             case 4: m_length = value;    break;
             case 5: m_stiffness = value; break;

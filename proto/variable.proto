@@ -26,3 +26,10 @@ message ScalarValue
     optional bool boolean_value = 3;
     optional string string_value = 4;
 }
+
+// A timestamped variable value
+message TimestampedValue
+{
+    required double timestamp = 1;
+    required ScalarValue value = 2;
+}
