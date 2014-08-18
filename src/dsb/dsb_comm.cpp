@@ -88,6 +88,17 @@ size_t dsb::comm::PopMessageEnvelope(
 }
 
 
+void dsb::comm::CopyMessage(
+    std::deque<zmq::message_t>& source,
+    std::deque<zmq::message_t>& target)
+{
+    target.resize(source.size());
+    for (size_t i = 0; i < source.size(); ++i) {
+        target[i].copy(&source[i]);
+    }
+}
+
+
 std::string dsb::comm::ToString(const zmq::message_t& frame)
 {
     return std::string(static_cast<const char*>(frame.data()), frame.size());
