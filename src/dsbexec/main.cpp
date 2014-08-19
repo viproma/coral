@@ -114,8 +114,10 @@ int main(int argc, const char** argv)
     control.connect(endpoint.c_str());
 
     double time = 0.0;
+    const double maxTime = 10.0;
     const double stepSize = 1.0/100.0;
     bool allReady = false;
+    bool terminate = false;
     const auto slaveCount = 2;
 
     std::map<std::string, SlaveTracker> slaves;
@@ -177,31 +179,52 @@ int main(int argc, const char** argv)
                 SendInvalidRequest(control, envelope);
         }
         if (allReady) {
-            // Send STEP message to all slaves
+            if (terminate) {
+                // Create a TERMINATE message
+                std::deque<zmq::message_t> termMsg;
+                dsb::control::CreateMessage(termMsg,  dsbproto::control::MSG_TERMINATE);
 
-            // Create the STEP message body
-            dsbproto::control::StepData stepData;
-            stepData.set_timepoint(time);
-            stepData.set_stepsize(stepSize);
-            // Create the multipart STEP message
-            std::deque<zmq::message_t> stepMsg;
-            dsb::control::CreateMessage(stepMsg, dsbproto::control::MSG_STEP, stepData);
+                // For each slave, make a copy of the TERMINATE message and send it.
+                BOOST_FOREACH(auto& slave, slaves) {
+                    std::deque<zmq::message_t> termMsgCopy;
+                    dsb::comm::CopyMessage(termMsg, termMsgCopy);
 
-            // For each slave, make a copy of the STEP message and send it.
-            BOOST_FOREACH(auto& slave, slaves) {
-                std::deque<zmq::message_t> stepMsgCopy;
-                dsb::comm::CopyMessage(stepMsg, stepMsgCopy);
+                    // Send it on the "control" socket to the slave identified by "envelope"
+                    dsb::comm::AddressedSend(control, slave.second.envelope, termMsgCopy);
+                }
+                break;
+            } else {
+                // Send STEP message to all slaves
 
-                // Send it on the "control" socket to the slave identified by "envelope"
-                dsb::comm::AddressedSend(control, slave.second.envelope, stepMsgCopy);
+                // Create the STEP message body
+                dsbproto::control::StepData stepData;
+                stepData.set_timepoint(time);
+                stepData.set_stepsize(stepSize);
+                // Create the multipart STEP message
+                std::deque<zmq::message_t> stepMsg;
+                dsb::control::CreateMessage(stepMsg, dsbproto::control::MSG_STEP, stepData);
+
+                // For each slave, make a copy of the STEP message and send it.
+                BOOST_FOREACH(auto& slave, slaves) {
+                    std::deque<zmq::message_t> stepMsgCopy;
+                    dsb::comm::CopyMessage(stepMsg, stepMsgCopy);
+
+                    // Send it on the "control" socket to the slave identified by "envelope"
+                    dsb::comm::AddressedSend(control, slave.second.envelope, stepMsgCopy);
 #ifndef NDEBUG
-                auto rc =
+                    auto rc =
 #endif
-                UpdateSlaveState(slaves, slave.first, SLAVE_READY, SLAVE_STEPPING);
-                assert (rc);
+                    UpdateSlaveState(slaves, slave.first, SLAVE_READY, SLAVE_STEPPING);
+                    assert (rc);
+                }
+                time += stepSize;
+                allReady = false;
+                terminate = time >= maxTime; // temporary
             }
-            time += stepSize;
-            allReady = false;
         }
     }
+
+    // Give ZMQ time to send all TERMINATE messages
+    std::cout << "Terminated. Press ENTER to quit." << std::endl;
+    std::cin.ignore();
 }

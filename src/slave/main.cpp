@@ -51,6 +51,7 @@ void EnforceMessageType(
 
 int main(int argc, const char** argv)
 {
+try {
     if (argc < 7) {
         std::cerr << "Usage: " << argv[0] << " <id> <control> <data pub> <data sub> <slave type> <other slave>\n"
                   << "  id          = a number in the range 0 - 65535\n"
@@ -169,4 +170,7 @@ int main(int argc, const char** argv)
                     "Invalid reply from master");
         }
     }
+} catch (const Shutdown& e) {
+    std::cerr << "Shutdown: " << e.what() << std::endl;
+}
 }
