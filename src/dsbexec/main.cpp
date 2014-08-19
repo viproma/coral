@@ -23,7 +23,7 @@ namespace
     enum SlaveState
     {
         SLAVE_UNKNOWN       = 1,
-        SLAVE_CONNECTED     = 1 << 1,
+        SLAVE_CONNECTING    = 1 << 1,
         SLAVE_INITIALIZING  = 1 << 2,
         SLAVE_READY         = 1 << 3,
         SLAVE_STEPPING      = 1 << 4,
@@ -37,7 +37,7 @@ namespace
             : protocol(UNKNOWN_PROTOCOL), state(SLAVE_UNKNOWN) { }
 
         SlaveTracker(uint16_t protocol_)
-            : protocol(protocol_), state(SLAVE_CONNECTED) { }
+            : protocol(protocol_), state(SLAVE_CONNECTING) { }
 
         SlaveTracker(SlaveTracker& other) {
             protocol = other.protocol;
@@ -146,7 +146,7 @@ int main(int argc, const char** argv)
             }
             case dsbproto::control::MSG_INIT_READY:
                 std::clog << "MSG_INIT_READY" << std::endl;
-                if (UpdateSlaveState(slaves, slaveId, SLAVE_CONNECTED | SLAVE_INITIALIZING, SLAVE_INITIALIZING)) {
+                if (UpdateSlaveState(slaves, slaveId, SLAVE_CONNECTING | SLAVE_INITIALIZING, SLAVE_INITIALIZING)) {
                     SendEmptyMessage(control, envelope, dsbproto::control::MSG_INIT_DONE);
                 } else {
                     SendInvalidRequest(control, envelope);
