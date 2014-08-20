@@ -23,10 +23,12 @@ namespace
     enum SlaveState
     {
         SLAVE_UNKNOWN       = 1,
-        SLAVE_CONNECTED     = 1 << 1,
+        SLAVE_CONNECTING    = 1 << 1,
         SLAVE_INITIALIZING  = 1 << 2,
         SLAVE_READY         = 1 << 3,
         SLAVE_STEPPING      = 1 << 4,
+        SLAVE_PUBLISHED     = 1 << 5,
+        SLAVE_RECEIVING     = 1 << 6,
     };
 
     struct SlaveTracker
@@ -34,26 +36,29 @@ namespace
         static const uint16_t UNKNOWN_PROTOCOL = 0xFFFF;
 
         SlaveTracker()
-            : protocol(UNKNOWN_PROTOCOL), state(SLAVE_UNKNOWN) { }
+            : protocol(UNKNOWN_PROTOCOL), state(SLAVE_UNKNOWN), isSimulating(false) { }
 
         SlaveTracker(uint16_t protocol_)
-            : protocol(protocol_), state(SLAVE_CONNECTED) { }
+            : protocol(protocol_), state(SLAVE_CONNECTING), isSimulating(false) { }
 
         SlaveTracker(SlaveTracker& other) {
             protocol = other.protocol;
             state = other.state;
+            isSimulating = other.isSimulating;
             dsb::comm::CopyMessage(other.envelope, envelope);
         }
 
         SlaveTracker& operator=(SlaveTracker& other) {
             protocol = other.protocol;
             state = other.state;
+            isSimulating = other.isSimulating;
             dsb::comm::CopyMessage(other.envelope, envelope);
             return *this;
         }
 
         uint16_t protocol;
         SlaveState state;
+        bool isSimulating;
         std::deque<zmq::message_t> envelope;
     };
 
@@ -114,10 +119,22 @@ int main(int argc, const char** argv)
     control.connect(endpoint.c_str());
 
     double time = 0.0;
+    const double maxTime = 10.0;
     const double stepSize = 1.0/100.0;
-    bool allReady = false;
+    bool terminate = false;
     const auto slaveCount = 2;
 
+    // Define a variable to keep track of the state of the slaves in situations
+    // where we want them all to be in the same state.
+    enum AllSlavesState
+    {
+        ALL_SLAVES_OTHER,       // Neither
+        ALL_SLAVES_READY,       // All slaves are in the READY state
+        ALL_SLAVES_PUBLISHED,   // All slaves are in the PUBLISHED state
+    };
+    AllSlavesState allSlavesState = ALL_SLAVES_OTHER;
+
+    // Main messaging loop
     std::map<std::string, SlaveTracker> slaves;
     for (;;) {
         std::deque<zmq::message_t> msg;
@@ -146,7 +163,7 @@ int main(int argc, const char** argv)
             }
             case dsbproto::control::MSG_INIT_READY:
                 std::clog << "MSG_INIT_READY" << std::endl;
-                if (UpdateSlaveState(slaves, slaveId, SLAVE_CONNECTED | SLAVE_INITIALIZING, SLAVE_INITIALIZING)) {
+                if (UpdateSlaveState(slaves, slaveId, SLAVE_CONNECTING | SLAVE_INITIALIZING, SLAVE_INITIALIZING)) {
                     SendEmptyMessage(control, envelope, dsbproto::control::MSG_INIT_DONE);
                 } else {
                     SendInvalidRequest(control, envelope);
@@ -155,8 +172,10 @@ int main(int argc, const char** argv)
 
             case dsbproto::control::MSG_READY:
                 std::clog << "MSG_READY" << std::endl;
-                if (UpdateSlaveState(slaves, slaveId, SLAVE_INITIALIZING | SLAVE_READY | SLAVE_STEPPING, SLAVE_READY)) {
-                    allReady = slaves.size() == slaveCount;
+                if (UpdateSlaveState(slaves, slaveId, SLAVE_INITIALIZING | SLAVE_READY | SLAVE_RECEIVING, SLAVE_READY)) {
+                    // At least one slave is now in the READY state.  We
+                    // assume they all are, and try to prove otherwise.
+                    bool allReady = slaves.size() >= slaveCount;
                     if (allReady) {
                         BOOST_FOREACH (const auto& slave, slaves) {
                             if (slave.second.state != SLAVE_READY) {
@@ -165,6 +184,30 @@ int main(int argc, const char** argv)
                             }
                         }
                     }
+                    if (allReady) allSlavesState = ALL_SLAVES_READY;
+                    // Store the return envelope for later.
+                    slaves[slaveId].envelope.swap(envelope);
+                } else {
+                    SendInvalidRequest(control, envelope);
+                }
+                break;
+
+            case dsbproto::control::MSG_STEP_OK:
+                std::clog << "MSG_STEP_OK" << std::endl;
+                if (UpdateSlaveState(slaves, slaveId, SLAVE_STEPPING, SLAVE_PUBLISHED)) {
+                    // At least one slave is now in the PUBLISHED state.  We
+                    // assume that they all are, and try to prove otherwise.
+                    bool allPublished = slaves.size() >= slaveCount;
+                    if (allPublished) {
+                        BOOST_FOREACH (const auto& slave, slaves) {
+                            if (slave.second.isSimulating
+                                && slave.second.state != SLAVE_PUBLISHED) {
+                                allPublished = false;
+                            }
+                        }
+                    }
+                    if (allPublished) allSlavesState = ALL_SLAVES_PUBLISHED;
+                    // Store the return envelope for later.
                     slaves[slaveId].envelope.swap(envelope);
                 } else {
                     SendInvalidRequest(control, envelope);
@@ -176,32 +219,74 @@ int main(int argc, const char** argv)
                           << slaveId << std::endl;
                 SendInvalidRequest(control, envelope);
         }
-        if (allReady) {
-            // Send STEP message to all slaves
+        if (allSlavesState == ALL_SLAVES_READY) {
+            if (terminate) {
+                // Create a TERMINATE message
+                std::deque<zmq::message_t> termMsg;
+                dsb::control::CreateMessage(termMsg,  dsbproto::control::MSG_TERMINATE);
 
-            // Create the STEP message body
-            dsbproto::control::StepData stepData;
-            stepData.set_timepoint(time);
-            stepData.set_stepsize(stepSize);
-            // Create the multipart STEP message
-            std::deque<zmq::message_t> stepMsg;
-            dsb::control::CreateMessage(stepMsg, dsbproto::control::MSG_STEP, stepData);
+                // For each slave, make a copy of the TERMINATE message and send it.
+                BOOST_FOREACH(auto& slave, slaves) {
+                    std::deque<zmq::message_t> termMsgCopy;
+                    dsb::comm::CopyMessage(termMsg, termMsgCopy);
 
-            // For each slave, make a copy of the STEP message and send it.
-            BOOST_FOREACH(auto& slave, slaves) {
-                std::deque<zmq::message_t> stepMsgCopy;
-                dsb::comm::CopyMessage(stepMsg, stepMsgCopy);
+                    // Send it on the "control" socket to the slave identified by "envelope"
+                    assert (!slave.second.envelope.empty());
+                    dsb::comm::AddressedSend(control, slave.second.envelope, termMsgCopy);
+                }
+                break;
+            } else {
+                // Create the STEP message body
+                dsbproto::control::StepData stepData;
+                stepData.set_timepoint(time);
+                stepData.set_stepsize(stepSize);
+                // Create the multipart STEP message
+                std::deque<zmq::message_t> stepMsg;
+                dsb::control::CreateMessage(stepMsg, dsbproto::control::MSG_STEP, stepData);
 
-                // Send it on the "control" socket to the slave identified by "envelope"
-                dsb::comm::AddressedSend(control, slave.second.envelope, stepMsgCopy);
+                // For each slave, make a copy of the STEP message and send it.
+                BOOST_FOREACH(auto& slave, slaves) {
+                    std::deque<zmq::message_t> stepMsgCopy;
+                    dsb::comm::CopyMessage(stepMsg, stepMsgCopy);
+
+                    // Send it on the "control" socket to the slave identified by "envelope"
+                    assert (!slave.second.envelope.empty());
+                    dsb::comm::AddressedSend(control, slave.second.envelope, stepMsgCopy);
 #ifndef NDEBUG
-                auto rc =
+                    auto rc =
 #endif
-                UpdateSlaveState(slaves, slave.first, SLAVE_READY, SLAVE_STEPPING);
-                assert (rc);
+                    UpdateSlaveState(slaves, slave.first, SLAVE_READY, SLAVE_STEPPING);
+                    assert (rc);
+                    slave.second.isSimulating = true;
+                }
+                time += stepSize;
+                allSlavesState = ALL_SLAVES_OTHER;
+                terminate = time >= maxTime; // temporary
             }
-            time += stepSize;
-            allReady = false;
+        } else if (allSlavesState == ALL_SLAVES_PUBLISHED) {
+            // Create RECV_VARS message
+            std::deque<zmq::message_t> recvVarsMsg;
+            dsb::control::CreateMessage(recvVarsMsg, dsbproto::control::MSG_RECV_VARS);
+            // Send this to all slaves which are in simulation
+            BOOST_FOREACH (auto& slave, slaves) {
+                if (slave.second.isSimulating) {
+                    // Make a copy of the message and send it
+                    std::deque<zmq::message_t> recvVarsMsgCopy;
+                    dsb::comm::CopyMessage(recvVarsMsg, recvVarsMsgCopy);
+                    assert (!slave.second.envelope.empty());
+                    dsb::comm::AddressedSend(control, slave.second.envelope, recvVarsMsgCopy);
+#ifndef NDEBUG
+                    auto rc =
+#endif
+                    UpdateSlaveState(slaves, slave.first, SLAVE_PUBLISHED, SLAVE_RECEIVING);
+                    assert (rc);
+                }
+            }
+            allSlavesState = ALL_SLAVES_OTHER;
         }
     }
+
+    // Give ZMQ time to send all TERMINATE messages
+    std::cout << "Terminated. Press ENTER to quit." << std::endl;
+    std::cin.ignore();
 }

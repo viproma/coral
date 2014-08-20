@@ -51,6 +51,7 @@ void EnforceMessageType(
 
 int main(int argc, const char** argv)
 {
+try {
     if (argc < 7) {
         std::cerr << "Usage: " << argv[0] << " <id> <control> <data pub> <data sub> <slave type> <other slave>\n"
                   << "  id          = a number in the range 0 - 65535\n"
@@ -155,11 +156,28 @@ int main(int argc, const char** argv)
                 // Send it
                 dsb::comm::Send(dataPub, dataMsg);
 
+                // Send STEP_OK message
+                std::deque<zmq::message_t> stepOkMsg;
+                dsb::control::CreateMessage(stepOkMsg, dsbproto::control::MSG_STEP_OK);
+                dsb::comm::Send(control, stepOkMsg);
+
+                // Wait for RECV_VARS command
+                std::deque<zmq::message_t> recvVarsMsg;
+                dsb::comm::Receive(control, recvVarsMsg);
+                EnforceMessageType(recvVarsMsg, dsbproto::control::MSG_RECV_VARS);
+
                 // Receive message from other and store the body in inVar.
-                dsb::comm::Receive(dataSub, dataMsg);
+                const auto allowedTimeError = stepInfo.stepsize() * 1e-6;
                 dsbproto::variable::TimestampedValue inVar;
-                dsb::protobuf::ParseFromFrame(dataMsg.back(), inVar);
-                assert (inVar.timestamp() == newTime);
+                do {
+                    dsb::comm::Receive(dataSub, dataMsg);
+                    dsb::protobuf::ParseFromFrame(dataMsg.back(), inVar);
+                    assert (inVar.timestamp() < newTime + allowedTimeError
+                            && "Data received from the future");
+                    // If the message has been queued up from a previous time
+                    // step, which could happen if we have joined the simulation
+                    // while it's in progress, discard it and retry.
+                } while (inVar.timestamp() < newTime - allowedTimeError);
 
                 // Set our input variable.
                 slaveInstance->SetVariable(inVarRef, inVar.value().real_value());
@@ -169,4 +187,7 @@ int main(int argc, const char** argv)
                     "Invalid reply from master");
         }
     }
+} catch (const Shutdown& e) {
+    std::cerr << "Shutdown: " << e.what() << std::endl;
+}
 }

@@ -14,7 +14,9 @@ enum MessageType
     MSG_READY       =  5;
     MSG_SET_VARS    =  6;
     MSG_STEP        =  7;
-    MSG_STEP_FAILED =  8;
+    MSG_STEP_OK     =  8;
+    MSG_STEP_FAILED =  9;
+    MSG_RECV_VARS   = 10;
 }
 
 

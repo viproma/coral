@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cmath>
+#include "boost/thread.hpp"
 #include "dsb/compat_helpers.hpp"
 
 
@@ -94,6 +95,7 @@ public:
         m_force_a_x = m_pos_a_x <= m_pos_b_x ?   m_stiffness * deltaX
                                              : - m_stiffness * deltaX;
         m_force_b_x = - m_force_a_x;
+
     }
 
 private:
@@ -105,12 +107,51 @@ private:
     double m_force_b_x;
 };
 
+
+class Buggy1D : public SlaveInstance
+{
+public:
+    Buggy1D() : m_in(0.0), m_out(0.0) { }
+
+    double GetVariable(int varRef) override
+    {
+        switch (varRef) {
+            case 0: return m_in;   break;
+            case 1: return m_out;  break;
+            default:
+                assert (!"Buggy1D::GetVariable(): Invalid variable reference");
+        }
+        return 0.0;
+    }
+
+    void SetVariable(int varRef, double value) override
+    {
+        switch (varRef) {
+            case 0: m_in  = value;  break;
+            case 1: m_out = value;  break;
+            default:
+                assert (!"Buggy1D::SetVariable(): Invalid variable reference");
+        }
+    }
+
+    void DoStep(double currentT, double deltaT) override
+    {
+        boost::this_thread::sleep_for(boost::chrono::seconds(5));
+    }
+
+private:
+    double m_in;
+    double m_out;
+};
+
+
 } // namespace
 
 std::unique_ptr<SlaveInstance> NewSlave(const std::string& type)
 {
     if (type == "mass_1d") return std::make_unique<Mass1D>();
     else if (type == "spring_1d") return std::make_unique<Spring1D>();
+    else if (type == "buggy_1d") return std::make_unique<Buggy1D>();
     assert (!"NewSlave(): Invalid slave type");
     return std::unique_ptr<SlaveInstance>();
 }
