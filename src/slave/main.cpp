@@ -156,6 +156,16 @@ try {
                 // Send it
                 dsb::comm::Send(dataPub, dataMsg);
 
+                // Send STEP_OK message
+                std::deque<zmq::message_t> stepOkMsg;
+                dsb::control::CreateMessage(stepOkMsg, dsbproto::control::MSG_STEP_OK);
+                dsb::comm::Send(control, stepOkMsg);
+
+                // Wait for RECV_VARS command
+                std::deque<zmq::message_t> recvVarsMsg;
+                dsb::comm::Receive(control, recvVarsMsg);
+                EnforceMessageType(recvVarsMsg, dsbproto::control::MSG_RECV_VARS);
+
                 // Receive message from other and store the body in inVar.
                 dsb::comm::Receive(dataSub, dataMsg);
                 dsbproto::variable::TimestampedValue inVar;
