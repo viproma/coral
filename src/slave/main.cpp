@@ -167,10 +167,17 @@ try {
                 EnforceMessageType(recvVarsMsg, dsbproto::control::MSG_RECV_VARS);
 
                 // Receive message from other and store the body in inVar.
-                dsb::comm::Receive(dataSub, dataMsg);
+                const auto allowedTimeError = stepInfo.stepsize() * 1e-6;
                 dsbproto::variable::TimestampedValue inVar;
-                dsb::protobuf::ParseFromFrame(dataMsg.back(), inVar);
-                assert (inVar.timestamp() == newTime);
+                do {
+                    dsb::comm::Receive(dataSub, dataMsg);
+                    dsb::protobuf::ParseFromFrame(dataMsg.back(), inVar);
+                    assert (inVar.timestamp() < newTime + allowedTimeError
+                            && "Data received from the future");
+                    // If the message has been queued up from a previous time
+                    // step, which could happen if we have joined the simulation
+                    // while it's in progress, discard it and retry.
+                } while (inVar.timestamp() < newTime - allowedTimeError);
 
                 // Set our input variable.
                 slaveInstance->SetVariable(inVarRef, inVar.value().real_value());
