@@ -5,6 +5,18 @@
 using namespace dsb::comm;
 
 
+namespace
+{
+    // Utility function which creates a ZMQ message frame from a string.
+    zmq::message_t TextMsg(const std::string& s)
+    {
+        auto m = zmq::message_t(s.size());
+        std::memcpy(m.data(), s.data(), s.size());
+        return m;
+    }
+}
+
+
 TEST(dsb_comm, SendReceiveMessage)
 {
     auto ctx = zmq::context_t();
@@ -123,10 +135,56 @@ TEST(dsb_comm, PopMessageEnvelope_dropEnvelope)
     EXPECT_EQ(97U, msg[0].size());
 }
 
+TEST(dsb_comm, CopyMessage_emptySource)
+{
+    auto msg1 = std::deque<zmq::message_t>();
+    auto msg2 = std::deque<zmq::message_t>();
+    msg2.push_back(TextMsg("foo"));
+    msg2.push_back(TextMsg("bar"));
+    ASSERT_TRUE(msg1.empty());
+    ASSERT_EQ(2U, msg2.size());
+    CopyMessage(msg1, msg2);
+    EXPECT_TRUE(msg1.empty());
+    EXPECT_TRUE(msg2.empty());
+}
+
+TEST(dsb_comm, CopyMessage_emptyTarget)
+{
+    auto msg1 = std::deque<zmq::message_t>();
+    msg1.push_back(TextMsg("foo"));
+    msg1.push_back(TextMsg("bar"));
+    auto msg2 = std::deque<zmq::message_t>();
+    ASSERT_EQ(2U, msg1.size());
+    ASSERT_TRUE(msg2.empty());
+    CopyMessage(msg1, msg2);
+    ASSERT_EQ(2U, msg1.size());
+    EXPECT_EQ("foo", ToString(msg1[0]));
+    EXPECT_EQ("bar", ToString(msg1[1]));
+    ASSERT_EQ(2U, msg2.size());
+    EXPECT_EQ("foo", ToString(msg2[0]));
+    EXPECT_EQ("bar", ToString(msg2[1]));
+}
+
+TEST(dsb_comm, CopyMessage_nonEmptyTarget)
+{
+    auto msg1 = std::deque<zmq::message_t>();
+    msg1.push_back(TextMsg("foo"));
+    msg1.push_back(TextMsg("bar"));
+    auto msg2 = std::deque<zmq::message_t>();
+    msg2.push_back(TextMsg("baz"));
+    ASSERT_EQ(2U, msg1.size());
+    ASSERT_EQ(1U, msg2.size());
+    CopyMessage(msg1, msg2);
+    ASSERT_EQ(2U, msg1.size());
+    EXPECT_EQ("foo", ToString(msg1[0]));
+    EXPECT_EQ("bar", ToString(msg1[1]));
+    ASSERT_EQ(2U, msg2.size());
+    EXPECT_EQ("foo", ToString(msg2[0]));
+    EXPECT_EQ("bar", ToString(msg2[1]));
+}
 
 TEST(dsb_comm, ToString)
 {
-    zmq::message_t msg(3);
-    std::memcpy(msg.data(), "foo", 3);
+    auto msg = TextMsg("foo");
     EXPECT_EQ("foo", ToString(msg));
 }
