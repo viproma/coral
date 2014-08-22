@@ -78,6 +78,16 @@ size_t PopMessageEnvelope(
     std::deque<zmq::message_t>* envelope = nullptr);
 
 
+/**
+\brief  Makes a copy of a multipart message.
+
+This function will resize `target` to the same size as `source` and then make
+each element in `target` a copy of the corresponding element in `source` by
+using `zmq::message_t::copy()`.  Any previous contents of `target` will
+be replaced.
+
+\throws zmq::error_t if `zmq::message_t::copy()` fails.
+*/
 void CopyMessage(
     std::deque<zmq::message_t>& source,
     std::deque<zmq::message_t>& target);
