@@ -24,6 +24,7 @@ namespace comm
 The message content will be cleared on return.
 
 \throws std::invalid_argument if `message` is empty.
+\throws zmq::error_t on failure to send a message frame.
 */
 void Send(zmq::socket_t& socket, std::deque<zmq::message_t>& message);
 
@@ -37,6 +38,7 @@ followed by an empty delimiter frame and the frames in `body`.
 Both `envelope` and `body` will be cleared on return.
 
 \throws std::invalid_argument if either of `envelope` or `body` are empty.
+\throws zmq::error_t on failure to send a message frame.
 */
 void AddressedSend(
     zmq::socket_t& socket,
@@ -48,6 +50,8 @@ void AddressedSend(
 \brief Receives a message.
 
 Existing message content will be overwritten.
+
+\throws zmq::error_t on failure to receive a message frame.
 */
 void Receive(
     zmq::socket_t& socket,
@@ -74,6 +78,16 @@ size_t PopMessageEnvelope(
     std::deque<zmq::message_t>* envelope = nullptr);
 
 
+/**
+\brief  Makes a copy of a multipart message.
+
+This function will resize `target` to the same size as `source` and then make
+each element in `target` a copy of the corresponding element in `source` by
+using `zmq::message_t::copy()`.  Any previous contents of `target` will
+be replaced.
+
+\throws zmq::error_t if `zmq::message_t::copy()` fails.
+*/
 void CopyMessage(
     std::deque<zmq::message_t>& source,
     std::deque<zmq::message_t>& target);
