@@ -179,13 +179,13 @@ try {
 
 Slave::Slave(
         uint16_t id,
-        zmq::socket_t dataSub_,
-        zmq::socket_t dataPub_,
-        std::unique_ptr<SlaveInstance> slaveInstance_,
+        zmq::socket_t dataSub,
+        zmq::socket_t dataPub,
+        std::unique_ptr<SlaveInstance> slaveInstance,
         uint16_t otherSlaveId)
-    : m_dataSub(std::move(dataSub_)),
-      m_dataPub(std::move(dataPub_)),
-      m_slaveInstance(std::move(slaveInstance_)),
+    : m_dataSub(std::move(dataSub)),
+      m_dataPub(std::move(dataPub)),
+      m_slaveInstance(std::move(slaveInstance)),
       m_currentTime(std::numeric_limits<double>::signaling_NaN()),
       m_lastStepSize(std::numeric_limits<double>::signaling_NaN())
 {
