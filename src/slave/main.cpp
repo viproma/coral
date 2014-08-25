@@ -72,7 +72,7 @@ public:
         uint16_t id,
         zmq::socket_t dataSub,
         zmq::socket_t dataPub,
-        std::unique_ptr<SlaveInstance> slaveInstance,
+        std::unique_ptr<ISlaveInstance> slaveInstance,
         uint16_t otherSlaveId
         );
 
@@ -101,16 +101,17 @@ private:
     void InitHandler(std::deque<zmq::message_t>& msg);
     void ReadyHandler(std::deque<zmq::message_t>& msg);
     void PublishedHandler(std::deque<zmq::message_t>& msg);
+    void StepFailedHandler(std::deque<zmq::message_t>& msg);
 
     // Performs the time step for ReadyHandler()
-    void Step(const dsbproto::control::StepData& stepData);
+    bool Step(const dsbproto::control::StepData& stepData);
 
     // A pointer to the handler function for the current state.
     void (Slave::* m_stateHandler)(std::deque<zmq::message_t>&);
 
     zmq::socket_t m_dataSub;
     zmq::socket_t m_dataPub;
-    std::unique_ptr<SlaveInstance> m_slaveInstance;
+    std::unique_ptr<ISlaveInstance> m_slaveInstance;
     double m_currentTime;
     double m_lastStepSize;
 
@@ -169,6 +170,8 @@ try {
     }
 } catch (const Shutdown& e) {
     std::cerr << "Shutdown: " << e.what() << std::endl;
+} catch (const dsb::control::RemoteErrorException& e) {
+    std::cerr << "Received ERROR message: " << e.what() << std::endl;
 }
 }
 
@@ -181,7 +184,7 @@ Slave::Slave(
         uint16_t id,
         zmq::socket_t dataSub,
         zmq::socket_t dataPub,
-        std::unique_ptr<SlaveInstance> slaveInstance,
+        std::unique_ptr<ISlaveInstance> slaveInstance,
         uint16_t otherSlaveId)
     : m_dataSub(std::move(dataSub)),
       m_dataPub(std::move(dataPub)),
@@ -246,9 +249,13 @@ void Slave::ReadyHandler(std::deque<zmq::message_t>& msg)
             }
             dsbproto::control::StepData stepData;
             dsb::protobuf::ParseFromFrame(msg[1], stepData);
-            Step(stepData);
-            dsb::control::CreateMessage(msg, dsbproto::control::MSG_STEP_OK);
-            m_stateHandler = &Slave::PublishedHandler;
+            if (Step(stepData)) {
+                dsb::control::CreateMessage(msg, dsbproto::control::MSG_STEP_OK);
+                m_stateHandler = &Slave::PublishedHandler;
+            } else {
+                dsb::control::CreateMessage(msg, dsbproto::control::MSG_STEP_FAILED);
+                m_stateHandler = &Slave::StepFailedHandler;
+            }
             break; }
         default:
             throw dsb::error::ProtocolViolationException(
@@ -284,10 +291,21 @@ void Slave::PublishedHandler(std::deque<zmq::message_t>& msg)
 }
 
 
-void Slave::Step(const dsbproto::control::StepData& stepInfo)
+void Slave::StepFailedHandler(std::deque<zmq::message_t>& msg)
+{
+    EnforceMessageType(msg, dsbproto::control::MSG_TERMINATE);
+    // We never get here, because EnforceMessageType() always throws either
+    // Shutdown or ProtocolViolationException.
+    assert (false);
+}
+
+
+bool Slave::Step(const dsbproto::control::StepData& stepInfo)
 {
     // Perform time step
-    m_slaveInstance->DoStep(stepInfo.timepoint(), stepInfo.stepsize());
+    if (!m_slaveInstance->DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
+        return false;
+    }
     // Pretend to work really hard
     boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
     m_currentTime = stepInfo.timepoint() + stepInfo.stepsize();
@@ -310,4 +328,5 @@ void Slave::Step(const dsbproto::control::StepData& stepInfo)
     dsb::protobuf::SerializeToFrame(outVar, dataMsg.back());
     // Send it
     dsb::comm::Send(m_dataPub, dataMsg);
+    return true;
 }
