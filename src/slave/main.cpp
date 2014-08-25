@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 
@@ -49,6 +50,81 @@ void EnforceMessageType(
 }
 
 
+/**
+\brief  A class which contains the state of the slave and takes care of
+        responding to requests from the master node in an appropriate manner.
+*/
+class Slave
+{
+public:
+    /**
+    \brief  Constructs a new Slave.
+
+    \param [in] id              The slave ID.
+    \param [in] dataSub         A SUB socket to be used for receiving variables.
+    \param [in] dataPub         A PUB socket to be used for sending variables.
+    \param [in] slaveInstance   (Temporary) A pointer to the object which
+                                contains the slave's mathematical model.
+    \param [in] otherSlaveId    (Temporary) The ID of the slave which this
+                                slave should be connected to.
+    */
+    Slave(
+        uint16_t id,
+        zmq::socket_t dataSub,
+        zmq::socket_t dataPub,
+        std::unique_ptr<SlaveInstance> slaveInstance,
+        uint16_t otherSlaveId
+        );
+
+    /**
+    \brief  Prepares the first message (HELLO) which is to be sent to the master
+            and stores it in `msg`.
+    */
+    void Start(std::deque<zmq::message_t>& msg);
+
+    /**
+    \brief  Responds to a message from the master.
+    
+    On input, `msg` must be the message received from master, and on output,
+    it will contain the slave's reply.  Internally, the function forwards to
+    the handler function that corresponds to the slave's current state.
+    */
+    void RequestReply(std::deque<zmq::message_t>& msg);
+
+private:
+    // Each of these functions correspond to one of the slave's possible states.
+    // On input, `msg` is a message from the master node, and when the function
+    // returns, `msg` must contain the reply.  If the message triggers a state
+    // change, the handler function must update m_stateHandler to point to the
+    // function for the new state.
+    void ConnectingHandler(std::deque<zmq::message_t>& msg);
+    void InitHandler(std::deque<zmq::message_t>& msg);
+    void ReadyHandler(std::deque<zmq::message_t>& msg);
+    void PublishedHandler(std::deque<zmq::message_t>& msg);
+
+    // Performs the time step for ReadyHandler()
+    void Step(const dsbproto::control::StepData& stepData);
+
+    // A pointer to the handler function for the current state.
+    void (Slave::* m_stateHandler)(std::deque<zmq::message_t>&);
+
+    zmq::socket_t m_dataSub;
+    zmq::socket_t m_dataPub;
+    std::unique_ptr<SlaveInstance> m_slaveInstance;
+    double m_currentTime;
+    double m_lastStepSize;
+
+    // -------------------------------------------------------------------------
+    // Temporary
+    static const uint16_t IN_VAR_REF = 0;
+    static const uint16_t OUT_VAR_REF = 1;
+    static const size_t DATA_HEADER_SIZE = 4;
+
+    char otherHeader[DATA_HEADER_SIZE];
+    char myHeader[DATA_HEADER_SIZE];
+};
+
+
 int main(int argc, const char** argv)
 {
 try {
@@ -70,8 +146,6 @@ try {
     const auto slaveType = std::string(argv[5]);
     const auto otherSlaveId = boost::lexical_cast<uint16_t>(argv[6]);
 
-    auto slaveInstance = NewSlave(slaveType);
-
     auto context = zmq::context_t();
     auto control = zmq::socket_t(context, ZMQ_REQ);
     control.setsockopt(ZMQ_IDENTITY, id.data(), id.size());
@@ -81,113 +155,159 @@ try {
     auto dataSub = zmq::socket_t(context, ZMQ_SUB);
     dataSub.connect(dataSubEndpoint.c_str());
 
-    // Send HELLO
+    Slave slave(boost::lexical_cast<uint16_t>(id),
+                std::move(dataSub),
+                std::move(dataPub),
+                NewSlave(slaveType),
+                otherSlaveId);
     std::deque<zmq::message_t> msg;
-    dsb::control::CreateHelloMessage(msg, 0);
-    dsb::comm::Send(control, msg);
-
-    // Receive HELLO
-    dsb::comm::Receive(control, msg);
-    if (dsb::control::ParseProtocolVersion(msg.front()) != 0) {
-        throw std::runtime_error("Master required unsupported protocol");
-    }
-
-    // Send MSG_INIT_READY
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_INIT_READY);
-    dsb::comm::Send(control, msg);
-
-    // Receive MSG_INIT_DONE
-    dsb::comm::Receive(control, msg);
-    EnforceMessageType(msg, dsbproto::control::MSG_INIT_DONE);
-
-    // -------------------------------------------------------------------------
-    // Temporary faked code
-    const uint16_t inVarRef = 0;
-    const uint16_t outVarRef = 1;
-    const size_t dataHeaderSize = 4;
-
-    // Build a header to use for subscribing to the other slave's output.
-    char otherHeader[dataHeaderSize];
-    dsb::util::EncodeUint16(otherSlaveId, otherHeader);
-    dsb::util::EncodeUint16(outVarRef, otherHeader + 2);
-    dataSub.setsockopt(ZMQ_SUBSCRIBE, otherHeader, dataHeaderSize);
-
-    // Build a header to use for our own output.
-    char myHeader[dataHeaderSize];
-    dsb::util::EncodeUint16(boost::lexical_cast<uint16_t>(id), myHeader);
-    dsb::util::EncodeUint16(outVarRef, myHeader + 2);
-    // -------------------------------------------------------------------------
-
-    // MSG_READY loop
+    slave.Start(msg);
     for (;;) {
-        dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
         dsb::comm::Send(control, msg);
-
         dsb::comm::Receive(control, msg);
-        const auto msgType = NormalMessageType(msg);
-        switch (msgType) {
-            case dsbproto::control::MSG_STEP: {
-                // Extract DoStep message from second (body) frame.
-                assert (msg.size() == 2);
-                dsbproto::control::StepData stepInfo;
-                dsb::protobuf::ParseFromFrame(msg[1], stepInfo);
-
-                // Perform time step
-                slaveInstance->DoStep(stepInfo.timepoint(), stepInfo.stepsize());
-                // Pretend to work really hard
-                boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-                const auto newTime = stepInfo.timepoint() + stepInfo.stepsize();
-                std::cout << newTime << " " << slaveInstance->GetVariable(outVarRef) << std::endl;
-
-                // Get value of output variable
-                dsbproto::variable::TimestampedValue outVar;
-                outVar.set_timestamp(newTime);
-                outVar.mutable_value()->set_real_value(slaveInstance->GetVariable(outVarRef));
-
-                // Build data message to be published
-                std::deque<zmq::message_t> dataMsg;
-                // Header
-                dataMsg.push_back(zmq::message_t(dataHeaderSize));
-                std::copy(myHeader, myHeader+dataHeaderSize,
-                          static_cast<char*>(dataMsg.back().data()));
-                // Body
-                dataMsg.push_back(zmq::message_t());
-                dsb::protobuf::SerializeToFrame(outVar, dataMsg.back());
-                // Send it
-                dsb::comm::Send(dataPub, dataMsg);
-
-                // Send STEP_OK message
-                std::deque<zmq::message_t> stepOkMsg;
-                dsb::control::CreateMessage(stepOkMsg, dsbproto::control::MSG_STEP_OK);
-                dsb::comm::Send(control, stepOkMsg);
-
-                // Wait for RECV_VARS command
-                std::deque<zmq::message_t> recvVarsMsg;
-                dsb::comm::Receive(control, recvVarsMsg);
-                EnforceMessageType(recvVarsMsg, dsbproto::control::MSG_RECV_VARS);
-
-                // Receive message from other and store the body in inVar.
-                const auto allowedTimeError = stepInfo.stepsize() * 1e-6;
-                dsbproto::variable::TimestampedValue inVar;
-                do {
-                    dsb::comm::Receive(dataSub, dataMsg);
-                    dsb::protobuf::ParseFromFrame(dataMsg.back(), inVar);
-                    assert (inVar.timestamp() < newTime + allowedTimeError
-                            && "Data received from the future");
-                    // If the message has been queued up from a previous time
-                    // step, which could happen if we have joined the simulation
-                    // while it's in progress, discard it and retry.
-                } while (inVar.timestamp() < newTime - allowedTimeError);
-
-                // Set our input variable.
-                slaveInstance->SetVariable(inVarRef, inVar.value().real_value());
-                break; }
-            default:
-                throw dsb::error::ProtocolViolationException(
-                    "Invalid reply from master");
-        }
+        slave.RequestReply(msg);
     }
 } catch (const Shutdown& e) {
     std::cerr << "Shutdown: " << e.what() << std::endl;
 }
+}
+
+
+// =============================================================================
+// Slave class function implementations
+// =============================================================================
+
+Slave::Slave(
+        uint16_t id,
+        zmq::socket_t dataSub_,
+        zmq::socket_t dataPub_,
+        std::unique_ptr<SlaveInstance> slaveInstance_,
+        uint16_t otherSlaveId)
+    : m_dataSub(std::move(dataSub_)),
+      m_dataPub(std::move(dataPub_)),
+      m_slaveInstance(std::move(slaveInstance_)),
+      m_currentTime(std::numeric_limits<double>::signaling_NaN()),
+      m_lastStepSize(std::numeric_limits<double>::signaling_NaN())
+{
+
+    // -------------------------------------------------------------------------
+    // Temporary
+
+    // Build a header to use for subscribing to the other slave's output.
+    dsb::util::EncodeUint16(otherSlaveId, otherHeader);
+    dsb::util::EncodeUint16(OUT_VAR_REF, otherHeader + 2);
+    m_dataSub.setsockopt(ZMQ_SUBSCRIBE, otherHeader, DATA_HEADER_SIZE);
+
+    // Build a header to use for our own output.
+    dsb::util::EncodeUint16(id, myHeader);
+    dsb::util::EncodeUint16(OUT_VAR_REF, myHeader + 2);
+    // -------------------------------------------------------------------------
+}
+
+
+void Slave::Start(std::deque<zmq::message_t>& msg)
+{
+    dsb::control::CreateHelloMessage(msg, 0);
+    m_stateHandler = &Slave::ConnectingHandler;
+}
+
+
+void Slave::RequestReply(std::deque<zmq::message_t>& msg)
+{
+    (this->*m_stateHandler)(msg);
+}
+
+
+void Slave::ConnectingHandler(std::deque<zmq::message_t>& msg)
+{
+    if (dsb::control::ParseProtocolVersion(msg.front()) != 0) {
+        throw std::runtime_error("Master required unsupported protocol");
+    }
+    dsb::control::CreateMessage(msg, dsbproto::control::MSG_INIT_READY);
+    m_stateHandler = &Slave::InitHandler;
+}
+
+
+void Slave::InitHandler(std::deque<zmq::message_t>& msg)
+{
+    EnforceMessageType(msg, dsbproto::control::MSG_INIT_DONE);
+    dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
+    m_stateHandler = &Slave::ReadyHandler;
+}
+
+
+void Slave::ReadyHandler(std::deque<zmq::message_t>& msg)
+{
+    switch (NormalMessageType(msg)) {
+        case dsbproto::control::MSG_STEP: {
+            if (msg.size() != 2) {
+                throw dsb::error::ProtocolViolationException(
+                    "Wrong number of frames in STEP message");
+            }
+            dsbproto::control::StepData stepData;
+            dsb::protobuf::ParseFromFrame(msg[1], stepData);
+            Step(stepData);
+            dsb::control::CreateMessage(msg, dsbproto::control::MSG_STEP_OK);
+            m_stateHandler = &Slave::PublishedHandler;
+            break; }
+        default:
+            throw dsb::error::ProtocolViolationException(
+                "Invalid reply from master");
+    }
+}
+
+
+void Slave::PublishedHandler(std::deque<zmq::message_t>& msg)
+{
+    EnforceMessageType(msg, dsbproto::control::MSG_RECV_VARS);
+
+    // Receive message from other and store the body in inVar.
+    const auto allowedTimeError = m_lastStepSize * 1e-6;
+    std::deque<zmq::message_t> dataMsg;
+    dsbproto::variable::TimestampedValue inVar;
+    do {
+        dsb::comm::Receive(m_dataSub, dataMsg);
+        dsb::protobuf::ParseFromFrame(dataMsg.back(), inVar);
+        assert (inVar.timestamp() < m_currentTime + allowedTimeError
+                && "Data received from the future");
+        // If the message has been queued up from a previous time
+        // step, which could happen if we have joined the simulation
+        // while it's in progress, discard it and retry.
+    } while (inVar.timestamp() < m_currentTime - allowedTimeError);
+
+    // Set our input variable.
+    m_slaveInstance->SetVariable(IN_VAR_REF, inVar.value().real_value());
+
+    // Send READY message and change state again.
+    dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
+    m_stateHandler = &Slave::ReadyHandler;
+}
+
+
+void Slave::Step(const dsbproto::control::StepData& stepInfo)
+{
+    // Perform time step
+    m_slaveInstance->DoStep(stepInfo.timepoint(), stepInfo.stepsize());
+    // Pretend to work really hard
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
+    m_currentTime = stepInfo.timepoint() + stepInfo.stepsize();
+    m_lastStepSize = stepInfo.stepsize();
+    std::cout << m_currentTime << " " << m_slaveInstance->GetVariable(OUT_VAR_REF) << std::endl;
+
+    // Get value of output variable
+    dsbproto::variable::TimestampedValue outVar;
+    outVar.set_timestamp(m_currentTime);
+    outVar.mutable_value()->set_real_value(m_slaveInstance->GetVariable(OUT_VAR_REF));
+
+    // Build data message to be published
+    std::deque<zmq::message_t> dataMsg;
+    // Header
+    dataMsg.push_back(zmq::message_t(DATA_HEADER_SIZE));
+    std::copy(myHeader, myHeader+DATA_HEADER_SIZE,
+                static_cast<char*>(dataMsg.back().data()));
+    // Body
+    dataMsg.push_back(zmq::message_t());
+    dsb::protobuf::SerializeToFrame(outVar, dataMsg.back());
+    // Send it
+    dsb::comm::Send(m_dataPub, dataMsg);
 }
