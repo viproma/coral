@@ -29,6 +29,7 @@ namespace
         SLAVE_STEPPING      = 1 << 4,
         SLAVE_PUBLISHED     = 1 << 5,
         SLAVE_RECEIVING     = 1 << 6,
+        SLAVE_STEP_FAILED   = 1 << 7,
     };
 
     struct SlaveTracker
@@ -209,6 +210,16 @@ int main(int argc, const char** argv)
                     if (allPublished) allSlavesState = ALL_SLAVES_PUBLISHED;
                     // Store the return envelope for later.
                     slaves[slaveId].envelope.swap(envelope);
+                } else {
+                    SendInvalidRequest(control, envelope);
+                }
+                break;
+
+            case dsbproto::control::MSG_STEP_FAILED:
+                std::clog << "MSG_STEP_FAILED" << std::endl;
+                if (UpdateSlaveState(slaves, slaveId, SLAVE_STEPPING, SLAVE_STEP_FAILED)) {
+                    dsb::control::CreateMessage(msg, dsbproto::control::MSG_TERMINATE);
+                    dsb::comm::AddressedSend(control, envelope, msg);
                 } else {
                     SendInvalidRequest(control, envelope);
                 }

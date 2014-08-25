@@ -9,7 +9,7 @@
 namespace
 {
 
-class Mass1D : public SlaveInstance
+class Mass1D : public ISlaveInstance
 {
 public:
     Mass1D() : m_mass(1.0), m_pos_x(0.0), m_vel_x(0.0), m_force_x(0.0) { }
@@ -39,12 +39,13 @@ public:
         }
     }
 
-    void DoStep(double currentT, double deltaT) override
+    bool DoStep(double currentT, double deltaT) override
     {
         const double accel = m_force_x / m_mass;
         const double deltaV = accel * deltaT;
         m_pos_x += m_vel_x*deltaT + 0.5*deltaV*deltaT;
         m_vel_x += deltaV;
+        return true;
     }
 
 private:
@@ -54,7 +55,7 @@ private:
     double m_force_x;
 };
 
-class Spring1D : public SlaveInstance
+class Spring1D : public ISlaveInstance
 {
 public:
     Spring1D() : m_length(2.0), m_stiffness(1.0), m_pos_a_x(0.0), m_pos_b_x(1.0),
@@ -89,13 +90,13 @@ public:
         }
     }
 
-    void DoStep(double currentT, double deltaT) override
+    bool DoStep(double currentT, double deltaT) override
     {
         const double deltaX = std::fabs(m_pos_b_x - m_pos_a_x) - m_length;
         m_force_a_x = m_pos_a_x <= m_pos_b_x ?   m_stiffness * deltaX
                                              : - m_stiffness * deltaX;
         m_force_b_x = - m_force_a_x;
-
+        return true;
     }
 
 private:
@@ -108,10 +109,10 @@ private:
 };
 
 
-class Buggy1D : public SlaveInstance
+class Buggy1D : public ISlaveInstance
 {
 public:
-    Buggy1D() : m_in(0.0), m_out(0.0) { }
+    Buggy1D() : m_in(0.0), m_out(0.0), m_stepCount(0) { }
 
     double GetVariable(int varRef) override
     {
@@ -134,24 +135,26 @@ public:
         }
     }
 
-    void DoStep(double currentT, double deltaT) override
+    bool DoStep(double currentT, double deltaT) override
     {
-        boost::this_thread::sleep_for(boost::chrono::seconds(5));
+        boost::this_thread::sleep_for(boost::chrono::seconds(1));
+        return ++m_stepCount < 5;
     }
 
 private:
     double m_in;
     double m_out;
+    int m_stepCount;
 };
 
 
 } // namespace
 
-std::unique_ptr<SlaveInstance> NewSlave(const std::string& type)
+std::unique_ptr<ISlaveInstance> NewSlave(const std::string& type)
 {
     if (type == "mass_1d") return std::make_unique<Mass1D>();
     else if (type == "spring_1d") return std::make_unique<Spring1D>();
     else if (type == "buggy_1d") return std::make_unique<Buggy1D>();
     assert (!"NewSlave(): Invalid slave type");
-    return std::unique_ptr<SlaveInstance>();
+    return std::unique_ptr<ISlaveInstance>();
 }
