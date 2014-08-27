@@ -3,6 +3,7 @@ set (_headers
     "mock_library.hpp"
     "model.hpp"
     "model_parser.hpp"
+    "slave_handler.hpp"
 )
 set (_sources
     "library.cpp"
@@ -10,6 +11,7 @@ set (_sources
     "mock_library.cpp"
     "model.cpp"
     "model_parser.cpp"
+    "slave_handler.cpp"
 )
 
 find_package (Boost REQUIRED)
