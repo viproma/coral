@@ -59,7 +59,7 @@ public:
 
     \param [in] socket    The socket on which to send the message.
     \param [in] envelope  The return envelope, empty on return.
-    \param [in,out] msg   The incoming message, empty on return.
+    \param [in] msg       The incoming message, empty on return.
 
     \returns `true` if an immediate reply was sent, `false` if not.
     \throws zmq::error_t if ZMQ fails to send the reply message.
