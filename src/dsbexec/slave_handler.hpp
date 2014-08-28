@@ -49,30 +49,23 @@ public:
 
     /**
     \brief  Processes a message from the slave, and if appropriate, sends
-            a reply message.
+            a reply.
 
     This function will parse the message in `msg` and update the state of the
     slave handler according to its contents.  An immediate reply will be sent
-    on `socket` if the request warrants it.  In this case, the `envelope`
-    argument is not modified, but the `msg` container will be reused for this
-    purpose and cleared on return.  In this case, the function returns `true`.
+    on `socket` to the peer identified by `envelope` if the request warrants
+    it; otherwise, the envelope will be stored  in the SlaveHandler until it is
+    time to send a reply (e.g. with SendStep()).
 
-    If the message does *not* warrant an immediate reply, no change is made
-    to `msg`.  Instead, `envelope` is stored in the SlaveHandler until it is
-    time to send a reply (e.g. with SendStep()).  In this case, the `envelope`
-    argument can not be expected to contain the envelope anymore when the
-    function returns.  The function returns `false` in this case.
-
-    \params [in] socket
-        The socket on which to send the message.
-    \param [in,out] envelope
-        On input, the return envelope.  On output, an unspecified value if the
-        function returns `false`, otherwise it remains unchanged.
-    \param [in,out] msg
-        On input, the incoming message.  Empty on output if the function
-        returns `true`.
+    \param [in] socket    The socket on which to send the message.
+    \param [in] envelope  The return envelope, empty on return.
+    \param [in,out] msg   The incoming message, empty on return.
 
     \returns `true` if an immediate reply was sent, `false` if not.
+    \throws zmq::error_t if ZMQ fails to send the reply message.
+
+    \pre `socket` is a valid ZMQ socket, `envelope` and `msg` are not empty.
+    \post `envelope` and `msg` are empty.
     */
     bool RequestReply(
         zmq::socket_t& socket,

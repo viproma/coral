@@ -59,6 +59,8 @@ bool SlaveHandler::RequestReply(
     std::deque<zmq::message_t>& envelope,
     std::deque<zmq::message_t>& msg)
 {
+    assert (!envelope.empty());
+    assert (!msg.empty());
     bool sendImmediately = false;
     switch (dsb::control::ParseMessageType(msg.front())) {
         case dsbproto::control::MSG_HELLO:
@@ -88,7 +90,14 @@ bool SlaveHandler::RequestReply(
             sendImmediately = true;
             break;
     }
-    if (sendImmediately) dsb::comm::AddressedSend(socket, envelope, msg);
+    if (sendImmediately) {
+        dsb::comm::AddressedSend(socket, envelope, msg);
+    } else {
+        m_envelope.swap(envelope);  // Store envelope, thus clearing it.
+        msg.clear();                // Clear msg too, for consistency.
+    }
+    assert (envelope.empty());
+    assert (msg.empty());
     return sendImmediately;
 }
 
@@ -174,8 +183,6 @@ bool SlaveHandler::ReadyHandler(
     std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_INITIALIZING | SLAVE_READY | SLAVE_RECEIVING, SLAVE_READY)) {
-        // Store the return envelope for later.
-        m_envelope.swap(envelope);
         return false;
     } else {
         CreateInvalidRequest(msg);
@@ -202,8 +209,6 @@ bool SlaveHandler::StepOkHandler(
     std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_STEPPING, SLAVE_PUBLISHED)) {
-        // Store the return envelope for later.
-        m_envelope.swap(envelope);
         return false;
     } else {
         CreateInvalidRequest(msg);
