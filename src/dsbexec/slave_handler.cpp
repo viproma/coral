@@ -55,31 +55,50 @@ SlaveHandler& SlaveHandler::operator=(SlaveHandler& other) {
 
 
 bool SlaveHandler::RequestReply(
-    std::deque<zmq::message_t>& msg,
-    std::deque<zmq::message_t>& envelope)
+    zmq::socket_t& socket,
+    std::deque<zmq::message_t>& envelope,
+    std::deque<zmq::message_t>& msg)
 {
+    assert (!envelope.empty());
+    assert (!msg.empty());
+    bool sendImmediately = false;
     switch (dsb::control::ParseMessageType(msg.front())) {
         case dsbproto::control::MSG_HELLO:
             std::clog << "MSG_HELLO" << std::endl;
-            return HelloHandler(msg, envelope);
+            sendImmediately = HelloHandler(envelope, msg);
+            break;
         case dsbproto::control::MSG_INIT_READY:
             std::clog << "MSG_INIT_READY" << std::endl;
-            return InitReadyHandler(msg, envelope);
+            sendImmediately = InitReadyHandler(envelope, msg);
+            break;
         case dsbproto::control::MSG_READY:
             std::clog << "MSG_READY" << std::endl;
-            return ReadyHandler(msg, envelope);
+            sendImmediately = ReadyHandler(envelope, msg);
+            break;
         case dsbproto::control::MSG_STEP_OK:
             std::clog << "MSG_STEP_OK" << std::endl;
-            return StepOkHandler(msg, envelope);
+            sendImmediately = StepOkHandler(envelope, msg);
+            break;
         case dsbproto::control::MSG_STEP_FAILED:
             std::clog << "MSG_STEP_FAILED" << std::endl;
-            return StepFailedHandler(msg, envelope);
+            sendImmediately = StepFailedHandler(envelope, msg);
+            break;
         default:
             std::clog << "Warning: Invalid message received from client: "
                         /*<< slaveId*/ << std::endl;
             CreateInvalidRequest(msg);
-            return true;
+            sendImmediately = true;
+            break;
     }
+    if (sendImmediately) {
+        dsb::comm::AddressedSend(socket, envelope, msg);
+    } else {
+        m_envelope.swap(envelope);  // Store envelope, thus clearing it.
+        msg.clear();                // Clear msg too, for consistency.
+    }
+    assert (envelope.empty());
+    assert (msg.empty());
+    return sendImmediately;
 }
 
 
@@ -131,8 +150,8 @@ bool SlaveHandler::IsSimulating() const
 
 
 bool SlaveHandler::HelloHandler(
-    std::deque<zmq::message_t>& msg,
-    std::deque<zmq::message_t>& envelope)
+    std::deque<zmq::message_t>& envelope,
+    std::deque<zmq::message_t>& msg)
 {
     const auto slaveProtocol = dsb::control::ParseProtocolVersion(msg.front());
     if (slaveProtocol > 0) {
@@ -147,8 +166,8 @@ bool SlaveHandler::HelloHandler(
 
 
 bool SlaveHandler::InitReadyHandler(
-    std::deque<zmq::message_t>& msg,
-    std::deque<zmq::message_t>& envelope)
+    std::deque<zmq::message_t>& envelope,
+    std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_CONNECTING | SLAVE_INITIALIZING, SLAVE_INITIALIZING)) {
         dsb::control::CreateMessage(msg, dsbproto::control::MSG_INIT_DONE);
@@ -160,12 +179,10 @@ bool SlaveHandler::InitReadyHandler(
 
 
 bool SlaveHandler::ReadyHandler(
-    std::deque<zmq::message_t>& msg,
-    std::deque<zmq::message_t>& envelope)
+    std::deque<zmq::message_t>& envelope,
+    std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_INITIALIZING | SLAVE_READY | SLAVE_RECEIVING, SLAVE_READY)) {
-        // Store the return envelope for later.
-        m_envelope.swap(envelope);
         return false;
     } else {
         CreateInvalidRequest(msg);
@@ -175,8 +192,8 @@ bool SlaveHandler::ReadyHandler(
 
 
 bool SlaveHandler::StepFailedHandler(
-    std::deque<zmq::message_t>& msg,
-    std::deque<zmq::message_t>& envelope)
+    std::deque<zmq::message_t>& envelope,
+    std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_STEPPING, SLAVE_STEP_FAILED)) {
         dsb::control::CreateMessage(msg, dsbproto::control::MSG_TERMINATE);
@@ -188,12 +205,10 @@ bool SlaveHandler::StepFailedHandler(
 
 
 bool SlaveHandler::StepOkHandler(
-    std::deque<zmq::message_t>& msg,
-    std::deque<zmq::message_t>& envelope)
+    std::deque<zmq::message_t>& envelope,
+    std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_STEPPING, SLAVE_PUBLISHED)) {
-        // Store the return envelope for later.
-        m_envelope.swap(envelope);
         return false;
     } else {
         CreateInvalidRequest(msg);

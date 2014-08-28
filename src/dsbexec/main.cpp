@@ -52,10 +52,7 @@ int main(int argc, const char** argv)
 
         // Pass on the message to the appropriate slave handler, send the
         // reply immediately if necessary.
-        if (slaves[slaveId].RequestReply(msg, envelope)) {
-            dsb::comm::AddressedSend(control, envelope, msg);
-
-        } else {
+        if (!slaves[slaveId].RequestReply(control, envelope, msg)) {
             // No immediate reply sent.  Instead, we check for a common state
             // (e.g. READY or PUBLISHED) to determine whether it is time to
             // send a STEP message or similar to all slaves.
