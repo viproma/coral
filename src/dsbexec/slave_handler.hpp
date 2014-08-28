@@ -48,33 +48,36 @@ public:
     SlaveHandler& operator=(SlaveHandler& other);
 
     /**
-    \brief  Processes a message from the slave, and if appropriate, prepares
+    \brief  Processes a message from the slave, and if appropriate, sends
             a reply message.
 
     This function will parse the message in `msg` and update the state of the
-    slave handler according to its contents.  If the message warrants an
-    immediate reply, the reply message is prepared and stored in `msg`, and
-    the function returns `true`.  It is then up to the caller to actually
-    send the message.  In this case, the `envelope` argument is not modified.
+    slave handler according to its contents.  An immediate reply will be sent
+    on `socket` if the request warrants it.  In this case, the `envelope`
+    argument is not modified, but the `msg` container will be reused for this
+    purpose and cleared on return.  In this case, the function returns `true`.
 
     If the message does *not* warrant an immediate reply, no change is made
     to `msg`.  Instead, `envelope` is stored in the SlaveHandler until it is
     time to send a reply (e.g. with SendStep()).  In this case, the `envelope`
     argument can not be expected to contain the envelope anymore when the
-    function returns.
+    function returns.  The function returns `false` in this case.
 
-    \param [in,out] msg
-        On input, the incoming message.  On output, the return message if and
-        only if the function returns `true`.
+    \params [in] socket
+        The socket on which to send the message.
     \param [in,out] envelope
         On input, the return envelope.  On output, an unspecified value if the
         function returns `false`, otherwise it remains unchanged.
+    \param [in,out] msg
+        On input, the incoming message.  Empty on output if the function
+        returns `true`.
 
-    \returns `true` if `msg` contains a reply message on return, `false` if not.
+    \returns `true` if an immediate reply was sent, `false` if not.
     */
     bool RequestReply(
-        std::deque<zmq::message_t>& msg,
-        std::deque<zmq::message_t>& envelope);
+        zmq::socket_t& socket,
+        std::deque<zmq::message_t>& envelope,
+        std::deque<zmq::message_t>& msg);
 
     /// The last known state of the slave.
     SlaveState State() const;
@@ -144,20 +147,20 @@ private:
 
     // Functions that handle specific message types for RequestReply().
     bool HelloHandler(
-        std::deque<zmq::message_t>& msg,
-        std::deque<zmq::message_t>& envelope);
+        std::deque<zmq::message_t>& envelope,
+        std::deque<zmq::message_t>& msg);
     bool InitReadyHandler(
-        std::deque<zmq::message_t>& msg,
-        std::deque<zmq::message_t>& envelope);
+        std::deque<zmq::message_t>& envelope,
+        std::deque<zmq::message_t>& msg);
     bool ReadyHandler(
-        std::deque<zmq::message_t>& msg,
-        std::deque<zmq::message_t>& envelope);
+        std::deque<zmq::message_t>& envelope,
+        std::deque<zmq::message_t>& msg);
     bool StepFailedHandler(
-        std::deque<zmq::message_t>& msg,
-        std::deque<zmq::message_t>& envelope);
+        std::deque<zmq::message_t>& envelope,
+        std::deque<zmq::message_t>& msg);
     bool StepOkHandler(
-        std::deque<zmq::message_t>& msg,
-        std::deque<zmq::message_t>& envelope);
+        std::deque<zmq::message_t>& envelope,
+        std::deque<zmq::message_t>& msg);
 
     // If the current state is one of the states OR-ed together in `oldStates`,
     // this function sets the state to `newState` and returns `true`.
