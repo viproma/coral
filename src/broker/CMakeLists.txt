@@ -13,7 +13,7 @@ target_include_directories (${_target}
             ${privateHeaderDir}
             ${CPPZMQ_INCLUDE_DIRS}
             ${Boost_INCLUDE_DIRS})
-target_link_libraries (${_target} ${ZMQ_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries (${_target} "dsb" ${ZMQ_LIBRARIES} ${Boost_LIBRARIES})
 
 # Test target
 set (_testTarget "broker_test")

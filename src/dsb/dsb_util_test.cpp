@@ -34,3 +34,10 @@ TEST(dsb_util, DecodeUint16) {
     EXPECT_EQ(   63, DecodeUint16("\x3F\x00"));
     EXPECT_EQ(15238, DecodeUint16("\x86\x3B"));
 }
+
+TEST(dsb_util, RandomUUID)
+{
+    const auto u = RandomUUID();
+    EXPECT_EQ(36U, u.size());
+    EXPECT_NE(u, RandomUUID());
+}

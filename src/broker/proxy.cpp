@@ -4,8 +4,7 @@
 #include <utility>
 
 #include "boost/thread.hpp"
-#include "boost/uuid/random_generator.hpp"
-#include "boost/uuid/uuid_io.hpp"
+#include "dsb/util.hpp"
 
 
 // Misc. helper functions and classes
@@ -26,13 +25,6 @@ namespace
             more = msg.more();
             target.send(msg, more ? ZMQ_SNDMORE : 0);
         } while (more);
-    }
-
-    /// Returns a string that contains a random UUID.
-    std::string RandomUUID()
-    {
-        boost::uuids::random_generator gen;
-        return boost::uuids::to_string(gen());
     }
 
     /// Single-value container with move-on-copy semantics.
@@ -182,7 +174,7 @@ dsb::broker::Proxy dsb::broker::SpawnProxy(
     assert ((void*) socket1 && "socket1 not initialised");
     assert ((void*) socket2 && "socket2 not initialised");
 
-    const auto controlEndpoint = "inproc://" + RandomUUID();
+    const auto controlEndpoint = "inproc://" + dsb::util::RandomUUID();
     auto controlSocket = zmq::socket_t(*context, ZMQ_PAIR);
     controlSocket.bind(controlEndpoint.c_str());
 

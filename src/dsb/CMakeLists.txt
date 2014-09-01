@@ -44,6 +44,7 @@ source_group ("Internal Header Files" FILES ${_internalHeaders})
 include_directories (${publicHeaderDir} ${privateHeaderDir})
 
 # Dependencies
+find_package (Boost REQUIRED)
 find_package (ZMQ REQUIRED)
 
 # Main library target
@@ -56,6 +57,7 @@ target_include_directories(${_target}
     PRIVATE "$<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>"
             ${ZMQ_INCLUDE_DIRS}
             ${CPPZMQ_INCLUDE_DIRS}
+            ${Boost_INCLUDE_DIRS}
 )
 install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
 
