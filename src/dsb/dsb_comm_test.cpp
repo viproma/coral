@@ -5,18 +5,6 @@
 using namespace dsb::comm;
 
 
-namespace
-{
-    // Utility function which creates a ZMQ message frame from a string.
-    zmq::message_t TextMsg(const std::string& s)
-    {
-        auto m = zmq::message_t(s.size());
-        std::memcpy(m.data(), s.data(), s.size());
-        return m;
-    }
-}
-
-
 TEST(dsb_comm, SendReceiveMessage)
 {
     auto ctx = zmq::context_t();
@@ -139,8 +127,8 @@ TEST(dsb_comm, CopyMessage_emptySource)
 {
     auto msg1 = std::deque<zmq::message_t>();
     auto msg2 = std::deque<zmq::message_t>();
-    msg2.push_back(TextMsg("foo"));
-    msg2.push_back(TextMsg("bar"));
+    msg2.push_back(ToFrame("foo"));
+    msg2.push_back(ToFrame("bar"));
     ASSERT_TRUE(msg1.empty());
     ASSERT_EQ(2U, msg2.size());
     CopyMessage(msg1, msg2);
@@ -151,8 +139,8 @@ TEST(dsb_comm, CopyMessage_emptySource)
 TEST(dsb_comm, CopyMessage_emptyTarget)
 {
     auto msg1 = std::deque<zmq::message_t>();
-    msg1.push_back(TextMsg("foo"));
-    msg1.push_back(TextMsg("bar"));
+    msg1.push_back(ToFrame("foo"));
+    msg1.push_back(ToFrame("bar"));
     auto msg2 = std::deque<zmq::message_t>();
     ASSERT_EQ(2U, msg1.size());
     ASSERT_TRUE(msg2.empty());
@@ -168,10 +156,10 @@ TEST(dsb_comm, CopyMessage_emptyTarget)
 TEST(dsb_comm, CopyMessage_nonEmptyTarget)
 {
     auto msg1 = std::deque<zmq::message_t>();
-    msg1.push_back(TextMsg("foo"));
-    msg1.push_back(TextMsg("bar"));
+    msg1.push_back(ToFrame("foo"));
+    msg1.push_back(ToFrame("bar"));
     auto msg2 = std::deque<zmq::message_t>();
-    msg2.push_back(TextMsg("baz"));
+    msg2.push_back(ToFrame("baz"));
     ASSERT_EQ(2U, msg1.size());
     ASSERT_EQ(1U, msg2.size());
     CopyMessage(msg1, msg2);
@@ -183,8 +171,8 @@ TEST(dsb_comm, CopyMessage_nonEmptyTarget)
     EXPECT_EQ("bar", ToString(msg2[1]));
 }
 
-TEST(dsb_comm, ToString)
+TEST(dsb_comm, ToFrame_ToString)
 {
-    auto msg = TextMsg("foo");
+    auto msg = ToFrame("foo");
     EXPECT_EQ("foo", ToString(msg));
 }

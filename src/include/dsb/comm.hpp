@@ -97,5 +97,9 @@ void CopyMessage(
 std::string ToString(const zmq::message_t& frame);
 
 
+/// Returns a message frame whose contents are equal to `s`.
+zmq::message_t ToFrame(const std::string& s);
+
+
 }}      // namespace
 #endif  // header guard
