@@ -6,6 +6,8 @@
 #define DSB_UTIL_HPP
 
 #include <cstdint>
+#include <string>
+
 
 namespace dsb
 {
@@ -21,6 +23,10 @@ void EncodeUint16(uint16_t source, char target[2]);
 
 /// Decodes a 16-bit unsigned integer using little-endian byte order.
 uint16_t DecodeUint16(const char source[2]);
+
+
+/// Returns a string that contains a random UUID.
+std::string RandomUUID();
 
 
 }}      // namespace

@@ -14,11 +14,6 @@
 
 namespace
 {
-    static const int TERMINATABLE_STATES = SLAVE_INITIALIZING
-                                         | SLAVE_READY
-                                         | SLAVE_PUBLISHED
-                                         | SLAVE_STEP_FAILED;
-
     void CreateInvalidRequest(std::deque<zmq::message_t>& targetMsg)
     {
         dsb::control::CreateErrorMessage(
