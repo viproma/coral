@@ -21,6 +21,12 @@ enum SlaveState
 };
 
 
+enum
+{
+    TERMINATABLE_STATES = SLAVE_READY | SLAVE_PUBLISHED | SLAVE_STEP_FAILED
+};
+
+
 /**
 \brief  A class which handles the communication with, and keeps track of the
         state of, one slave in a simulation.

@@ -103,3 +103,11 @@ std::string dsb::comm::ToString(const zmq::message_t& frame)
 {
     return std::string(static_cast<const char*>(frame.data()), frame.size());
 }
+
+
+zmq::message_t dsb::comm::ToFrame(const std::string& s)
+{
+    auto msg = zmq::message_t(s.size());
+    std::memcpy(msg.data(), s.data(), s.size());
+    return msg;
+}

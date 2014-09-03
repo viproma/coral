@@ -1,4 +1,5 @@
 set (_headers
+    "controller.hpp"
     "library.hpp"
     "mock_library.hpp"
     "model.hpp"
@@ -6,6 +7,7 @@ set (_headers
     "slave_handler.hpp"
 )
 set (_sources
+    "controller.cpp"
     "library.cpp"
     "main.cpp"
     "mock_library.cpp"
@@ -14,7 +16,7 @@ set (_sources
     "slave_handler.cpp"
 )
 
-find_package (Boost REQUIRED)
+find_package (Boost REQUIRED COMPONENTS thread system chrono)
 find_package (ZMQ REQUIRED)
 
 set (_target "dsbexec")
@@ -24,4 +26,4 @@ target_include_directories (${_target}
             ${privateHeaderDir}
             ${CPPZMQ_INCLUDE_DIRS}
             ${Boost_INCLUDE_DIRS})
-target_link_libraries (${_target} "dsb" "dsbproto" ${ZMQ_LIBRARIES})
+target_link_libraries (${_target} "dsb" "dsbproto" ${ZMQ_LIBRARIES} ${Boost_LIBRARIES})
