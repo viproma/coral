@@ -26,10 +26,9 @@ int main(int argc, const char** argv)
     const double maxTime = 10.0;
     const double stepSize = 1.0/100.0;
 
+    
     for (double time = 0.0; time <= maxTime; time += stepSize) {
         controller.Step(time, stepSize);
-        std::cout << "STEP sent. Press ENTER to send a new one." << std::endl;
-        std::cin.ignore();
     }
 
     // Give ZMQ time to send all TERMINATE messages

@@ -19,6 +19,27 @@
 #include "slave_handler.hpp"
 
 
+namespace
+{
+    template<typename T>
+    zmq::message_t EncodeRawDataFrame(const T& value)
+    {
+        auto frame = zmq::message_t(sizeof(value));
+        std::memcpy(frame.data(), &value, sizeof(value));
+        return frame;
+    }
+
+    template<typename T>
+    T DecodeRawDataFrame(const zmq::message_t& frame)
+    {
+        T value;
+        assert (frame.size() == sizeof(value));
+        std::memcpy(&value, frame.data(), sizeof(value));
+        return value;
+    }
+}
+
+
 class Execution;
 class ExecutionInitializing;
 class ExecutionReady;
@@ -143,7 +164,7 @@ class ExecutionReady : public IExecutionStateHandler
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override
     {
-        // send ALL_READY to user
+        userSocket.send(dsb::comm::ToFrame("ALL_READY"));
     }
 
     void UserMessage(
@@ -152,10 +173,11 @@ class ExecutionReady : public IExecutionStateHandler
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override
     {
-        //  if message is STEP
-        {
-            const auto time = 0.0;  //TODO: Get from user!
-            const auto stepSize = 0.1; // TODO: GET FROM USER GODDAMMIT!
+        assert (!msg.empty());
+        if (dsb::comm::ToString(msg[0]) == "STEP") {
+            assert (msg.size() == 3);
+            const auto time     = DecodeRawDataFrame<double>(msg[1]);
+            const auto stepSize = DecodeRawDataFrame<double>(msg[2]);
 
             // Create the STEP message body
             dsbproto::control::StepData stepData;
@@ -390,8 +412,17 @@ dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& o
 
 void dsb::execution::Controller::Step(double t, double dt)
 {
-    auto m = dsb::comm::ToFrame("Hello World!");
-    m_socket.send(m);
+    zmq::message_t tmp;
+    while (m_socket.recv(&tmp, ZMQ_DONTWAIT)) { }
+
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::ToFrame("STEP"));
+    msg.push_back(EncodeRawDataFrame(t));
+    msg.push_back(EncodeRawDataFrame(dt));
+    dsb::comm::Send(m_socket, msg);
+
+    dsb::comm::Receive(m_socket, msg);
+    assert (msg.size() == 1 && dsb::comm::ToString(msg.front()) == "ALL_READY");
 }
 
 
