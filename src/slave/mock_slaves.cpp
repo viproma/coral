@@ -9,7 +9,8 @@
 namespace
 {
 
-class Mass1D : public ISlaveInstance
+
+class Mass1D : public dsb::bus::ISlaveInstance
 {
 public:
     Mass1D() : m_mass(1.0), m_pos_x(0.0), m_vel_x(0.0), m_force_x(0.0) { }
@@ -55,7 +56,7 @@ private:
     double m_force_x;
 };
 
-class Spring1D : public ISlaveInstance
+class Spring1D : public dsb::bus::ISlaveInstance
 {
 public:
     Spring1D() : m_length(2.0), m_stiffness(1.0), m_pos_a_x(0.0), m_pos_b_x(1.0),
@@ -109,7 +110,7 @@ private:
 };
 
 
-class Buggy1D : public ISlaveInstance
+class Buggy1D : public dsb::bus::ISlaveInstance
 {
 public:
     Buggy1D() : m_in(0.0), m_out(0.0), m_stepCount(0) { }
@@ -150,11 +151,12 @@ private:
 
 } // namespace
 
-std::unique_ptr<ISlaveInstance> NewSlave(const std::string& type)
+
+std::unique_ptr<dsb::bus::ISlaveInstance> NewSlave(const std::string& type)
 {
     if (type == "mass_1d") return std::make_unique<Mass1D>();
     else if (type == "spring_1d") return std::make_unique<Spring1D>();
     else if (type == "buggy_1d") return std::make_unique<Buggy1D>();
     assert (!"NewSlave(): Invalid slave type");
-    return std::unique_ptr<ISlaveInstance>();
+    return std::unique_ptr<dsb::bus::ISlaveInstance>();
 }

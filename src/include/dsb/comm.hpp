@@ -101,5 +101,24 @@ std::string ToString(const zmq::message_t& frame);
 zmq::message_t ToFrame(const std::string& s);
 
 
+template<typename T>
+zmq::message_t EncodeRawDataFrame(const T& value)
+{
+    auto frame = zmq::message_t(sizeof(value));
+    std::memcpy(frame.data(), &value, sizeof(value));
+    return frame;
+}
+
+
+template<typename T>
+T DecodeRawDataFrame(const zmq::message_t& frame)
+{
+    T value;
+    assert (frame.size() == sizeof(value));
+    std::memcpy(&value, frame.data(), sizeof(value));
+    return value;
+}
+
+
 }}      // namespace
 #endif  // header guard

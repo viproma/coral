@@ -1,11 +1,20 @@
-#ifndef DSB_EXECUTION_CONTROLLER_HPP
-#define DSB_EXECUTION_CONTROLLER_HPP
+/**
+\file
+\brief Main header file for dsb::execution.
+*/
+#ifndef DSB_EXECUTION_HPP
+#define DSB_EXECUTION_HPP
 
 #include <memory>
+#include <string>
 #include "zmq.hpp"
 
 
-namespace dsb { namespace execution
+namespace dsb
+{
+
+/// Functions and classes for controlling and interacting with an execution.
+namespace execution
 {
 
 
@@ -26,5 +35,5 @@ Controller SpawnController(
     const std::string& endpoint);
 
 
-}}      // namespace
+}}      //namespace
 #endif  // header guard

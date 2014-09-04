@@ -1,7 +1,7 @@
 #ifdef _WIN32
 #   define NOMINMAX
 #endif
-#include "slave_handler.hpp"
+#include "dsb/bus/slave_tracker.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -26,7 +26,13 @@ namespace
 }
 
 
-SlaveHandler::SlaveHandler()
+namespace dsb
+{
+namespace bus
+{
+
+
+SlaveTracker::SlaveTracker()
     : m_protocol(UNKNOWN_PROTOCOL),
       m_state(SLAVE_UNKNOWN),
       m_isSimulating(false)
@@ -34,13 +40,13 @@ SlaveHandler::SlaveHandler()
 }
 
 
-SlaveHandler::SlaveHandler(SlaveHandler& other)
+SlaveTracker::SlaveTracker(SlaveTracker& other)
 {
     operator=(other);
 }
 
 
-SlaveHandler& SlaveHandler::operator=(SlaveHandler& other) {
+SlaveTracker& SlaveTracker::operator=(SlaveTracker& other) {
     m_protocol = other.m_protocol;
     m_state = other.m_state;
     m_isSimulating = other.m_isSimulating;
@@ -49,7 +55,7 @@ SlaveHandler& SlaveHandler::operator=(SlaveHandler& other) {
 }
 
 
-bool SlaveHandler::RequestReply(
+bool SlaveTracker::RequestReply(
     zmq::socket_t& socket,
     std::deque<zmq::message_t>& envelope,
     std::deque<zmq::message_t>& msg)
@@ -97,28 +103,28 @@ bool SlaveHandler::RequestReply(
 }
 
 
-void SlaveHandler::SendStep(zmq::socket_t& socket, std::deque<zmq::message_t>& msg)
+void SlaveTracker::SendStep(zmq::socket_t& socket, std::deque<zmq::message_t>& msg)
 {
     SendSynchronousMsg(socket, msg, SLAVE_READY, SLAVE_STEPPING);
     m_isSimulating = true;
 }
 
 
-void SlaveHandler::SendTerminate(zmq::socket_t& socket, std::deque<zmq::message_t>& msg)
+void SlaveTracker::SendTerminate(zmq::socket_t& socket, std::deque<zmq::message_t>& msg)
 {
     SendSynchronousMsg(socket, msg, TERMINATABLE_STATES, SLAVE_TERMINATED);
     m_isSimulating = false;
 }
 
 
-void SlaveHandler::SendRecvVars(zmq::socket_t& socket, std::deque<zmq::message_t>& msg)
+void SlaveTracker::SendRecvVars(zmq::socket_t& socket, std::deque<zmq::message_t>& msg)
 {
     assert (m_isSimulating);
     SendSynchronousMsg(socket, msg, SLAVE_PUBLISHED, SLAVE_RECEIVING);
 }
 
 
-void SlaveHandler::SendSynchronousMsg(
+void SlaveTracker::SendSynchronousMsg(
     zmq::socket_t& socket,
     std::deque<zmq::message_t>& msg,
     int allowedOldStates,
@@ -132,19 +138,19 @@ void SlaveHandler::SendSynchronousMsg(
 }
 
 
-SlaveState SlaveHandler::State() const
+SlaveState SlaveTracker::State() const
 {
     return m_state;
 }
 
 
-bool SlaveHandler::IsSimulating() const
+bool SlaveTracker::IsSimulating() const
 {
     return m_isSimulating;
 }
 
 
-bool SlaveHandler::HelloHandler(
+bool SlaveTracker::HelloHandler(
     std::deque<zmq::message_t>& envelope,
     std::deque<zmq::message_t>& msg)
 {
@@ -160,7 +166,7 @@ bool SlaveHandler::HelloHandler(
 }
 
 
-bool SlaveHandler::InitReadyHandler(
+bool SlaveTracker::InitReadyHandler(
     std::deque<zmq::message_t>& envelope,
     std::deque<zmq::message_t>& msg)
 {
@@ -173,7 +179,7 @@ bool SlaveHandler::InitReadyHandler(
 }
 
 
-bool SlaveHandler::ReadyHandler(
+bool SlaveTracker::ReadyHandler(
     std::deque<zmq::message_t>& envelope,
     std::deque<zmq::message_t>& msg)
 {
@@ -186,7 +192,7 @@ bool SlaveHandler::ReadyHandler(
 }
 
 
-bool SlaveHandler::StepFailedHandler(
+bool SlaveTracker::StepFailedHandler(
     std::deque<zmq::message_t>& envelope,
     std::deque<zmq::message_t>& msg)
 {
@@ -199,7 +205,7 @@ bool SlaveHandler::StepFailedHandler(
 }
 
 
-bool SlaveHandler::StepOkHandler(
+bool SlaveTracker::StepOkHandler(
     std::deque<zmq::message_t>& envelope,
     std::deque<zmq::message_t>& msg)
 {
@@ -212,7 +218,7 @@ bool SlaveHandler::StepOkHandler(
 }
 
 
-bool SlaveHandler::UpdateSlaveState(int oldStates, SlaveState newState)
+bool SlaveTracker::UpdateSlaveState(int oldStates, SlaveState newState)
 {
     if (m_state & oldStates) {
         m_state = newState;
@@ -222,3 +228,6 @@ bool SlaveHandler::UpdateSlaveState(int oldStates, SlaveState newState)
         return false;
     }
 }
+
+
+}} // namespace
