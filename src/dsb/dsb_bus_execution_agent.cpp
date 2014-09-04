@@ -16,6 +16,7 @@ ExecutionAgent::ExecutionAgent(
     zmq::socket_t& slaveSocket)
 {
     ChangeState<ExecutionInitializing>(userSocket, slaveSocket);
+    UpdateState();
 }
 
 void ExecutionAgent::UserMessage(
@@ -23,7 +24,8 @@ void ExecutionAgent::UserMessage(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    m_handler->UserMessage(*this, msg, userSocket, slaveSocket);
+    m_state->UserMessage(*this, msg, userSocket, slaveSocket);
+    UpdateState();
 }
 
 void ExecutionAgent::SlaveMessage(
@@ -40,7 +42,16 @@ void ExecutionAgent::SlaveMessage(
     // reply immediately if necessary.
     auto& slaveHandler = slaves.at(slaveId);
     if (!slaveHandler.RequestReply(slaveSocket, envelope, msg)) {
-        m_handler->SlaveWaiting(*this, slaveHandler, msg, userSocket, slaveSocket);
+        m_state->SlaveWaiting(*this, slaveHandler, msg, userSocket, slaveSocket);
+        UpdateState();
+    }
+}
+
+
+void ExecutionAgent::UpdateState()
+{
+    if (m_nextState) {
+        m_state = std::move(m_nextState);
     }
 }
 

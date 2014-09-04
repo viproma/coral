@@ -40,8 +40,12 @@ public:
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket);
 
-    std::unique_ptr<IExecutionState> m_handler;
     std::map<std::string, SlaveTracker> slaves;
+
+private:
+    void UpdateState();
+    std::unique_ptr<IExecutionState> m_state;
+    std::unique_ptr<IExecutionState> m_nextState;
 };
 
 
@@ -52,8 +56,8 @@ void ExecutionAgent::ChangeState(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    m_handler = std::make_unique<T>();
-    m_handler->StateEntered(*this, userSocket, slaveSocket);
+    m_nextState = std::make_unique<T>();
+    m_nextState->StateEntered(*this, userSocket, slaveSocket);
 }
 
 
