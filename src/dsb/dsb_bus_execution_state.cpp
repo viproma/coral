@@ -34,6 +34,7 @@ void ExecutionInitializing::UserMessage(
 {
     //  if message is SET_VARS
     //      store variable values/connections
+    assert (false);
 }
 
 void ExecutionInitializing::SlaveWaiting(
@@ -70,7 +71,8 @@ void ExecutionReady::UserMessage(
     zmq::socket_t& slaveSocket)
 {
     assert (!msg.empty());
-    if (dsb::comm::ToString(msg[0]) == "STEP") {
+    const auto msgType = dsb::comm::ToString(msg[0]);
+    if (msgType == "STEP") {
         assert (msg.size() == 3);
         const auto time     = dsb::comm::DecodeRawDataFrame<double>(msg[1]);
         const auto stepSize = dsb::comm::DecodeRawDataFrame<double>(msg[2]);
@@ -89,12 +91,14 @@ void ExecutionReady::UserMessage(
             dsb::comm::CopyMessage(stepMsg, stepMsgCopy);
             slave.second.SendStep(slaveSocket, stepMsgCopy);
         }
-
         self.ChangeState<ExecutionStepping>(userSocket, slaveSocket);
+    } else if (msgType == "TERMINATE") {
+        self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
     }
     //  else if message is SET_VARS
     //      send SET_VARS to appropriate slave
     //      go back to Init state
+    else assert (false);
 }
 
 void ExecutionReady::SlaveWaiting(
@@ -123,6 +127,7 @@ void ExecutionStepping::UserMessage(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
+    assert (false);
 }
 
 void ExecutionStepping::SlaveWaiting(
@@ -172,8 +177,10 @@ void ExecutionPublished::UserMessage(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    //  if message is TERMINATE
-    //      proceed to Terminating
+    assert (!msg.empty());
+    if (dsb::comm::ToString(msg.front()) == "TERMINATE") {
+        self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
+    } else assert (false);
 }
 
 void ExecutionPublished::SlaveWaiting(
@@ -220,7 +227,7 @@ void ExecutionTerminating::UserMessage(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    // error
+    assert (false);
 }
 
 void ExecutionTerminating::SlaveWaiting(

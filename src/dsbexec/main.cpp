@@ -30,6 +30,7 @@ int main(int argc, const char** argv)
     for (double time = 0.0; time <= maxTime; time += stepSize) {
         controller.Step(time, stepSize);
     }
+    controller.Terminate();
 
     // Give ZMQ time to send all TERMINATE messages
     std::cout << "Terminated. Press ENTER to quit." << std::endl;

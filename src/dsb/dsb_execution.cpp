@@ -78,6 +78,7 @@ dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& o
 
 void dsb::execution::Controller::Step(double t, double dt)
 {
+    // TEMPORARY
     zmq::message_t tmp;
     while (m_socket.recv(&tmp, ZMQ_DONTWAIT)) { }
 
@@ -89,6 +90,12 @@ void dsb::execution::Controller::Step(double t, double dt)
 
     dsb::comm::Receive(m_socket, msg);
     assert (msg.size() == 1 && dsb::comm::ToString(msg.front()) == "ALL_READY");
+}
+
+
+void dsb::execution::Controller::Terminate()
+{
+    m_socket.send(dsb::comm::ToFrame("TERMINATE"));
 }
 
 

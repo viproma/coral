@@ -25,6 +25,8 @@ public:
     Controller(Controller&& other);
     Controller& operator=(Controller&& other);
     void Step(double t, double dt);
+    void Terminate();
+
 private:
     zmq::socket_t m_socket;
 };
