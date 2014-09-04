@@ -27,7 +27,7 @@ int main(int argc, const char** argv)
     const double stepSize = 1.0/100.0;
 
     
-    for (double time = 0.0; time <= maxTime; time += stepSize) {
+    for (double time = 0.0; time < maxTime; time += stepSize) {
         controller.Step(time, stepSize);
     }
     controller.Terminate();
