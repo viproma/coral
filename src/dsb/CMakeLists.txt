@@ -2,8 +2,13 @@ set (_target "dsb")
 
 set (_publicHeaders
     "dsb/config.h"
+    "dsb/execution.hpp"
 )
 set (_privateHeaders
+    "dsb/bus/execution_agent.hpp"
+    "dsb/bus/execution_state.hpp"
+    "dsb/bus/slave_agent.hpp"
+    "dsb/bus/slave_tracker.hpp"
     "dsb/comm.hpp"
     "dsb/compat_helpers.hpp"
     "dsb/control.hpp"
@@ -14,10 +19,16 @@ set (_privateHeaders
 )
 set (_internalHeaders ) # Only visible inside the "dsb" module.
 set (_sources
+    "dsb_bus_execution_agent.cpp"
+    "dsb_bus_execution_state.cpp"
+    "dsb_bus_slave_agent.cpp"
+    "dsb_bus_slave_tracker.cpp"
     "dsb_comm.cpp"
     "dsb_control.cpp"
     "dsb_protobuf.cpp"
     "dsb_util.cpp"
+
+    "dsb_execution.cpp"
 )
 set (_testSources
     "dsb_comm_test.cpp"

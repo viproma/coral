@@ -6,6 +6,12 @@
 #include "zmq.hpp"
 
 
+namespace dsb
+{
+namespace bus
+{
+
+
 /// The various states a slave may be in.
 enum SlaveState
 {
@@ -31,7 +37,7 @@ enum
 \brief  A class which handles the communication with, and keeps track of the
         state of, one slave in a simulation.
 */
-class SlaveHandler
+class SlaveTracker
 {
 public:
     /**
@@ -39,19 +45,19 @@ public:
 
     After construction, State() will return SlaveState::SLAVE_UNKNOWN.
     */
-    SlaveHandler();
+    SlaveTracker();
 
     /**
     \brief  Copy constructor.
     \throws std::exception if the copy operation failed.
     */
-    SlaveHandler(SlaveHandler& other);
+    SlaveTracker(SlaveTracker& other);
 
     /**
     \brief  Assignment operator.
     \throws std::exception if the copy operation failed.
     */
-    SlaveHandler& operator=(SlaveHandler& other);
+    SlaveTracker& operator=(SlaveTracker& other);
 
     /**
     \brief  Processes a message from the slave, and if appropriate, sends
@@ -60,7 +66,7 @@ public:
     This function will parse the message in `msg` and update the state of the
     slave handler according to its contents.  An immediate reply will be sent
     on `socket` to the peer identified by `envelope` if the request warrants
-    it; otherwise, the envelope will be stored  in the SlaveHandler until it is
+    it; otherwise, the envelope will be stored  in the SlaveTracker until it is
     time to send a reply (e.g. with SendStep()).
 
     \param [in] socket    The socket on which to send the message.
@@ -84,9 +90,9 @@ public:
     /**
     \brief  Sends a STEP message on `socket`.
 
-    \params [in] socket
+    \param [in] socket
         The socket on which to send the message.
-    \params [in] msg
+    \param [in] msg
         A validly constructed STEP message.
         The message will be empty when the function returns.
 
@@ -101,9 +107,9 @@ public:
     /**
     \brief  Sends a TERMINATE message on `socket`.
 
-    \params [in] socket
+    \param [in] socket
         The socket on which to send the message.
-    \params [in] msg
+    \param [in] msg
         A validly constructed TERMINATE message.
         The message will be empty when the function returns.
 
@@ -118,9 +124,9 @@ public:
     /**
     \brief  Sends a RECV_VARS message on `socket`.
 
-    \params [in] socket
+    \param [in] socket
         The socket on which to send the message.
-    \params [in] msg
+    \param [in] msg
         A validly constructed RECV_VARS message.
         The message will be empty when the function returns.
 
@@ -181,4 +187,5 @@ private:
 };
 
 
-#endif // header guard
+}}      // namespace
+#endif  // header guard

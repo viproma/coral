@@ -1,19 +1,15 @@
 set (_headers
-    "controller.hpp"
     "library.hpp"
     "mock_library.hpp"
     "model.hpp"
     "model_parser.hpp"
-    "slave_handler.hpp"
 )
 set (_sources
-    "controller.cpp"
     "library.cpp"
     "main.cpp"
     "mock_library.cpp"
     "model.cpp"
     "model_parser.cpp"
-    "slave_handler.cpp"
 )
 
 find_package (Boost REQUIRED COMPONENTS thread system chrono)
