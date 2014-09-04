@@ -15,6 +15,10 @@ namespace bus
 {
 
 
+// =============================================================================
+// Initializing
+// =============================================================================
+
 void ExecutionInitializing::StateEntered(
     ExecutionAgent& self,
     zmq::socket_t& userSocket,
@@ -47,6 +51,9 @@ void ExecutionInitializing::SlaveWaiting(
     if (allReady) self.ChangeState<ExecutionReady>(userSocket, slaveSocket);
 }
 
+// =============================================================================
+// Ready
+// =============================================================================
 
 void ExecutionReady::StateEntered(
     ExecutionAgent& self,
@@ -99,6 +106,9 @@ void ExecutionReady::SlaveWaiting(
 {
 }
 
+// =============================================================================
+// Stepping
+// =============================================================================
 
 void ExecutionStepping::StateEntered(
     ExecutionAgent& self,
@@ -133,6 +143,9 @@ void ExecutionStepping::SlaveWaiting(
     }
 }
 
+// =============================================================================
+// Published
+// =============================================================================
 
 void ExecutionPublished::StateEntered(
     ExecutionAgent& self,
@@ -178,6 +191,9 @@ void ExecutionPublished::SlaveWaiting(
     if (allReady) self.ChangeState<ExecutionReady>(userSocket, slaveSocket);
 }
 
+// =============================================================================
+// Terminating
+// =============================================================================
 
 ExecutionTerminating::ExecutionTerminating()
 {
