@@ -66,23 +66,23 @@ bool SlaveTracker::RequestReply(
     switch (dsb::control::ParseMessageType(msg.front())) {
         case dsbproto::control::MSG_HELLO:
             std::clog << "MSG_HELLO" << std::endl;
-            sendImmediately = HelloHandler(envelope, msg);
+            sendImmediately = HelloHandler(msg);
             break;
         case dsbproto::control::MSG_INIT_READY:
             std::clog << "MSG_INIT_READY" << std::endl;
-            sendImmediately = InitReadyHandler(envelope, msg);
+            sendImmediately = InitReadyHandler(msg);
             break;
         case dsbproto::control::MSG_READY:
             std::clog << "MSG_READY" << std::endl;
-            sendImmediately = ReadyHandler(envelope, msg);
+            sendImmediately = ReadyHandler(msg);
             break;
         case dsbproto::control::MSG_STEP_OK:
             std::clog << "MSG_STEP_OK" << std::endl;
-            sendImmediately = StepOkHandler(envelope, msg);
+            sendImmediately = StepOkHandler(msg);
             break;
         case dsbproto::control::MSG_STEP_FAILED:
             std::clog << "MSG_STEP_FAILED" << std::endl;
-            sendImmediately = StepFailedHandler(envelope, msg);
+            sendImmediately = StepFailedHandler(msg);
             break;
         default:
             std::clog << "Warning: Invalid message received from client: "
@@ -103,23 +103,31 @@ bool SlaveTracker::RequestReply(
 }
 
 
-void SlaveTracker::SendStep(zmq::socket_t& socket, std::deque<zmq::message_t>& msg)
+void SlaveTracker::SendStep(
+    zmq::socket_t& socket,
+    const dsbproto::control::StepData& data)
 {
+    std::deque<zmq::message_t> msg;
+    dsb::control::CreateMessage(msg, dsbproto::control::MSG_STEP, data);
     SendSynchronousMsg(socket, msg, SLAVE_READY, SLAVE_STEPPING);
     m_isSimulating = true;
 }
 
 
-void SlaveTracker::SendTerminate(zmq::socket_t& socket, std::deque<zmq::message_t>& msg)
+void SlaveTracker::SendTerminate(zmq::socket_t& socket)
 {
+    std::deque<zmq::message_t> msg;
+    dsb::control::CreateMessage(msg, dsbproto::control::MSG_TERMINATE);
     SendSynchronousMsg(socket, msg, TERMINATABLE_STATES, SLAVE_TERMINATED);
     m_isSimulating = false;
 }
 
 
-void SlaveTracker::SendRecvVars(zmq::socket_t& socket, std::deque<zmq::message_t>& msg)
+void SlaveTracker::SendRecvVars(zmq::socket_t& socket)
 {
     assert (m_isSimulating);
+    std::deque<zmq::message_t> msg;
+    dsb::control::CreateMessage(msg, dsbproto::control::MSG_RECV_VARS);
     SendSynchronousMsg(socket, msg, SLAVE_PUBLISHED, SLAVE_RECEIVING);
 }
 
@@ -150,9 +158,7 @@ bool SlaveTracker::IsSimulating() const
 }
 
 
-bool SlaveTracker::HelloHandler(
-    std::deque<zmq::message_t>& envelope,
-    std::deque<zmq::message_t>& msg)
+bool SlaveTracker::HelloHandler(std::deque<zmq::message_t>& msg)
 {
     const auto slaveProtocol = dsb::control::ParseProtocolVersion(msg.front());
     if (slaveProtocol > 0) {
@@ -166,9 +172,7 @@ bool SlaveTracker::HelloHandler(
 }
 
 
-bool SlaveTracker::InitReadyHandler(
-    std::deque<zmq::message_t>& envelope,
-    std::deque<zmq::message_t>& msg)
+bool SlaveTracker::InitReadyHandler(std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_CONNECTING | SLAVE_INITIALIZING, SLAVE_INITIALIZING)) {
         dsb::control::CreateMessage(msg, dsbproto::control::MSG_INIT_DONE);
@@ -179,9 +183,7 @@ bool SlaveTracker::InitReadyHandler(
 }
 
 
-bool SlaveTracker::ReadyHandler(
-    std::deque<zmq::message_t>& envelope,
-    std::deque<zmq::message_t>& msg)
+bool SlaveTracker::ReadyHandler(std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_INITIALIZING | SLAVE_READY | SLAVE_RECEIVING, SLAVE_READY)) {
         return false;
@@ -192,9 +194,7 @@ bool SlaveTracker::ReadyHandler(
 }
 
 
-bool SlaveTracker::StepFailedHandler(
-    std::deque<zmq::message_t>& envelope,
-    std::deque<zmq::message_t>& msg)
+bool SlaveTracker::StepFailedHandler(std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_STEPPING, SLAVE_STEP_FAILED)) {
         dsb::control::CreateMessage(msg, dsbproto::control::MSG_TERMINATE);
@@ -205,9 +205,7 @@ bool SlaveTracker::StepFailedHandler(
 }
 
 
-bool SlaveTracker::StepOkHandler(
-    std::deque<zmq::message_t>& envelope,
-    std::deque<zmq::message_t>& msg)
+bool SlaveTracker::StepOkHandler(std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_STEPPING, SLAVE_PUBLISHED)) {
         return false;

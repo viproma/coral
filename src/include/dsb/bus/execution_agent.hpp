@@ -18,18 +18,47 @@ namespace bus
 {
 
 
+/**
+\brief  Interprets and handles incoming messages to an execution.
+
+This class receives incoming messages on both the "user" channel and the "slave"
+channel, and takes appropriate action based on the contents of the messages
+and the state of the execution.  This may include sending new messages on
+either channel, which is why all functions require the corresponding socket
+objects.
+*/
 class ExecutionAgent
 {
 public:
+    /**
+    \brief  Constructor.
+
+    \param [in] userSocket      The socket for the "user" channel.
+    \param [in] slaveSocket     The socket for the "slave" channel.
+    */
     ExecutionAgent(
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket);
 
+    /**
+    \brief  Handles an incoming message on the "user" channel.
+
+    \param [in] msg             The incoming message. Empty on return.
+    \param [in] userSocket      The socket for the "user" channel.
+    \param [in] slaveSocket     The socket for the "slave" channel.
+    */
     void UserMessage(
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket);
 
+    /**
+    \brief  Handles an incoming message on the "control" channel.
+
+    \param [in] msg             The incoming message. Empty on return.
+    \param [in] userSocket      The socket for the "user" channel.
+    \param [in] slaveSocket     The socket for the "slave" channel.
+    */
     void SlaveMessage(
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,

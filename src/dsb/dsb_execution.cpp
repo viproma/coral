@@ -24,8 +24,6 @@ namespace
         auto slaveControl = zmq::socket_t(*context, ZMQ_ROUTER);
         slaveControl.connect(slaveControlEndpoint->c_str());
 
-        bool terminate = false;
-
         // Make a list of expected slaves, hardcoded for the time being.
         dsb::bus::ExecutionAgent exec(user, slaveControl);
         exec.slaves["1"] = dsb::bus::SlaveTracker();
