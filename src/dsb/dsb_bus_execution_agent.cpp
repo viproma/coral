@@ -2,6 +2,7 @@
 
 #include <iostream> // TEMPORARY
 #include "dsb/comm.hpp"
+#include "dsb/control.hpp"
 
 
 namespace dsb
@@ -49,10 +50,19 @@ void ExecutionAgent::SlaveMessage(
 
     // Pass on the message to the appropriate slave handler, send the
     // reply immediately if necessary.
-    auto& slaveHandler = slaves.at(slaveId);
-    if (!slaveHandler.RequestReply(slaveSocket, envelope, msg)) {
-        m_state->SlaveWaiting(*this, slaveHandler, userSocket, slaveSocket);
-        UpdateState();
+    auto slaveHandler = slaves.find(slaveId);
+    if (slaveHandler != slaves.end()) {
+        if (!slaveHandler->second.RequestReply(slaveSocket, envelope, msg)) {
+            m_state->SlaveWaiting(*this, slaveHandler->second, userSocket, slaveSocket);
+            UpdateState();
+        }
+    } else {
+        std::clog << "Unauthorized slave detected" << std::endl;
+        std::deque<zmq::message_t> errMsg;
+        dsb::control::CreateDeniedMessage(
+            errMsg,
+            "Participant not in list of expected slaves");
+        dsb::comm::AddressedSend(slaveSocket, envelope, errMsg);
     }
 }
 

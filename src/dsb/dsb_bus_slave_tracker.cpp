@@ -160,7 +160,7 @@ bool SlaveTracker::IsSimulating() const
 
 bool SlaveTracker::HelloHandler(std::deque<zmq::message_t>& msg)
 {
-    const auto slaveProtocol = dsb::control::ParseProtocolVersion(msg.front());
+    const auto slaveProtocol = dsb::control::ParseHelloMessage(msg);
     if (slaveProtocol > 0) {
         std::clog << "Warning: Slave requested newer protocol version ("
                   << slaveProtocol << ")" << std::endl;

@@ -1,5 +1,6 @@
 #include "dsb/control.hpp"
 
+#include <cassert>
 #include <cstring>
 #include <sstream>
 
@@ -12,7 +13,9 @@
 namespace
 {
     const size_t helloPrefixSize = 6;
-    const char helloPrefix[helloPrefixSize] = { '\x00', '\x00', 'D', 'S', 'C', 'P' };
+    const char helloPrefix[helloPrefixSize] = { '\x01', '\x00', 'D', 'S', 'C', 'P' };
+    const size_t deniedHeaderSize = 2;
+    const char deniedHeader[deniedHeaderSize] = { '\x00', '\x00' };
 }
 
 
@@ -44,6 +47,23 @@ void dsb::control::CreateHelloMessage(
     message.emplace_back();
 #endif
     dsb::protobuf::SerializeToFrame(body, message.back());
+}
+
+
+void dsb::control::CreateDeniedMessage(
+    std::deque<zmq::message_t>& message,
+    const std::string& reason)
+{
+    message.clear();
+#if DSB_USE_MSVC_EMPLACE_WORKAROUND
+    message.emplace_back(zmq::message_t(deniedHeaderSize));
+    message.emplace_back(zmq::message_t(reason.size()));
+#else
+    message.emplace_back(deniedHeaderSize);
+    message.emplace_back(reason.size());
+#endif
+    std::memcpy(message[0].data(), deniedHeader, deniedHeaderSize);
+    std::memcpy(message[1].data(), reason.data(), reason.size());
 }
 
 
@@ -125,6 +145,8 @@ namespace
             case dsbproto::control::ErrorInfo::INVALID_REQUEST:
                 return "Invalid request";
             default:
+                assert (code == dsbproto::control::ErrorInfo::UNKNOWN_ERROR
+                        && "RemoteErrorString() received an undefined error code");
                 return "Unknown error";
         }
     }
@@ -143,18 +165,33 @@ namespace
 
 
 dsb::control::RemoteErrorException::RemoteErrorException(
+    const std::string& deniedReason)
+    : std::runtime_error("Connection denied: " + deniedReason)
+{ }
+
+dsb::control::RemoteErrorException::RemoteErrorException(
     const dsbproto::control::ErrorInfo& errorInfo)
     : std::runtime_error(DetailedRemoteErrorString(errorInfo))
 { }
 
 
-uint16_t dsb::control::ParseProtocolVersion(const zmq::message_t& header)
+uint16_t dsb::control::ParseHelloMessage(const std::deque<zmq::message_t>& message)
 {
-    if (header.size() != 8
-        || std::memcmp(header.data(), helloPrefix, helloPrefixSize) != 0) {
-        throw dsb::error::ProtocolViolationException(
-            "Invalid message header (not a HELLO message)");
+    DSB_INPUT_CHECK(!message.empty());
+    if (message.front().size() == 8
+        && std::memcmp(message.front().data(), helloPrefix, helloPrefixSize) == 0)
+    {
+        return dsb::util::DecodeUint16(
+            static_cast<const char*>(message.front().data()) + helloPrefixSize);
     }
-    return dsb::util::DecodeUint16(
-        static_cast<const char*>(header.data()) + helloPrefixSize);
+    else if (message.size() == 2
+        && message.front().size() == 2
+        && std::memcmp(message.front().data(), deniedHeader, deniedHeaderSize) == 0)
+    {
+        throw RemoteErrorException(
+            std::string(static_cast<const char*>(message[1].data()), message[1].size()));
+    } else {
+        throw dsb::error::ProtocolViolationException(
+            "Invalid message (not a HELLO or DENIED message)");
+    }
 }
