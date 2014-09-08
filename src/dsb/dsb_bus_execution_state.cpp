@@ -40,7 +40,6 @@ void ExecutionInitializing::UserMessage(
 void ExecutionInitializing::SlaveWaiting(
     ExecutionAgent& self,
     SlaveTracker& slaveHandler,
-    std::deque<zmq::message_t>& msg,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
@@ -81,15 +80,8 @@ void ExecutionReady::UserMessage(
         dsbproto::control::StepData stepData;
         stepData.set_timepoint(time);
         stepData.set_stepsize(stepSize);
-        // Create the multipart STEP message
-        std::deque<zmq::message_t> stepMsg;
-        dsb::control::CreateMessage(stepMsg, dsbproto::control::MSG_STEP, stepData);
-
-        // For each slave, make a copy of the STEP message and send it.
         BOOST_FOREACH(auto& slave, self.slaves) {
-            std::deque<zmq::message_t> stepMsgCopy;
-            dsb::comm::CopyMessage(stepMsg, stepMsgCopy);
-            slave.second.SendStep(slaveSocket, stepMsgCopy);
+            slave.second.SendStep(slaveSocket, stepData);
         }
         self.ChangeState<ExecutionStepping>(userSocket, slaveSocket);
     } else if (msgType == "TERMINATE") {
@@ -104,7 +96,6 @@ void ExecutionReady::UserMessage(
 void ExecutionReady::SlaveWaiting(
     ExecutionAgent& self,
     SlaveTracker& slaveHandler,
-    std::deque<zmq::message_t>& msg,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
@@ -133,7 +124,6 @@ void ExecutionStepping::UserMessage(
 void ExecutionStepping::SlaveWaiting(
     ExecutionAgent& self,
     SlaveTracker& slaveHandler,
-    std::deque<zmq::message_t>& msg,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
@@ -157,16 +147,9 @@ void ExecutionPublished::StateEntered(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    // Create RECV_VARS message
-    std::deque<zmq::message_t> recvVarsMsg;
-    dsb::control::CreateMessage(recvVarsMsg, dsbproto::control::MSG_RECV_VARS);
-    // Send this to all slaves which are in simulation
     BOOST_FOREACH (auto& slave, self.slaves) {
         if (slave.second.IsSimulating()) {
-            // Make a copy of the message and send it
-            std::deque<zmq::message_t> recvVarsMsgCopy;
-            dsb::comm::CopyMessage(recvVarsMsg, recvVarsMsgCopy);
-            slave.second.SendRecvVars(slaveSocket, recvVarsMsgCopy);
+            slave.second.SendRecvVars(slaveSocket);
         }
     }
 }
@@ -186,7 +169,6 @@ void ExecutionPublished::UserMessage(
 void ExecutionPublished::SlaveWaiting(
     ExecutionAgent& self,
     SlaveTracker& slaveHandler,
-    std::deque<zmq::message_t>& msg,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
@@ -204,7 +186,6 @@ void ExecutionPublished::SlaveWaiting(
 
 ExecutionTerminating::ExecutionTerminating()
 {
-    dsb::control::CreateMessage(m_termMsg, dsbproto::control::MSG_TERMINATE);
 }
 
 void ExecutionTerminating::StateEntered(
@@ -214,9 +195,7 @@ void ExecutionTerminating::StateEntered(
 {
     BOOST_FOREACH (auto& slave, self.slaves) {
         if (slave.second.State() & TERMINATABLE_STATES) {
-            std::deque<zmq::message_t> termMsgCopy;
-            dsb::comm::CopyMessage(m_termMsg, termMsgCopy);
-            slave.second.SendTerminate(slaveSocket, termMsgCopy);
+            slave.second.SendTerminate(slaveSocket);
         }
     }
 }
@@ -233,15 +212,11 @@ void ExecutionTerminating::UserMessage(
 void ExecutionTerminating::SlaveWaiting(
     ExecutionAgent& self,
     SlaveTracker& slaveHandler,
-    std::deque<zmq::message_t>& msg,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
     assert (slaveHandler.State() & TERMINATABLE_STATES);
-            
-    std::deque<zmq::message_t> termMsgCopy;
-    dsb::comm::CopyMessage(m_termMsg, termMsgCopy);
-    slaveHandler.SendTerminate(slaveSocket, termMsgCopy);
+    slaveHandler.SendTerminate(slaveSocket);
 }
 
 

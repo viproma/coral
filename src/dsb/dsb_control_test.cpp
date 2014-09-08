@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <cstring>
 #include "dsb/control.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
@@ -16,11 +17,28 @@ TEST(dsb_control, CreateHelloMessage)
 
     ASSERT_EQ(2U, msg.size());
     EXPECT_EQ(dsbproto::control::MSG_HELLO, ParseMessageType(msg[0]));
-    EXPECT_EQ(3, ParseProtocolVersion(msg[0]));
+    EXPECT_EQ(3, ParseHelloMessage(msg));
     dsbproto::testing::IntString pbTgt;
     dsb::protobuf::ParseFromFrame(msg[1], pbTgt);
     EXPECT_EQ(314, pbTgt.i());
     EXPECT_EQ("Hello", pbTgt.s());
+}
+
+TEST(dsb_control, CreateDeniedMessage)
+{
+    std::deque<zmq::message_t> msg;
+    CreateDeniedMessage(msg, "Hello World!");
+    ASSERT_EQ(2U, msg.size());
+    EXPECT_EQ(dsbproto::control::MSG_DENIED, ParseMessageType(msg[0]));
+    try {
+        ParseHelloMessage(msg);
+        ADD_FAILURE();
+    } catch (const RemoteErrorException& e) {
+        SUCCEED();
+        EXPECT_STRNE(nullptr, std::strstr(e.what(), "Hello World!"));
+    } catch (...) {
+        ADD_FAILURE();
+    }
 }
 
 TEST(dsb_control, CreateMessage)
@@ -68,9 +86,10 @@ TEST(dsb_control, ParseMessageType_error)
                  dsb::error::ProtocolViolationException);
 }
 
-TEST(dsb_control, ParseProtocolVersion_error)
+TEST(dsb_control, ParseHelloMessage_error)
 {
-    zmq::message_t msg(4);
-    ASSERT_THROW(ParseProtocolVersion(msg),
+    std::deque<zmq::message_t> msg;
+    msg.push_back(zmq::message_t(4));
+    ASSERT_THROW(ParseHelloMessage(msg),
                  dsb::error::ProtocolViolationException);
 }

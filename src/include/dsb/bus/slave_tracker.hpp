@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <deque>
 #include "zmq.hpp"
+#include "control.pb.h"
 
 
 namespace dsb
@@ -88,55 +89,43 @@ public:
     SlaveState State() const;
 
     /**
-    \brief  Sends a STEP message on `socket`.
+    \brief  Sends a STEP message on `socket` and sets the IsSimulating() flag
+            to `true`.
 
-    \param [in] socket
-        The socket on which to send the message.
-    \param [in] msg
-        A validly constructed STEP message.
-        The message will be empty when the function returns.
+    \param [in] socket  The socket on which to send the message.
+    \param [in] data    The STEP data.
 
     \pre    The previous call to RequestReply() returned `false`.
-    \pre    `msg` is a valid STEP message.
     \post   `State() == SLAVE_STEPPING && IsSimulating()`
 
     \throws zmq::error_t on failure to send the message.
     */
-    void SendStep(zmq::socket_t& socket, std::deque<zmq::message_t>& msg);
+    void SendStep(zmq::socket_t& socket, const dsbproto::control::StepData& data);
 
     /**
-    \brief  Sends a TERMINATE message on `socket`.
+    \brief  Sends a TERMINATE message on `socket` and sets the IsSimulating()
+            flag to `false`.
 
-    \param [in] socket
-        The socket on which to send the message.
-    \param [in] msg
-        A validly constructed TERMINATE message.
-        The message will be empty when the function returns.
+    \param [in] socket  The socket on which to send the message.
 
     \pre    The previous call to RequestReply() returned `false`.
-    \pre    `msg` is a valid TERMINATE message.
     \post   `State() == SLAVE_TERMINATED && !IsSimulating()`
 
     \throws zmq::error_t on failure to send the message.
     */
-    void SendTerminate(zmq::socket_t& socket, std::deque<zmq::message_t>& msg);
+    void SendTerminate(zmq::socket_t& socket);
 
     /**
     \brief  Sends a RECV_VARS message on `socket`.
 
-    \param [in] socket
-        The socket on which to send the message.
-    \param [in] msg
-        A validly constructed RECV_VARS message.
-        The message will be empty when the function returns.
+    \param [in] socket  The socket on which to send the message.
 
     \pre    The previous call to RequestReply() returned `false`.
-    \pre    `msg` is a valid RECV_VARS message.
     \post   `State() == SLAVE_RECEIVING`
 
     \throws zmq::error_t on failure to send the message.
     */
-    void SendRecvVars(zmq::socket_t& socket, std::deque<zmq::message_t>& msg);
+    void SendRecvVars(zmq::socket_t& socket);
 
     /**
     \brief  Whether this slave is currently performing a simulation.
@@ -151,21 +140,13 @@ private:
     static const uint16_t UNKNOWN_PROTOCOL = 0xFFFF;
 
     // Functions that handle specific message types for RequestReply().
-    bool HelloHandler(
-        std::deque<zmq::message_t>& envelope,
-        std::deque<zmq::message_t>& msg);
-    bool InitReadyHandler(
-        std::deque<zmq::message_t>& envelope,
-        std::deque<zmq::message_t>& msg);
-    bool ReadyHandler(
-        std::deque<zmq::message_t>& envelope,
-        std::deque<zmq::message_t>& msg);
-    bool StepFailedHandler(
-        std::deque<zmq::message_t>& envelope,
-        std::deque<zmq::message_t>& msg);
-    bool StepOkHandler(
-        std::deque<zmq::message_t>& envelope,
-        std::deque<zmq::message_t>& msg);
+    // On return, the reply (or, strictly speaking, the following request) is
+    // stored in the `msg` argument.
+    bool HelloHandler(std::deque<zmq::message_t>& msg);
+    bool InitReadyHandler(std::deque<zmq::message_t>& msg);
+    bool ReadyHandler(std::deque<zmq::message_t>& msg);
+    bool StepFailedHandler(std::deque<zmq::message_t>& msg);
+    bool StepOkHandler(std::deque<zmq::message_t>& msg);
 
     // If the current state is one of the states OR-ed together in `oldStates`,
     // this function sets the state to `newState` and returns `true`.
