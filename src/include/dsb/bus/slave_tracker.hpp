@@ -52,13 +52,13 @@ public:
     \brief  Copy constructor.
     \throws std::exception if the copy operation failed.
     */
-    SlaveTracker(SlaveTracker& other);
+    SlaveTracker(const SlaveTracker& other);
 
     /**
     \brief  Assignment operator.
     \throws std::exception if the copy operation failed.
     */
-    SlaveTracker& operator=(SlaveTracker& other);
+    SlaveTracker& operator=(const SlaveTracker& other);
 
     /**
     \brief  Processes a message from the slave, and if appropriate, sends

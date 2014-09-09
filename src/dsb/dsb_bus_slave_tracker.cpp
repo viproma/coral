@@ -40,13 +40,13 @@ SlaveTracker::SlaveTracker()
 }
 
 
-SlaveTracker::SlaveTracker(SlaveTracker& other)
+SlaveTracker::SlaveTracker(const SlaveTracker& other)
 {
     operator=(other);
 }
 
 
-SlaveTracker& SlaveTracker::operator=(SlaveTracker& other) {
+SlaveTracker& SlaveTracker::operator=(const SlaveTracker& other) {
     m_protocol = other.m_protocol;
     m_state = other.m_state;
     m_isSimulating = other.m_isSimulating;
