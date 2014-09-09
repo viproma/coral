@@ -72,7 +72,7 @@ private:
     // change, the handler function must update m_stateHandler to point to the
     // function for the new state.
     void ConnectingHandler(std::deque<zmq::message_t>& msg);
-    void InitHandler(std::deque<zmq::message_t>& msg);
+    void ConnectedHandler(std::deque<zmq::message_t>& msg);
     void ReadyHandler(std::deque<zmq::message_t>& msg);
     void PublishedHandler(std::deque<zmq::message_t>& msg);
     void StepFailedHandler(std::deque<zmq::message_t>& msg);

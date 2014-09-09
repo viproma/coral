@@ -18,7 +18,7 @@ enum SlaveState
 {
     SLAVE_UNKNOWN       = 1,
     SLAVE_CONNECTING    = 1 << 1,
-    SLAVE_INITIALIZING  = 1 << 2,
+    SLAVE_CONNECTED     = 1 << 2,
     SLAVE_READY         = 1 << 3,
     SLAVE_STEPPING      = 1 << 4,
     SLAVE_PUBLISHED     = 1 << 5,
@@ -143,7 +143,7 @@ private:
     // On return, the reply (or, strictly speaking, the following request) is
     // stored in the `msg` argument.
     bool HelloHandler(std::deque<zmq::message_t>& msg);
-    bool InitReadyHandler(std::deque<zmq::message_t>& msg);
+    bool SubmitHandler(std::deque<zmq::message_t>& msg);
     bool ReadyHandler(std::deque<zmq::message_t>& msg);
     bool StepFailedHandler(std::deque<zmq::message_t>& msg);
     bool StepOkHandler(std::deque<zmq::message_t>& msg);

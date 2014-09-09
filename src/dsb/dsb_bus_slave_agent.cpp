@@ -85,14 +85,14 @@ void SlaveAgent::ConnectingHandler(std::deque<zmq::message_t>& msg)
     if (dsb::control::ParseHelloMessage(msg) != 0) {
         throw std::runtime_error("Master required unsupported protocol");
     }
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_INIT_READY);
-    m_stateHandler = &SlaveAgent::InitHandler;
+    dsb::control::CreateMessage(msg, dsbproto::control::MSG_SUBMIT);
+    m_stateHandler = &SlaveAgent::ConnectedHandler;
 }
 
 
-void SlaveAgent::InitHandler(std::deque<zmq::message_t>& msg)
+void SlaveAgent::ConnectedHandler(std::deque<zmq::message_t>& msg)
 {
-    EnforceMessageType(msg, dsbproto::control::MSG_INIT_DONE);
+    EnforceMessageType(msg, dsbproto::control::MSG_SETUP);
     dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }
