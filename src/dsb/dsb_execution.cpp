@@ -93,7 +93,8 @@ void dsb::execution::Controller::Step(double t, double dt)
 
 void dsb::execution::Controller::Terminate()
 {
-    m_socket.send(dsb::comm::ToFrame("TERMINATE"));
+    auto m = dsb::comm::ToFrame("TERMINATE");
+    m_socket.send(m);
 }
 
 
