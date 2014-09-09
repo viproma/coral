@@ -60,7 +60,8 @@ void ExecutionReady::StateEntered(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    userSocket.send(dsb::comm::ToFrame("ALL_READY"));
+    auto m = dsb::comm::ToFrame("ALL_READY");
+    userSocket.send(m);
 }
 
 void ExecutionReady::UserMessage(

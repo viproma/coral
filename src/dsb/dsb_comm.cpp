@@ -99,6 +99,18 @@ void dsb::comm::CopyMessage(
 }
 
 
+void dsb::comm::CopyMessage(
+    const std::deque<zmq::message_t>& source,
+    std::deque<zmq::message_t>& target)
+{
+    target.clear();
+    for (auto it = source.cbegin(); it != source.cend(); ++it) {
+        target.push_back(zmq::message_t(it->size()));
+        std::memcpy(target.back().data(), it->data(), it->size());
+    }
+}
+
+
 std::string dsb::comm::ToString(const zmq::message_t& frame)
 {
     return std::string(static_cast<const char*>(frame.data()), frame.size());

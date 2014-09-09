@@ -23,11 +23,9 @@ int main(int argc, const char** argv)
     std::cin.ignore();
 
     // Super advanced master algorithm.
-    double time = 0.0;
     const double maxTime = 10.0;
     const double stepSize = 1.0/100.0;
 
-    
     for (double time = 0.0; time < maxTime-stepSize; time += stepSize) {
         controller.Step(time, stepSize);
     }

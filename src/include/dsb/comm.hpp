@@ -93,6 +93,20 @@ void CopyMessage(
     std::deque<zmq::message_t>& target);
 
 
+/**
+\brief  Makes a copy of a `const` multipart message.
+
+This function performs the same tasks as the non-`const` CopyMessage() function,
+except that it performs a raw binary copy of the data in each frame rather than
+using the `zmq::message_t::copy()` method.  (The latter can only be called on
+non-`const` frames.)  This may have a negative impact on performance.
+*/
+void CopyMessage(
+    const std::deque<zmq::message_t>& source,
+    std::deque<zmq::message_t>& target);
+
+
+
 /// Returns the content of a message frame as a `std::string`.
 std::string ToString(const zmq::message_t& frame);
 

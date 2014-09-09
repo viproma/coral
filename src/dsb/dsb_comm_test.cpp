@@ -171,6 +171,60 @@ TEST(dsb_comm, CopyMessage_nonEmptyTarget)
     EXPECT_EQ("bar", ToString(msg2[1]));
 }
 
+namespace
+{
+    // Converts a reference into a const reference.
+    template<typename T> const T& Const(T& ref) { return ref; }
+}
+
+TEST(dsb_comm, CopyMessage_const_emptySource)
+{
+    auto msg1 = std::deque<zmq::message_t>();
+    auto msg2 = std::deque<zmq::message_t>();
+    msg2.push_back(ToFrame("foo"));
+    msg2.push_back(ToFrame("bar"));
+    ASSERT_TRUE(msg1.empty());
+    ASSERT_EQ(2U, msg2.size());
+    CopyMessage(Const(msg1), msg2);
+    EXPECT_TRUE(msg1.empty());
+    EXPECT_TRUE(msg2.empty());
+}
+
+TEST(dsb_comm, CopyMessage_const_emptyTarget)
+{
+    auto msg1 = std::deque<zmq::message_t>();
+    msg1.push_back(ToFrame("foo"));
+    msg1.push_back(ToFrame("bar"));
+    auto msg2 = std::deque<zmq::message_t>();
+    ASSERT_EQ(2U, msg1.size());
+    ASSERT_TRUE(msg2.empty());
+    CopyMessage(Const(msg1), msg2);
+    ASSERT_EQ(2U, msg1.size());
+    EXPECT_EQ("foo", ToString(msg1[0]));
+    EXPECT_EQ("bar", ToString(msg1[1]));
+    ASSERT_EQ(2U, msg2.size());
+    EXPECT_EQ("foo", ToString(msg2[0]));
+    EXPECT_EQ("bar", ToString(msg2[1]));
+}
+
+TEST(dsb_comm, CopyMessage_const_nonEmptyTarget)
+{
+    auto msg1 = std::deque<zmq::message_t>();
+    msg1.push_back(ToFrame("foo"));
+    msg1.push_back(ToFrame("bar"));
+    auto msg2 = std::deque<zmq::message_t>();
+    msg2.push_back(ToFrame("baz"));
+    ASSERT_EQ(2U, msg1.size());
+    ASSERT_EQ(1U, msg2.size());
+    CopyMessage(Const(msg1), msg2);
+    ASSERT_EQ(2U, msg1.size());
+    EXPECT_EQ("foo", ToString(msg1[0]));
+    EXPECT_EQ("bar", ToString(msg1[1]));
+    ASSERT_EQ(2U, msg2.size());
+    EXPECT_EQ("foo", ToString(msg2[0]));
+    EXPECT_EQ("bar", ToString(msg2[1]));
+}
+
 TEST(dsb_comm, ToFrame_ToString)
 {
     auto msg = ToFrame("foo");
