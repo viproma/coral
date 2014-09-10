@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+
 #include "zmq.hpp"
 
 #include "dsb/execution.hpp"
@@ -17,8 +18,13 @@ int main(int argc, const char** argv)
     const auto endpoint = std::string(argv[1]);
 
     auto context = std::make_shared<zmq::context_t>();
-    auto controller = dsb::execution::SpawnController(context, endpoint);
+    auto controller = dsb::execution::SpawnExecution(context, endpoint);
 
+//    dsb::execution::Variable v = { 4, 4.0 };
+//    controller.SetVariables(2, dsb::sequence::ArraySequence(&v, 1));
+
+    // This is to work around "slow joiner syndrome".  It lets slaves'
+    // subscriptions take effect before we start the simulation.
     std::cout << "Press ENTER to start simulation." << std::endl;
     std::cin.ignore();
 
@@ -28,6 +34,12 @@ int main(int argc, const char** argv)
 
     for (double time = 0.0; time < maxTime-stepSize; time += stepSize) {
         controller.Step(time, stepSize);
+
+        // Increase the spring length to 100 at the half-time step.
+        if (time >= maxTime/2 && time < maxTime/2 + stepSize) {
+            dsb::execution::Variable springLength = { 4, 100 };
+            controller.SetVariables(2, dsb::sequence::ArraySequence(&springLength, 1));
+        }
     }
     controller.Terminate();
 

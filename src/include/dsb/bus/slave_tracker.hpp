@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <deque>
+#include <queue>
+
 #include "zmq.hpp"
 #include "control.pb.h"
 
@@ -20,11 +22,12 @@ enum SlaveState
     SLAVE_CONNECTING    = 1 << 1,
     SLAVE_CONNECTED     = 1 << 2,
     SLAVE_READY         = 1 << 3,
-    SLAVE_STEPPING      = 1 << 4,
-    SLAVE_PUBLISHED     = 1 << 5,
-    SLAVE_RECEIVING     = 1 << 6,
-    SLAVE_STEP_FAILED   = 1 << 7,
-    SLAVE_TERMINATED    = 1 << 8,
+    SLAVE_BUSY          = 1 << 4,
+    SLAVE_STEPPING      = 1 << 5,
+    SLAVE_PUBLISHED     = 1 << 6,
+    SLAVE_RECEIVING     = 1 << 7,
+    SLAVE_STEP_FAILED   = 1 << 8,
+    SLAVE_TERMINATED    = 1 << 9,
 };
 
 
@@ -87,6 +90,20 @@ public:
 
     /// The last known state of the slave.
     SlaveState State() const;
+
+    /**
+    \brief  Sends a SET_VARS message immediately if the slave is ready to
+            receive one; otherwise it will be enqueued and sent the next
+            time the slave enters the READY state.
+
+    \param [in] socket  The socket used to communicate with slaves.
+    \param [in] data    The SET_VARS data.
+
+    \throws zmq::error_t on failure to send the message.
+    */
+    void EnqueueSetVars(
+        zmq::socket_t& socket,
+        const dsbproto::control::SetVarsData& data);
 
     /**
     \brief  Sends a STEP message on `socket` and sets the IsSimulating() flag
@@ -165,6 +182,7 @@ private:
     SlaveState m_state;
     bool m_isSimulating;
     std::deque<zmq::message_t> m_envelope;
+    std::queue<dsbproto::control::SetVarsData> m_pendingSetVars;
 };
 
 

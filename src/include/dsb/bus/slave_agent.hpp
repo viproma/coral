@@ -77,6 +77,12 @@ private:
     void PublishedHandler(std::deque<zmq::message_t>& msg);
     void StepFailedHandler(std::deque<zmq::message_t>& msg);
 
+    // Performs the "set variables" operation for InitHandler() and
+    // ReadyHandler(), including filling `msg` with a reply message.
+    void HandleSetVars(
+        std::deque<zmq::message_t>& msg,
+        dsbproto::control::MessageType replyMsgType);
+
     // Performs the time step for ReadyHandler()
     bool Step(const dsbproto::control::StepData& stepData);
 

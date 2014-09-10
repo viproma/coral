@@ -4,6 +4,8 @@
 #include <iostream> // TEMPORARY
 #include <utility>
 
+#include "boost/foreach.hpp"
+
 #include "dsb/comm.hpp"
 #include "dsb/control.hpp"
 #include "dsb/error.hpp"
@@ -20,15 +22,16 @@ namespace
         return mt;
     }
 
+    void InvalidReplyFromMaster()
+    {
+        throw dsb::error::ProtocolViolationException("Invalid reply from master");
+    }
 
     void EnforceMessageType(
         const std::deque<zmq::message_t>& msg,
         dsbproto::control::MessageType expectedType)
     {
-        if (NormalMessageType(msg) != expectedType) {
-            throw dsb::error::ProtocolViolationException(
-                "Invalid reply from master");
-        }
+        if (NormalMessageType(msg) != expectedType) InvalidReplyFromMaster();
     }
 }
 
@@ -116,9 +119,11 @@ void SlaveAgent::ReadyHandler(std::deque<zmq::message_t>& msg)
                 m_stateHandler = &SlaveAgent::StepFailedHandler;
             }
             break; }
+        case dsbproto::control::MSG_SET_VARS:
+            HandleSetVars(msg, dsbproto::control::MSG_READY);
+            break;
         default:
-            throw dsb::error::ProtocolViolationException(
-                "Invalid reply from master");
+            InvalidReplyFromMaster();
     }
 }
 
@@ -156,6 +161,29 @@ void SlaveAgent::StepFailedHandler(std::deque<zmq::message_t>& msg)
     // We never get here, because EnforceMessageType() always throws either
     // Shutdown or ProtocolViolationException.
     assert (false);
+}
+
+
+// TODO: Make this function signature more consistent with Step() (or the other
+// way around).
+void SlaveAgent::HandleSetVars(
+    std::deque<zmq::message_t>& msg,
+    dsbproto::control::MessageType replyMsgType)
+{
+    if (msg.size() != 2) {
+        throw dsb::error::ProtocolViolationException(
+            "Wrong number of frames in SET_VARS message");
+    }
+    dsbproto::control::SetVarsData data;
+    dsb::protobuf::ParseFromFrame(msg[1], data);
+    BOOST_FOREACH (const auto& var, data.variable()) {
+        assert (!var.value().has_boolean_value()
+                && !var.value().has_integer_value()
+                && !var.value().has_string_value()
+                && "Non-real variables not handled by SlaveAgent yet");
+        m_slaveInstance->SetVariable(var.id(), var.value().real_value());
+    }
+    dsb::control::CreateMessage(msg, replyMsgType);
 }
 
 
