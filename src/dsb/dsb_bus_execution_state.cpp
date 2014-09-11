@@ -1,5 +1,6 @@
 #include "dsb/bus/execution_state.hpp"
 
+#include <iostream>
 #include "boost/foreach.hpp"
 
 #include "dsb/bus/execution_agent.hpp"
@@ -15,15 +16,75 @@ namespace bus
 {
 
 
+namespace
+{
+    void SendOk(zmq::socket_t& socket)
+    {
+        auto m = dsb::comm::ToFrame("OK");
+        socket.send(m);
+    }
+
+    void SendFailed(zmq::socket_t& socket, const std::string& reason)
+    {
+        auto m0 = dsb::comm::ToFrame("FAILED");
+        auto m1 = dsb::comm::ToFrame(reason);
+        socket.send(m0, ZMQ_MORE);
+        socket.send(m1);
+    }
+
+
+    // This function handles a SET_VARS call from the user.  It sends a (more or
+    // less) immediate reply, which is either OK or FAILED.
+    // The latter happens if the supplied slave ID is invalid.  Any errors
+    // reported by the slave in question are reported asynchronously, and not
+    // handled by this function at all.
+    void PerformSetVarsRPC(
+        ExecutionAgent& self,
+        std::deque<zmq::message_t>& msg,
+        zmq::socket_t& userSocket,
+        zmq::socket_t& slaveSocket)
+    {
+        assert (self.rpcInProgress == ExecutionAgent::NO_RPC
+                && "Cannot perform SET_VARS when another RPC is in progress");
+        assert (msg.size() >= 2
+                && "SET_VARS message must be at least two frames");
+        assert (dsb::comm::ToString(msg.front()) == "SET_VARS"
+                && "PerformSetVarsRPC() received non-SET_VARS command");
+
+        const auto slaveId = dsb::comm::DecodeRawDataFrame<uint16_t>(msg[1]);
+        auto it = self.slaves.find(slaveId);
+        if (it == self.slaves.end()) {
+            // TODO: Send some more info with the error.
+            SendFailed(userSocket, "Invalid slave ID");
+        } else {
+            dsbproto::control::SetVarsData data;
+            for (size_t i = 2; i < msg.size(); i+=2) {
+                auto& newVar = *data.add_variable();
+                newVar.set_id(dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i]));
+                newVar.mutable_value()->set_real_value(
+                    dsb::comm::DecodeRawDataFrame<double>(msg[i+1]));
+            }
+            it->second.EnqueueSetVars(slaveSocket, data);
+            SendOk(userSocket);
+        }
+    }
+}
+
+
 // =============================================================================
 // Initializing
 // =============================================================================
+
+ExecutionInitializing::ExecutionInitializing() : m_waitingForReady(false) { }
 
 void ExecutionInitializing::StateEntered(
     ExecutionAgent& self,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
+    // This assert may be removed in the future, if we add RPCs that may cross
+    // into the "initialized" state.
+    assert (self.rpcInProgress == ExecutionAgent::NO_RPC);
 }
 
 void ExecutionInitializing::UserMessage(
@@ -32,9 +93,21 @@ void ExecutionInitializing::UserMessage(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    //  if message is SET_VARS
-    //      store variable values/connections
-    assert (false);
+    assert (self.rpcInProgress == ExecutionAgent::NO_RPC);
+    assert (!msg.empty());
+    const auto msgType = dsb::comm::ToString(msg[0]);
+    if (msgType == "SET_VARS") {
+        PerformSetVarsRPC(self, msg, userSocket, slaveSocket);
+    } else if (msgType == "WAIT_FOR_READY") {
+        self.rpcInProgress = ExecutionAgent::WAIT_FOR_READY_RPC;
+    } else if (msgType == "TERMINATE") {
+        self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
+        SendOk(userSocket);
+    // } else if (message is CONNECT_VARS) {
+    //      queue CONNECT_VARS on SlaveTracker
+    } else {
+        assert (false);
+    }
 }
 
 void ExecutionInitializing::SlaveWaiting(
@@ -60,8 +133,14 @@ void ExecutionReady::StateEntered(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    auto m = dsb::comm::ToFrame("ALL_READY");
-    userSocket.send(m);
+    // Any RPC in progress will by definition have succeeded when this state is
+    // reached.
+    if (self.rpcInProgress != ExecutionAgent::NO_RPC) {
+        assert (self.rpcInProgress == ExecutionAgent::WAIT_FOR_READY_RPC
+                || self.rpcInProgress == ExecutionAgent::STEP_RPC);
+        SendOk(userSocket);
+        self.rpcInProgress = ExecutionAgent::NO_RPC;
+    }
 }
 
 void ExecutionReady::UserMessage(
@@ -70,6 +149,7 @@ void ExecutionReady::UserMessage(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
+    assert (self.rpcInProgress == ExecutionAgent::NO_RPC);
     assert (!msg.empty());
     const auto msgType = dsb::comm::ToString(msg[0]);
     if (msgType == "STEP") {
@@ -84,14 +164,21 @@ void ExecutionReady::UserMessage(
         BOOST_FOREACH(auto& slave, self.slaves) {
             slave.second.SendStep(slaveSocket, stepData);
         }
+        self.rpcInProgress = ExecutionAgent::STEP_RPC;
         self.ChangeState<ExecutionStepping>(userSocket, slaveSocket);
     } else if (msgType == "TERMINATE") {
         self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
+        SendOk(userSocket);
+    } else if (msgType == "SET_VARS") {
+        PerformSetVarsRPC(self, msg, userSocket, slaveSocket);
+        self.ChangeState<ExecutionInitializing>(userSocket, slaveSocket);
+    } else if (msgType == "WAIT_FOR_READY") {
+        SendOk(userSocket);
+    } else {
+    //  if message is CONNECT_VARS
+    //      queue CONNECT_VARS on SlaveTracker
+        assert (false);
     }
-    //  else if message is SET_VARS
-    //      send SET_VARS to appropriate slave
-    //      go back to Init state
-    else assert (false);
 }
 
 void ExecutionReady::SlaveWaiting(
@@ -111,6 +198,7 @@ void ExecutionStepping::StateEntered(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
+    assert (self.rpcInProgress == ExecutionAgent::STEP_RPC);
 }
 
 void ExecutionStepping::UserMessage(
@@ -148,10 +236,11 @@ void ExecutionPublished::StateEntered(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
+    assert (self.rpcInProgress == ExecutionAgent::STEP_RPC);
     BOOST_FOREACH (auto& slave, self.slaves) {
         if (slave.second.IsSimulating()) {
             slave.second.SendRecvVars(slaveSocket);
-        }
+        } else assert (false);
     }
 }
 
@@ -161,10 +250,7 @@ void ExecutionPublished::UserMessage(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    assert (!msg.empty());
-    if (dsb::comm::ToString(msg.front()) == "TERMINATE") {
-        self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
-    } else assert (false);
+    assert (false);
 }
 
 void ExecutionPublished::SlaveWaiting(

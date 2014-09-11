@@ -3,6 +3,7 @@
 #include <iostream> // TEMPORARY
 #include "dsb/comm.hpp"
 #include "dsb/control.hpp"
+#include "dsb/util.hpp"
 
 
 namespace dsb
@@ -22,6 +23,7 @@ namespace bus
 ExecutionAgent::ExecutionAgent(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
+    : rpcInProgress(NO_RPC)
 {
     ChangeState<ExecutionInitializing>(userSocket, slaveSocket);
     UpdateState();
@@ -45,7 +47,15 @@ void ExecutionAgent::SlaveMessage(
 {
     std::deque<zmq::message_t> envelope;
     dsb::comm::PopMessageEnvelope(msg, &envelope);
-    const auto slaveId = dsb::comm::ToString(envelope.back());
+
+    // The last frame of envelope must be a 16-bit integer, i.e. the slave's
+    // ID number.  If not, the message does not appear to come from a DSB
+    // participant, and we just ignore it altogether.
+    assert (!envelope.empty());
+    if (envelope.back().size() != 2) return;
+    const auto slaveId = dsb::util::DecodeUint16(
+        reinterpret_cast<char*>(envelope.back().data()));
+
     std::clog << "Received message from slave '" << slaveId << "': ";
 
     // Pass on the message to the appropriate slave handler, send the

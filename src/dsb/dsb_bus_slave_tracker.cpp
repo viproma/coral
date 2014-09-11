@@ -68,9 +68,9 @@ bool SlaveTracker::RequestReply(
             std::clog << "MSG_HELLO" << std::endl;
             sendImmediately = HelloHandler(msg);
             break;
-        case dsbproto::control::MSG_INIT_READY:
-            std::clog << "MSG_INIT_READY" << std::endl;
-            sendImmediately = InitReadyHandler(msg);
+        case dsbproto::control::MSG_SUBMIT:
+            std::clog << "MSG_SUBMIT" << std::endl;
+            sendImmediately = SubmitHandler(msg);
             break;
         case dsbproto::control::MSG_READY:
             std::clog << "MSG_READY" << std::endl;
@@ -100,6 +100,22 @@ bool SlaveTracker::RequestReply(
     assert (envelope.empty());
     assert (msg.empty());
     return sendImmediately;
+}
+
+
+void SlaveTracker::EnqueueSetVars(
+    zmq::socket_t& socket,
+    const dsbproto::control::SetVarsData& data)
+{
+    if (State() == SLAVE_READY) {
+        assert (m_pendingSetVars.empty());
+        std::deque<zmq::message_t> msg;
+        dsb::control::CreateMessage(
+            msg, dsbproto::control::MSG_SET_VARS, data);
+        SendSynchronousMsg(socket, msg, SLAVE_READY, SLAVE_BUSY);
+    } else {
+        m_pendingSetVars.push(data);
+    }
 }
 
 
@@ -172,10 +188,10 @@ bool SlaveTracker::HelloHandler(std::deque<zmq::message_t>& msg)
 }
 
 
-bool SlaveTracker::InitReadyHandler(std::deque<zmq::message_t>& msg)
+bool SlaveTracker::SubmitHandler(std::deque<zmq::message_t>& msg)
 {
-    if (UpdateSlaveState(SLAVE_CONNECTING | SLAVE_INITIALIZING, SLAVE_INITIALIZING)) {
-        dsb::control::CreateMessage(msg, dsbproto::control::MSG_INIT_DONE);
+    if (UpdateSlaveState(SLAVE_CONNECTING, SLAVE_CONNECTED)) {
+        dsb::control::CreateMessage(msg, dsbproto::control::MSG_SETUP);
     } else {
         CreateInvalidRequest(msg);
     }
@@ -185,8 +201,16 @@ bool SlaveTracker::InitReadyHandler(std::deque<zmq::message_t>& msg)
 
 bool SlaveTracker::ReadyHandler(std::deque<zmq::message_t>& msg)
 {
-    if (UpdateSlaveState(SLAVE_INITIALIZING | SLAVE_READY | SLAVE_RECEIVING, SLAVE_READY)) {
-        return false;
+    if (UpdateSlaveState(SLAVE_CONNECTED | SLAVE_BUSY | SLAVE_RECEIVING, SLAVE_READY)) {
+        if (!m_pendingSetVars.empty()) {
+            dsb::control::CreateMessage(
+                msg, dsbproto::control::MSG_SET_VARS, m_pendingSetVars.front());
+            m_pendingSetVars.pop();
+            UpdateSlaveState(SLAVE_READY, SLAVE_BUSY);
+            return true;
+        } else {
+            return false;
+        }
     } else {
         CreateInvalidRequest(msg);
         return true;

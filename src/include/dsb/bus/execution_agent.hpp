@@ -69,7 +69,15 @@ public:
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket);
 
-    std::map<std::string, SlaveTracker> slaves;
+    std::map<uint16_t, SlaveTracker> slaves;
+
+    enum UserRPC
+    {
+        NO_RPC,
+        WAIT_FOR_READY_RPC,
+        STEP_RPC,
+    };
+    UserRPC rpcInProgress;
 
 private:
     void UpdateState();

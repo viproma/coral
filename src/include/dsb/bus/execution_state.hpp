@@ -80,6 +80,10 @@ public:
 /// Implementation of the "execution initializing" state.
 class ExecutionInitializing : public IExecutionState
 {
+public:
+    ExecutionInitializing();
+
+private:
     void StateEntered(
         ExecutionAgent& self,
         zmq::socket_t& userSocket,
@@ -96,6 +100,8 @@ class ExecutionInitializing : public IExecutionState
         SlaveTracker& slaveHandler,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
+
+    bool m_waitingForReady;
 };
 
 

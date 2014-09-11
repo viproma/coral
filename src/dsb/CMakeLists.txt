@@ -3,6 +3,7 @@ set (_target "dsb")
 set (_publicHeaders
     "dsb/config.h"
     "dsb/execution.hpp"
+    "dsb/sequence.hpp"
 )
 set (_privateHeaders
     "dsb/bus/execution_agent.hpp"
@@ -14,7 +15,6 @@ set (_privateHeaders
     "dsb/control.hpp"
     "dsb/error.hpp"
     "dsb/protobuf.hpp"
-    "dsb/sequence.hpp"
     "dsb/util.hpp"
 )
 set (_internalHeaders ) # Only visible inside the "dsb" module.

@@ -7,6 +7,7 @@
 #include "dsb/bus/slave_agent.hpp"
 #include "dsb/comm.hpp"
 #include "dsb/control.hpp"
+#include "dsb/util.hpp"
 
 #include "mock_slaves.hpp"
 
@@ -25,7 +26,7 @@ try {
                   << std::endl;
         return 0;
     }
-    const auto id = std::string(argv[1]);
+    const auto id = boost::lexical_cast<uint16_t>(argv[1]);
     const auto controlEndpoint = std::string(argv[2]);
     const auto dataPubEndpoint = std::string(argv[3]);
     const auto dataSubEndpoint = std::string(argv[4]);
@@ -34,7 +35,12 @@ try {
 
     auto context = zmq::context_t();
     auto control = zmq::socket_t(context, ZMQ_REQ);
-    control.setsockopt(ZMQ_IDENTITY, id.data(), id.size());
+
+    // Encode `id` into a 2-byte buffer, and use it as the ZMQ socket identity.
+    char idBuffer[2];
+    dsb::util::EncodeUint16(id, idBuffer);
+    control.setsockopt(ZMQ_IDENTITY, idBuffer, 2);
+
     control.connect(controlEndpoint.c_str());
     auto dataPub = zmq::socket_t(context, ZMQ_PUB);
     dataPub.connect(dataPubEndpoint.c_str());
@@ -42,7 +48,7 @@ try {
     dataSub.connect(dataSubEndpoint.c_str());
 
     dsb::bus::SlaveAgent slave(
-        boost::lexical_cast<uint16_t>(id),
+        id,
         std::move(dataSub),
         std::move(dataPub),
         NewSlave(slaveType),

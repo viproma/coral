@@ -10,8 +10,8 @@ enum MessageType
     MSG_HELLO       =  1;
     MSG_ERROR       =  2;
     MSG_TERMINATE   =  3;
-    MSG_INIT_READY  =  4;
-    MSG_INIT_DONE   =  5;
+    MSG_SUBMIT      =  4;
+    MSG_SETUP       =  5;
     MSG_READY       =  6;
     MSG_SET_VARS    =  7;
     MSG_STEP        =  8;
@@ -56,7 +56,7 @@ message SlaveDescription
 
 // A message that acts as a unique identifier for a certain variable for
 // a certain slave.
-message Variable
+message VariableRef
 {
     required int32 slave_id = 1;
     required int32 var_id = 2;
@@ -67,21 +67,20 @@ message Variable
 message PortConnection
 {
     required int32 input_var_id = 1;
-    required Variable output_var = 2;
+    required VariableRef output_var = 2;
 }
 
-// An initial value for one of a slave's variables.
-message VarInit
+// The ID number and a value for one of a slave's variables.
+message Variable
 {
-    required int32 var_id = 1;
+    required int32 id = 1;
     required variable.ScalarValue value = 2;
 }
 
-// A message that is sent by the master to a slave to initialize it.
-message SlaveInitialization
+// A message that is sent by the master to a slave to set some of its variables.
+message SetVarsData
 {
-    repeated PortConnection connection = 1;
-    repeated VarInit initial_value = 2;
+    repeated Variable variable = 1;
 }
 
 // The body of a STEP message
