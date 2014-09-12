@@ -106,6 +106,20 @@ public:
         const dsbproto::control::SetVarsData& data);
 
     /**
+    \brief  Sends a CONNECT_VARS message immediately if the slave is ready to
+            receive one; otherwise it will be enqueued and sent the next
+            time the slave enters the READY state.
+
+    \param [in] socket  The socket used to communicate with slaves.
+    \param [in] data    The CONNECT_VARS data.
+
+    \throws zmq::error_t on failure to send the message.
+    */
+    void EnqueueConnectVars(
+        zmq::socket_t& socket,
+        const dsbproto::control::ConnectVarsData& data);
+
+    /**
     \brief  Sends a STEP message on `socket` and sets the IsSimulating() flag
             to `true`.
 
@@ -183,6 +197,7 @@ private:
     bool m_isSimulating;
     std::deque<zmq::message_t> m_envelope;
     std::queue<dsbproto::control::SetVarsData> m_pendingSetVars;
+    std::queue<dsbproto::control::ConnectVarsData> m_pendingConnectVars;
 };
 
 

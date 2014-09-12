@@ -139,6 +139,23 @@ void dsb::execution::Controller::SetVariables(
 }
 
 
+void dsb::execution::Controller::ConnectVariables(
+    uint16_t slaveId,
+    dsb::sequence::Sequence<VariableConnection&> variables)
+{
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::ToFrame("CONNECT_VARS"));
+    msg.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
+    while (!variables.Empty()) {
+        const auto v = variables.Next();
+        msg.push_back(dsb::comm::EncodeRawDataFrame(v.inputId));
+        msg.push_back(dsb::comm::EncodeRawDataFrame(v.otherSlaveId));
+        msg.push_back(dsb::comm::EncodeRawDataFrame(v.otherOutputId));
+    }
+    RPC(m_rpcSocket, msg);
+}
+
+
 void dsb::execution::Controller::WaitForReady()
 {
     RPC(m_rpcSocket, "WAIT_FOR_READY");

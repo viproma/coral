@@ -119,6 +119,22 @@ void SlaveTracker::EnqueueSetVars(
 }
 
 
+void SlaveTracker::EnqueueConnectVars(
+    zmq::socket_t& socket,
+    const dsbproto::control::ConnectVarsData& data)
+{
+    if (State() == SLAVE_READY) {
+        assert (m_pendingConnectVars.empty());
+        std::deque<zmq::message_t> msg;
+        dsb::control::CreateMessage(
+            msg, dsbproto::control::MSG_CONNECT_VARS, data);
+        SendSynchronousMsg(socket, msg, SLAVE_READY, SLAVE_BUSY);
+    } else {
+        m_pendingConnectVars.push(data);
+    }
+}
+
+
 void SlaveTracker::SendStep(
     zmq::socket_t& socket,
     const dsbproto::control::StepData& data)
@@ -206,6 +222,12 @@ bool SlaveTracker::ReadyHandler(std::deque<zmq::message_t>& msg)
             dsb::control::CreateMessage(
                 msg, dsbproto::control::MSG_SET_VARS, m_pendingSetVars.front());
             m_pendingSetVars.pop();
+            UpdateSlaveState(SLAVE_READY, SLAVE_BUSY);
+            return true;
+        } else if (!m_pendingConnectVars.empty()) {
+            dsb::control::CreateMessage(
+                msg, dsbproto::control::MSG_CONNECT_VARS, m_pendingConnectVars.front());
+            m_pendingConnectVars.pop();
             UpdateSlaveState(SLAVE_READY, SLAVE_BUSY);
             return true;
         } else {

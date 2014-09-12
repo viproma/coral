@@ -23,6 +23,11 @@ int main(int argc, const char** argv)
     controller.AddSlave(1);
     controller.AddSlave(2);
 
+    dsb::execution::VariableConnection vc1 = { 0, 2, 1 };
+    dsb::execution::VariableConnection vc2 = { 0, 1, 1 };
+    controller.ConnectVariables(1, dsb::sequence::ArraySequence(&vc1, 1));
+    controller.ConnectVariables(2, dsb::sequence::ArraySequence(&vc2, 1));
+
 //    dsb::execution::Variable v = { 4, 4.0 };
 //    controller.SetVariables(2, dsb::sequence::ArraySequence(&v, 1));
 

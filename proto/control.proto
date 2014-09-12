@@ -6,18 +6,19 @@ import "variable.proto";
 // Message type identifiers.
 enum MessageType
 {
-    MSG_DENIED      =  0;
-    MSG_HELLO       =  1;
-    MSG_ERROR       =  2;
-    MSG_TERMINATE   =  3;
-    MSG_SUBMIT      =  4;
-    MSG_SETUP       =  5;
-    MSG_READY       =  6;
-    MSG_SET_VARS    =  7;
-    MSG_STEP        =  8;
-    MSG_STEP_OK     =  9;
-    MSG_STEP_FAILED = 10;
-    MSG_RECV_VARS   = 11;
+    MSG_DENIED       =  0;
+    MSG_HELLO        =  1;
+    MSG_ERROR        =  2;
+    MSG_TERMINATE    =  3;
+    MSG_SUBMIT       =  4;
+    MSG_SETUP        =  5;
+    MSG_READY        =  6;
+    MSG_SET_VARS     =  7;
+    MSG_STEP         =  8;
+    MSG_STEP_OK      =  9;
+    MSG_STEP_FAILED  = 10;
+    MSG_RECV_VARS    = 11;
+    MSG_CONNECT_VARS = 12;
 }
 
 
@@ -64,7 +65,7 @@ message VariableRef
 
 // A message that instructs a slave to connect one of its input variables
 // to another slave's output variable.
-message PortConnection
+message VariableConnection
 {
     required int32 input_var_id = 1;
     required VariableRef output_var = 2;
@@ -81,6 +82,12 @@ message Variable
 message SetVarsData
 {
     repeated Variable variable = 1;
+}
+
+/// The body of a CONNECT_VARS message
+message ConnectVarsData
+{
+    repeated VariableConnection connection = 1;
 }
 
 // The body of a STEP message

@@ -33,6 +33,14 @@ struct Variable
 };
 
 
+struct VariableConnection
+{
+    uint16_t inputId;       ///< The input variable which is to be connected.
+    uint16_t otherSlaveId;  ///< The slave whose output variable to connect to.
+    uint16_t otherOutputId; ///< The output variable which is to be connected.
+};
+
+
 /**
 \brief  Master execution controller.
 
@@ -84,6 +92,19 @@ public:
         dsb::sequence::Sequence<Variable&> variables);
 
     /**
+    \brief  Connects inputs of one slave to outputs of other slaves.
+
+    \param [in] slaveId     The ID of the slave whose inputs are to be connected.
+    \param [in] connections References to input and output variables.
+
+    \throws std::runtime_error if `slaveId` does not correspond to a slave which
+        is part of this execution.
+    */
+    void ConnectVariables(
+        uint16_t slaveId,
+        dsb::sequence::Sequence<VariableConnection&> connections);
+
+    /**
     \brief  Performs a time step.
 
     \param [in] t   The current time point.
@@ -101,7 +122,6 @@ public:
     void Terminate();
 
     //TODO:
-    //void ConnectVariables(uint16_t slaveId, dsb::sequence::Sequence<VariableConnection> connections);
     //void Terminate(uint16_t slaveId);
     //SimState StoreSimulationState();
     //void RestoreSimulationState(const SimState& state);
