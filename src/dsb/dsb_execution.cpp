@@ -138,7 +138,7 @@ void dsb::execution::Controller::AddSlave(uint16_t slaveId)
 
 void dsb::execution::Controller::SetVariables(
     uint16_t slaveId,
-    dsb::sequence::Sequence<Variable&> variables)
+    dsb::sequence::Sequence<Variable> variables)
 {
     std::deque<zmq::message_t> msg;
     msg.push_back(dsb::comm::ToFrame("SET_VARS"));
@@ -154,7 +154,7 @@ void dsb::execution::Controller::SetVariables(
 
 void dsb::execution::Controller::ConnectVariables(
     uint16_t slaveId,
-    dsb::sequence::Sequence<VariableConnection&> variables)
+    dsb::sequence::Sequence<VariableConnection> variables)
 {
     std::deque<zmq::message_t> msg;
     msg.push_back(dsb::comm::ToFrame("CONNECT_VARS"));

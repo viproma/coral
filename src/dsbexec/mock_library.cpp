@@ -38,7 +38,7 @@ namespace
             }
         }
 
-        dsb::sequence::Sequence<const dsb::library::SlaveType&> SlaveTypes()
+        dsb::sequence::Sequence<const dsb::library::SlaveType> SlaveTypes()
             DSB_FINAL override
         {
             return dsb::sequence::ConstSequence(

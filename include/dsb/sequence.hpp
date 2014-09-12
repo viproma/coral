@@ -54,7 +54,7 @@ public:
     before this function is called (but good practice to verify it with
     an assertion).
     */
-    virtual ElementT Next() = 0;
+    virtual ElementT& Next() = 0;
 
     // Allows deletions through a base class pointer.
     virtual ~ISequenceImpl() { }
@@ -66,9 +66,9 @@ public:
         type `ElementT`.
 
 This class defines two functions, Empty() and Next().  The former returns
-whether we have reached the end of the sequence, and the latter returns
-the element at the head of the range and simultaneously iterates past it.
-The idiomatic way to iterate a sequence is thus:
+whether we have reached the end of the sequence, and the latter returns a
+reference to the element at the head of the range and simultaneously iterates
+past it.  The idiomatic way to iterate a sequence is thus:
 ~~~~{.cpp}
 while (!sequence.Empty()) {
     auto element = seq.Next();
@@ -115,11 +115,6 @@ create a class that implements the ISequenceImpl interface.
 Like iterators, a Sequence object may be invalidated by changes to the
 underlying storage.  The circumstances under which this does or doesn't
 happen are defined by the specific ISequenceImpl implementation used.
-
-Furthermore, if `ElementT` is a reference type (e.g. `int&`), it means that
-Next() returns a reference to the value in some underlying storage.  In that
-case, the lifetime of the reference is defined by the specific sequence
-implementation.
 */
 template<typename ElementT>
 class Sequence
@@ -137,23 +132,37 @@ public:
     bool Empty() { return !m_impl.get() || m_impl->Empty(); }
 
     /**
-    \brief  Returns the element currently at the front of the sequence
-            and iterates one step past it.
+    \brief  Returns a reference to the element currently at the front of the
+            sequence and iterates one step past it.
 
     Calling this function is only allowed if Empty() has, or would have,
     returned `false`.
+    
+    The returned reference may be invalidated by the next call to Next().
     */
-    ElementT Next() { return m_impl->Next(); }
+    ElementT& Next() { return m_impl->Next(); }
 
 private:
     std::shared_ptr<ISequenceImpl<ElementT>> m_impl;
 };
 
 
+namespace detail
+{
+    // std::iterator_traits::value type strips off the `const` qualifier,
+    // but we want to keep it when specifying the element type of a sequence.
+    template<typename Iterator>
+    struct Value
+    {
+        typedef typename std::remove_reference<typename std::iterator_traits<Iterator>::reference>::type type;
+    };
+}
+
+
 // Implementation class for IteratorSequence()
 template<typename Iterator>
 class IteratorSequenceImpl
-    : public ISequenceImpl<typename std::iterator_traits<Iterator>::reference>
+    : public ISequenceImpl<typename detail::Value<Iterator>::type>
 {
 public:
     IteratorSequenceImpl(Iterator begin, Iterator end) : m_begin(begin), m_end(end) { }
@@ -180,10 +189,10 @@ on the type of container iterated).
 \see ArraySequence, ContainerSequence
 */
 template<typename Iterator>
-Sequence<typename std::iterator_traits<Iterator>::reference> IteratorSequence(
+Sequence<typename detail::Value<Iterator>::type> IteratorSequence(
     Iterator begin, Iterator end)
 {
-    return Sequence<typename std::iterator_traits<Iterator>::reference>(
+    return Sequence<detail::Value<Iterator>::type>(
         std::make_shared<IteratorSequenceImpl<Iterator>>(begin, end));
 }
 
@@ -196,7 +205,7 @@ This function simply forwards to IteratorSequence(), using the "begin" and "end"
 iterators of `c`.
 */
 template<typename Container>
-Sequence<typename std::iterator_traits<typename Container::iterator>::reference>
+Sequence<typename detail::Value<typename Container::iterator>::type>
     ContainerSequence(Container& c)
 {
     return IteratorSequence(c.begin(), c.end());
@@ -204,7 +213,7 @@ Sequence<typename std::iterator_traits<typename Container::iterator>::reference>
 
 // Same as the above, but for const containers.
 template<typename Container>
-Sequence<typename std::iterator_traits<typename Container::const_iterator>::reference>
+Sequence<typename std::remove_reference<typename std::iterator_traits<typename Container::const_iterator>::reference>::type>
     ContainerSequence(const Container& c)
 {
     return IteratorSequence(c.cbegin(), c.cend());
@@ -219,7 +228,7 @@ This function simply forwards to IteratorSequence(), using `pointer` and
 `pointer+length` as iterators.
 */
 template<typename ElementT>
-Sequence<ElementT&> ArraySequence(ElementT* pointer, size_t length)
+Sequence<ElementT> ArraySequence(ElementT* pointer, size_t length)
 {
     return IteratorSequence(pointer, pointer + length);
 }
@@ -227,7 +236,7 @@ Sequence<ElementT&> ArraySequence(ElementT* pointer, size_t length)
 
 // Implementation class for MapValueSequence()
 template<typename Map>
-class MapValueSequenceImpl : public ISequenceImpl<typename Map::mapped_type&>
+class MapValueSequenceImpl : public ISequenceImpl<typename Map::mapped_type>
 {
 public:
     /// Constructor that takes a map object.
@@ -266,9 +275,9 @@ Sequence<double> s = MapValueSequence(m);
 ~~~
 */
 template<typename Map>
-Sequence<typename Map::mapped_type&> MapValueSequence(Map& map)
+Sequence<typename Map::mapped_type> MapValueSequence(Map& map)
 {
-    return Sequence<typename Map::mapped_type&>(
+    return Sequence<typename Map::mapped_type>(
         std::make_shared<MapValueSequenceImpl<Map>>(map));
 }
 
@@ -280,10 +289,10 @@ class EmptySequenceImpl : public ISequenceImpl<ElementT>
 public:
     bool Empty() DSB_FINAL override { return true; }
 
-    ElementT Next() DSB_FINAL override
+    ElementT& Next() DSB_FINAL override
     {
         assert(!"Next() called on empty sequence");
-        return *(static_cast<typename std::remove_reference<ElementT>::type*>(nullptr));
+        return *(static_cast<ElementT*>(nullptr));
     }
 };
 
@@ -297,15 +306,15 @@ Sequence<ElementT> EmptySequence()
 
 
 // Implementation class for ConstSequence().
-template<typename DerefElementT>
-class ConstSequenceImpl : public ISequenceImpl<const DerefElementT&>
+template<typename ElementT>
+class ConstSequenceImpl : public ISequenceImpl<const ElementT>
 {
 public:
-    ConstSequenceImpl(Sequence<DerefElementT&> wrapThis) : m_wrapped(wrapThis) { }
+    ConstSequenceImpl(Sequence<ElementT> wrapThis) : m_wrapped(wrapThis) { }
     bool Empty() DSB_FINAL override { return m_wrapped.Empty(); }
-    const DerefElementT& Next() DSB_FINAL override { return m_wrapped.Next(); }
+    const ElementT& Next() DSB_FINAL override { return m_wrapped.Next(); }
 private:
-    Sequence<DerefElementT&> m_wrapped;
+    Sequence<ElementT> m_wrapped;
 };
 
 
@@ -315,11 +324,11 @@ private:
 
 This function is only defined for reference sequences.
 */
-template<typename DerefElementT>
-Sequence<const DerefElementT&> ConstSequence(Sequence<DerefElementT&> sequence)
+template<typename ElementT>
+Sequence<const ElementT> ConstSequence(Sequence<ElementT> sequence)
 {
-    return Sequence<const DerefElementT&>(
-        std::make_shared<ConstSequenceImpl<DerefElementT>>(sequence));
+    return Sequence<const ElementT>(
+        std::make_shared<ConstSequenceImpl<ElementT>>(sequence));
 }
 
 

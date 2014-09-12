@@ -114,7 +114,7 @@ public:
     const std::string& Name() const;
 
     /// The slave's visible variables.
-    dsb::sequence::Sequence<const VariableInfo&> Variables() const;
+    dsb::sequence::Sequence<const VariableInfo> Variables() const;
 
     /**
     \brief Returns information about the named variable.
@@ -165,7 +165,7 @@ class Library
 {
 public:
     /// Returns the available slave types.
-    virtual dsb::sequence::Sequence<const SlaveType&> SlaveTypes() = 0;
+    virtual dsb::sequence::Sequence<const SlaveType> SlaveTypes() = 0;
 
     /**
     \brief  Returns a pointer to a SlaveType object corresponding to the given

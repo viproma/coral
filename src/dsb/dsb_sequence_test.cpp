@@ -127,8 +127,6 @@ TEST(dsb_sequence, EmptySequence)
 {
     Sequence<int> s1 = EmptySequence<int>();
     EXPECT_TRUE(s1.Empty());
-    Sequence<int&> s2 = EmptySequence<int&>();
-    EXPECT_TRUE(s2.Empty());
 }
 
 
@@ -139,7 +137,7 @@ TEST(dsb_sequence, ConstSequence)
     v.push_back("bar");
     v.push_back("baz");
 
-    Sequence<const std::string&> r = ConstSequence(ContainerSequence(v));
+    Sequence<const std::string> r = ConstSequence(ContainerSequence(v));
     ASSERT_FALSE(r.Empty());
     EXPECT_EQ("foo", r.Next());
     ASSERT_FALSE(r.Empty());

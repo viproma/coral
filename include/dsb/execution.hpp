@@ -115,7 +115,7 @@ public:
     */
     void SetVariables(
         uint16_t slaveId,
-        dsb::sequence::Sequence<Variable&> variables);
+        dsb::sequence::Sequence<Variable> variables);
 
     /**
     \brief  Connects inputs of one slave to outputs of other slaves.
@@ -129,7 +129,7 @@ public:
     */
     void ConnectVariables(
         uint16_t slaveId,
-        dsb::sequence::Sequence<VariableConnection&> connections);
+        dsb::sequence::Sequence<VariableConnection> connections);
 
     /**
     \brief  Performs a time step.
