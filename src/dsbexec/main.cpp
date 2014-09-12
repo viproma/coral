@@ -20,6 +20,9 @@ int main(int argc, const char** argv)
     auto context = std::make_shared<zmq::context_t>();
     auto controller = dsb::execution::SpawnExecution(context, endpoint);
 
+    controller.AddSlave(1);
+    controller.AddSlave(2);
+
 //    dsb::execution::Variable v = { 4, 4.0 };
 //    controller.SetVariables(2, dsb::sequence::ArraySequence(&v, 1));
 

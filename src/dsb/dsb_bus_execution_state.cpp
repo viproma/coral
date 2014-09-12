@@ -32,6 +32,28 @@ namespace
         socket.send(m1);
     }
 
+    // This function handles an ADD_SLAVE call from the user.  It sends a (more or
+    // less) immediate reply, which is either OK or FAILED.
+    // The latter happens if the supplied slave ID already exists.
+    void PerformAddSlaveRPC(
+        ExecutionAgent& self,
+        std::deque<zmq::message_t>& msg,
+        zmq::socket_t& userSocket)
+    {
+        assert (self.rpcInProgress == ExecutionAgent::NO_RPC
+                && "Cannot perform ADD_SLAVE when another RPC is in progress");
+        assert (msg.size() == 2
+                && "ADD_SLAVE message must be exactly two frames");
+        assert (dsb::comm::ToString(msg.front()) == "ADD_SLAVE"
+                && "PerformAddSlaveRPC() received non-ADD_SLAVE command");
+
+        const auto slaveId = dsb::comm::DecodeRawDataFrame<uint16_t>(msg[1]);
+        if (self.slaves.insert(std::make_pair(slaveId, dsb::bus::SlaveTracker())).second) {
+            SendOk(userSocket);
+        } else {
+            SendFailed(userSocket, "Slave already added");
+        }
+    }
 
     // This function handles a SET_VARS call from the user.  It sends a (more or
     // less) immediate reply, which is either OK or FAILED.
@@ -103,6 +125,8 @@ void ExecutionInitializing::UserMessage(
     } else if (msgType == "TERMINATE") {
         self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
         SendOk(userSocket);
+    } else if (msgType == "ADD_SLAVE") {
+        PerformAddSlaveRPC(self, msg, userSocket);
     // } else if (message is CONNECT_VARS) {
     //      queue CONNECT_VARS on SlaveTracker
     } else {
@@ -169,6 +193,8 @@ void ExecutionReady::UserMessage(
     } else if (msgType == "TERMINATE") {
         self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
         SendOk(userSocket);
+    } else if (msgType == "ADD_SLAVE") {
+        PerformAddSlaveRPC(self, msg, userSocket);
     } else if (msgType == "SET_VARS") {
         PerformSetVarsRPC(self, msg, userSocket, slaveSocket);
         self.ChangeState<ExecutionInitializing>(userSocket, slaveSocket);
@@ -270,6 +296,8 @@ void ExecutionPublished::SlaveWaiting(
 // =============================================================================
 // Terminating
 // =============================================================================
+
+// TODO: Shut down ExecutionAgent too!
 
 ExecutionTerminating::ExecutionTerminating()
 {

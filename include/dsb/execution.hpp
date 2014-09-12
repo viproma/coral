@@ -58,6 +58,19 @@ public:
     Controller& operator=(Controller&& other);
 
     /**
+    \brief  Adds a slave to the execution.
+
+    This function must be called in order to allow the slave to connect to
+    the execution.  Any slave which attempts to connect before it has been
+    added will receive a DENIED message immediately upon connection.
+
+    \param [in] slaveId     The ID of the slave.
+
+    \throws std::runtime_error if the slave has been added before.
+    */
+    void AddSlave(uint16_t slaveId);
+
+    /**
     \brief  Sets the values of some of a slave's variables.
 
     \param [in] slaveId     The ID of a slave which is part of the execution.
@@ -88,7 +101,6 @@ public:
     void Terminate();
 
     //TODO:
-    //void AddSlave(uint16_t slaveId);
     //void ConnectVariables(uint16_t slaveId, dsb::sequence::Sequence<VariableConnection> connections);
     //void Terminate(uint16_t slaveId);
     //SimState StoreSimulationState();

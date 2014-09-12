@@ -31,9 +31,6 @@ namespace
 
         // Make a list of expected slaves, hardcoded for the time being.
         dsb::bus::ExecutionAgent exec(rpcSocket, slaveControlSocket);
-        exec.slaves[1] = dsb::bus::SlaveTracker();
-        exec.slaves[2] = dsb::bus::SlaveTracker();
-    //    exec.slaves[3] = SlaveTracker();
 
         // Main messaging loop
         zmq::pollitem_t pollItems[2] = {
@@ -114,6 +111,15 @@ namespace
         msg.push_back(dsb::comm::ToFrame(str));
         RPC(socket, msg);
     }
+}
+
+
+void dsb::execution::Controller::AddSlave(uint16_t slaveId)
+{
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::ToFrame("ADD_SLAVE"));
+    msg.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
+    RPC(m_rpcSocket, msg);
 }
 
 
