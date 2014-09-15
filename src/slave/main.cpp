@@ -15,14 +15,13 @@
 int main(int argc, const char** argv)
 {
 try {
-    if (argc < 7) {
+    if (argc < 6) {
         std::cerr << "Usage: " << argv[0] << " <id> <control> <data pub> <data sub> <slave type> <other slave>\n"
                   << "  id          = a number in the range 0 - 65535\n"
                   << "  control     = Control socket endpoint (e.g. tcp://myhost:5432)\n"
                   << "  data pub    = Publisher socket endpoint\n"
                   << "  data sub    = Subscriber socket endpoint\n"
-                  << "  slave type  = mass_1d or spring_1d\n"
-                  << "  other slave = ID of other slave"
+                  << "  slave type  = mass_1d, spring_1d or buggy_1d"
                   << std::endl;
         return 0;
     }
@@ -31,7 +30,6 @@ try {
     const auto dataPubEndpoint = std::string(argv[3]);
     const auto dataSubEndpoint = std::string(argv[4]);
     const auto slaveType = std::string(argv[5]);
-    const auto otherSlaveId = boost::lexical_cast<uint16_t>(argv[6]);
 
     auto context = zmq::context_t();
     auto control = zmq::socket_t(context, ZMQ_REQ);
@@ -51,8 +49,7 @@ try {
         id,
         std::move(dataSub),
         std::move(dataPub),
-        NewSlave(slaveType),
-        otherSlaveId);
+        NewSlave(slaveType));
     std::deque<zmq::message_t> msg;
     slave.Start(msg);
     for (;;) {
