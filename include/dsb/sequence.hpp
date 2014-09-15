@@ -147,6 +147,7 @@ private:
 };
 
 
+// Implementation details
 namespace detail
 {
     // std::iterator_traits::value type strips off the `const` qualifier,
@@ -156,28 +157,27 @@ namespace detail
     {
         typedef typename std::remove_reference<typename std::iterator_traits<Iterator>::reference>::type type;
     };
-}
 
-
-// Implementation class for ElementsOf()
-template<typename Iterator>
-class IteratorSequenceImpl
-    : public ISequenceImpl<typename detail::Value<Iterator>::type>
-{
-public:
-    IteratorSequenceImpl(Iterator begin, Iterator end) : m_begin(begin), m_end(end) { }
-
-    bool Empty() DSB_FINAL override { return m_begin == m_end; }
-
-    typename std::iterator_traits<Iterator>::reference Next() DSB_FINAL override
+    // Implementation class for ElementsOf()
+    template<typename Iterator>
+    class IteratorSequenceImpl
+        : public ISequenceImpl<typename detail::Value<Iterator>::type>
     {
-        return *(m_begin++);
-    }
+    public:
+        IteratorSequenceImpl(Iterator begin, Iterator end) : m_begin(begin), m_end(end) { }
 
-private:
-    Iterator m_begin;
-    Iterator m_end;
-};
+    private:
+        bool Empty() DSB_FINAL override { return m_begin == m_end; }
+
+        typename std::iterator_traits<Iterator>::reference Next() DSB_FINAL override
+        {
+            return *(m_begin++);
+        }
+
+        Iterator m_begin;
+        Iterator m_end;
+    };
+}
 
 
 /**
@@ -191,7 +191,7 @@ Sequence<typename detail::Value<Iterator>::type> ElementsOf(
     Iterator begin, Iterator end)
 {
     return Sequence<detail::Value<Iterator>::type>(
-        std::make_shared<IteratorSequenceImpl<Iterator>>(begin, end));
+        std::make_shared<detail::IteratorSequenceImpl<Iterator>>(begin, end));
 }
 
 
@@ -232,30 +232,33 @@ Sequence<ElementT> ElementsOf(ElementT* pointer, size_t length)
 }
 
 
-// Implementation class for ValuesOf()
-template<typename Map>
-class MapValueSequenceImpl : public ISequenceImpl<typename Map::mapped_type>
+namespace detail
 {
-public:
-    /// Constructor that takes a map object.
-    MapValueSequenceImpl(Map& map)
-        : m_begin(map.begin()), m_end(map.end())
-    { }
-
-    bool Empty() DSB_FINAL override
+    // Implementation class for ValuesOf()
+    template<typename Map>
+    class MapValueSequenceImpl : public ISequenceImpl<typename Map::mapped_type>
     {
-        return m_begin == m_end;
-    }
+    public:
+        /// Constructor that takes a map object.
+        MapValueSequenceImpl(Map& map)
+            : m_begin(map.begin()), m_end(map.end())
+        { }
 
-    typename Map::mapped_type& Next() DSB_FINAL override
-    {
-        return (m_begin++)->second;
-    }
+        bool Empty() DSB_FINAL override
+        {
+            return m_begin == m_end;
+        }
 
-private:
-    typename Map::iterator m_begin;
-    typename Map::iterator m_end;
-};
+        typename Map::mapped_type& Next() DSB_FINAL override
+        {
+            return (m_begin++)->second;
+        }
+
+    private:
+        typename Map::iterator m_begin;
+        typename Map::iterator m_end;
+    };
+}
 
 
 /**
@@ -276,36 +279,40 @@ template<typename Map>
 Sequence<typename Map::mapped_type> ValuesOf(Map& map)
 {
     return Sequence<typename Map::mapped_type>(
-        std::make_shared<MapValueSequenceImpl<Map>>(map));
+        std::make_shared<detail::MapValueSequenceImpl<Map>>(map));
 }
 
 
-// Implementation class for EmptySequence()
-template<typename ElementT>
-class EmptySequenceImpl : public ISequenceImpl<ElementT>
+namespace detail
 {
-public:
-    bool Empty() DSB_FINAL override { return true; }
-
-    ElementT& Next() DSB_FINAL override
+    // Implementation class for EmptySequence()
+    template<typename ElementT>
+    class EmptySequenceImpl : public ISequenceImpl<ElementT>
     {
-        assert(!"Next() called on empty sequence");
-        return *(static_cast<ElementT*>(nullptr));
-    }
-};
+    public:
+        bool Empty() DSB_FINAL override { return true; }
+
+        ElementT& Next() DSB_FINAL override
+        {
+            assert(!"Next() called on empty sequence");
+            return *(static_cast<ElementT*>(nullptr));
+        }
+    };
+}
 
 
 /// Returns an empty sequence, i.e. one for which Empty() is always `true`.
 template<typename ElementT>
 Sequence<ElementT> EmptySequence()
 {
-    return Sequence<ElementT>(std::make_shared<EmptySequenceImpl<ElementT>>());
+    return Sequence<ElementT>(
+        std::make_shared<detail::EmptySequenceImpl<ElementT>>());
 }
 
 
-// Implementation details for Only()
 namespace detail
 {
+    // Implementation class for Only()
     template<typename ElementT>
     class OnlyImpl : public ISequenceImpl<ElementT>
     {
@@ -359,17 +366,20 @@ Sequence<typename std::remove_reference<ElementT>::type> Only(ElementT&& element
 }
 
 
-// Implementation class for ReadOnly().
-template<typename ElementT>
-class ReadOnlySequenceImpl : public ISequenceImpl<const ElementT>
+namespace detail
 {
-public:
-    ReadOnlySequenceImpl(Sequence<ElementT> wrapThis) : m_wrapped(wrapThis) { }
-    bool Empty() DSB_FINAL override { return m_wrapped.Empty(); }
-    const ElementT& Next() DSB_FINAL override { return m_wrapped.Next(); }
-private:
-    Sequence<ElementT> m_wrapped;
-};
+    // Implementation class for ReadOnly().
+    template<typename ElementT>
+    class ReadOnlySequenceImpl : public ISequenceImpl<const ElementT>
+    {
+    public:
+        ReadOnlySequenceImpl(Sequence<ElementT> wrapThis) : m_wrapped(wrapThis) { }
+    private:
+        bool Empty() DSB_FINAL override { return m_wrapped.Empty(); }
+        const ElementT& Next() DSB_FINAL override { return m_wrapped.Next(); }
+        Sequence<ElementT> m_wrapped;
+    };
+}
 
 
 /**
@@ -380,7 +390,7 @@ template<typename ElementT>
 Sequence<const ElementT> ReadOnly(Sequence<ElementT> sequence)
 {
     return Sequence<const ElementT>(
-        std::make_shared<ReadOnlySequenceImpl<ElementT>>(sequence));
+        std::make_shared<detail::ReadOnlySequenceImpl<ElementT>>(sequence));
 }
 
 
