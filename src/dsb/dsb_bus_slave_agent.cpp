@@ -49,8 +49,7 @@ SlaveAgent::SlaveAgent(
         uint16_t id,
         zmq::socket_t dataSub,
         zmq::socket_t dataPub,
-        std::unique_ptr<ISlaveInstance> slaveInstance,
-        uint16_t otherSlaveId)
+        std::unique_ptr<ISlaveInstance> slaveInstance)
     : m_id(id),
       m_dataSub(std::move(dataSub)),
       m_dataPub(std::move(dataPub)),
@@ -58,8 +57,6 @@ SlaveAgent::SlaveAgent(
       m_currentTime(std::numeric_limits<double>::signaling_NaN()),
       m_lastStepSize(std::numeric_limits<double>::signaling_NaN())
 {
-
-    //m_dataSub.setsockopt(ZMQ_SUBSCRIBE, otherHeader, DATA_HEADER_SIZE);
 }
 
 
@@ -180,7 +177,6 @@ void SlaveAgent::StepFailedHandler(std::deque<zmq::message_t>& msg)
 // way around).
 void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
 {
-    std::clog << "HandleSetVars()" << std::endl;
     if (msg.size() != 2) {
         throw dsb::error::ProtocolViolationException(
             "Wrong number of frames in SET_VARS message");
@@ -202,7 +198,6 @@ void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
 // way around).
 void SlaveAgent::HandleConnectVars(std::deque<zmq::message_t>& msg)
 {
-    std::clog << "HandleConnectVars()" << std::endl;
     if (msg.size() != 2) {
         throw dsb::error::ProtocolViolationException(
             "Wrong number of frames in CONNECT_VARS message");

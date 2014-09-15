@@ -44,15 +44,12 @@ public:
     \param [in] dataPub         A PUB socket to be used for sending variables.
     \param [in] slaveInstance   (Temporary) A pointer to the object which
                                 contains the slave's mathematical model.
-    \param [in] otherSlaveId    (Temporary) The ID of the slave which this
-                                slave should be connected to.
     */
     SlaveAgent(
         uint16_t id,
         zmq::socket_t dataSub,
         zmq::socket_t dataPub,
-        std::unique_ptr<ISlaveInstance> slaveInstance,
-        uint16_t otherSlaveId
+        std::unique_ptr<ISlaveInstance> slaveInstance
         );
 
     /**

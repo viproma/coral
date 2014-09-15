@@ -13,29 +13,32 @@ namespace
 class Mass1D : public dsb::bus::ISlaveInstance
 {
 public:
-    Mass1D() : m_mass(1.0), m_pos_x(0.0), m_vel_x(0.0), m_force_x(0.0) { }
+    Mass1D()
+        : m_force1_x(0.0), m_force2_x(0.0), m_pos_x(0.0), m_vel_x(0.0), m_mass(1.0) { }
 
     std::vector<int> InputVariables()
     {
         std::vector<int> v;
         v.push_back(0);
+        v.push_back(1);
         return v;
     }
 
     std::vector<int> OutputVariables()
     {
         std::vector<int> v;
-        v.push_back(1);
+        v.push_back(2);
         return v;
     }
 
     double GetVariable(int varRef) override
     {
         switch (varRef) {
-            case 0: return m_force_x;   break;
-            case 1: return m_pos_x;     break;
-            case 2: return m_vel_x;     break;
-            case 3: return m_mass;      break;
+            case 0: return m_force1_x;  break;
+            case 1: return m_force2_x;  break;
+            case 2: return m_pos_x;     break;
+            case 3: return m_vel_x;     break;
+            case 4: return m_mass;      break;
             default:
                 assert (!"Mass1D::GetVariable(): Invalid variable reference");
         }
@@ -45,10 +48,11 @@ public:
     void SetVariable(int varRef, double value) override
     {
         switch (varRef) {
-            case 0: m_force_x = value;  break;
-            case 1: m_pos_x = value;    break;
-            case 2: m_vel_x = value;    break;
-            case 3: m_mass = value;     break;
+            case 0: m_force1_x = value; break;
+            case 1: m_force2_x = value; break;
+            case 2: m_pos_x = value;    break;
+            case 3: m_vel_x = value;    break;
+            case 4: m_mass = value;     break;
             default:
                 assert (!"Mass1D::SetVariable(): Invalid variable reference");
         }
@@ -56,7 +60,7 @@ public:
 
     bool DoStep(double currentT, double deltaT) override
     {
-        const double accel = m_force_x / m_mass;
+        const double accel = (m_force1_x + m_force2_x) / m_mass;
         const double deltaV = accel * deltaT;
         m_pos_x += m_vel_x*deltaT + 0.5*deltaV*deltaT;
         m_vel_x += deltaV;
@@ -64,30 +68,34 @@ public:
     }
 
 private:
-    double m_mass;
+    double m_force1_x;
+    double m_force2_x;
     double m_pos_x;
     double m_vel_x;
-    double m_force_x;
+    double m_mass;
 };
+
 
 class Spring1D : public dsb::bus::ISlaveInstance
 {
 public:
-    Spring1D() : m_length(2.0), m_stiffness(1.0), m_pos_a_x(0.0), m_pos_b_x(1.0),
-                 m_force_a_x(0.0), m_force_b_x(0.0) { }
+    Spring1D()
+        : m_pos_a_x(0.0), m_pos_b_x(1.0), m_force_a_x(0.0), m_force_b_x(0.0),
+          m_length(1.0), m_stiffness(1.0)
+    { }
 
     std::vector<int> InputVariables()
     {
         std::vector<int> v;
         v.push_back(0);
-        v.push_back(2);
+        v.push_back(1);
         return v;
     }
 
     std::vector<int> OutputVariables()
     {
         std::vector<int> v;
-        v.push_back(1);
+        v.push_back(2);
         v.push_back(3);
         return v;
     }
@@ -96,8 +104,8 @@ public:
     {
         switch (varRef) {
             case 0: return m_pos_a_x;   break;
-            case 1: return m_force_a_x; break;
-            case 2: return m_pos_b_x;   break;
+            case 1: return m_pos_b_x;   break;
+            case 2: return m_force_a_x; break;
             case 3: return m_force_b_x; break;
             case 4: return m_length;    break;
             case 5: return m_stiffness; break;
@@ -111,8 +119,8 @@ public:
     {
         switch (varRef) {
             case 0: m_pos_a_x = value;   break;
-            case 1: m_force_a_x = value; break;
-            case 2: m_pos_b_x = value;   break;
+            case 1: m_pos_b_x = value;   break;
+            case 2: m_force_a_x = value; break;
             case 3: m_force_b_x = value; break;
             case 4: m_length = value;    break;
             case 5: m_stiffness = value; break;
@@ -131,12 +139,12 @@ public:
     }
 
 private:
-    double m_length;
-    double m_stiffness;
     double m_pos_a_x;
     double m_pos_b_x;
     double m_force_a_x;
     double m_force_b_x;
+    double m_length;
+    double m_stiffness;
 };
 
 
