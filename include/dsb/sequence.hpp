@@ -303,6 +303,62 @@ Sequence<ElementT> EmptySequence()
 }
 
 
+// Implementation details for Only()
+namespace detail
+{
+    template<typename ElementT>
+    class OnlyImpl : public ISequenceImpl<ElementT>
+    {
+    public:
+        OnlyImpl(const ElementT& value)
+            : m_empty(false), m_value(value)
+        { }
+
+    private:
+        bool Empty() DSB_FINAL override { return m_empty; }
+
+        ElementT& Next() DSB_FINAL override
+        {
+            assert(!m_empty);
+            m_empty = true;
+            return m_value;
+        }
+
+        bool m_empty;
+        ElementT m_value;
+    };
+
+    // This overload accepts only rvalue refs. when `ElementT` is specified.
+    template<typename ElementT>
+    Sequence<ElementT> Only(ElementT&& elem)
+    {
+        return Sequence<ElementT>(std::make_shared<OnlyImpl<ElementT>>(elem));
+    }
+
+    // This version accepts only lvalue references.
+    template<typename ElementT>
+    Sequence<ElementT> Only(ElementT& elem)
+    {
+        return ElementsOf(&elem, 1);
+    }
+}
+
+
+/**
+\brief  Returns a sequence which contains one element.
+
+If `element` is an rvalue, it will be cached inside the sequence object, and
+Next() will return a reference to the cached value.  If it is an lvalue, Next()
+will return a reference to the original value.
+*/
+template<typename ElementT>
+Sequence<typename std::remove_reference<ElementT>::type> Only(ElementT&& element)
+{
+    return detail::Only<typename std::remove_reference<ElementT>::type>
+                       (std::forward<ElementT>(element));
+}
+
+
 // Implementation class for ReadOnly().
 template<typename ElementT>
 class ReadOnlySequenceImpl : public ISequenceImpl<const ElementT>

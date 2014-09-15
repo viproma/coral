@@ -130,6 +130,35 @@ TEST(dsb_sequence, EmptySequence)
 }
 
 
+TEST(dsb_sequence, Only)
+{
+    Sequence<int> s = Only(123);
+    ASSERT_FALSE(s.Empty());
+    EXPECT_EQ(123, s.Next());
+    EXPECT_TRUE(s.Empty());
+}
+
+
+TEST(dsb_sequence, Only_ref)
+{
+    int i = 123;
+    Sequence<int> s = Only(i);
+    ASSERT_FALSE(s.Empty());
+    EXPECT_TRUE(&i == &(s.Next()));
+    EXPECT_TRUE(s.Empty());
+}
+
+
+TEST(dsb_sequence, Only_const_ref)
+{
+    const int i = 123;
+    Sequence<const int> s = Only(i);
+    ASSERT_FALSE(s.Empty());
+    EXPECT_TRUE(&i == &(s.Next()));
+    EXPECT_TRUE(s.Empty());
+}
+
+
 TEST(dsb_sequence, ReadOnly)
 {
     std::list<std::string> v;
