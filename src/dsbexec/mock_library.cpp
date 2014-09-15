@@ -41,8 +41,7 @@ namespace
         dsb::sequence::Sequence<const dsb::library::SlaveType> SlaveTypes()
             DSB_FINAL override
         {
-            return dsb::sequence::ConstSequence(
-                dsb::sequence::ContainerSequence(m_slaveTypes));
+            return dsb::sequence::ReadOnly(dsb::sequence::ElementsOf(m_slaveTypes));
         }
 
         bool RequestInstantiation(

@@ -159,7 +159,7 @@ namespace detail
 }
 
 
-// Implementation class for IteratorSequence()
+// Implementation class for ElementsOf()
 template<typename Iterator>
 class IteratorSequenceImpl
     : public ISequenceImpl<typename detail::Value<Iterator>::type>
@@ -185,11 +185,9 @@ private:
 
 The sequence is valid as long as the iterators are valid (which again depends
 on the type of container iterated).
-
-\see ArraySequence, ContainerSequence
 */
 template<typename Iterator>
-Sequence<typename detail::Value<Iterator>::type> IteratorSequence(
+Sequence<typename detail::Value<Iterator>::type> ElementsOf(
     Iterator begin, Iterator end)
 {
     return Sequence<detail::Value<Iterator>::type>(
@@ -201,22 +199,22 @@ Sequence<typename detail::Value<Iterator>::type> IteratorSequence(
 \brief  Convenience function which returns a Sequence that iterates over the
         entire contents of a standard container.
 
-This function simply forwards to IteratorSequence(), using the "begin" and "end"
+This function simply forwards to ElementsOf(), using the "begin" and "end"
 iterators of `c`.
 */
 template<typename Container>
 Sequence<typename detail::Value<typename Container::iterator>::type>
-    ContainerSequence(Container& c)
+    ElementsOf(Container& c)
 {
-    return IteratorSequence(c.begin(), c.end());
+    return ElementsOf(c.begin(), c.end());
 }
 
 // Same as the above, but for const containers.
 template<typename Container>
 Sequence<typename std::remove_reference<typename std::iterator_traits<typename Container::const_iterator>::reference>::type>
-    ContainerSequence(const Container& c)
+    ElementsOf(const Container& c)
 {
-    return IteratorSequence(c.cbegin(), c.cend());
+    return ElementsOf(c.cbegin(), c.cend());
 }
 
 
@@ -224,17 +222,17 @@ Sequence<typename std::remove_reference<typename std::iterator_traits<typename C
 \brief  Convenience function which returns a Sequence that iterates over the
         entire contents of an array.
 
-This function simply forwards to IteratorSequence(), using `pointer` and
+This function simply forwards to ElementsOf(), using `pointer` and
 `pointer+length` as iterators.
 */
 template<typename ElementT>
-Sequence<ElementT> ArraySequence(ElementT* pointer, size_t length)
+Sequence<ElementT> ElementsOf(ElementT* pointer, size_t length)
 {
-    return IteratorSequence(pointer, pointer + length);
+    return ElementsOf(pointer, pointer + length);
 }
 
 
-// Implementation class for MapValueSequence()
+// Implementation class for ValuesOf()
 template<typename Map>
 class MapValueSequenceImpl : public ISequenceImpl<typename Map::mapped_type>
 {
@@ -271,11 +269,11 @@ circumstances as the iterators.
 Example:
 ~~~{.cpp}
 std::map<int, double> m;
-Sequence<double> s = MapValueSequence(m);
+Sequence<double> s = ValuesOf(m);
 ~~~
 */
 template<typename Map>
-Sequence<typename Map::mapped_type> MapValueSequence(Map& map)
+Sequence<typename Map::mapped_type> ValuesOf(Map& map)
 {
     return Sequence<typename Map::mapped_type>(
         std::make_shared<MapValueSequenceImpl<Map>>(map));
@@ -305,12 +303,12 @@ Sequence<ElementT> EmptySequence()
 }
 
 
-// Implementation class for ConstSequence().
+// Implementation class for ReadOnly().
 template<typename ElementT>
-class ConstSequenceImpl : public ISequenceImpl<const ElementT>
+class ReadOnlySequenceImpl : public ISequenceImpl<const ElementT>
 {
 public:
-    ConstSequenceImpl(Sequence<ElementT> wrapThis) : m_wrapped(wrapThis) { }
+    ReadOnlySequenceImpl(Sequence<ElementT> wrapThis) : m_wrapped(wrapThis) { }
     bool Empty() DSB_FINAL override { return m_wrapped.Empty(); }
     const ElementT& Next() DSB_FINAL override { return m_wrapped.Next(); }
 private:
@@ -321,14 +319,12 @@ private:
 /**
 \brief  Returns a sequence which provides a read-only view of the elements in
         another sequence.
-
-This function is only defined for reference sequences.
 */
 template<typename ElementT>
-Sequence<const ElementT> ConstSequence(Sequence<ElementT> sequence)
+Sequence<const ElementT> ReadOnly(Sequence<ElementT> sequence)
 {
     return Sequence<const ElementT>(
-        std::make_shared<ConstSequenceImpl<ElementT>>(sequence));
+        std::make_shared<ReadOnlySequenceImpl<ElementT>>(sequence));
 }
 
 

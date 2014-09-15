@@ -14,7 +14,7 @@ const std::string& SlaveType::Name() const
 
 dsb::sequence::Sequence<const VariableInfo> SlaveType::Variables() const
 {
-    return dsb::sequence::ContainerSequence(m_variables);
+    return dsb::sequence::ElementsOf(m_variables);
 }
 
 
