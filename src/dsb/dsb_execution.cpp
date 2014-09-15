@@ -31,9 +31,6 @@ namespace
 
         // Make a list of expected slaves, hardcoded for the time being.
         dsb::bus::ExecutionAgent exec(rpcSocket, slaveControlSocket);
-        exec.slaves[1] = dsb::bus::SlaveTracker();
-        exec.slaves[2] = dsb::bus::SlaveTracker();
-    //    exec.slaves[3] = SlaveTracker();
 
         // Main messaging loop
         zmq::pollitem_t pollItems[2] = {
@@ -117,6 +114,15 @@ namespace
 }
 
 
+void dsb::execution::Controller::AddSlave(uint16_t slaveId)
+{
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::ToFrame("ADD_SLAVE"));
+    msg.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
+    RPC(m_rpcSocket, msg);
+}
+
+
 void dsb::execution::Controller::SetVariables(
     uint16_t slaveId,
     dsb::sequence::Sequence<Variable&> variables)
@@ -128,6 +134,23 @@ void dsb::execution::Controller::SetVariables(
         const auto v = variables.Next();
         msg.push_back(dsb::comm::EncodeRawDataFrame(v.id));
         msg.push_back(dsb::comm::EncodeRawDataFrame(v.value));
+    }
+    RPC(m_rpcSocket, msg);
+}
+
+
+void dsb::execution::Controller::ConnectVariables(
+    uint16_t slaveId,
+    dsb::sequence::Sequence<VariableConnection&> variables)
+{
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::ToFrame("CONNECT_VARS"));
+    msg.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
+    while (!variables.Empty()) {
+        const auto v = variables.Next();
+        msg.push_back(dsb::comm::EncodeRawDataFrame(v.inputId));
+        msg.push_back(dsb::comm::EncodeRawDataFrame(v.otherSlaveId));
+        msg.push_back(dsb::comm::EncodeRawDataFrame(v.otherOutputId));
     }
     RPC(m_rpcSocket, msg);
 }

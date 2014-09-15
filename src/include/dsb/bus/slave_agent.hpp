@@ -4,7 +4,10 @@
 #include <cstdint>
 #include <deque>
 #include <exception>
+#include <map>
 #include <memory>
+#include <vector>
+
 #include "zmq.hpp"
 #include "control.pb.h"
 
@@ -18,6 +21,8 @@ namespace bus
 class ISlaveInstance
 {
 public:
+    virtual std::vector<int> InputVariables() = 0;
+    virtual std::vector<int> OutputVariables() = 0;
     virtual double GetVariable(int varRef) = 0;
     virtual void SetVariable(int varRef, double value) = 0;
     virtual bool DoStep(double currentT, double deltaT) = 0;
@@ -77,11 +82,13 @@ private:
     void PublishedHandler(std::deque<zmq::message_t>& msg);
     void StepFailedHandler(std::deque<zmq::message_t>& msg);
 
-    // Performs the "set variables" operation for InitHandler() and
-    // ReadyHandler(), including filling `msg` with a reply message.
-    void HandleSetVars(
-        std::deque<zmq::message_t>& msg,
-        dsbproto::control::MessageType replyMsgType);
+    // Performs the "set variables" operation for ReadyHandler(), including
+    // filling `msg` with a reply message.
+    void HandleSetVars(std::deque<zmq::message_t>& msg);
+
+    // Performs the "connect variables" operation for ReadyHandler(), including
+    // filling `msg` with a reply message.
+    void HandleConnectVars(std::deque<zmq::message_t>& msg);
 
     // Performs the time step for ReadyHandler()
     bool Step(const dsbproto::control::StepData& stepData);
@@ -89,20 +96,24 @@ private:
     // A pointer to the handler function for the current state.
     void (SlaveAgent::* m_stateHandler)(std::deque<zmq::message_t>&);
 
+    const uint16_t m_id; // The slave's ID number in the current execution
     zmq::socket_t m_dataSub;
     zmq::socket_t m_dataPub;
     std::unique_ptr<ISlaveInstance> m_slaveInstance;
     double m_currentTime;
     double m_lastStepSize;
 
-    // -------------------------------------------------------------------------
-    // Temporary
-    static const uint16_t IN_VAR_REF = 0;
-    static const uint16_t OUT_VAR_REF = 1;
-    static const size_t DATA_HEADER_SIZE = 4;
-
-    char otherHeader[DATA_HEADER_SIZE];
-    char myHeader[DATA_HEADER_SIZE];
+    struct RemoteVariable
+    {
+        uint16_t slave;
+        uint16_t var;
+        bool operator<(const RemoteVariable& other) const {
+            if (slave < other.slave) return true;
+            else if (slave == other.slave) return var < other.var;
+            else return false;
+        }
+    };
+    std::map<RemoteVariable, uint16_t> m_connections;
 };
 
 

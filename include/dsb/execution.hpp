@@ -33,6 +33,14 @@ struct Variable
 };
 
 
+struct VariableConnection
+{
+    uint16_t inputId;       ///< The input variable which is to be connected.
+    uint16_t otherSlaveId;  ///< The slave whose output variable to connect to.
+    uint16_t otherOutputId; ///< The output variable which is to be connected.
+};
+
+
 /**
 \brief  Master execution controller.
 
@@ -58,6 +66,19 @@ public:
     Controller& operator=(Controller&& other);
 
     /**
+    \brief  Adds a slave to the execution.
+
+    This function must be called in order to allow the slave to connect to
+    the execution.  Any slave which attempts to connect before it has been
+    added will receive a DENIED message immediately upon connection.
+
+    \param [in] slaveId     The ID of the slave.
+
+    \throws std::runtime_error if the slave has been added before.
+    */
+    void AddSlave(uint16_t slaveId);
+
+    /**
     \brief  Sets the values of some of a slave's variables.
 
     \param [in] slaveId     The ID of a slave which is part of the execution.
@@ -69,6 +90,19 @@ public:
     void SetVariables(
         uint16_t slaveId,
         dsb::sequence::Sequence<Variable&> variables);
+
+    /**
+    \brief  Connects inputs of one slave to outputs of other slaves.
+
+    \param [in] slaveId     The ID of the slave whose inputs are to be connected.
+    \param [in] connections References to input and output variables.
+
+    \throws std::runtime_error if `slaveId` does not correspond to a slave which
+        is part of this execution.
+    */
+    void ConnectVariables(
+        uint16_t slaveId,
+        dsb::sequence::Sequence<VariableConnection&> connections);
 
     /**
     \brief  Performs a time step.
@@ -88,8 +122,6 @@ public:
     void Terminate();
 
     //TODO:
-    //void AddSlave(uint16_t slaveId);
-    //void ConnectVariables(uint16_t slaveId, dsb::sequence::Sequence<VariableConnection> connections);
     //void Terminate(uint16_t slaveId);
     //SimState StoreSimulationState();
     //void RestoreSimulationState(const SimState& state);

@@ -32,6 +32,28 @@ namespace
         socket.send(m1);
     }
 
+    // This function handles an ADD_SLAVE call from the user.  It sends a (more or
+    // less) immediate reply, which is either OK or FAILED.
+    // The latter happens if the supplied slave ID already exists.
+    void PerformAddSlaveRPC(
+        ExecutionAgent& self,
+        std::deque<zmq::message_t>& msg,
+        zmq::socket_t& userSocket)
+    {
+        assert (self.rpcInProgress == ExecutionAgent::NO_RPC
+                && "Cannot perform ADD_SLAVE when another RPC is in progress");
+        assert (msg.size() == 2
+                && "ADD_SLAVE message must be exactly two frames");
+        assert (dsb::comm::ToString(msg.front()) == "ADD_SLAVE"
+                && "PerformAddSlaveRPC() received non-ADD_SLAVE command");
+
+        const auto slaveId = dsb::comm::DecodeRawDataFrame<uint16_t>(msg[1]);
+        if (self.slaves.insert(std::make_pair(slaveId, dsb::bus::SlaveTracker())).second) {
+            SendOk(userSocket);
+        } else {
+            SendFailed(userSocket, "Slave already added");
+        }
+    }
 
     // This function handles a SET_VARS call from the user.  It sends a (more or
     // less) immediate reply, which is either OK or FAILED.
@@ -54,7 +76,6 @@ namespace
         const auto slaveId = dsb::comm::DecodeRawDataFrame<uint16_t>(msg[1]);
         auto it = self.slaves.find(slaveId);
         if (it == self.slaves.end()) {
-            // TODO: Send some more info with the error.
             SendFailed(userSocket, "Invalid slave ID");
         } else {
             dsbproto::control::SetVarsData data;
@@ -65,6 +86,43 @@ namespace
                     dsb::comm::DecodeRawDataFrame<double>(msg[i+1]));
             }
             it->second.EnqueueSetVars(slaveSocket, data);
+            SendOk(userSocket);
+        }
+    }
+
+    // This function handles a CONNECT_VARS call from the user.  It sends a
+    // (more or less) immediate reply, which is either OK or FAILED.
+    // The latter happens if the supplied slave ID is invalid.  Any errors
+    // reported by the slave in question are reported asynchronously, and not
+    // handled by this function at all.
+    void PerformConnectVarsRPC(
+        ExecutionAgent& self,
+        std::deque<zmq::message_t>& msg,
+        zmq::socket_t& userSocket,
+        zmq::socket_t& slaveSocket)
+    {
+        assert (self.rpcInProgress == ExecutionAgent::NO_RPC
+                && "Cannot perform CONNECT_VARS when another RPC is in progress");
+        assert (msg.size() >= 2
+                && "CONNECT_VARS message must be at least two frames");
+        assert (dsb::comm::ToString(msg.front()) == "CONNECT_VARS"
+                && "PerformConnectVarsRPC() received non-CONNECT_VARS command");
+
+        const auto slaveId = dsb::comm::DecodeRawDataFrame<uint16_t>(msg[1]);
+        auto it = self.slaves.find(slaveId);
+        if (it == self.slaves.end()) {
+            SendFailed(userSocket, "Invalid slave ID");
+        } else {
+            dsbproto::control::ConnectVarsData data;
+            for (size_t i = 2; i < msg.size(); i+=3) {
+                auto& newVar = *data.add_connection();
+                newVar.set_input_var_id(dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i]));
+                newVar.mutable_output_var()->set_slave_id(
+                    dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i+1]));
+                newVar.mutable_output_var()->set_var_id(
+                    dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i+2]));
+            }
+            it->second.EnqueueConnectVars(slaveSocket, data);
             SendOk(userSocket);
         }
     }
@@ -98,11 +156,15 @@ void ExecutionInitializing::UserMessage(
     const auto msgType = dsb::comm::ToString(msg[0]);
     if (msgType == "SET_VARS") {
         PerformSetVarsRPC(self, msg, userSocket, slaveSocket);
+    } else if (msgType == "CONNECT_VARS") {
+        PerformConnectVarsRPC(self, msg, userSocket, slaveSocket);
     } else if (msgType == "WAIT_FOR_READY") {
         self.rpcInProgress = ExecutionAgent::WAIT_FOR_READY_RPC;
     } else if (msgType == "TERMINATE") {
         self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
         SendOk(userSocket);
+    } else if (msgType == "ADD_SLAVE") {
+        PerformAddSlaveRPC(self, msg, userSocket);
     // } else if (message is CONNECT_VARS) {
     //      queue CONNECT_VARS on SlaveTracker
     } else {
@@ -169,8 +231,13 @@ void ExecutionReady::UserMessage(
     } else if (msgType == "TERMINATE") {
         self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
         SendOk(userSocket);
+    } else if (msgType == "ADD_SLAVE") {
+        PerformAddSlaveRPC(self, msg, userSocket);
     } else if (msgType == "SET_VARS") {
         PerformSetVarsRPC(self, msg, userSocket, slaveSocket);
+        self.ChangeState<ExecutionInitializing>(userSocket, slaveSocket);
+    } else if (msgType == "CONNECT_VARS") {
+        PerformConnectVarsRPC(self, msg, userSocket, slaveSocket);
         self.ChangeState<ExecutionInitializing>(userSocket, slaveSocket);
     } else if (msgType == "WAIT_FOR_READY") {
         SendOk(userSocket);
@@ -270,6 +337,8 @@ void ExecutionPublished::SlaveWaiting(
 // =============================================================================
 // Terminating
 // =============================================================================
+
+// TODO: Shut down ExecutionAgent too!
 
 ExecutionTerminating::ExecutionTerminating()
 {

@@ -15,6 +15,20 @@ class Mass1D : public dsb::bus::ISlaveInstance
 public:
     Mass1D() : m_mass(1.0), m_pos_x(0.0), m_vel_x(0.0), m_force_x(0.0) { }
 
+    std::vector<int> InputVariables()
+    {
+        std::vector<int> v;
+        v.push_back(0);
+        return v;
+    }
+
+    std::vector<int> OutputVariables()
+    {
+        std::vector<int> v;
+        v.push_back(1);
+        return v;
+    }
+
     double GetVariable(int varRef) override
     {
         switch (varRef) {
@@ -61,6 +75,22 @@ class Spring1D : public dsb::bus::ISlaveInstance
 public:
     Spring1D() : m_length(2.0), m_stiffness(1.0), m_pos_a_x(0.0), m_pos_b_x(1.0),
                  m_force_a_x(0.0), m_force_b_x(0.0) { }
+
+    std::vector<int> InputVariables()
+    {
+        std::vector<int> v;
+        v.push_back(0);
+        v.push_back(2);
+        return v;
+    }
+
+    std::vector<int> OutputVariables()
+    {
+        std::vector<int> v;
+        v.push_back(1);
+        v.push_back(3);
+        return v;
+    }
 
     double GetVariable(int varRef) override
     {
@@ -114,6 +144,20 @@ class Buggy1D : public dsb::bus::ISlaveInstance
 {
 public:
     Buggy1D() : m_in(0.0), m_out(0.0), m_stepCount(0) { }
+
+    std::vector<int> InputVariables()
+    {
+        std::vector<int> v;
+        v.push_back(0);
+        return v;
+    }
+
+    std::vector<int> OutputVariables()
+    {
+        std::vector<int> v;
+        v.push_back(1);
+        return v;
+    }
 
     double GetVariable(int varRef) override
     {
