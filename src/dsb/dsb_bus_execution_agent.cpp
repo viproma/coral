@@ -20,13 +20,26 @@ namespace bus
 // execution.
 
 
+ExecutionAgentPrivate::ExecutionAgentPrivate()
+    : rpcInProgress(NO_RPC)
+{ }
+
+
+void ExecutionAgentPrivate::UpdateState()
+{
+    if (m_nextState) {
+        m_state = std::move(m_nextState);
+    }
+}
+
+
+
 ExecutionAgent::ExecutionAgent(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
-    : rpcInProgress(NO_RPC)
 {
-    ChangeState<ExecutionInitializing>(userSocket, slaveSocket);
-    UpdateState();
+    m_data.ChangeState<ExecutionInitializing>(userSocket, slaveSocket);
+    m_data.UpdateState();
 }
 
 
@@ -35,8 +48,8 @@ void ExecutionAgent::UserMessage(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    m_state->UserMessage(*this, msg, userSocket, slaveSocket);
-    UpdateState();
+    m_data.m_state->UserMessage(m_data, msg, userSocket, slaveSocket);
+    m_data.UpdateState();
 }
 
 
@@ -60,11 +73,12 @@ void ExecutionAgent::SlaveMessage(
 
     // Pass on the message to the appropriate slave handler, send the
     // reply immediately if necessary.
-    auto slaveHandler = slaves.find(slaveId);
-    if (slaveHandler != slaves.end()) {
+    auto slaveHandler = m_data.slaves.find(slaveId);
+    if (slaveHandler != m_data.slaves.end()) {
         if (!slaveHandler->second.RequestReply(slaveSocket, envelope, msg)) {
-            m_state->SlaveWaiting(*this, slaveHandler->second, userSocket, slaveSocket);
-            UpdateState();
+            m_data.m_state->SlaveWaiting(m_data, slaveHandler->second,
+                                         userSocket, slaveSocket);
+            m_data.UpdateState();
         }
     } else {
         std::clog << "Unauthorized slave detected" << std::endl;
@@ -73,14 +87,6 @@ void ExecutionAgent::SlaveMessage(
             errMsg,
             "Participant not in list of expected slaves");
         dsb::comm::AddressedSend(slaveSocket, envelope, errMsg);
-    }
-}
-
-
-void ExecutionAgent::UpdateState()
-{
-    if (m_nextState) {
-        m_state = std::move(m_nextState);
     }
 }
 
