@@ -165,10 +165,8 @@ void ExecutionInitializing::UserMessage(
         SendOk(userSocket);
     } else if (msgType == "ADD_SLAVE") {
         PerformAddSlaveRPC(self, msg, userSocket);
-    // } else if (message is CONNECT_VARS) {
-    //      queue CONNECT_VARS on SlaveTracker
     } else {
-        assert (false);
+        assert (!"Invalid command received while execution is in 'initializing' state");
     }
 }
 
@@ -242,9 +240,7 @@ void ExecutionReady::UserMessage(
     } else if (msgType == "WAIT_FOR_READY") {
         SendOk(userSocket);
     } else {
-    //  if message is CONNECT_VARS
-    //      queue CONNECT_VARS on SlaveTracker
-        assert (false);
+        assert (!"Invalid command received while execution is in 'ready' state");
     }
 }
 
