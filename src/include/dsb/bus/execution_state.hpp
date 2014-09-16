@@ -11,7 +11,7 @@ namespace bus
 {
 
 
-class ExecutionAgent;
+class ExecutionAgentPrivate;
 class SlaveTracker;
 
 
@@ -29,25 +29,25 @@ public:
     /**
     \brief  Called upon entering the state.
 
-    \param [in] self            The ExecutionAgent.
+    \param [in] self            ExecutionAgent internals.
     \param [in] userSocket      The socket for the "user" channel.
     \param [in] slaveSocket     The socket for the "slave" channel.
     */
     virtual void StateEntered(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) = 0;
 
     /**
     \brief  Called when a message has been received on the "user" channel.
 
-    \param [in] self            The ExecutionAgent.
+    \param [in] self            ExecutionAgent internals.
     \param [in] msg             The received message.
     \param [in] userSocket      The socket for the "user" channel.
     \param [in] slaveSocket     The socket for the "slave" channel.
     */
     virtual void UserMessage(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) = 0;
@@ -64,13 +64,13 @@ public:
     SlaveTracker does not send a reply, and the SlaveWaiting() function is
     called instead.
 
-    \param [in] self            The ExecutionAgent.
+    \param [in] self            ExecutionAgent internals.
     \param [in] slaveHandler    The slave which received the message.
     \param [in] userSocket      The socket for the "user" channel.
     \param [in] slaveSocket     The socket for the "slave" channel.
     */
     virtual void SlaveWaiting(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         SlaveTracker& slaveHandler,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) = 0;
@@ -85,18 +85,18 @@ public:
 
 private:
     void StateEntered(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
 
     void UserMessage(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
 
     void SlaveWaiting(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         SlaveTracker& slaveHandler,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
@@ -109,18 +109,18 @@ private:
 class ExecutionReady : public IExecutionState
 {
     void StateEntered(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
 
     void UserMessage(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
 
     void SlaveWaiting(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         SlaveTracker& slaveHandler,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
@@ -131,18 +131,18 @@ class ExecutionReady : public IExecutionState
 class ExecutionStepping : public IExecutionState
 {
     void StateEntered(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
 
     void UserMessage(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
 
     void SlaveWaiting(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         SlaveTracker& slaveHandler,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
@@ -153,18 +153,18 @@ class ExecutionStepping : public IExecutionState
 class ExecutionPublished : public IExecutionState
 {
     void StateEntered(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
 
     void UserMessage(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
 
     void SlaveWaiting(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         SlaveTracker& slaveHandler,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
@@ -178,18 +178,18 @@ public:
     ExecutionTerminating();
 
     void StateEntered(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
 
     void UserMessage(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;
 
     void SlaveWaiting(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         SlaveTracker& slaveHandler,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) override;

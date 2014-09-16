@@ -36,11 +36,11 @@ namespace
     // less) immediate reply, which is either OK or FAILED.
     // The latter happens if the supplied slave ID already exists.
     void PerformAddSlaveRPC(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket)
     {
-        assert (self.rpcInProgress == ExecutionAgent::NO_RPC
+        assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC
                 && "Cannot perform ADD_SLAVE when another RPC is in progress");
         assert (msg.size() == 2
                 && "ADD_SLAVE message must be exactly two frames");
@@ -61,12 +61,12 @@ namespace
     // reported by the slave in question are reported asynchronously, and not
     // handled by this function at all.
     void PerformSetVarsRPC(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket)
     {
-        assert (self.rpcInProgress == ExecutionAgent::NO_RPC
+        assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC
                 && "Cannot perform SET_VARS when another RPC is in progress");
         assert (msg.size() >= 2
                 && "SET_VARS message must be at least two frames");
@@ -96,12 +96,12 @@ namespace
     // reported by the slave in question are reported asynchronously, and not
     // handled by this function at all.
     void PerformConnectVarsRPC(
-        ExecutionAgent& self,
+        ExecutionAgentPrivate& self,
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket)
     {
-        assert (self.rpcInProgress == ExecutionAgent::NO_RPC
+        assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC
                 && "Cannot perform CONNECT_VARS when another RPC is in progress");
         assert (msg.size() >= 2
                 && "CONNECT_VARS message must be at least two frames");
@@ -136,22 +136,22 @@ namespace
 ExecutionInitializing::ExecutionInitializing() : m_waitingForReady(false) { }
 
 void ExecutionInitializing::StateEntered(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
     // This assert may be removed in the future, if we add RPCs that may cross
     // into the "initialized" state.
-    assert (self.rpcInProgress == ExecutionAgent::NO_RPC);
+    assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC);
 }
 
 void ExecutionInitializing::UserMessage(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     std::deque<zmq::message_t>& msg,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    assert (self.rpcInProgress == ExecutionAgent::NO_RPC);
+    assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC);
     assert (!msg.empty());
     const auto msgType = dsb::comm::ToString(msg[0]);
     if (msgType == "SET_VARS") {
@@ -159,7 +159,7 @@ void ExecutionInitializing::UserMessage(
     } else if (msgType == "CONNECT_VARS") {
         PerformConnectVarsRPC(self, msg, userSocket, slaveSocket);
     } else if (msgType == "WAIT_FOR_READY") {
-        self.rpcInProgress = ExecutionAgent::WAIT_FOR_READY_RPC;
+        self.rpcInProgress = ExecutionAgentPrivate::WAIT_FOR_READY_RPC;
     } else if (msgType == "TERMINATE") {
         self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
         SendOk(userSocket);
@@ -173,7 +173,7 @@ void ExecutionInitializing::UserMessage(
 }
 
 void ExecutionInitializing::SlaveWaiting(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     SlaveTracker& slaveHandler,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
@@ -191,27 +191,27 @@ void ExecutionInitializing::SlaveWaiting(
 // =============================================================================
 
 void ExecutionReady::StateEntered(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
     // Any RPC in progress will by definition have succeeded when this state is
     // reached.
-    if (self.rpcInProgress != ExecutionAgent::NO_RPC) {
-        assert (self.rpcInProgress == ExecutionAgent::WAIT_FOR_READY_RPC
-                || self.rpcInProgress == ExecutionAgent::STEP_RPC);
+    if (self.rpcInProgress != ExecutionAgentPrivate::NO_RPC) {
+        assert (self.rpcInProgress == ExecutionAgentPrivate::WAIT_FOR_READY_RPC
+                || self.rpcInProgress == ExecutionAgentPrivate::STEP_RPC);
         SendOk(userSocket);
-        self.rpcInProgress = ExecutionAgent::NO_RPC;
+        self.rpcInProgress = ExecutionAgentPrivate::NO_RPC;
     }
 }
 
 void ExecutionReady::UserMessage(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     std::deque<zmq::message_t>& msg,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    assert (self.rpcInProgress == ExecutionAgent::NO_RPC);
+    assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC);
     assert (!msg.empty());
     const auto msgType = dsb::comm::ToString(msg[0]);
     if (msgType == "STEP") {
@@ -226,7 +226,7 @@ void ExecutionReady::UserMessage(
         BOOST_FOREACH(auto& slave, self.slaves) {
             slave.second.SendStep(slaveSocket, stepData);
         }
-        self.rpcInProgress = ExecutionAgent::STEP_RPC;
+        self.rpcInProgress = ExecutionAgentPrivate::STEP_RPC;
         self.ChangeState<ExecutionStepping>(userSocket, slaveSocket);
     } else if (msgType == "TERMINATE") {
         self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
@@ -249,7 +249,7 @@ void ExecutionReady::UserMessage(
 }
 
 void ExecutionReady::SlaveWaiting(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     SlaveTracker& slaveHandler,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
@@ -261,15 +261,15 @@ void ExecutionReady::SlaveWaiting(
 // =============================================================================
 
 void ExecutionStepping::StateEntered(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    assert (self.rpcInProgress == ExecutionAgent::STEP_RPC);
+    assert (self.rpcInProgress == ExecutionAgentPrivate::STEP_RPC);
 }
 
 void ExecutionStepping::UserMessage(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     std::deque<zmq::message_t>& msg,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
@@ -278,7 +278,7 @@ void ExecutionStepping::UserMessage(
 }
 
 void ExecutionStepping::SlaveWaiting(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     SlaveTracker& slaveHandler,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
@@ -299,11 +299,11 @@ void ExecutionStepping::SlaveWaiting(
 // =============================================================================
 
 void ExecutionPublished::StateEntered(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
-    assert (self.rpcInProgress == ExecutionAgent::STEP_RPC);
+    assert (self.rpcInProgress == ExecutionAgentPrivate::STEP_RPC);
     BOOST_FOREACH (auto& slave, self.slaves) {
         if (slave.second.IsSimulating()) {
             slave.second.SendRecvVars(slaveSocket);
@@ -312,7 +312,7 @@ void ExecutionPublished::StateEntered(
 }
 
 void ExecutionPublished::UserMessage(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     std::deque<zmq::message_t>& msg,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
@@ -321,7 +321,7 @@ void ExecutionPublished::UserMessage(
 }
 
 void ExecutionPublished::SlaveWaiting(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     SlaveTracker& slaveHandler,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
@@ -345,7 +345,7 @@ ExecutionTerminating::ExecutionTerminating()
 }
 
 void ExecutionTerminating::StateEntered(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
@@ -357,7 +357,7 @@ void ExecutionTerminating::StateEntered(
 }
 
 void ExecutionTerminating::UserMessage(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     std::deque<zmq::message_t>& msg,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
@@ -366,7 +366,7 @@ void ExecutionTerminating::UserMessage(
 }
 
 void ExecutionTerminating::SlaveWaiting(
-    ExecutionAgent& self,
+    ExecutionAgentPrivate& self,
     SlaveTracker& slaveHandler,
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
