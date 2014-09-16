@@ -192,14 +192,17 @@ bool SlaveTracker::IsSimulating() const
 
 bool SlaveTracker::HelloHandler(std::deque<zmq::message_t>& msg)
 {
-    const auto slaveProtocol = dsb::control::ParseHelloMessage(msg);
-    if (slaveProtocol > 0) {
-        std::clog << "Warning: Slave requested newer protocol version ("
-                  << slaveProtocol << ")" << std::endl;
+    if (UpdateSlaveState(SLAVE_UNKNOWN, SLAVE_CONNECTING)) {
+        const auto slaveProtocol = dsb::control::ParseHelloMessage(msg);
+        if (slaveProtocol > 0) {
+            std::clog << "Warning: Slave requested newer protocol version ("
+                        << slaveProtocol << ")" << std::endl;
+        }
+        m_protocol = std::min(MAX_PROTOCOL, slaveProtocol);
+        dsb::control::CreateHelloMessage(msg, m_protocol);
+    } else {
+        dsb::control::CreateDeniedMessage(msg, "Slave already connected");
     }
-    m_protocol = std::min(MAX_PROTOCOL, slaveProtocol);
-    m_state = SLAVE_CONNECTING;
-    dsb::control::CreateHelloMessage(msg, m_protocol);
     return true;
 }
 
