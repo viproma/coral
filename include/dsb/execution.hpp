@@ -123,8 +123,9 @@ public:
     \param [in] slaveId     The ID of the slave whose inputs are to be connected.
     \param [in] connections References to input and output variables.
 
-    \throws std::runtime_error if `slaveId` does not correspond to a slave which
-        is part of this execution.
+    \throws std::runtime_error if `slaveId` or any of the slave IDs in
+        `connections` do not refer to slaves which have been added with
+        AddSlave().
     */
     void ConnectVariables(
         uint16_t slaveId,

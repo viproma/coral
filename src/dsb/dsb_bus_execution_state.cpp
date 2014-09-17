@@ -150,6 +150,11 @@ namespace
                     dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i+1]));
                 newVar.mutable_output_var()->set_var_id(
                     dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i+2]));
+
+                if (!self.slaves.count(newVar.output_var().slave_id())) {
+                    SendFailed(userSocket, "Invalid slave ID in output variable specification");
+                    return;
+                }
             }
             it->second.EnqueueConnectVars(slaveSocket, data);
             SendOk(userSocket);
