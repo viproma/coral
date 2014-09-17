@@ -28,7 +28,7 @@ namespace
     {
         auto m0 = dsb::comm::ToFrame("FAILED");
         auto m1 = dsb::comm::ToFrame(reason);
-        socket.send(m0, ZMQ_MORE);
+        socket.send(m0, ZMQ_SNDMORE);
         socket.send(m1);
     }
 

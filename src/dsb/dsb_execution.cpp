@@ -95,8 +95,9 @@ namespace
         const auto reply = dsb::comm::ToString(msg.at(0));
         if (reply == "FAILED") {
             assert (msg.size() == 2);
+            const auto reason = dsb::comm::ToString(msg.at(1));
             msg.clear();
-            throw std::runtime_error(dsb::comm::ToString(msg.at(1)));
+            throw std::runtime_error(reason);
         } else {
             assert (msg.size() == 1 && reply == "OK");
             msg.clear();
