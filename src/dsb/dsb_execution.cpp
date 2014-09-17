@@ -37,7 +37,7 @@ namespace
             { rpcSocket,          0, ZMQ_POLLIN, 0 },
             { slaveControlSocket, 0, ZMQ_POLLIN, 0 }
         };
-        for (;;) {
+        while (!exec.HasShutDown()) {
             // Poll for incoming messages on both sockets.
             zmq::poll(pollItems, 2);
 

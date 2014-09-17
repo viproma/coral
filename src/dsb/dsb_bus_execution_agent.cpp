@@ -24,8 +24,15 @@ namespace bus
 ExecutionAgentPrivate::ExecutionAgentPrivate()
     : startTime(0.0),
       stopTime(std::numeric_limits<double>::infinity()),
-      rpcInProgress(NO_RPC)
+      rpcInProgress(NO_RPC),
+      m_shutdown(false)
 { }
+
+
+void ExecutionAgentPrivate::Shutdown()
+{
+    m_shutdown = true;
+}
 
 
 void ExecutionAgentPrivate::UpdateState()
@@ -91,6 +98,12 @@ void ExecutionAgent::SlaveMessage(
             "Participant not in list of expected slaves");
         dsb::comm::AddressedSend(slaveSocket, envelope, errMsg);
     }
+}
+
+
+bool ExecutionAgent::HasShutDown() const
+{
+    return m_data.m_shutdown;
 }
 
 

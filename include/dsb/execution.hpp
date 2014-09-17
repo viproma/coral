@@ -144,7 +144,10 @@ public:
 
     This function will tell all participants to terminate, and then return
     immediately.  It does not (and can not) verify that the participants do
-    in fact terminate.
+    in fact terminate.  Once all participants have been notified, the execution
+    itself, and the thread it is running in, will terminate.
+
+    No other methods may be called after a successful Terminate() call.
     */
     void Terminate();
 

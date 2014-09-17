@@ -389,11 +389,15 @@ void ExecutionTerminating::StateEntered(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
+    bool readyToShutdown = true;
     BOOST_FOREACH (auto& slave, self.slaves) {
         if (slave.second.State() & TERMINATABLE_STATES) {
             slave.second.SendTerminate(slaveSocket);
+        } else {
+            readyToShutdown = false;
         }
     }
+    if (readyToShutdown) self.Shutdown();
 }
 
 void ExecutionTerminating::UserMessage(
@@ -413,6 +417,15 @@ void ExecutionTerminating::SlaveWaiting(
 {
     assert (slaveHandler.State() & TERMINATABLE_STATES);
     slaveHandler.SendTerminate(slaveSocket);
+
+    bool readyToShutdown = true;
+    BOOST_FOREACH (auto& slave, self.slaves) {
+        if (slave.second.State() != SLAVE_TERMINATED) {
+            readyToShutdown = false;
+            break;
+        }
+    }
+    if (readyToShutdown) self.Shutdown();
 }
 
 
