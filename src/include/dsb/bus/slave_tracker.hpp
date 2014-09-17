@@ -49,7 +49,7 @@ public:
 
     After construction, State() will return SlaveState::SLAVE_UNKNOWN.
     */
-    SlaveTracker();
+    SlaveTracker(double startTime, double stopTime);
 
     /**
     \brief  Copy constructor.
@@ -192,6 +192,8 @@ private:
         int allowedOldStates,
         SlaveState newState);
 
+    double m_startTime;
+    double m_stopTime;
     uint16_t m_protocol;
     SlaveState m_state;
     bool m_isSimulating;

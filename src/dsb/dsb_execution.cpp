@@ -115,6 +115,18 @@ namespace
 }
 
 
+void dsb::execution::Controller::SetSimulationTime(
+    double startTime,
+    double stopTime)
+{
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::ToFrame("SET_SIMULATION_TIME"));
+    msg.push_back(dsb::comm::EncodeRawDataFrame(startTime));
+    msg.push_back(dsb::comm::EncodeRawDataFrame(stopTime));
+    RPC(m_rpcSocket, msg);
+}
+
+
 void dsb::execution::Controller::AddSlave(uint16_t slaveId)
 {
     std::deque<zmq::message_t> msg;

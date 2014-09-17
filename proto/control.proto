@@ -78,6 +78,13 @@ message Variable
     required variable.ScalarValue value = 2;
 }
 
+// The body of a SETUP message
+message SetupData
+{
+    required double start_time = 1;
+    optional double stop_time = 2;
+}
+
 // A message that is sent by the master to a slave to set some of its variables.
 message SetVarsData
 {

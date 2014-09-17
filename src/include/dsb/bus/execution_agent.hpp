@@ -31,6 +31,12 @@ public:
     template<typename T>
     void ChangeState(zmq::socket_t& userSocket, zmq::socket_t& slaveSocket);
 
+    /// The (global) simulation start time.
+    double startTime;
+
+    /// The (global) simulation stop time (may be infinite).
+    double stopTime;
+
     /// The slaves which have been added to the execution.
     std::map<uint16_t, SlaveTracker> slaves;
 

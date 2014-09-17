@@ -1,7 +1,7 @@
 #include "dsb/bus/slave_agent.hpp"
 
-#include <limits>
 #include <iostream> // TEMPORARY
+#include <limits>
 #include <set>
 #include <utility>
 
@@ -86,6 +86,15 @@ void SlaveAgent::ConnectingHandler(std::deque<zmq::message_t>& msg)
 void SlaveAgent::ConnectedHandler(std::deque<zmq::message_t>& msg)
 {
     EnforceMessageType(msg, dsbproto::control::MSG_SETUP);
+    if (msg.size() != 2) InvalidReplyFromMaster();
+    dsbproto::control::SetupData data;
+    dsb::protobuf::ParseFromFrame(msg[1], data);
+    m_slaveInstance->Setup(
+        data.start_time(),
+        data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity());
+    std::clog << "Simulating from t = " << data.start_time()
+              << " to " << (data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity())
+              << std::endl;
     dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }

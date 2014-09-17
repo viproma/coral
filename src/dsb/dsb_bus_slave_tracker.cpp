@@ -32,8 +32,10 @@ namespace bus
 {
 
 
-SlaveTracker::SlaveTracker()
-    : m_protocol(UNKNOWN_PROTOCOL),
+SlaveTracker::SlaveTracker(double startTime, double stopTime)
+    : m_startTime(startTime),
+      m_stopTime(stopTime),
+      m_protocol(UNKNOWN_PROTOCOL),
       m_state(SLAVE_UNKNOWN),
       m_isSimulating(false)
 {
@@ -47,10 +49,14 @@ SlaveTracker::SlaveTracker(const SlaveTracker& other)
 
 
 SlaveTracker& SlaveTracker::operator=(const SlaveTracker& other) {
+    m_startTime = other.m_startTime;
+    m_stopTime = other.m_stopTime;
     m_protocol = other.m_protocol;
     m_state = other.m_state;
     m_isSimulating = other.m_isSimulating;
     dsb::comm::CopyMessage(other.m_envelope, m_envelope);
+    m_pendingSetVars = other.m_pendingSetVars;
+    m_pendingConnectVars = other.m_pendingConnectVars;
     return *this;
 }
 
@@ -210,7 +216,12 @@ bool SlaveTracker::HelloHandler(std::deque<zmq::message_t>& msg)
 bool SlaveTracker::SubmitHandler(std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_CONNECTING, SLAVE_CONNECTED)) {
-        dsb::control::CreateMessage(msg, dsbproto::control::MSG_SETUP);
+        dsbproto::control::SetupData data;
+        data.set_start_time(m_startTime);
+        if (m_stopTime < std::numeric_limits<double>::infinity()) {
+            data.set_stop_time(m_stopTime);
+        }
+        dsb::control::CreateMessage(msg, dsbproto::control::MSG_SETUP, data);
     } else {
         CreateInvalidRequest(msg);
     }

@@ -1,6 +1,7 @@
 #include "dsb/bus/execution_agent.hpp"
 
 #include <iostream> // TEMPORARY
+#include <limits>
 #include "dsb/comm.hpp"
 #include "dsb/control.hpp"
 #include "dsb/util.hpp"
@@ -21,7 +22,9 @@ namespace bus
 
 
 ExecutionAgentPrivate::ExecutionAgentPrivate()
-    : rpcInProgress(NO_RPC)
+    : startTime(0.0),
+      stopTime(std::numeric_limits<double>::infinity()),
+      rpcInProgress(NO_RPC)
 { }
 
 
