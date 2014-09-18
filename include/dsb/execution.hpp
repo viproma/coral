@@ -10,6 +10,7 @@
 #include <string>
 #include "zmq.hpp"
 #include "dsb/sequence.hpp"
+#include "dsb/types.hpp"
 
 
 namespace dsb
@@ -18,28 +19,6 @@ namespace dsb
 /// Functions and classes for controlling and interacting with an execution.
 namespace execution
 {
-
-
-/**
-\brief  A variable ID-value pair.
-
-Currently, this type is only used with Controller::SetVariables(), and it only
-supports real variables.  This will change in the future.
-*/
-// TODO: Make this more generic and move it somewhere else.
-struct Variable
-{
-    uint16_t id;
-    double value;
-};
-
-
-struct VariableConnection
-{
-    uint16_t inputId;       ///< The input variable which is to be connected.
-    uint16_t otherSlaveId;  ///< The slave whose output variable to connect to.
-    uint16_t otherOutputId; ///< The output variable which is to be connected.
-};
 
 
 /**
@@ -115,7 +94,7 @@ public:
     */
     void SetVariables(
         uint16_t slaveId,
-        dsb::sequence::Sequence<Variable> variables);
+        dsb::sequence::Sequence<dsb::types::Variable> variables);
 
     /**
     \brief  Connects inputs of one slave to outputs of other slaves.
@@ -129,7 +108,7 @@ public:
     */
     void ConnectVariables(
         uint16_t slaveId,
-        dsb::sequence::Sequence<VariableConnection> connections);
+        dsb::sequence::Sequence<dsb::types::VariableConnection> connections);
 
     /**
     \brief  Performs a time step.
