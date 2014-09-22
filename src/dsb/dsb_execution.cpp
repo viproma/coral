@@ -37,7 +37,7 @@ namespace
             { rpcSocket,          0, ZMQ_POLLIN, 0 },
             { slaveControlSocket, 0, ZMQ_POLLIN, 0 }
         };
-        for (;;) {
+        while (!exec.HasShutDown()) {
             // Poll for incoming messages on both sockets.
             zmq::poll(pollItems, 2);
 
@@ -95,8 +95,9 @@ namespace
         const auto reply = dsb::comm::ToString(msg.at(0));
         if (reply == "FAILED") {
             assert (msg.size() == 2);
+            const auto reason = dsb::comm::ToString(msg.at(1));
             msg.clear();
-            throw std::runtime_error(dsb::comm::ToString(msg.at(1)));
+            throw std::runtime_error(reason);
         } else {
             assert (msg.size() == 1 && reply == "OK");
             msg.clear();
@@ -111,6 +112,18 @@ namespace
         msg.push_back(dsb::comm::ToFrame(str));
         RPC(socket, msg);
     }
+}
+
+
+void dsb::execution::Controller::SetSimulationTime(
+    double startTime,
+    double stopTime)
+{
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::ToFrame("SET_SIMULATION_TIME"));
+    msg.push_back(dsb::comm::EncodeRawDataFrame(startTime));
+    msg.push_back(dsb::comm::EncodeRawDataFrame(stopTime));
+    RPC(m_rpcSocket, msg);
 }
 
 

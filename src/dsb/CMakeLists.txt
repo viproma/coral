@@ -35,6 +35,7 @@ set (_testSources
     "dsb_compat_helpers_test.cpp"
     "dsb_protobuf_test.cpp"
     "dsb_control_test.cpp"
+    "dsb_execution_test.cpp"
     "dsb_sequence_test.cpp"
     "dsb_util_test.cpp"
 )
@@ -55,7 +56,7 @@ source_group ("Internal Header Files" FILES ${_internalHeaders})
 include_directories (${publicHeaderDir} ${privateHeaderDir})
 
 # Dependencies
-find_package (Boost REQUIRED)
+find_package (Boost REQUIRED COMPONENTS thread system chrono)
 find_package (ZMQ REQUIRED)
 
 # Main library target
@@ -75,7 +76,13 @@ install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
 # Test target
 set (_testTarget "${_target}_test")
 add_executable (${_testTarget} ${_testSources})
-target_link_libraries (${_testTarget} ${_target} "gtest_main" "dsbproto" ${ZMQ_LIBRARIES})
+target_link_libraries (${_testTarget}
+    ${_target}
+    "gtest_main"
+    "dsbproto"
+    ${ZMQ_LIBRARIES}
+    ${Boost_LIBRARIES}
+)
 target_include_directories(${_testTarget}
     PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>"
             ${ZMQ_INCLUDE_DIRS}

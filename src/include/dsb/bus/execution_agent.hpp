@@ -31,6 +31,15 @@ public:
     template<typename T>
     void ChangeState(zmq::socket_t& userSocket, zmq::socket_t& slaveSocket);
 
+    /// Sets a flag to shut down the execution thread.
+    void Shutdown();
+
+    /// The (global) simulation start time.
+    double startTime;
+
+    /// The (global) simulation stop time (may be infinite).
+    double stopTime;
+
     /// The slaves which have been added to the execution.
     std::map<uint16_t, SlaveTracker> slaves;
 
@@ -50,7 +59,7 @@ private:
     void UpdateState();
     std::unique_ptr<IExecutionState> m_state;
     std::unique_ptr<IExecutionState> m_nextState;
-
+    bool m_shutdown;
 };
 
 
@@ -99,6 +108,13 @@ public:
         std::deque<zmq::message_t>& msg,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket);
+
+    /**
+    \brief  Whether the execution has been shut down.
+
+    If this function returns true, the ExecutionAgent can safely be destroyed.
+    */
+    bool HasShutDown() const;
 
 private:
     ExecutionAgentPrivate m_data;

@@ -28,8 +28,37 @@ namespace
     {
         auto m0 = dsb::comm::ToFrame("FAILED");
         auto m1 = dsb::comm::ToFrame(reason);
-        socket.send(m0, ZMQ_MORE);
+        socket.send(m0, ZMQ_SNDMORE);
         socket.send(m1);
+    }
+
+    // This function handles an SET_SIMULATION_TIME call from the user.
+    // It sends a (more or less) immediate reply, which is either OK or FAILED.
+    // The latter happens if the start time is greater than the stop time, or
+    // if the function is called after slaves have been added.
+    void PerformSetSimulationTimeRPC(
+        ExecutionAgentPrivate& self,
+        std::deque<zmq::message_t>& msg,
+        zmq::socket_t& userSocket)
+    {
+        assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC
+                && "Cannot perform SET_SIMULATION_TIME when another RPC is in progress");
+        assert (msg.size() == 3
+                && "SET_SIMULATION_TIME message must be exactly three frames");
+        assert (dsb::comm::ToString(msg.front()) == "SET_SIMULATION_TIME"
+                && "PerformSetSimulationTimeRPC() received non-SET_SIMULATION_TIME command");
+
+        const auto startTime = dsb::comm::DecodeRawDataFrame<double>(msg[1]);
+        const auto stopTime  = dsb::comm::DecodeRawDataFrame<double>(msg[2]);
+        if (startTime > stopTime) {
+            SendFailed(userSocket, "Attempted to set start time greater than stop time");
+        } else if (!self.slaves.empty()) {
+            SendFailed(userSocket, "Simulation time must be set before slaves are added");
+        } else {
+            self.startTime = startTime;
+            self.stopTime  = stopTime;
+            SendOk(userSocket);
+        }
     }
 
     // This function handles an ADD_SLAVE call from the user.  It sends a (more or
@@ -48,7 +77,7 @@ namespace
                 && "PerformAddSlaveRPC() received non-ADD_SLAVE command");
 
         const auto slaveId = dsb::comm::DecodeRawDataFrame<uint16_t>(msg[1]);
-        if (self.slaves.insert(std::make_pair(slaveId, dsb::bus::SlaveTracker())).second) {
+        if (self.slaves.insert(std::make_pair(slaveId, dsb::bus::SlaveTracker(self.startTime, self.stopTime))).second) {
             SendOk(userSocket);
         } else {
             SendFailed(userSocket, "Slave already added");
@@ -121,6 +150,11 @@ namespace
                     dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i+1]));
                 newVar.mutable_output_var()->set_var_id(
                     dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i+2]));
+
+                if (!self.slaves.count(newVar.output_var().slave_id())) {
+                    SendFailed(userSocket, "Invalid slave ID in output variable specification");
+                    return;
+                }
             }
             it->second.EnqueueConnectVars(slaveSocket, data);
             SendOk(userSocket);
@@ -154,7 +188,9 @@ void ExecutionInitializing::UserMessage(
     assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC);
     assert (!msg.empty());
     const auto msgType = dsb::comm::ToString(msg[0]);
-    if (msgType == "SET_VARS") {
+    if (msgType == "SET_SIMULATION_TIME") {
+        PerformSetSimulationTimeRPC(self, msg, userSocket);
+    } else if (msgType == "SET_VARS") {
         PerformSetVarsRPC(self, msg, userSocket, slaveSocket);
     } else if (msgType == "CONNECT_VARS") {
         PerformConnectVarsRPC(self, msg, userSocket, slaveSocket);
@@ -165,10 +201,8 @@ void ExecutionInitializing::UserMessage(
         SendOk(userSocket);
     } else if (msgType == "ADD_SLAVE") {
         PerformAddSlaveRPC(self, msg, userSocket);
-    // } else if (message is CONNECT_VARS) {
-    //      queue CONNECT_VARS on SlaveTracker
     } else {
-        assert (false);
+        assert (!"Invalid command received while execution is in 'initializing' state");
     }
 }
 
@@ -219,6 +253,14 @@ void ExecutionReady::UserMessage(
         const auto time     = dsb::comm::DecodeRawDataFrame<double>(msg[1]);
         const auto stepSize = dsb::comm::DecodeRawDataFrame<double>(msg[2]);
 
+        // TODO: Some checks we may want to insert here (and send FAIL if they
+        // do not pass):
+        //   - Is the time point of the first step equal to the start time?
+        //   - Is the time point plus the step size greater than the stop time?
+        //   - Is the time point equal to the previous time point plus the
+        //     previous step size?
+        //   - Have any slaves been added to the simulation?
+
         // Create the STEP message body
         dsbproto::control::StepData stepData;
         stepData.set_timepoint(time);
@@ -242,9 +284,7 @@ void ExecutionReady::UserMessage(
     } else if (msgType == "WAIT_FOR_READY") {
         SendOk(userSocket);
     } else {
-    //  if message is CONNECT_VARS
-    //      queue CONNECT_VARS on SlaveTracker
-        assert (false);
+        assert (!"Invalid command received while execution is in 'ready' state");
     }
 }
 
@@ -349,11 +389,15 @@ void ExecutionTerminating::StateEntered(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
+    bool readyToShutdown = true;
     BOOST_FOREACH (auto& slave, self.slaves) {
         if (slave.second.State() & TERMINATABLE_STATES) {
             slave.second.SendTerminate(slaveSocket);
+        } else {
+            readyToShutdown = false;
         }
     }
+    if (readyToShutdown) self.Shutdown();
 }
 
 void ExecutionTerminating::UserMessage(
@@ -373,6 +417,15 @@ void ExecutionTerminating::SlaveWaiting(
 {
     assert (slaveHandler.State() & TERMINATABLE_STATES);
     slaveHandler.SendTerminate(slaveSocket);
+
+    bool readyToShutdown = true;
+    BOOST_FOREACH (auto& slave, self.slaves) {
+        if (slave.second.State() != SLAVE_TERMINATED) {
+            readyToShutdown = false;
+            break;
+        }
+    }
+    if (readyToShutdown) self.Shutdown();
 }
 
 

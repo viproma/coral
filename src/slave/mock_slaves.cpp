@@ -16,6 +16,8 @@ public:
     Mass1D()
         : m_force1_x(0.0), m_force2_x(0.0), m_pos_x(0.0), m_vel_x(0.0), m_mass(1.0) { }
 
+    void Setup(double startTime, double stopTime) { }
+
     std::vector<int> InputVariables()
     {
         std::vector<int> v;
@@ -83,6 +85,8 @@ public:
         : m_pos_a_x(0.0), m_pos_b_x(1.0), m_force_a_x(0.0), m_force_b_x(0.0),
           m_length(1.0), m_stiffness(1.0)
     { }
+
+    void Setup(double startTime, double stopTime) { }
 
     std::vector<int> InputVariables()
     {
@@ -152,6 +156,8 @@ class Buggy1D : public dsb::bus::ISlaveInstance
 {
 public:
     Buggy1D() : m_in(0.0), m_out(0.0), m_stepCount(0) { }
+
+    void Setup(double startTime, double stopTime) { }
 
     std::vector<int> InputVariables()
     {

@@ -6,6 +6,7 @@
 #define DSB_EXECUTION_HPP
 
 #include <memory>
+#include <limits>
 #include <string>
 #include "zmq.hpp"
 #include "dsb/sequence.hpp"
@@ -66,6 +67,31 @@ public:
     Controller& operator=(Controller&& other);
 
     /**
+    \brief  Sets the start time and, optionally, the stop time of the
+            simulation.
+
+    This function must be called before any AddSlave() calls are made.  The
+    reason is that this information must be transmitted to the slaves as they
+    connect and initialize, to allow them to report whether their model is
+    valid within the given boundaries and/or to allocate memory for their
+    internal state.
+
+    If this function is never called, a default start time of 0.0 and an
+    undefined stop time is used.
+
+    \param [in] startTime   The start time of the simulation.
+    \param [in] stopTime    The stop time of the simulation.  This may be
+                            infinite (the default), signifying that no
+                            particular stop time is defined.
+
+    \throws std::runtime_error if `startTime > stopTime` or AddSlave() has
+        previously been called.
+    */
+    void SetSimulationTime(
+        double startTime,
+        double stopTime = std::numeric_limits<double>::infinity());
+
+    /**
     \brief  Adds a slave to the execution.
 
     This function must be called in order to allow the slave to connect to
@@ -97,8 +123,9 @@ public:
     \param [in] slaveId     The ID of the slave whose inputs are to be connected.
     \param [in] connections References to input and output variables.
 
-    \throws std::runtime_error if `slaveId` does not correspond to a slave which
-        is part of this execution.
+    \throws std::runtime_error if `slaveId` or any of the slave IDs in
+        `connections` do not refer to slaves which have been added with
+        AddSlave().
     */
     void ConnectVariables(
         uint16_t slaveId,
@@ -117,7 +144,10 @@ public:
 
     This function will tell all participants to terminate, and then return
     immediately.  It does not (and can not) verify that the participants do
-    in fact terminate.
+    in fact terminate.  Once all participants have been notified, the execution
+    itself, and the thread it is running in, will terminate.
+
+    No other methods may be called after a successful Terminate() call.
     */
     void Terminate();
 

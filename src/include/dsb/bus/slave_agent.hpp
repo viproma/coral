@@ -21,6 +21,7 @@ namespace bus
 class ISlaveInstance
 {
 public:
+    virtual void Setup(double startTime, double stopTime) = 0;
     virtual std::vector<int> InputVariables() = 0;
     virtual std::vector<int> OutputVariables() = 0;
     virtual double GetVariable(int varRef) = 0;

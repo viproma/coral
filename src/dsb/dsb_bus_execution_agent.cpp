@@ -1,6 +1,7 @@
 #include "dsb/bus/execution_agent.hpp"
 
 #include <iostream> // TEMPORARY
+#include <limits>
 #include "dsb/comm.hpp"
 #include "dsb/control.hpp"
 #include "dsb/util.hpp"
@@ -21,8 +22,17 @@ namespace bus
 
 
 ExecutionAgentPrivate::ExecutionAgentPrivate()
-    : rpcInProgress(NO_RPC)
+    : startTime(0.0),
+      stopTime(std::numeric_limits<double>::infinity()),
+      rpcInProgress(NO_RPC),
+      m_shutdown(false)
 { }
+
+
+void ExecutionAgentPrivate::Shutdown()
+{
+    m_shutdown = true;
+}
 
 
 void ExecutionAgentPrivate::UpdateState()
@@ -88,6 +98,12 @@ void ExecutionAgent::SlaveMessage(
             "Participant not in list of expected slaves");
         dsb::comm::AddressedSend(slaveSocket, envelope, errMsg);
     }
+}
+
+
+bool ExecutionAgent::HasShutDown() const
+{
+    return m_data.m_shutdown;
 }
 
 
