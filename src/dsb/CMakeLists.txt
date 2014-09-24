@@ -15,6 +15,7 @@ set (_privateHeaders
     "dsb/control.hpp"
     "dsb/error.hpp"
     "dsb/protobuf.hpp"
+    "dsb/slave/fmi.hpp"
     "dsb/util.hpp"
 )
 set (_internalHeaders ) # Only visible inside the "dsb" module.
@@ -26,6 +27,7 @@ set (_sources
     "dsb_comm.cpp"
     "dsb_control.cpp"
     "dsb_protobuf.cpp"
+    "dsb_slave_fmi.cpp"
     "dsb_util.cpp"
 
     "dsb_execution.cpp"
@@ -58,6 +60,7 @@ include_directories (${publicHeaderDir} ${privateHeaderDir})
 # Dependencies
 find_package (Boost REQUIRED COMPONENTS thread system chrono)
 find_package (ZMQ REQUIRED)
+find_package (FMILIBCPP REQUIRED)
 
 # Main library target
 add_library (${_target} STATIC
@@ -67,6 +70,8 @@ add_library (${_target} STATIC
     ${_sources})
 target_include_directories(${_target}
     PRIVATE "$<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>"
+            ${FMILIBCPP_INCLUDE_DIRS}
+            ${FMILIB_INCLUDE_DIRS}
             ${ZMQ_INCLUDE_DIRS}
             ${CPPZMQ_INCLUDE_DIRS}
             ${Boost_INCLUDE_DIRS}
@@ -80,11 +85,15 @@ target_link_libraries (${_testTarget}
     ${_target}
     "gtest_main"
     "dsbproto"
+    ${FMILIBCPP_LIBRARIES}
+    ${FMILIB_LIBRARIES}
     ${ZMQ_LIBRARIES}
     ${Boost_LIBRARIES}
 )
 target_include_directories(${_testTarget}
     PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>"
+            ${FMILIBCPP_INCLUDE_DIRS}
+            ${FMILIB_INCLUDE_DIRS}
             ${ZMQ_INCLUDE_DIRS}
             ${CPPZMQ_INCLUDE_DIRS}
 )
