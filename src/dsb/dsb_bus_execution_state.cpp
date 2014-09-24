@@ -378,7 +378,6 @@ void ExecutionPublished::SlaveWaiting(
 // Terminating
 // =============================================================================
 
-// TODO: Shut down ExecutionAgent too!
 
 ExecutionTerminating::ExecutionTerminating()
 {
