@@ -251,19 +251,21 @@ bool SlaveAgent::Step(const dsbproto::control::StepData& stepInfo)
     m_lastStepSize = stepInfo.stepsize();
 
     std::cout << m_currentTime;
-    BOOST_FOREACH (const auto outVarRef, m_slaveInstance->OutputVariables()) {
-        std::cout << " " << outVarRef << " " << m_slaveInstance->GetVariable(outVarRef);
+    BOOST_FOREACH (const auto varInfo, m_slaveInstance->Variables()) {
+        std::cout << " " << varInfo.name << " " << m_slaveInstance->GetVariable(varInfo.reference);
+        if (varInfo.causality != dsb::bus::OUTPUT_CAUSALITY) continue;
+
         // Get value of output variable
         dsbproto::variable::TimestampedValue outVar;
         outVar.set_timestamp(m_currentTime);
-        outVar.mutable_value()->set_real_value(m_slaveInstance->GetVariable(outVarRef));
+        outVar.mutable_value()->set_real_value(m_slaveInstance->GetVariable(varInfo.reference));
 
         // Build data message to be published
         std::deque<zmq::message_t> dataMsg;
         // Header
         dataMsg.push_back(zmq::message_t(DATA_HEADER_SIZE));
         dsb::util::EncodeUint16(m_id, static_cast<char*>(dataMsg.front().data()));
-        dsb::util::EncodeUint16(outVarRef, static_cast<char*>(dataMsg.front().data()) + 2);
+        dsb::util::EncodeUint16(varInfo.reference, static_cast<char*>(dataMsg.front().data()) + 2);
         // Body
         dataMsg.push_back(zmq::message_t());
         dsb::protobuf::SerializeToFrame(outVar, dataMsg.back());

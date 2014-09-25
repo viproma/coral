@@ -18,22 +18,18 @@ public:
 
     void Setup(double startTime, double stopTime) { }
 
-    std::vector<int> InputVariables()
+    std::vector<dsb::bus::VariableInfo> Variables() override
     {
-        std::vector<int> v;
-        v.push_back(0);
-        v.push_back(1);
+        std::vector<dsb::bus::VariableInfo> v;
+        v.push_back(dsb::bus::VariableInfo(0, "force1_x", dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(1, "force2_x", dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(2, "pos_x",    dsb::bus::OUTPUT_CAUSALITY,    dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(3, "vel_x",    dsb::bus::LOCAL_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(4, "mass",     dsb::bus::PARAMETER_CAUSALITY, dsb::bus::FIXED_VARIABILITY));
         return v;
     }
 
-    std::vector<int> OutputVariables()
-    {
-        std::vector<int> v;
-        v.push_back(2);
-        return v;
-    }
-
-    double GetVariable(int varRef) override
+    double GetVariable(unsigned varRef) override
     {
         switch (varRef) {
             case 0: return m_force1_x;  break;
@@ -47,7 +43,7 @@ public:
         return 0.0;
     }
 
-    void SetVariable(int varRef, double value) override
+    void SetVariable(unsigned varRef, double value) override
     {
         switch (varRef) {
             case 0: m_force1_x = value; break;
@@ -88,23 +84,19 @@ public:
 
     void Setup(double startTime, double stopTime) { }
 
-    std::vector<int> InputVariables()
+    std::vector<dsb::bus::VariableInfo> Variables() override
     {
-        std::vector<int> v;
-        v.push_back(0);
-        v.push_back(1);
+        std::vector<dsb::bus::VariableInfo> v;
+        v.push_back(dsb::bus::VariableInfo(0, "pos_a_x",   dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(1, "pos_b_x",   dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(2, "force_a_x", dsb::bus::OUTPUT_CAUSALITY,    dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(3, "force_b_x", dsb::bus::OUTPUT_CAUSALITY,    dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(4, "length",    dsb::bus::PARAMETER_CAUSALITY, dsb::bus::FIXED_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(5, "stiffness", dsb::bus::PARAMETER_CAUSALITY, dsb::bus::TUNABLE_VARIABILITY));
         return v;
     }
 
-    std::vector<int> OutputVariables()
-    {
-        std::vector<int> v;
-        v.push_back(2);
-        v.push_back(3);
-        return v;
-    }
-
-    double GetVariable(int varRef) override
+    double GetVariable(unsigned varRef) override
     {
         switch (varRef) {
             case 0: return m_pos_a_x;   break;
@@ -119,7 +111,7 @@ public:
         return 0.0;
     }
 
-    void SetVariable(int varRef, double value) override
+    void SetVariable(unsigned varRef, double value) override
     {
         switch (varRef) {
             case 0: m_pos_a_x = value;   break;
@@ -159,21 +151,15 @@ public:
 
     void Setup(double startTime, double stopTime) { }
 
-    std::vector<int> InputVariables()
+    std::vector<dsb::bus::VariableInfo> Variables() override
     {
-        std::vector<int> v;
-        v.push_back(0);
+        std::vector<dsb::bus::VariableInfo> v;
+        v.push_back(dsb::bus::VariableInfo(0, "in",  dsb::bus::INPUT_CAUSALITY,  dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(1, "out", dsb::bus::OUTPUT_CAUSALITY, dsb::bus::CONTINUOUS_VARIABILITY));
         return v;
     }
 
-    std::vector<int> OutputVariables()
-    {
-        std::vector<int> v;
-        v.push_back(1);
-        return v;
-    }
-
-    double GetVariable(int varRef) override
+    double GetVariable(unsigned varRef) override
     {
         switch (varRef) {
             case 0: return m_in;   break;
@@ -184,7 +170,7 @@ public:
         return 0.0;
     }
 
-    void SetVariable(int varRef, double value) override
+    void SetVariable(unsigned varRef, double value) override
     {
         switch (varRef) {
             case 0: m_in  = value;  break;

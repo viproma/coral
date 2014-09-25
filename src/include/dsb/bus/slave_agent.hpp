@@ -6,6 +6,7 @@
 #include <exception>
 #include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "zmq.hpp"
@@ -17,17 +18,48 @@ namespace dsb
 namespace bus
 {
 
-// TEMPORARY placeholder for FMI-based interface
+// =============================================================================
+// TEMPORARY placeholders for FMI-based interface
+enum Causality
+{
+    PARAMETER_CAUSALITY = 1,
+    // Reserved: CALCULATED_PARAMETER_CAUSALITY = 1 << 1,
+    INPUT_CAUSALITY     = 1 << 2,
+    OUTPUT_CAUSALITY    = 1 << 3,
+    LOCAL_CAUSALITY     = 1 << 4,
+};
+
+enum Variability
+{
+    CONSTANT_VARIABILITY    = 1,
+    FIXED_VARIABILITY       = 1 << 1,
+    TUNABLE_VARIABILITY     = 1 << 2,
+    DISCRETE_VARIABILITY    = 1 << 3,
+    CONTINUOUS_VARIABILITY  = 1 << 4,
+};
+
+struct VariableInfo
+{
+    VariableInfo(unsigned reference_, const std::string& name_, Causality causality_, Variability variability_)
+        : reference(reference_), name(name_), causality(causality_), variability(variability_)
+    { }
+
+    unsigned reference;
+    std::string name;
+    Causality causality;
+    Variability variability;
+};
+
 class ISlaveInstance
 {
 public:
     virtual void Setup(double startTime, double stopTime) = 0;
-    virtual std::vector<int> InputVariables() = 0;
-    virtual std::vector<int> OutputVariables() = 0;
-    virtual double GetVariable(int varRef) = 0;
-    virtual void SetVariable(int varRef, double value) = 0;
+    virtual std::vector<VariableInfo> Variables() = 0;
+    virtual double GetVariable(unsigned varRef) = 0;
+    virtual void SetVariable(unsigned varRef, double value) = 0;
     virtual bool DoStep(double currentT, double deltaT) = 0;
 };
+// =============================================================================
 
 
 /**

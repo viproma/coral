@@ -6,7 +6,9 @@
 
 #include "dsb/bus/slave_agent.hpp"
 #include "dsb/comm.hpp"
+#include "dsb/compat_helpers.hpp"
 #include "dsb/control.hpp"
+#include "dsb/slave/fmi.hpp"
 #include "dsb/util.hpp"
 
 #include "mock_slaves.hpp"
@@ -16,12 +18,12 @@ int main(int argc, const char** argv)
 {
 try {
     if (argc < 6) {
-        std::cerr << "Usage: " << argv[0] << " <id> <control> <data pub> <data sub> <slave type> <other slave>\n"
+        std::cerr << "Usage: " << argv[0] << " <id> <control> <data pub> <data sub> <fmu path>\n"
                   << "  id          = a number in the range 0 - 65535\n"
                   << "  control     = Control socket endpoint (e.g. tcp://myhost:5432)\n"
                   << "  data pub    = Publisher socket endpoint\n"
                   << "  data sub    = Subscriber socket endpoint\n"
-                  << "  slave type  = mass_1d, spring_1d or buggy_1d"
+                  << "  fmu path    = Path to FMI1 FMU"
                   << std::endl;
         return 0;
     }
@@ -29,7 +31,7 @@ try {
     const auto controlEndpoint = std::string(argv[2]);
     const auto dataPubEndpoint = std::string(argv[3]);
     const auto dataSubEndpoint = std::string(argv[4]);
-    const auto slaveType = std::string(argv[5]);
+    const auto fmuPath = std::string(argv[5]);
 
     auto context = zmq::context_t();
     auto control = zmq::socket_t(context, ZMQ_REQ);
@@ -49,7 +51,7 @@ try {
         id,
         std::move(dataSub),
         std::move(dataPub),
-        NewSlave(slaveType));
+        std::make_unique<dsb::slave::FmiSlaveInstance>(fmuPath));
     std::deque<zmq::message_t> msg;
     slave.Start(msg);
     for (;;) {
