@@ -3,7 +3,7 @@ find_package (ZMQ REQUIRED)
 find_package (FMILIBCPP REQUIRED)
 
 set (_target "slave")
-add_executable (${_target} "main.cpp" "mock_slaves.hpp" "mock_slaves.cpp")
+add_executable (${_target} "main.cpp")
 target_include_directories (${_target}
     PRIVATE ${publicHeaderDir}
             ${privateHeaderDir}
