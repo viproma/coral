@@ -59,6 +59,25 @@ int main(int argc, const char** argv)
     controller.ConnectVariables(SPRING2, dsb::sequence::Only(cMass1Spring2Pos));
     dsb::types::VariableConnection cSpring2Mass1Force = { 1, SPRING2, 2 };
     controller.ConnectVariables(MASS1, dsb::sequence::Only(cSpring2Mass1Force));
+    controller.AddSlave(5);
+    dsb::types::Variable vBanana[] = {
+        {0, 5e9},
+        {1, -3.14159},
+        {2, 4000000},
+        {3, 0},
+        {4, false},
+        {5, true},
+        {6, std::string("banana!!")},
+        {7, std::string("apple??")}
+    };
+    controller.SetVariables(5, dsb::sequence::ElementsOf(vBanana, 8));
+    controller.AddSlave(6);
+    dsb::types::VariableConnection vBananaConnection[] = {
+        {2, 5, 3},
+        {4, 5, 5},
+        {6, 5, 7}
+    };
+    controller.ConnectVariables(6, dsb::sequence::ElementsOf(vBananaConnection, 3));
     // =========================================================================
 
     // This is to work around "slow joiner syndrome".  It lets slaves'

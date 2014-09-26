@@ -21,15 +21,15 @@ public:
     std::vector<dsb::bus::VariableInfo> Variables() override
     {
         std::vector<dsb::bus::VariableInfo> v;
-        v.push_back(dsb::bus::VariableInfo(0, "force1_x", dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
-        v.push_back(dsb::bus::VariableInfo(1, "force2_x", dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
-        v.push_back(dsb::bus::VariableInfo(2, "pos_x",    dsb::bus::OUTPUT_CAUSALITY,    dsb::bus::CONTINUOUS_VARIABILITY));
-        v.push_back(dsb::bus::VariableInfo(3, "vel_x",    dsb::bus::LOCAL_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
-        v.push_back(dsb::bus::VariableInfo(4, "mass",     dsb::bus::PARAMETER_CAUSALITY, dsb::bus::FIXED_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(0, "force1_x", dsb::bus::REAL_DATATYPE, dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(1, "force2_x", dsb::bus::REAL_DATATYPE, dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(2, "pos_x",    dsb::bus::REAL_DATATYPE, dsb::bus::OUTPUT_CAUSALITY,    dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(3, "vel_x",    dsb::bus::REAL_DATATYPE, dsb::bus::LOCAL_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(4, "mass",     dsb::bus::REAL_DATATYPE, dsb::bus::PARAMETER_CAUSALITY, dsb::bus::FIXED_VARIABILITY));
         return v;
     }
 
-    double GetVariable(unsigned varRef) override
+    double GetRealVariable(unsigned varRef) override
     {
         switch (varRef) {
             case 0: return m_force1_x;  break;
@@ -38,12 +38,12 @@ public:
             case 3: return m_vel_x;     break;
             case 4: return m_mass;      break;
             default:
-                assert (!"Mass1D::GetVariable(): Invalid variable reference");
+                assert (!"Mass1D::GetRealVariable(): Invalid variable reference");
         }
         return 0.0;
     }
 
-    void SetVariable(unsigned varRef, double value) override
+    void SetRealVariable(unsigned varRef, double value) override
     {
         switch (varRef) {
             case 0: m_force1_x = value; break;
@@ -52,7 +52,7 @@ public:
             case 3: m_vel_x = value;    break;
             case 4: m_mass = value;     break;
             default:
-                assert (!"Mass1D::SetVariable(): Invalid variable reference");
+                assert (!"Mass1D::SetRealVariable(): Invalid variable reference");
         }
     }
 
@@ -87,16 +87,16 @@ public:
     std::vector<dsb::bus::VariableInfo> Variables() override
     {
         std::vector<dsb::bus::VariableInfo> v;
-        v.push_back(dsb::bus::VariableInfo(0, "pos_a_x",   dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
-        v.push_back(dsb::bus::VariableInfo(1, "pos_b_x",   dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
-        v.push_back(dsb::bus::VariableInfo(2, "force_a_x", dsb::bus::OUTPUT_CAUSALITY,    dsb::bus::CONTINUOUS_VARIABILITY));
-        v.push_back(dsb::bus::VariableInfo(3, "force_b_x", dsb::bus::OUTPUT_CAUSALITY,    dsb::bus::CONTINUOUS_VARIABILITY));
-        v.push_back(dsb::bus::VariableInfo(4, "length",    dsb::bus::PARAMETER_CAUSALITY, dsb::bus::FIXED_VARIABILITY));
-        v.push_back(dsb::bus::VariableInfo(5, "stiffness", dsb::bus::PARAMETER_CAUSALITY, dsb::bus::TUNABLE_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(0, "pos_a_x",   dsb::bus::REAL_DATATYPE, dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(1, "pos_b_x",   dsb::bus::REAL_DATATYPE, dsb::bus::INPUT_CAUSALITY,     dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(2, "force_a_x", dsb::bus::REAL_DATATYPE, dsb::bus::OUTPUT_CAUSALITY,    dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(3, "force_b_x", dsb::bus::REAL_DATATYPE, dsb::bus::OUTPUT_CAUSALITY,    dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(4, "length",    dsb::bus::REAL_DATATYPE, dsb::bus::PARAMETER_CAUSALITY, dsb::bus::FIXED_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(5, "stiffness", dsb::bus::REAL_DATATYPE, dsb::bus::PARAMETER_CAUSALITY, dsb::bus::TUNABLE_VARIABILITY));
         return v;
     }
 
-    double GetVariable(unsigned varRef) override
+    double GetRealVariable(unsigned varRef) override
     {
         switch (varRef) {
             case 0: return m_pos_a_x;   break;
@@ -106,12 +106,12 @@ public:
             case 4: return m_length;    break;
             case 5: return m_stiffness; break;
             default:
-                assert (!"Spring1D::GetVariable(): Invalid variable reference");
+                assert (!"Spring1D::GetRealVariable(): Invalid variable reference");
         }
         return 0.0;
     }
 
-    void SetVariable(unsigned varRef, double value) override
+    void SetRealVariable(unsigned varRef, double value) override
     {
         switch (varRef) {
             case 0: m_pos_a_x = value;   break;
@@ -121,7 +121,7 @@ public:
             case 4: m_length = value;    break;
             case 5: m_stiffness = value; break;
             default:
-                assert (!"Spring1D::SetVariable(): Invalid variable reference");
+                assert (!"Spring1D::SetRealVariable(): Invalid variable reference");
         }
     }
 
@@ -154,29 +154,29 @@ public:
     std::vector<dsb::bus::VariableInfo> Variables() override
     {
         std::vector<dsb::bus::VariableInfo> v;
-        v.push_back(dsb::bus::VariableInfo(0, "in",  dsb::bus::INPUT_CAUSALITY,  dsb::bus::CONTINUOUS_VARIABILITY));
-        v.push_back(dsb::bus::VariableInfo(1, "out", dsb::bus::OUTPUT_CAUSALITY, dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(0, "in",  dsb::bus::REAL_DATATYPE, dsb::bus::INPUT_CAUSALITY,  dsb::bus::CONTINUOUS_VARIABILITY));
+        v.push_back(dsb::bus::VariableInfo(1, "out", dsb::bus::REAL_DATATYPE, dsb::bus::OUTPUT_CAUSALITY, dsb::bus::CONTINUOUS_VARIABILITY));
         return v;
     }
 
-    double GetVariable(unsigned varRef) override
+    double GetRealVariable(unsigned varRef) override
     {
         switch (varRef) {
             case 0: return m_in;   break;
             case 1: return m_out;  break;
             default:
-                assert (!"Buggy1D::GetVariable(): Invalid variable reference");
+                assert (!"Buggy1D::GetRealVariable(): Invalid variable reference");
         }
         return 0.0;
     }
 
-    void SetVariable(unsigned varRef, double value) override
+    void SetRealVariable(unsigned varRef, double value) override
     {
         switch (varRef) {
             case 0: m_in  = value;  break;
             case 1: m_out = value;  break;
             default:
-                assert (!"Buggy1D::SetVariable(): Invalid variable reference");
+                assert (!"Buggy1D::SetRealVariable(): Invalid variable reference");
         }
     }
 
@@ -198,9 +198,9 @@ private:
 
 std::unique_ptr<dsb::bus::ISlaveInstance> NewSlave(const std::string& type)
 {
-    if (type == "mass_1d") return std::make_unique<Mass1D>();
-    else if (type == "spring_1d") return std::make_unique<Spring1D>();
-    else if (type == "buggy_1d") return std::make_unique<Buggy1D>();
-    assert (!"NewSlave(): Invalid slave type");
+    //if (type == "mass_1d") return std::make_unique<Mass1D>();
+    //else if (type == "spring_1d") return std::make_unique<Spring1D>();
+    //else if (type == "buggy_1d") return std::make_unique<Buggy1D>();
+    //assert (!"NewSlave(): Invalid slave type");
     return std::unique_ptr<dsb::bus::ISlaveInstance>();
 }

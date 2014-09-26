@@ -1,6 +1,7 @@
 #include "dsb/inproc_rpc.hpp"
 
 #include "dsb/comm.hpp"
+#include "dsb/protobuf.hpp"
 
 
 enum CallResult
@@ -119,6 +120,31 @@ void dsb::inproc_rpc::UnmarshalAddSlave(
 }
 
 
+namespace
+{
+    class ScalarValueConverterVisitor : public boost::static_visitor<>
+    {
+    public:
+        ScalarValueConverterVisitor(dsbproto::variable::ScalarValue& value)
+            : m_value(&value) { }
+        void operator()(const double& value)      const { m_value->set_real_value(value); }
+        void operator()(const int& value)         const { m_value->set_integer_value(value); }
+        void operator()(const bool& value)        const { m_value->set_boolean_value(value); }
+        void operator()(const std::string& value) const { m_value->set_string_value(value); }
+    private:
+        dsbproto::variable::ScalarValue* m_value;
+    };
+
+    void ConvertScalarValue(
+        const dsb::types::ScalarValue& source,
+        dsbproto::variable::ScalarValue& target)
+    {
+        target.Clear();
+        boost::apply_visitor(ScalarValueConverterVisitor(target), source);
+    }
+}
+
+
 void dsb::inproc_rpc::CallSetVariables(
     zmq::socket_t& socket,
     uint16_t slaveId,
@@ -126,11 +152,17 @@ void dsb::inproc_rpc::CallSetVariables(
 {
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
+
+    dsbproto::control::SetVarsData setVarsData;
     while (!variables.Empty()) {
         const auto v = variables.Next();
-        args.push_back(dsb::comm::EncodeRawDataFrame(v.id));
-        args.push_back(dsb::comm::EncodeRawDataFrame(v.value));
+        auto& newVar = *setVarsData.add_variable();
+        newVar.set_id(v.id);
+        ConvertScalarValue(v.value, *newVar.mutable_value());
     }
+    args.push_back(zmq::message_t());
+    dsb::protobuf::SerializeToFrame(setVarsData, args.back());
+
     Call(socket, SET_VARIABLES_CALL, args);
 }
 
@@ -140,15 +172,10 @@ void dsb::inproc_rpc::UnmarshalSetVariables(
     uint16_t& slaveId,
     dsbproto::control::SetVarsData& setVarsData)
 {
-    assert (msg.size() >= 2 && (msg.size()-2) % 2 == 0);
+    assert (msg.size() == 3);
     ASSERT_CALL_TYPE(msg, SET_VARIABLES_CALL);
     slaveId = dsb::comm::DecodeRawDataFrame<uint16_t>(msg[1]);
-    for (size_t i = 2; i < msg.size(); i+=2) {
-        auto& newVar = *setVarsData.add_variable();
-        newVar.set_id(dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i]));
-        newVar.mutable_value()->set_real_value(
-            dsb::comm::DecodeRawDataFrame<double>(msg[i+1]));
-    }
+    dsb::protobuf::ParseFromFrame(msg[2], setVarsData);
 }
 
 

@@ -6,6 +6,8 @@
 #define DSB_TYPES_HPP
 
 #include <cstdint>
+#include <string>
+#include "boost/variant.hpp"
 
 
 namespace dsb
@@ -15,17 +17,15 @@ namespace types
 {
 
 
-/**
-\brief  A variable ID-value pair.
+/// A tagged union of all data types supported by FMI.
+typedef boost::variant<double, int, bool, std::string> ScalarValue;
 
-Currently, this type is only used with dsb::execution::Controller::SetVariables(),
-and it only supports real variables.  This will change in the future.
-*/
-// TODO: Make this more generic.
+
+/// A variable ID-value pair.
 struct Variable
 {
     uint16_t id;
-    double value;
+    ScalarValue value;
 };
 
 

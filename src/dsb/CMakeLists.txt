@@ -100,5 +100,6 @@ target_include_directories(${_testTarget}
             ${FMILIB_INCLUDE_DIRS}
             ${ZMQ_INCLUDE_DIRS}
             ${CPPZMQ_INCLUDE_DIRS}
+            ${Boost_INCLUDE_DIRS}
 )
 add_test (NAME ${_testTarget} COMMAND ${_testTarget})
