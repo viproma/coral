@@ -32,13 +32,13 @@ int main(int argc, const char** argv)
         { 4, 2.0 }, // length
         { 1, 1.0 }  // position B
     };
-    controller.SetVariables(SPRING1, dsb::sequence::ArraySequence(spring1Vars, 2));
+    controller.SetVariables(SPRING1, dsb::sequence::ElementsOf(spring1Vars, 2));
     dsb::execution::Variable vMass1Pos = { 2, 1.0 };
-    controller.SetVariables(MASS1, dsb::sequence::ArraySequence(&vMass1Pos, 1));
+    controller.SetVariables(MASS1, dsb::sequence::Only(vMass1Pos));
     dsb::execution::VariableConnection cMass1Spring1Pos = { 1, MASS1, 2 };
-    controller.ConnectVariables(SPRING1, dsb::sequence::ArraySequence(&cMass1Spring1Pos, 1));
+    controller.ConnectVariables(SPRING1, dsb::sequence::Only(cMass1Spring1Pos));
     dsb::execution::VariableConnection cSpring1Mass1Force = { 0, SPRING1, 3 };
-    controller.ConnectVariables(MASS1, dsb::sequence::ArraySequence(&cSpring1Mass1Force, 1));
+    controller.ConnectVariables(MASS1, dsb::sequence::Only(cSpring1Mass1Force));
 
     controller.AddSlave(SPRING2);
     controller.AddSlave(MASS2);
@@ -47,18 +47,18 @@ int main(int argc, const char** argv)
         { 0, 1.0 }, // position A
         { 1, 3.0 }  // position B
     };
-    controller.SetVariables(SPRING2, dsb::sequence::ArraySequence(spring2Vars, 3));
+    controller.SetVariables(SPRING2, dsb::sequence::ElementsOf(spring2Vars, 3));
     dsb::execution::Variable vMass2Pos = { 2, 3.0 };
-    controller.SetVariables(MASS2, dsb::sequence::ArraySequence(&vMass2Pos, 1));
+    controller.SetVariables(MASS2, dsb::sequence::Only(vMass2Pos));
     dsb::execution::VariableConnection cMass2Spring2Pos = { 1, MASS2, 2 };
-    controller.ConnectVariables(SPRING2, dsb::sequence::ArraySequence(&cMass2Spring2Pos, 1));
+    controller.ConnectVariables(SPRING2, dsb::sequence::Only(cMass2Spring2Pos));
     dsb::execution::VariableConnection cSpring2Mass2Force = { 0, SPRING2, 3 };
-    controller.ConnectVariables(MASS2, dsb::sequence::ArraySequence(&cSpring2Mass2Force, 1));
+    controller.ConnectVariables(MASS2, dsb::sequence::Only(cSpring2Mass2Force));
 
     dsb::execution::VariableConnection cMass1Spring2Pos = { 0, MASS1, 2 };
-    controller.ConnectVariables(SPRING2, dsb::sequence::ArraySequence(&cMass1Spring2Pos, 1));
+    controller.ConnectVariables(SPRING2, dsb::sequence::Only(cMass1Spring2Pos));
     dsb::execution::VariableConnection cSpring2Mass1Force = { 1, SPRING2, 2 };
-    controller.ConnectVariables(MASS1, dsb::sequence::ArraySequence(&cSpring2Mass1Force, 1));
+    controller.ConnectVariables(MASS1, dsb::sequence::Only(cSpring2Mass1Force));
     // =========================================================================
 
     // This is to work around "slow joiner syndrome".  It lets slaves'
