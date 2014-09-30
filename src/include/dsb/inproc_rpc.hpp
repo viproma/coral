@@ -56,7 +56,7 @@ void UnmarshalAddSlave(
 void CallSetVariables(
     zmq::socket_t& socket,
     uint16_t slaveId,
-    dsb::sequence::Sequence<dsb::types::Variable&> variables);
+    dsb::sequence::Sequence<dsb::types::Variable> variables);
 
 void UnmarshalSetVariables(
     const std::deque<zmq::message_t>& msg,
@@ -66,7 +66,7 @@ void UnmarshalSetVariables(
 void CallConnectVariables(
     zmq::socket_t& socket,
     uint16_t slaveId,
-    dsb::sequence::Sequence<dsb::types::VariableConnection&> variables);
+    dsb::sequence::Sequence<dsb::types::VariableConnection> variables);
 
 void UnmarshalConnectVariables(
     const std::deque<zmq::message_t>& msg,

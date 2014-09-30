@@ -148,7 +148,7 @@ namespace
 void dsb::inproc_rpc::CallSetVariables(
     zmq::socket_t& socket,
     uint16_t slaveId,
-    dsb::sequence::Sequence<dsb::types::Variable&> variables)
+    dsb::sequence::Sequence<dsb::types::Variable> variables)
 {
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
@@ -182,7 +182,7 @@ void dsb::inproc_rpc::UnmarshalSetVariables(
 void dsb::inproc_rpc::CallConnectVariables(
     zmq::socket_t& socket,
     uint16_t slaveId,
-    dsb::sequence::Sequence<dsb::types::VariableConnection&> variables)
+    dsb::sequence::Sequence<dsb::types::VariableConnection> variables)
 {
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));

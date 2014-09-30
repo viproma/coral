@@ -10,6 +10,8 @@
 #include "boost/property_tree/info_parser.hpp"
 #include "boost/property_tree/ptree.hpp"
 
+#include "dsb/sequence.hpp"
+
 
 namespace
 {
@@ -78,7 +80,7 @@ void ParseSystemConfig(
     BOOST_FOREACH (auto& conn, connections) {
         controller.ConnectVariables(
             conn.first,
-            dsb::sequence::ContainerSequence(conn.second));
+            dsb::sequence::ElementsOf(conn.second));
     }
 }
 
