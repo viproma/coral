@@ -4,6 +4,7 @@ set (_publicHeaders
     "dsb/config.h"
     "dsb/execution.hpp"
     "dsb/sequence.hpp"
+    "dsb/types.hpp"
 )
 set (_privateHeaders
     "dsb/bus/execution_agent.hpp"
@@ -14,6 +15,7 @@ set (_privateHeaders
     "dsb/compat_helpers.hpp"
     "dsb/control.hpp"
     "dsb/error.hpp"
+    "dsb/inproc_rpc.hpp"
     "dsb/protobuf.hpp"
     "dsb/slave/fmi.hpp"
     "dsb/util.hpp"
@@ -26,6 +28,7 @@ set (_sources
     "dsb_bus_slave_tracker.cpp"
     "dsb_comm.cpp"
     "dsb_control.cpp"
+    "dsb_inproc_rpc.cpp"
     "dsb_protobuf.cpp"
     "dsb_slave_fmi.cpp"
     "dsb_util.cpp"
@@ -38,6 +41,7 @@ set (_testSources
     "dsb_protobuf_test.cpp"
     "dsb_control_test.cpp"
     "dsb_execution_test.cpp"
+    "dsb_inproc_rpc_test.cpp"
     "dsb_sequence_test.cpp"
     "dsb_util_test.cpp"
 )
@@ -96,5 +100,6 @@ target_include_directories(${_testTarget}
             ${FMILIB_INCLUDE_DIRS}
             ${ZMQ_INCLUDE_DIRS}
             ${CPPZMQ_INCLUDE_DIRS}
+            ${Boost_INCLUDE_DIRS}
 )
 add_test (NAME ${_testTarget} COMMAND ${_testTarget})

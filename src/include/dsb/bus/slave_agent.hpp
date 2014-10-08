@@ -20,6 +20,15 @@ namespace bus
 
 // =============================================================================
 // TEMPORARY placeholders for FMI-based interface
+enum DataType
+{
+    REAL_DATATYPE       = 1,
+    INTEGER_DATATYPE    = 1 << 1,
+    BOOLEAN_DATATYPE    = 1 << 2,
+    STRING_DATATYPE     = 1 << 3,
+    // Reserved: STRUCTURED_DATATYPE = 1 << 4,
+};
+
 enum Causality
 {
     PARAMETER_CAUSALITY = 1,
@@ -40,12 +49,13 @@ enum Variability
 
 struct VariableInfo
 {
-    VariableInfo(unsigned reference_, const std::string& name_, Causality causality_, Variability variability_)
-        : reference(reference_), name(name_), causality(causality_), variability(variability_)
+    VariableInfo(unsigned reference_, const std::string& name_, DataType dataType_, Causality causality_, Variability variability_)
+        : reference(reference_), name(name_), dataType(dataType_), causality(causality_), variability(variability_)
     { }
 
     unsigned reference;
     std::string name;
+    DataType dataType;
     Causality causality;
     Variability variability;
 };
@@ -55,8 +65,14 @@ class ISlaveInstance
 public:
     virtual void Setup(double startTime, double stopTime) = 0;
     virtual std::vector<VariableInfo> Variables() = 0;
-    virtual double GetVariable(unsigned varRef) = 0;
-    virtual void SetVariable(unsigned varRef, double value) = 0;
+    virtual double GetRealVariable(unsigned varRef) = 0;
+    virtual int GetIntegerVariable(unsigned varRef) = 0;
+    virtual bool GetBooleanVariable(unsigned varRef) = 0;
+    virtual std::string GetStringVariable(unsigned varRef) = 0;
+    virtual void SetRealVariable(unsigned varRef, double value) = 0;
+    virtual void SetIntegerVariable(unsigned varRef, int value) = 0;
+    virtual void SetBooleanVariable(unsigned varRef, bool value) = 0;
+    virtual void SetStringVariable(unsigned varRef, const std::string& value) = 0;
     virtual bool DoStep(double currentT, double deltaT) = 0;
 };
 // =============================================================================

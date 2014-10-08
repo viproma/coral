@@ -62,31 +62,34 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath)
         0,
         false,
         false));
-}
 
-
-FmiSlaveInstance::~FmiSlaveInstance()
-{
-    fmi1_import_free_slave_instance(m_fmu->Handle());
-}
-
-
-void FmiSlaveInstance::Setup(double startTime, double stopTime)
-{
-    m_startTime = startTime;
-    m_stopTime = stopTime;
-}
-
-
-std::vector<dsb::bus::VariableInfo> FmiSlaveInstance::Variables()
-{
     auto fmiVars = fmi1_import_get_variable_list(m_fmu->Handle());
     assert (fmiVars);
 
-    std::vector<dsb::bus::VariableInfo> vars;
     const auto nVars = fmi1_import_get_variable_list_size(fmiVars);
     for (size_t i = 0; i < nVars; ++i) {
         auto var = fmi1_import_get_variable(fmiVars, i);
+
+        dsb::bus::DataType dataType;
+        switch (fmi1_import_get_variable_base_type(var)) {
+            case fmi1_base_type_real:
+                dataType = dsb::bus::REAL_DATATYPE;
+                break;
+            case fmi1_base_type_int:
+                dataType = dsb::bus::INTEGER_DATATYPE;
+                break;
+            case fmi1_base_type_bool:
+                dataType = dsb::bus::BOOLEAN_DATATYPE;
+                break;
+            case fmi1_base_type_str:
+                dataType = dsb::bus::STRING_DATATYPE;
+                break;
+            case fmi1_base_type_enum:
+                assert (!"Enum types not supported yet");
+                break;
+            default:
+                assert (!"Unknown type");
+        }
 
         dsb::bus::Variability variability;
         switch (fmi1_import_get_variability(var)) {
@@ -125,27 +128,91 @@ std::vector<dsb::bus::VariableInfo> FmiSlaveInstance::Variables()
                 continue;
         }
 
-        vars.push_back(dsb::bus::VariableInfo(
-            fmi1_import_get_variable_vr(var),
+        m_fmiValueRefs.push_back(fmi1_import_get_variable_vr(var));
+        m_variables.push_back(dsb::bus::VariableInfo(
+            i,
             fmi1_import_get_variable_name(var),
+            dataType,
             causality,
             variability));
     }
-    return vars;
 }
 
 
-double FmiSlaveInstance::GetVariable(unsigned varRef)
+FmiSlaveInstance::~FmiSlaveInstance()
+{
+    fmi1_import_free_slave_instance(m_fmu->Handle());
+}
+
+
+void FmiSlaveInstance::Setup(double startTime, double stopTime)
+{
+    m_startTime = startTime;
+    m_stopTime = stopTime;
+}
+
+
+std::vector<dsb::bus::VariableInfo> FmiSlaveInstance::Variables()
+{
+    return m_variables;
+}
+
+
+double FmiSlaveInstance::GetRealVariable(unsigned varRef)
 {
     double retVal;
-    FMI1_CALL(fmi1_import_get_real(m_fmu->Handle(), &varRef, 1, &retVal));
+    FMI1_CALL(fmi1_import_get_real(m_fmu->Handle(), &m_fmiValueRefs[varRef], 1, &retVal));
     return retVal;
 }
 
 
-void FmiSlaveInstance::SetVariable(unsigned varRef, double value)
+int FmiSlaveInstance::GetIntegerVariable(unsigned varRef)
 {
-    FMI1_CALL(fmi1_import_set_real(m_fmu->Handle(), &varRef, 1, &value));
+    int retVal;
+    FMI1_CALL(fmi1_import_get_integer(m_fmu->Handle(), &m_fmiValueRefs[varRef], 1, &retVal));
+    return retVal;
+}
+
+
+bool FmiSlaveInstance::GetBooleanVariable(unsigned varRef)
+{
+    fmi1_boolean_t retVal;
+    FMI1_CALL(fmi1_import_get_boolean(m_fmu->Handle(), &m_fmiValueRefs[varRef], 1, &retVal));
+    return retVal != 0;
+}
+
+
+std::string FmiSlaveInstance::GetStringVariable(unsigned varRef)
+{
+    fmi1_string_t retVal;
+    FMI1_CALL(fmi1_import_get_string(m_fmu->Handle(), &m_fmiValueRefs[varRef], 1, &retVal));
+    return std::string(retVal ? retVal : "");
+}
+
+
+void FmiSlaveInstance::SetRealVariable(unsigned varRef, double value)
+{
+    FMI1_CALL(fmi1_import_set_real(m_fmu->Handle(), &m_fmiValueRefs[varRef], 1, &value));
+}
+
+
+void FmiSlaveInstance::SetIntegerVariable(unsigned varRef, int value)
+{
+    FMI1_CALL(fmi1_import_set_integer(m_fmu->Handle(), &m_fmiValueRefs[varRef], 1, &value));
+}
+
+
+void FmiSlaveInstance::SetBooleanVariable(unsigned varRef, bool value)
+{
+    fmi1_boolean_t fmiBool = value;
+    FMI1_CALL(fmi1_import_set_boolean(m_fmu->Handle(), &m_fmiValueRefs[varRef], 1, &fmiBool));
+}
+
+
+void FmiSlaveInstance::SetStringVariable(unsigned varRef, const std::string& value)
+{
+    const auto cValue = value.c_str();
+    FMI1_CALL(fmi1_import_set_string(m_fmu->Handle(), &m_fmiValueRefs[varRef], 1, &cValue));
 }
 
 

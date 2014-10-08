@@ -11,8 +11,6 @@
 #include "dsb/slave/fmi.hpp"
 #include "dsb/util.hpp"
 
-#include "mock_slaves.hpp"
-
 
 int main(int argc, const char** argv)
 {

@@ -8,6 +8,7 @@
 #include "dsb/bus/execution_agent.hpp"
 #include "dsb/bus/slave_tracker.hpp"
 #include "dsb/comm.hpp"
+#include "dsb/inproc_rpc.hpp"
 #include "dsb/util.hpp"
 
 
@@ -44,7 +45,7 @@ namespace
             if (pollItems[0].revents & ZMQ_POLLIN) {
                 std::deque<zmq::message_t> msg;
                 dsb::comm::Receive(rpcSocket, msg);
-                std::cout << "Received from rpcSocket: " << dsb::comm::ToString(msg.front()) << std::endl;
+//                std::cout << "Received from rpcSocket: " << dsb::comm::ToString(msg.front()) << std::endl;
                 exec.UserMessage(msg, rpcSocket, slaveControlSocket);
             }
             if (pollItems[1].revents & ZMQ_POLLIN) {
@@ -81,114 +82,52 @@ dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& o
 }
 
 
-namespace
-{
-    // Performs a remote procedure call (RPC).
-    // This function will send `msg` on `socket` and wait for a reply.
-    // If the reply is FAILED, an exception with the accompanying error
-    // description is thrown.  Otherwise the function succeeds vacuously.
-    // Either way, `msg` will be empty when the function returns/throws.
-    void RPC(zmq::socket_t& socket, std::deque<zmq::message_t>& msg)
-    {
-        dsb::comm::Send(socket, msg);
-        dsb::comm::Receive(socket, msg);
-        const auto reply = dsb::comm::ToString(msg.at(0));
-        if (reply == "FAILED") {
-            assert (msg.size() == 2);
-            const auto reason = dsb::comm::ToString(msg.at(1));
-            msg.clear();
-            throw std::runtime_error(reason);
-        } else {
-            assert (msg.size() == 1 && reply == "OK");
-            msg.clear();
-        }
-    }
-
-    // Convenience function which creates a 1-frame message out of `str` and
-    // forwards it to RPC().
-    void RPC(zmq::socket_t& socket, const std::string& str)
-    {
-        std::deque<zmq::message_t> msg;
-        msg.push_back(dsb::comm::ToFrame(str));
-        RPC(socket, msg);
-    }
-}
-
-
 void dsb::execution::Controller::SetSimulationTime(
     double startTime,
     double stopTime)
 {
-    std::deque<zmq::message_t> msg;
-    msg.push_back(dsb::comm::ToFrame("SET_SIMULATION_TIME"));
-    msg.push_back(dsb::comm::EncodeRawDataFrame(startTime));
-    msg.push_back(dsb::comm::EncodeRawDataFrame(stopTime));
-    RPC(m_rpcSocket, msg);
+    dsb::inproc_rpc::CallSetSimulationTime(m_rpcSocket, startTime, stopTime);
 }
 
 
 void dsb::execution::Controller::AddSlave(uint16_t slaveId)
 {
-    std::deque<zmq::message_t> msg;
-    msg.push_back(dsb::comm::ToFrame("ADD_SLAVE"));
-    msg.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
-    RPC(m_rpcSocket, msg);
+    dsb::inproc_rpc::CallAddSlave(m_rpcSocket, slaveId);
 }
 
 
 void dsb::execution::Controller::SetVariables(
     uint16_t slaveId,
-    dsb::sequence::Sequence<Variable> variables)
+    dsb::sequence::Sequence<dsb::types::Variable> variables)
 {
-    std::deque<zmq::message_t> msg;
-    msg.push_back(dsb::comm::ToFrame("SET_VARS"));
-    msg.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
-    while (!variables.Empty()) {
-        const auto v = variables.Next();
-        msg.push_back(dsb::comm::EncodeRawDataFrame(v.id));
-        msg.push_back(dsb::comm::EncodeRawDataFrame(v.value));
-    }
-    RPC(m_rpcSocket, msg);
+    dsb::inproc_rpc::CallSetVariables(m_rpcSocket, slaveId, variables);
 }
 
 
 void dsb::execution::Controller::ConnectVariables(
     uint16_t slaveId,
-    dsb::sequence::Sequence<VariableConnection> variables)
+    dsb::sequence::Sequence<dsb::types::VariableConnection> variables)
 {
-    std::deque<zmq::message_t> msg;
-    msg.push_back(dsb::comm::ToFrame("CONNECT_VARS"));
-    msg.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
-    while (!variables.Empty()) {
-        const auto v = variables.Next();
-        msg.push_back(dsb::comm::EncodeRawDataFrame(v.inputId));
-        msg.push_back(dsb::comm::EncodeRawDataFrame(v.otherSlaveId));
-        msg.push_back(dsb::comm::EncodeRawDataFrame(v.otherOutputId));
-    }
-    RPC(m_rpcSocket, msg);
+    dsb::inproc_rpc::CallConnectVariables(m_rpcSocket, slaveId, variables);
 }
 
 
 void dsb::execution::Controller::WaitForReady()
 {
-    RPC(m_rpcSocket, "WAIT_FOR_READY");
+    dsb::inproc_rpc::CallWaitForReady(m_rpcSocket);
 }
 
 
 void dsb::execution::Controller::Step(double t, double dt)
 {
     WaitForReady();
-    std::deque<zmq::message_t> msg;
-    msg.push_back(dsb::comm::ToFrame("STEP"));
-    msg.push_back(dsb::comm::EncodeRawDataFrame(t));
-    msg.push_back(dsb::comm::EncodeRawDataFrame(dt));
-    RPC(m_rpcSocket, msg);
+    dsb::inproc_rpc::CallStep(m_rpcSocket, t, dt);
 }
 
 
 void dsb::execution::Controller::Terminate()
 {
-    RPC(m_rpcSocket, "TERMINATE");
+    dsb::inproc_rpc::CallTerminate(m_rpcSocket);
 }
 
 

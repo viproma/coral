@@ -2,14 +2,14 @@ set (_headers
     "library.hpp"
     "mock_library.hpp"
     "model.hpp"
-    "model_parser.hpp"
+    "config_parser.hpp"
 )
 set (_sources
     "library.cpp"
     "main.cpp"
     "mock_library.cpp"
     "model.cpp"
-    "model_parser.cpp"
+    "config_parser.cpp"
 )
 
 find_package (Boost REQUIRED COMPONENTS thread system chrono)
