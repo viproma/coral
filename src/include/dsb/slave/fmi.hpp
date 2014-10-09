@@ -1,6 +1,9 @@
 #ifndef DSB_SLAVE_FMI_HPP
 #define DSB_SLAVE_FMI_HPP
 
+#include <ostream>
+#include <string>
+
 #include "boost/filesystem.hpp"
 #include "fmilibcpp/fmi1/Fmu.hpp"
 #include "dsb/bus/slave_agent.hpp"
@@ -28,7 +31,10 @@ private:
 class FmiSlaveInstance : public dsb::bus::ISlaveInstance
 {
 public:
-    FmiSlaveInstance(const std::string& fmuPath);
+    FmiSlaveInstance(
+        const std::string& fmuPath,
+        std::ostream* outputStream = nullptr);
+
     ~FmiSlaveInstance();
 
     void Setup(double startTime, double stopTime) override;
@@ -51,6 +57,8 @@ private:
 
     std::vector<fmi1_value_reference_t> m_fmiValueRefs;
     std::vector<dsb::bus::VariableInfo> m_variables;
+
+    std::ostream* m_outputStream;
 };
 
 

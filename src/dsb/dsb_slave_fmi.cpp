@@ -2,9 +2,9 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <iostream>
 #include <limits>
 
+#include "boost/foreach.hpp"
 #include "fmilibcpp/ImportContext.hpp"
 
 
@@ -44,8 +44,10 @@ const boost::filesystem::path& TempDir::Path() const
     } while (false);
 
 
-FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath)
-    : m_initializing(true)
+FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
+                                   std::ostream* outputStream)
+    : m_initializing(true),
+      m_outputStream(outputStream)
 {
     auto ctx = fmilib::MakeImportContext(nullptr, jm_log_level_error);
     auto fmu = ctx->Import(fmuPath, m_fmuDir.Path().string());
@@ -66,6 +68,8 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath)
     auto fmiVars = fmi1_import_get_variable_list(m_fmu->Handle());
     assert (fmiVars);
 
+    if (m_outputStream) *m_outputStream << "Time";
+    std::clog << "Variables:" << std::endl;
     const auto nVars = fmi1_import_get_variable_list_size(fmiVars);
     for (size_t i = 0; i < nVars; ++i) {
         auto var = fmi1_import_get_variable(fmiVars, i);
@@ -135,7 +139,12 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath)
             dataType,
             causality,
             variability));
+
+        // TODO: Temporary, remove later
+        std::clog << "  " << i << ": " << fmi1_import_get_variable_name(var) << std::endl;
+        if (m_outputStream) *m_outputStream << "," << fmi1_import_get_variable_name(var);
     }
+    if (m_outputStream) *m_outputStream << std::endl;
 }
 
 
@@ -216,6 +225,35 @@ void FmiSlaveInstance::SetStringVariable(unsigned varRef, const std::string& val
 }
 
 
+//TODO: This is only temporary!
+namespace
+{
+    void PrintVariable(
+        std::ostream& out,
+        const dsb::bus::VariableInfo& varInfo,
+        dsb::bus::ISlaveInstance& slaveInstance)
+    {
+        out << ","; // << varInfo.name << " ";
+        switch (varInfo.dataType) {
+            case dsb::bus::REAL_DATATYPE:
+                out << slaveInstance.GetRealVariable(varInfo.reference);
+                break;
+            case dsb::bus::INTEGER_DATATYPE:
+                out << slaveInstance.GetIntegerVariable(varInfo.reference);
+                break;
+            case dsb::bus::BOOLEAN_DATATYPE:
+                out << slaveInstance.GetBooleanVariable(varInfo.reference);
+                break;
+            case dsb::bus::STRING_DATATYPE:
+                out << slaveInstance.GetStringVariable(varInfo.reference);
+                break;
+            default:
+                assert (false);
+        }
+    }
+}
+
+
 bool FmiSlaveInstance::DoStep(double currentT, double deltaT)
 {
     if (m_initializing) {
@@ -226,7 +264,18 @@ bool FmiSlaveInstance::DoStep(double currentT, double deltaT)
             m_stopTime));
         m_initializing = false;
     }
-    return fmi1_import_do_step(m_fmu->Handle(), currentT, deltaT, true) == fmi1_status_ok;
+    const auto rc = fmi1_import_do_step(m_fmu->Handle(), currentT, deltaT, true);
+
+    // TODO: Temporary, to be removed when we have proper observers
+    if (m_outputStream) {
+        *m_outputStream << currentT;
+        BOOST_FOREACH (const auto& var, m_variables) {
+            PrintVariable(*m_outputStream, var, *this);
+        }
+        *m_outputStream << std::endl;
+    }
+
+    return rc == fmi1_status_ok;
 }
 
 
