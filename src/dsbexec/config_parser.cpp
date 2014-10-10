@@ -49,8 +49,13 @@ void ParseSystemConfig(
     const auto ptree = ReadPtreeInfoFile(path);
 
     std::map<std::string, unsigned> slaves;
-    BOOST_FOREACH (const auto& slaveNode,
-                   ptree.get_child("slaves", boost::property_tree::ptree())) {
+    std::map<unsigned, std::vector<dsb::types::Variable>> variables;
+
+    // NOTE: For some reason, if we put the get_child() call inside the
+    // BOOST_FOREACH macro invocation, we get a segfault if the child node
+    // does not exist.
+    const auto slaveTree = ptree.get_child("slaves", boost::property_tree::ptree());
+    BOOST_FOREACH (const auto& slaveNode, slaveTree) {
         const auto slaveName = slaveNode.first;
         const auto slaveData = slaveNode.second;
         const auto slaveId = slaveData.get<unsigned>("id");
@@ -60,11 +65,20 @@ void ParseSystemConfig(
                 + slaveName + "'");
         }
         slaves[slaveName] = slaveId;
+
+        const auto initTree = slaveData.get_child("init", boost::property_tree::ptree());
+        BOOST_FOREACH (const auto& initNode, initTree) {
+            // TODO: support all variable types, not just double
+            dsb::types::Variable v;
+            v.id = boost::lexical_cast<unsigned>(initNode.first);
+            v.value = initNode.second.get_value<double>();
+            variables[slaveId].push_back(v);
+        }
     }
 
     std::map<unsigned, std::vector<dsb::types::VariableConnection>> connections;
-    BOOST_FOREACH (const auto& connNode,
-                   ptree.get_child("connections", boost::property_tree::ptree())) {
+    const auto connTree = ptree.get_child("connections", boost::property_tree::ptree());
+    BOOST_FOREACH (const auto& connNode, connTree) {
         const auto inputSpec = SplitVarSpec(connNode.first);
         const auto outputSpec = SplitVarSpec(connNode.second.data());
         dsb::types::VariableConnection vc;
@@ -76,6 +90,11 @@ void ParseSystemConfig(
 
     BOOST_FOREACH (const auto& slave, slaves) {
         controller.AddSlave(slave.second);
+    }
+    BOOST_FOREACH (auto& slaveVars, variables) {
+        controller.SetVariables(
+            slaveVars.first,
+            dsb::sequence::ElementsOf(slaveVars.second));
     }
     BOOST_FOREACH (auto& conn, connections) {
         controller.ConnectVariables(

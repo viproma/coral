@@ -1,6 +1,7 @@
 #include <iostream>
 #include <utility>
 
+#include "boost/filesystem/path.hpp"
 #include "boost/lexical_cast.hpp"
 #include "zmq.hpp"
 
@@ -16,12 +17,16 @@ int main(int argc, const char** argv)
 {
 try {
     if (argc < 6) {
-        std::cerr << "Usage: " << argv[0] << " <id> <control> <data pub> <data sub> <fmu path>\n"
+        const auto self = boost::filesystem::path(argv[0]).stem().string();
+        std::cerr << "Usage: " << self << " <id> <control> <data pub> <data sub> <fmu path> [output file]\n"
                   << "  id          = a number in the range 0 - 65535\n"
                   << "  control     = Control socket endpoint (e.g. tcp://myhost:5432)\n"
                   << "  data pub    = Publisher socket endpoint\n"
                   << "  data sub    = Subscriber socket endpoint\n"
-                  << "  fmu path    = Path to FMI1 FMU"
+                  << "  fmu path    = Path to FMI1 FMU\n"
+                  << "  output file = Name of output file to write.\n"
+                  << "\n"
+                  << "The output file will be written in CSV format.  If no output file name is given, no output will be written."
                   << std::endl;
         return 0;
     }
@@ -30,6 +35,16 @@ try {
     const auto dataPubEndpoint = std::string(argv[3]);
     const auto dataSubEndpoint = std::string(argv[4]);
     const auto fmuPath = std::string(argv[5]);
+
+    std::ofstream csvOutput;
+    if (argc > 6)
+    {
+        csvOutput.open(argv[6]);
+        if (!csvOutput) {
+            std::cerr << "Error opening output file for writing: " << argv[6] << std::endl;
+            return 1;
+        }
+    }
 
     auto context = zmq::context_t();
     auto control = zmq::socket_t(context, ZMQ_REQ);
@@ -49,7 +64,8 @@ try {
         id,
         std::move(dataSub),
         std::move(dataPub),
-        std::make_unique<dsb::slave::FmiSlaveInstance>(fmuPath));
+        std::make_unique<dsb::slave::FmiSlaveInstance>(
+            fmuPath, csvOutput.is_open() ? &csvOutput : nullptr));
     std::deque<zmq::message_t> msg;
     slave.Start(msg);
     for (;;) {
@@ -61,5 +77,7 @@ try {
     std::cerr << "Shutdown: " << e.what() << std::endl;
 } catch (const dsb::control::RemoteErrorException& e) {
     std::cerr << "Received ERROR message: " << e.what() << std::endl;
+    return 2;
 }
+return 0;
 }

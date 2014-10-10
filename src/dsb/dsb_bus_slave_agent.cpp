@@ -259,35 +259,6 @@ void SlaveAgent::HandleConnectVars(std::deque<zmq::message_t>& msg)
 }
 
 
-//TODO: This is only temporary!
-namespace
-{
-    void PrintVariable(
-        std::ostream& out,
-        const VariableInfo& varInfo,
-        ISlaveInstance& slaveInstance)
-    {
-        out << " " << varInfo.name << " ";
-        switch (varInfo.dataType) {
-            case dsb::bus::REAL_DATATYPE:
-                out << slaveInstance.GetRealVariable(varInfo.reference);
-                break;
-            case dsb::bus::INTEGER_DATATYPE:
-                out << slaveInstance.GetIntegerVariable(varInfo.reference);
-                break;
-            case dsb::bus::BOOLEAN_DATATYPE:
-                out << slaveInstance.GetBooleanVariable(varInfo.reference);
-                break;
-            case dsb::bus::STRING_DATATYPE:
-                out << slaveInstance.GetStringVariable(varInfo.reference);
-                break;
-            default:
-                assert (false);
-        }
-    }
-}
-
-
 bool SlaveAgent::Step(const dsbproto::control::StepData& stepInfo)
 {
     // Perform time step
@@ -297,9 +268,7 @@ bool SlaveAgent::Step(const dsbproto::control::StepData& stepInfo)
     m_currentTime = stepInfo.timepoint() + stepInfo.stepsize();
     m_lastStepSize = stepInfo.stepsize();
 
-    std::cout << m_currentTime;
     BOOST_FOREACH (const auto varInfo, m_slaveInstance->Variables()) {
-        PrintVariable(std::cout, varInfo, *m_slaveInstance);
         if (varInfo.causality != dsb::bus::OUTPUT_CAUSALITY) continue;
 
         // Get value of output variable
@@ -338,7 +307,6 @@ bool SlaveAgent::Step(const dsbproto::control::StepData& stepInfo)
         // Send it
         dsb::comm::Send(m_dataPub, dataMsg);
     }
-    std::cout << std::endl;
     return true;
 }
 
