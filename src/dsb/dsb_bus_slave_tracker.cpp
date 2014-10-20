@@ -71,23 +71,33 @@ bool SlaveTracker::RequestReply(
     bool sendImmediately = false;
     switch (dsb::control::ParseMessageType(msg.front())) {
         case dsbproto::control::MSG_HELLO:
+#ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
             std::clog << "MSG_HELLO" << std::endl;
+#endif
             sendImmediately = HelloHandler(msg);
             break;
         case dsbproto::control::MSG_SUBMIT:
+#ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
             std::clog << "MSG_SUBMIT" << std::endl;
+#endif
             sendImmediately = SubmitHandler(msg);
             break;
         case dsbproto::control::MSG_READY:
+#ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
             std::clog << "MSG_READY" << std::endl;
+#endif
             sendImmediately = ReadyHandler(msg);
             break;
         case dsbproto::control::MSG_STEP_OK:
+#ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
             std::clog << "MSG_STEP_OK" << std::endl;
+#endif
             sendImmediately = StepOkHandler(msg);
             break;
         case dsbproto::control::MSG_STEP_FAILED:
+#ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
             std::clog << "MSG_STEP_FAILED" << std::endl;
+#endif
             sendImmediately = StepFailedHandler(msg);
             break;
         default:
