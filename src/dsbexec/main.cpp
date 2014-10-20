@@ -93,11 +93,16 @@ int main(int argc, const char** argv)
 
         // Super advanced master algorithm.
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
+        double nextPerc = 0.1;
         for (double time = execConfig.startTime;
              time < maxTime;
              time += execConfig.stepSize)
         {
             controller.Step(time, execConfig.stepSize);
+            if (time/maxTime >= nextPerc) {
+                std::cout << (nextPerc * 100.0) << "%" << std::endl;
+                nextPerc += 0.1;
+            }
         }
 
         // Termination
