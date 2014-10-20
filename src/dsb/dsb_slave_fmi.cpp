@@ -268,7 +268,7 @@ bool FmiSlaveInstance::DoStep(double currentT, double deltaT)
 
     // TODO: Temporary, to be removed when we have proper observers
     if (m_outputStream) {
-        *m_outputStream << currentT;
+        *m_outputStream << (currentT + deltaT);
         BOOST_FOREACH (const auto& var, m_variables) {
             PrintVariable(*m_outputStream, var, *this);
         }
