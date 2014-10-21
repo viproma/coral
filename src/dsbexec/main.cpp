@@ -99,7 +99,7 @@ int main(int argc, const char** argv)
              time += execConfig.stepSize)
         {
             controller.Step(time, execConfig.stepSize);
-            if (time/maxTime >= nextPerc) {
+            if ((time-execConfig.startTime)/(execConfig.stopTime-execConfig.startTime) >= nextPerc) {
                 std::cout << (nextPerc * 100.0) << "%" << std::endl;
                 nextPerc += 0.1;
             }
