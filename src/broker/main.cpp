@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "proxy.hpp"
+#include "dsb/proxy.hpp"
 
 
 int main(int argc, const char** argv)
@@ -21,11 +21,11 @@ int main(int argc, const char** argv)
               << "  data   (publish): " << dataPubEndpoint << std::endl;
         
     auto context = std::make_shared<zmq::context_t>();
-    auto control = dsb::broker::SpawnProxy(
+    auto control = dsb::proxy::SpawnProxy(
         context,
         ZMQ_DEALER, controlMasterEndpoint,
         ZMQ_ROUTER, controlSlavesEndpoint);
-    auto data = dsb::broker::SpawnProxy(
+    auto data = dsb::proxy::SpawnProxy(
         context,
         ZMQ_XSUB, dataSubEndpoint,
         ZMQ_XPUB, dataPubEndpoint);

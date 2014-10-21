@@ -1,4 +1,4 @@
-#include "proxy.hpp"
+#include "dsb/proxy.hpp"
 
 #include <exception>
 #include <utility>
@@ -108,7 +108,7 @@ namespace
 }
 
 
-dsb::broker::Proxy::Proxy(zmq::socket_t controlSocket, boost::thread thread)
+dsb::proxy::Proxy::Proxy(zmq::socket_t controlSocket, boost::thread thread)
     : m_active(true),
       m_controlSocket(std::move(controlSocket)),
       m_thread(std::move(thread))
@@ -122,7 +122,7 @@ dsb::broker::Proxy::Proxy(zmq::socket_t controlSocket, boost::thread thread)
 }
 
 
-dsb::broker::Proxy::Proxy(Proxy&& other)
+dsb::proxy::Proxy::Proxy(Proxy&& other)
     : m_active(other.m_active),
       m_controlSocket(std::move(other.m_controlSocket)),
       m_thread(std::move(other.m_thread))
@@ -131,13 +131,13 @@ dsb::broker::Proxy::Proxy(Proxy&& other)
 }
 
 
-dsb::broker::Proxy::~Proxy()
+dsb::proxy::Proxy::~Proxy()
 {
     m_thread.detach();
 }
 
 
-dsb::broker::Proxy& dsb::broker::Proxy::operator=(Proxy&& rhs)
+dsb::proxy::Proxy& dsb::proxy::Proxy::operator=(Proxy&& rhs)
 {
     if (m_active) m_thread.detach();
     m_active = rhs.m_active;
@@ -148,7 +148,7 @@ dsb::broker::Proxy& dsb::broker::Proxy::operator=(Proxy&& rhs)
 }
 
 
-void dsb::broker::Proxy::Stop()
+void dsb::proxy::Proxy::Stop()
 {
     if (m_active) {
         assert (!m_thread.try_join_for(boost::chrono::seconds(0))
@@ -159,13 +159,13 @@ void dsb::broker::Proxy::Stop()
 }
 
 
-boost::thread& dsb::broker::Proxy::Thread__()
+boost::thread& dsb::proxy::Proxy::Thread__()
 {
     return m_thread;
 }
 
 
-dsb::broker::Proxy dsb::broker::SpawnProxy(
+dsb::proxy::Proxy dsb::proxy::SpawnProxy(
     std::shared_ptr<zmq::context_t> context,
     zmq::socket_t&& socket1,
     zmq::socket_t&& socket2)
@@ -190,7 +190,7 @@ dsb::broker::Proxy dsb::broker::SpawnProxy(
 }
 
 
-dsb::broker::Proxy dsb::broker::SpawnProxy(
+dsb::proxy::Proxy dsb::proxy::SpawnProxy(
     std::shared_ptr<zmq::context_t> context,
     int socketType1, const std::string& endpoint1,
     int socketType2, const std::string& endpoint2)

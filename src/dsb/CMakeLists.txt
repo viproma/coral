@@ -17,6 +17,7 @@ set (_privateHeaders
     "dsb/error.hpp"
     "dsb/inproc_rpc.hpp"
     "dsb/protobuf.hpp"
+    "dsb/proxy.hpp"
     "dsb/slave/fmi.hpp"
     "dsb/util.hpp"
 )
@@ -30,6 +31,7 @@ set (_sources
     "dsb_control.cpp"
     "dsb_inproc_rpc.cpp"
     "dsb_protobuf.cpp"
+    "dsb_proxy.cpp"
     "dsb_slave_fmi.cpp"
     "dsb_util.cpp"
 
@@ -42,6 +44,7 @@ set (_testSources
     "dsb_control_test.cpp"
     "dsb_execution_test.cpp"
     "dsb_inproc_rpc_test.cpp"
+    "dsb_proxy_test.cpp"
     "dsb_sequence_test.cpp"
     "dsb_util_test.cpp"
 )
