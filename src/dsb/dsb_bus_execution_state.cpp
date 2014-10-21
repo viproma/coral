@@ -300,6 +300,8 @@ void ExecutionStepping::SlaveWaiting(
     zmq::socket_t& userSocket,
     zmq::socket_t& slaveSocket)
 {
+    assert (slaveHandler.State() != SLAVE_STEP_FAILED
+            && "A slave was unable to perform its time step, and we don't handle that too well yet...");
     bool allPublished = true;
     BOOST_FOREACH (const auto& slave, self.slaves) {
         if (slave.second.IsSimulating() && slave.second.State() != SLAVE_PUBLISHED) {

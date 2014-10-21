@@ -114,6 +114,10 @@ void SlaveAgent::ReadyHandler(std::deque<zmq::message_t>& msg)
                 dsb::control::CreateMessage(msg, dsbproto::control::MSG_STEP_OK);
                 m_stateHandler = &SlaveAgent::PublishedHandler;
             } else {
+                // TODO: Remove this line when we implement proper handling of
+                // failed steps.
+                std::clog << "Step failed: t = " << stepData.timepoint()
+                          << ", dt = " << stepData.stepsize() << std::endl;
                 dsb::control::CreateMessage(msg, dsbproto::control::MSG_STEP_FAILED);
                 m_stateHandler = &SlaveAgent::StepFailedHandler;
             }

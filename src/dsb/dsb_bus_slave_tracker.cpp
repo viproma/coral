@@ -267,7 +267,7 @@ bool SlaveTracker::ReadyHandler(std::deque<zmq::message_t>& msg)
 bool SlaveTracker::StepFailedHandler(std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_STEPPING, SLAVE_STEP_FAILED)) {
-        dsb::control::CreateMessage(msg, dsbproto::control::MSG_TERMINATE);
+        return false;
     } else {
         CreateInvalidRequest(msg);
     }
