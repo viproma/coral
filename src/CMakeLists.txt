@@ -4,6 +4,8 @@
 set (privateHeaderDir "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_subdirectory ("broker")
+add_subdirectory ("domain_broker")
 add_subdirectory ("dsb")
 add_subdirectory ("dsbexec")
 add_subdirectory ("slave")
+add_subdirectory ("slave_provider")

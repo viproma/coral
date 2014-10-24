@@ -1,0 +1,17 @@
+package dsbproto.domain;
+
+
+message SlaveTypeInfo
+{
+   required string name = 1;
+   required string uuid = 2;
+   optional string description = 3;
+   optional string author = 4;
+   optional string version = 5;
+}
+
+
+message SlaveTypeList
+{
+    repeated SlaveTypeInfo slave_type = 1;
+}

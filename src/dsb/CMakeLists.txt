@@ -2,11 +2,13 @@ set (_target "dsb")
 
 set (_publicHeaders
     "dsb/config.h"
+    "dsb/domain.hpp"
     "dsb/execution.hpp"
     "dsb/sequence.hpp"
     "dsb/types.hpp"
 )
 set (_privateHeaders
+    "dsb/bus/domain_data.hpp"
     "dsb/bus/execution_agent.hpp"
     "dsb/bus/execution_state.hpp"
     "dsb/bus/slave_agent.hpp"
@@ -17,12 +19,14 @@ set (_privateHeaders
     "dsb/error.hpp"
     "dsb/inproc_rpc.hpp"
     "dsb/protobuf.hpp"
+    "dsb/protocol/domain.hpp"
     "dsb/proxy.hpp"
     "dsb/slave/fmi.hpp"
     "dsb/util.hpp"
 )
 set (_internalHeaders ) # Only visible inside the "dsb" module.
 set (_sources
+    "dsb_bus_domain_data.cpp"
     "dsb_bus_execution_agent.cpp"
     "dsb_bus_execution_state.cpp"
     "dsb_bus_slave_agent.cpp"
@@ -31,17 +35,21 @@ set (_sources
     "dsb_control.cpp"
     "dsb_inproc_rpc.cpp"
     "dsb_protobuf.cpp"
+    "dsb_protocol_domain.cpp"
     "dsb_proxy.cpp"
     "dsb_slave_fmi.cpp"
     "dsb_util.cpp"
 
+    "dsb_domain.cpp"
     "dsb_execution.cpp"
 )
 set (_testSources
     "dsb_comm_test.cpp"
     "dsb_compat_helpers_test.cpp"
     "dsb_protobuf_test.cpp"
+    "dsb_protocol_domain_test.cpp"
     "dsb_control_test.cpp"
+    "dsb_domain_test.cpp"
     "dsb_execution_test.cpp"
     "dsb_inproc_rpc_test.cpp"
     "dsb_proxy_test.cpp"
