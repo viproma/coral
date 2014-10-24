@@ -9,10 +9,15 @@
 #include "config_parser.hpp"
 
 
+namespace {
+    const char* self = "dsbexec";
+}
+
+
 int main(int argc, const char** argv)
 {
     if (argc < 4) {
-        std::cerr << "Usage: " << argv[0] << " <exec. config> <sys. config> <address>\n"
+        std::cerr << "Usage: " << self << " <exec. config> <sys. config> <address>\n"
                   << "  exec. config = the execution configuration file\n"
                   << "  sys. config  = the system configuration file\n"
                   << "  address      = the DSB server endpoint (e.g. tcp://localhost:5432)"
@@ -88,11 +93,16 @@ int main(int argc, const char** argv)
 
         // Super advanced master algorithm.
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
+        double nextPerc = 0.1;
         for (double time = execConfig.startTime;
              time < maxTime;
              time += execConfig.stepSize)
         {
             controller.Step(time, execConfig.stepSize);
+            if ((time-execConfig.startTime)/(execConfig.stopTime-execConfig.startTime) >= nextPerc) {
+                std::cout << (nextPerc * 100.0) << "%" << std::endl;
+                nextPerc += 0.1;
+            }
         }
 
         // Termination

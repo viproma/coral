@@ -79,7 +79,9 @@ void ExecutionAgent::SlaveMessage(
     const auto slaveId = dsb::util::DecodeUint16(
         reinterpret_cast<char*>(envelope.back().data()));
 
+#ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
     std::clog << "Received message from slave '" << slaveId << "': ";
+#endif
 
     // Pass on the message to the appropriate slave handler, send the
     // reply immediately if necessary.
