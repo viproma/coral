@@ -10,11 +10,13 @@
 #include "boost/thread.hpp"
 #include "zmq.hpp"
 
+#include "fmilibcpp/Fmu.hpp"
+#include "fmilibcpp/ImportContext.hpp"
+
 #include "dsb/comm.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/domain.hpp"
-//#include "dsb/slave/fmi.hpp"
 #include "dsb/util.hpp"
 
 #include "domain.pb.h"
@@ -38,6 +40,10 @@ try {
     const auto reportEndpoint = std::string(argv[1]);
     const auto infoEndpoint = std::string(argv[2]);
     const auto fmuPath = std::string(argv[3]);
+
+    auto fmilibContext = fmilib::MakeImportContext();
+    dsb::util::TempDir fmuUnzipDir;
+    auto fmu = fmilibContext->Import(fmuPath, fmuUnzipDir.Path().string());
 
     auto context = zmq::context_t();
     auto report = zmq::socket_t(context, ZMQ_PUB);
@@ -67,21 +73,21 @@ try {
             }
             const auto header = dp::ParseHeader(msg[3]);
             switch (header.messageType) {
-                case dp::MSG_GET_SLAVE_LIST:
+                case dp::MSG_GET_SLAVE_LIST: {
                     msg[3] = dp::CreateHeader(dp::MSG_SLAVE_LIST, header.protocol);
-                    break;
+                    dsbproto::domain::SlaveTypeList stl;
+                    auto st = stl.add_slave_type();
+                    st->set_name(fmu->ModelName());
+                    st->set_uuid(fmu->GUID());
+                    st->set_description(fmu->Description());
+                    st->set_author(fmu->Author());
+                    st->set_version(fmu->ModelVersion());
+                    msg.push_back(zmq::message_t());
+                    dsb::protobuf::SerializeToFrame(stl, msg.back());
+                    break; }
                 default:
                     assert (false);
             }
-            dsbproto::domain::SlaveTypeList stl;
-            auto st1 = stl.add_slave_type();
-            st1->set_name("Severin's super duper model 2000");
-            st1->set_uuid("4218734612897462874612834");
-            auto st2 = stl.add_slave_type();
-            st2->set_name("Lars' inferior model 11");
-            st2->set_uuid("5986754876282847623489726");
-            msg.push_back(zmq::message_t());
-            dsb::protobuf::SerializeToFrame(stl, msg.back());
             dsb::comm::Send(info, msg);
         }
 

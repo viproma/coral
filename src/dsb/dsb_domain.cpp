@@ -21,11 +21,13 @@
 #include "dsb/bus/domain_data.hpp"
 #include "dsb/comm.hpp"
 #include "dsb/error.hpp"
+#include "dsb/inproc_rpc.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/domain.hpp"
 #include "dsb/util.hpp"
 
 #include "domain.pb.h"
+#include "inproc_rpc.pb.h"
 
 
 namespace dp = dsb::protocol::domain;
@@ -33,6 +35,58 @@ namespace dp = dsb::protocol::domain;
 namespace
 {
     const auto SLAVEPROVIDER_TIMEOUT = boost::chrono::seconds(10);
+
+
+    void HandleGetSlaveTypes(
+        zmq::socket_t& rpcSocket,
+        dsb::bus::DomainData& domainData)
+    {
+        // Create a mapping from slave type UUIDs to SlaveTypeInfo objects.
+        // Each such object contains a list of the providers which offer this
+        // slave type.
+        std::map<std::string, dsbproto::inproc_rpc::SlaveTypeInfo> slaveTypesByUUID;
+        BOOST_FOREACH (const auto& providerSlaveTypesPair,
+                       domainData.SlaveTypesByProvider()) {
+            BOOST_FOREACH (const auto& slaveType,
+                           providerSlaveTypesPair.second.slave_type()) {
+                auto it = slaveTypesByUUID.find(slaveType.uuid());
+                if (it == slaveTypesByUUID.end()) {
+                    it = slaveTypesByUUID.insert(
+                        std::make_pair(std::string(slaveType.uuid()),
+                                       dsbproto::inproc_rpc::SlaveTypeInfo())).first;
+                    *it->second.mutable_slave_type_info() = slaveType;
+                }
+                *it->second.add_provider() = providerSlaveTypesPair.first;
+            }
+        }
+
+        // Put them all into a SlaveTypeList object.
+        dsbproto::inproc_rpc::SlaveTypeList slaveTypeList;
+        BOOST_FOREACH (const auto& slaveType, slaveTypesByUUID) {
+            *slaveTypeList.add_slave_type() = slaveType.second;
+        }
+
+        dsb::inproc_rpc::ReturnGetSlaveTypes(rpcSocket, slaveTypeList);
+    }
+
+
+    void HandleRPCCall(
+        dsb::bus::DomainData& domainData,
+        zmq::socket_t& rpcSocket,
+        zmq::socket_t& infoSocket)
+    {
+        std::deque<zmq::message_t> msg;
+        dsb::comm::Receive(rpcSocket, msg);
+        switch (dsb::comm::DecodeRawDataFrame<dsb::inproc_rpc::CallType>(msg.front())) {
+            case dsb::inproc_rpc::GET_SLAVE_TYPES:
+                HandleGetSlaveTypes(rpcSocket, domainData);
+                break;
+            default:
+                assert (!"Invalid RPC call");
+                dsb::inproc_rpc::ThrowLogicError(rpcSocket, "Internal error");
+                return;
+        }
+    }
 
 
     void HandleSlaveProviderHello(
@@ -133,6 +187,9 @@ namespace
             const auto recvTime = boost::chrono::steady_clock::now();
 
             try {
+                if (pollItems[0].revents & ZMQ_POLLIN) {
+                    HandleRPCCall(domainData, rpcSocket, infoSocket);
+                }
                 if (pollItems[1].revents & ZMQ_POLLIN) {
                     HandleReportMsg(recvTime, domainData, reportSocket, infoSocket);
                 }
@@ -181,5 +238,14 @@ Controller& Controller::operator=(Controller&& other)
     m_rpcSocket = std::move(other.m_rpcSocket);
     return *this;
 }
+
+
+std::vector<dsb::types::SlaveType> Controller::GetSlaveTypes()
+{
+    std::vector<dsb::types::SlaveType> ret;
+    dsb::inproc_rpc::CallGetSlaveTypes(m_rpcSocket, ret);
+    return ret;
+}
+
 
 }} // namespace

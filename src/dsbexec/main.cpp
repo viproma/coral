@@ -3,6 +3,7 @@
 #include <string>
 
 #include "boost/chrono.hpp"
+#include "boost/foreach.hpp"
 #include "zmq.hpp"
 
 #include "dsb/domain.hpp"
@@ -34,6 +35,22 @@ int main(int argc, const char** argv)
 
         auto context = std::make_shared<zmq::context_t>();
         auto domain = dsb::domain::Controller(context, reportEndpoint, infoEndpoint);
+
+        std::cout << "Press ENTER to retrieve slave type list" << std::endl;
+        for (;;) {
+            std::cin.ignore();
+            auto slaveTypes = domain.GetSlaveTypes();
+            BOOST_FOREACH (const auto& st, slaveTypes) {
+                std::cout << st.name << ": "
+                          << st.uuid << ", "
+                          << st.description << ", "
+                          << st.author << ", "
+                          << st.version << std::endl;
+                BOOST_FOREACH (const auto& p, st.providers) {
+                    std::cout << "  " << p << std::endl;
+                }
+            }
+        }
         if (std::cin.get()) return 0;
 
         auto controller = dsb::execution::SpawnExecution(context, reportEndpoint);

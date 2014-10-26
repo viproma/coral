@@ -12,6 +12,7 @@
 #include "dsb/sequence.hpp"
 #include "dsb/types.hpp"
 #include "control.pb.h"
+#include "inproc_rpc.pb.h"
 
 
 namespace dsb
@@ -22,6 +23,9 @@ namespace inproc_rpc
 
 enum CallType
 {
+    // Domain commands
+    GET_SLAVE_TYPES,
+    // Execution commands
     SET_SIMULATION_TIME_CALL,
     ADD_SLAVE_CALL,
     SET_VARIABLES_CALL,
@@ -33,9 +37,21 @@ enum CallType
 
 void ReturnSuccess(zmq::socket_t& socket);
 
+void ReturnSuccess(
+    zmq::socket_t& socket,
+    std::deque<zmq::message_t>& returnValues);
+
 void ThrowLogicError(zmq::socket_t& socket, const std::string& what);
 
 void ThrowRuntimeError(zmq::socket_t& socket, const std::string& what);
+
+void CallGetSlaveTypes(
+    zmq::socket_t& socket,
+    std::vector<dsb::types::SlaveType>& slaveTypes);
+
+void ReturnGetSlaveTypes(
+    zmq::socket_t& socket,
+    dsbproto::inproc_rpc::SlaveTypeList& slaveTypes);
 
 void CallSetSimulationTime(
     zmq::socket_t& socket,

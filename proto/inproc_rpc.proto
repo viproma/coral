@@ -1,0 +1,16 @@
+package dsbproto.inproc_rpc;
+
+import "domain.proto";
+
+
+message SlaveTypeInfo
+{
+    required dsbproto.domain.SlaveTypeInfo slave_type_info = 1;
+    repeated string provider = 2;
+}
+
+
+message SlaveTypeList
+{
+    repeated SlaveTypeInfo slave_type = 1;
+}

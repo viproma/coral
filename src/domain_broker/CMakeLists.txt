@@ -1,4 +1,4 @@
-find_package (Boost REQUIRED COMPONENTS "thread" "chrono" "system") 
+find_package (Boost REQUIRED COMPONENTS "filesystem" "thread" "chrono" "system") 
 find_package (ZMQ REQUIRED)
 
 set (_headers "p2p_proxy.hpp")

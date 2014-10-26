@@ -1,5 +1,6 @@
 #include "dsb/inproc_rpc.hpp"
 
+#include "boost/foreach.hpp"
 #include "dsb/comm.hpp"
 #include "dsb/protobuf.hpp"
 
@@ -16,6 +17,16 @@ void dsb::inproc_rpc::ReturnSuccess(zmq::socket_t& socket)
 {
     auto m = dsb::comm::EncodeRawDataFrame(SUCCESS_CALL_RESULT);
     socket.send(m);
+}
+
+
+void dsb::inproc_rpc::ReturnSuccess(
+    zmq::socket_t& socket,
+    std::deque<zmq::message_t>& returnValues)
+{
+    auto m = dsb::comm::EncodeRawDataFrame(SUCCESS_CALL_RESULT);
+    socket.send(m, ZMQ_SNDMORE);
+    dsb::comm::Send(socket, returnValues);
 }
 
 
@@ -43,6 +54,15 @@ void dsb::inproc_rpc::ThrowRuntimeError(
 
 namespace
 {
+    /*
+    Performs an "RPC call".
+
+    On entry, `msg` must contain any arguments to the call, encoded as ZMQ
+    message frames.  These must be decoded by the corresponding Unmarshal()
+    function.  On successful return, `msg` contains information returned by the
+    call, if any.  The function throws std::runtime_error or std::logic_error
+    if the call fails.
+    */
     void Call(
         zmq::socket_t& socket,
         dsb::inproc_rpc::CallType call,
@@ -61,6 +81,7 @@ namespace
         const auto result = dsb::comm::DecodeRawDataFrame<CallResult>(msg[0]);
         switch (result) {
             case SUCCESS_CALL_RESULT:
+                msg.pop_front();
                 return;
             case LOGIC_ERROR_CALL_RESULT:
                 assert (msg.size() == 2);
@@ -76,6 +97,42 @@ namespace
 
 #define ASSERT_CALL_TYPE(msg, callType) \
     assert (dsb::comm::DecodeRawDataFrame<dsb::inproc_rpc::CallType>(msg[0]) == callType);
+
+
+void dsb::inproc_rpc::CallGetSlaveTypes(
+    zmq::socket_t& socket,
+    std::vector<dsb::types::SlaveType>& slaveTypes)
+{
+    std::deque<zmq::message_t> msg;
+    Call(socket, GET_SLAVE_TYPES, msg);
+    assert (!msg.empty());
+    dsbproto::inproc_rpc::SlaveTypeList recvdSlaveTypes;
+    dsb::protobuf::ParseFromFrame(msg[0], recvdSlaveTypes);
+
+    slaveTypes.clear();
+    BOOST_FOREACH(const auto& st, recvdSlaveTypes.slave_type()) {
+        dsb::types::SlaveType slaveType;
+        const auto& sti = st.slave_type_info();
+        slaveType.name = sti.name();
+        slaveType.uuid = sti.uuid();
+        slaveType.description = sti.description();
+        slaveType.author = sti.author();
+        slaveType.version = sti.version();
+        BOOST_FOREACH(const auto& provider, st.provider()) {
+            slaveType.providers.push_back(provider);
+        }
+        slaveTypes.push_back(slaveType);
+    }
+}
+
+void dsb::inproc_rpc::ReturnGetSlaveTypes(
+    zmq::socket_t& socket,
+    dsbproto::inproc_rpc::SlaveTypeList& slaveTypes)
+{
+    auto msg = std::deque<zmq::message_t>(1);
+    dsb::protobuf::SerializeToFrame(slaveTypes, msg[0]);
+    ReturnSuccess(socket, msg);
+}
 
 
 void dsb::inproc_rpc::CallSetSimulationTime(

@@ -2,6 +2,7 @@
 set (protoFiles
     "control.proto"
     "domain.proto"
+    "inproc_rpc.proto"
     "testing.proto"
     "variable.proto"
 )

@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "zmq.hpp"
+#include "dsb/types.hpp"
 
 
 namespace dsb
@@ -20,12 +21,6 @@ namespace dsb
 */
 namespace domain
 {
-
-struct SlaveType
-{
-    std::string name;
-    std::string provider;
-};
 
 
 /**
@@ -51,7 +46,7 @@ public:
     /**
     \brief  Returns available slave types.
     */
-    std::vector<SlaveType> GetSlaveTypes();
+    std::vector<dsb::types::SlaveType> GetSlaveTypes();
 
 private:
     zmq::socket_t m_rpcSocket;

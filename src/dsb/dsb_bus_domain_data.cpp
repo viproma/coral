@@ -35,8 +35,8 @@ bool DomainData::UpdateSlaveProvider(
     if (newProvider) {
         SlaveProvider sp;
         it = m_slaveProviders.insert(std::make_pair(id, sp)).first;
-        std::clog << "Slave provider added: " << id << std::endl;
-    } else std::clog << "Slave provider updated: " << id << std::endl;
+        // std::clog << "Slave provider added: " << id << std::endl;
+    } // else std::clog << "Slave provider updated: " << id << std::endl;
     it->second.protocol = std::min(protocol, m_maxProtocol);
     it->second.lastHeartbeat = heartbeatTime;
     return newProvider;
@@ -54,12 +54,19 @@ void DomainData::PurgeSlaveProviders(
                 && "Some funky time travelling is going on here");
         if (referenceTime - it->second.lastHeartbeat > m_slaveProviderTimeout) {
             const auto d = it++;
-            std::clog << "Slave provider timeout: " << d->first << std::endl;
+            // std::clog << "Slave provider timeout: " << d->first << std::endl;
             m_slaveTypes.erase(d->first);
             m_slaveProviders.erase(d);
         } else ++it;
     }
 }
+
+
+DomainData::SlaveTypesByProviderRange DomainData::SlaveTypesByProvider() const
+{
+    return m_slaveTypes;
+}
+
 
 void DomainData::UpdateSlaveTypes(
     const std::string& slaveProviderId,
@@ -67,6 +74,7 @@ void DomainData::UpdateSlaveTypes(
 {
     m_slaveTypes[slaveProviderId] = slaveTypes;
 }
+
 
 //TODO: Just for debugging purposes, remove later.
 void DomainData::Dump() const

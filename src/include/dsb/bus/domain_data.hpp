@@ -6,6 +6,8 @@
 #include <string>
 
 #include "boost/chrono.hpp"
+#include "boost/range/sub_range.hpp"
+
 #include "domain.pb.h"
 
 
@@ -17,7 +19,12 @@ namespace bus
 
 class DomainData
 {
+    typedef std::map<std::string, dsbproto::domain::SlaveTypeList>
+        SlaveTypesByProviderContainer;
 public:
+    typedef boost::sub_range<const SlaveTypesByProviderContainer>
+        SlaveTypesByProviderRange;
+
     DomainData(
         uint16_t maxProtocol,
         boost::chrono::milliseconds slaveProviderTimeout);
@@ -31,6 +38,8 @@ public:
 
     void PurgeSlaveProviders(
         boost::chrono::steady_clock::time_point referenceTime);
+
+    SlaveTypesByProviderRange SlaveTypesByProvider() const;
 
     void UpdateSlaveTypes(
         const std::string& slaveProviderId,
@@ -51,7 +60,7 @@ private:
 
     std::map<std::string, SlaveProvider> m_slaveProviders;
     // Slave types, mapped to slave provider IDs.
-    std::map<std::string, dsbproto::domain::SlaveTypeList> m_slaveTypes;
+    SlaveTypesByProviderContainer m_slaveTypes;
 };
 
 

@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include "boost/filesystem/path.hpp"
 
 
 namespace dsb
@@ -27,6 +28,21 @@ uint16_t DecodeUint16(const char source[2]);
 
 /// Returns a string that contains a random UUID.
 std::string RandomUUID();
+
+
+/**
+\brief  An RAII object that creates a unique directory on construction,
+        and recursively deletes it again on destruction.
+*/
+class TempDir
+{
+public:
+    TempDir();
+    ~TempDir();
+    const boost::filesystem::path& Path() const;
+private:
+    boost::filesystem::path m_path;
+};
 
 
 }}      // namespace
