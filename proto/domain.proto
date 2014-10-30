@@ -1,5 +1,7 @@
 package dsbproto.domain;
 
+import "variable.proto";
+
 
 message SlaveTypeInfo
 {
@@ -8,6 +10,7 @@ message SlaveTypeInfo
    optional string description = 3;
    optional string author = 4;
    optional string version = 5;
+   repeated dsbproto.variable.VariableDefinition variable = 6;
 }
 
 
