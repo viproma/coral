@@ -33,9 +33,9 @@ enum Variability
 // Information about a variable
 message VariableDefinition
 {
-    required string name = 1;
-    required uint32 valueReference = 2;
-    optional string description = 3;
+    required uint32 id = 1;
+    required string name = 2;
+    required DataType data_type = 3;
     required Causality causality = 4;
     required Variability variability = 5;
 }

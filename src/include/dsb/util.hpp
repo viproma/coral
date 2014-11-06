@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 #include "boost/filesystem/path.hpp"
 
 
@@ -43,6 +44,14 @@ public:
 private:
     boost::filesystem::path m_path;
 };
+
+
+/**
+\brief  Starts a new process.
+*/
+void SpawnProcess(
+    const std::string& program,
+    const std::vector<std::string>& args);
 
 
 }}      // namespace
