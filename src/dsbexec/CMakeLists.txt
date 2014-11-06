@@ -1,15 +1,9 @@
 set (_headers
-    "library.hpp"
-    "mock_library.hpp"
-    "model.hpp"
     "config_parser.hpp"
 )
 set (_sources
-    "library.cpp"
-    "main.cpp"
-    "mock_library.cpp"
-    "model.cpp"
     "config_parser.cpp"
+    "main.cpp"
 )
 
 find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono)

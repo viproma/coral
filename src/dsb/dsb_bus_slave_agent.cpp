@@ -49,11 +49,11 @@ SlaveAgent::SlaveAgent(
         uint16_t id,
         zmq::socket_t dataSub,
         zmq::socket_t dataPub,
-        std::unique_ptr<ISlaveInstance> slaveInstance)
+        dsb::execution::ISlaveInstance& slaveInstance)
     : m_id(id),
       m_dataSub(std::move(dataSub)),
       m_dataPub(std::move(dataPub)),
-      m_slaveInstance(std::move(slaveInstance)),
+      m_slaveInstance(slaveInstance),
       m_currentTime(std::numeric_limits<double>::signaling_NaN()),
       m_lastStepSize(std::numeric_limits<double>::signaling_NaN())
 {
@@ -89,7 +89,7 @@ void SlaveAgent::ConnectedHandler(std::deque<zmq::message_t>& msg)
     if (msg.size() != 2) InvalidReplyFromMaster();
     dsbproto::control::SetupData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
-    m_slaveInstance->Setup(
+    m_slaveInstance.Setup(
         data.start_time(),
         data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity());
     std::clog << "Simulating from t = " << data.start_time()
@@ -137,18 +137,18 @@ void SlaveAgent::ReadyHandler(std::deque<zmq::message_t>& msg)
 namespace
 {
     void SetVariable(
-        ISlaveInstance* slaveInstance,
+        dsb::execution::ISlaveInstance& slaveInstance,
         uint16_t varRef,
         const dsbproto::variable::ScalarValue& value)
     {
         if (value.has_real_value()) {
-            slaveInstance->SetRealVariable(varRef, value.real_value());
+            slaveInstance.SetRealVariable(varRef, value.real_value());
         } else if (value.has_integer_value()) {
-            slaveInstance->SetIntegerVariable(varRef, value.integer_value());
+            slaveInstance.SetIntegerVariable(varRef, value.integer_value());
         } else if (value.has_boolean_value()) {
-            slaveInstance->SetBooleanVariable(varRef, value.boolean_value());
+            slaveInstance.SetBooleanVariable(varRef, value.boolean_value());
         } else if (value.has_string_value()) {
-            slaveInstance->SetStringVariable(varRef, value.string_value());
+            slaveInstance.SetStringVariable(varRef, value.string_value());
         } else {
             assert (!"Corrupt or empty variable value received");
         }
@@ -189,7 +189,7 @@ void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
         const auto inVarRef = m_connections.at(rv);
 
         // Set our input variable.
-        SetVariable(m_slaveInstance.get(), inVarRef, inVar.value());
+        SetVariable(m_slaveInstance, inVarRef, inVar.value());
         receivedVars.insert(inVarRef);
     }
 
@@ -219,7 +219,7 @@ void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
     dsbproto::control::SetVarsData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
     BOOST_FOREACH (const auto& var, data.variable()) {
-        SetVariable(m_slaveInstance.get(), var.id(), var.value());
+        SetVariable(m_slaveInstance, var.id(), var.value());
     }
     dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
 }
@@ -266,34 +266,35 @@ void SlaveAgent::HandleConnectVars(std::deque<zmq::message_t>& msg)
 bool SlaveAgent::Step(const dsbproto::control::StepData& stepInfo)
 {
     // Perform time step
-    if (!m_slaveInstance->DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
+    if (!m_slaveInstance.DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
         return false;
     }
     m_currentTime = stepInfo.timepoint() + stepInfo.stepsize();
     m_lastStepSize = stepInfo.stepsize();
 
-    BOOST_FOREACH (const auto varInfo, m_slaveInstance->Variables()) {
-        if (varInfo.causality != dsb::bus::OUTPUT_CAUSALITY) continue;
+    for (size_t i = 0; i < m_slaveInstance.VariableCount(); ++i) {
+        const auto varInfo = m_slaveInstance.Variable(i);
+        if (varInfo.Causality() != dsb::model::OUTPUT_CAUSALITY) continue;
 
         // Get value of output variable
         dsbproto::variable::TimestampedValue outVar;
         outVar.set_timestamp(m_currentTime);
-        switch (varInfo.dataType) {
-            case dsb::bus::REAL_DATATYPE:
+        switch (varInfo.DataType()) {
+            case dsb::model::REAL_DATATYPE:
                 outVar.mutable_value()->set_real_value(
-                    m_slaveInstance->GetRealVariable(varInfo.reference));
+                    m_slaveInstance.GetRealVariable(varInfo.ID()));
                 break;
-            case dsb::bus::INTEGER_DATATYPE:
+            case dsb::model::INTEGER_DATATYPE:
                 outVar.mutable_value()->set_integer_value(
-                    m_slaveInstance->GetIntegerVariable(varInfo.reference));
+                    m_slaveInstance.GetIntegerVariable(varInfo.ID()));
                 break;
-            case dsb::bus::BOOLEAN_DATATYPE:
+            case dsb::model::BOOLEAN_DATATYPE:
                 outVar.mutable_value()->set_boolean_value(
-                    m_slaveInstance->GetBooleanVariable(varInfo.reference));
+                    m_slaveInstance.GetBooleanVariable(varInfo.ID()));
                 break;
-            case dsb::bus::STRING_DATATYPE:
+            case dsb::model::STRING_DATATYPE:
                 outVar.mutable_value()->set_string_value(
-                    m_slaveInstance->GetStringVariable(varInfo.reference));
+                    m_slaveInstance.GetStringVariable(varInfo.ID()));
                 break;
             default:
                 assert (false);
@@ -304,7 +305,7 @@ bool SlaveAgent::Step(const dsbproto::control::StepData& stepInfo)
         // Header
         dataMsg.push_back(zmq::message_t(DATA_HEADER_SIZE));
         dsb::util::EncodeUint16(m_id, static_cast<char*>(dataMsg.front().data()));
-        dsb::util::EncodeUint16(varInfo.reference, static_cast<char*>(dataMsg.front().data()) + 2);
+        dsb::util::EncodeUint16(varInfo.ID(), static_cast<char*>(dataMsg.front().data()) + 2);
         // Body
         dataMsg.push_back(zmq::message_t());
         dsb::protobuf::SerializeToFrame(outVar, dataMsg.back());

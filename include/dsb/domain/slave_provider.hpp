@@ -80,5 +80,11 @@ public:
 };
 
 
+void SlaveProvider(
+    const std::string& reportEndpoint,
+    const std::string& infoEndpoint,
+    dsb::domain::ISlaveType& slaveType);
+
+
 }}      // namespace
 #endif  // header guard
