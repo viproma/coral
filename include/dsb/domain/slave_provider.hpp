@@ -1,13 +1,19 @@
-#ifndef DSB_SLAVE_PROVIDER_HPP
-#define DSB_SLAVE_PROVIDER_HPP
+/**
+\file
+\brief Slave provider functionality.
+*/
+#ifndef DSB_DOMAIN_SLAVE_PROVIDER_HPP
+#define DSB_DOMAIN_SLAVE_PROVIDER_HPP
 
+#include <string>
 #include "boost/noncopyable.hpp"
-#include "dsb/model.hpp"
+#include "dsb/model/slave.hpp"
+#include "dsb/model/variable.hpp"
 
 
 namespace dsb
 {
-namespace slave
+namespace domain
 {
 
 
@@ -68,6 +74,9 @@ public:
     `false`.
     */
     virtual std::string InstantiationFailureDescription() const = 0;
+
+    // Virtual destructor to allow deletion through base class reference.
+    virtual ~ISlaveType() { }
 };
 
 

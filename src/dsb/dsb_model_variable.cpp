@@ -1,4 +1,4 @@
-#include "dsb/model.hpp"
+#include "dsb/model/variable.hpp"
 
 
 namespace dsb

@@ -2,7 +2,7 @@
 #define DSBEXEC_CONFIG_PARSER_HPP
 
 #include <string>
-#include "dsb/execution.hpp"
+#include "dsb/execution/controller.hpp"
 
 /**
 \brief  Sets up the system to be simulated in an execution based on a

@@ -1,22 +1,22 @@
 /**
 \file
-\brief Main header file for dsb::execution.
+\brief Functionality for starting and controlling an execution.
 */
-#ifndef DSB_EXECUTION_HPP
-#define DSB_EXECUTION_HPP
+#ifndef DSB_EXECUTION_CONTROLLER_HPP
+#define DSB_EXECUTION_CONTROLLER_HPP
 
 #include <memory>
-#include <limits>
 #include <string>
 #include "zmq.hpp"
+
+#include "dsb/model/slave.hpp"
+#include "dsb/model/time.hpp"
+#include "dsb/model/variable.hpp"
 #include "dsb/sequence.hpp"
-#include "dsb/types.hpp"
 
 
 namespace dsb
 {
-
-/// Functions and classes for controlling and interacting with an execution.
 namespace execution
 {
 
@@ -60,15 +60,15 @@ public:
 
     \param [in] startTime   The start time of the simulation.
     \param [in] stopTime    The stop time of the simulation.  This may be
-                            infinite (the default), signifying that no
-                            particular stop time is defined.
+                            dsb::model::ETERNITY (the default), signifying that
+                            no particular stop time is defined.
 
     \throws std::logic_error if `startTime > stopTime` or AddSlave() has
         previously been called.
     */
     void SetSimulationTime(
-        double startTime,
-        double stopTime = std::numeric_limits<double>::infinity());
+        dsb::model::TimePoint startTime,
+        dsb::model::TimePoint stopTime = dsb::model::ETERNITY);
 
     /**
     \brief  Adds a slave to the execution.
@@ -81,7 +81,7 @@ public:
 
     \throws std::logic_error if the slave has been added before.
     */
-    void AddSlave(uint16_t slaveId);
+    void AddSlave(dsb::model::SlaveID slaveId);
 
     /**
     \brief  Sets the values of some of a slave's variables.
@@ -93,8 +93,8 @@ public:
         is part of this execution.
     */
     void SetVariables(
-        uint16_t slaveId,
-        dsb::sequence::Sequence<dsb::types::Variable> variables);
+        dsb::model::SlaveID slaveId,
+        dsb::sequence::Sequence<dsb::model::VariableValue> variables);
 
     /**
     \brief  Connects inputs of one slave to outputs of other slaves.
@@ -107,8 +107,8 @@ public:
         AddSlave().
     */
     void ConnectVariables(
-        uint16_t slaveId,
-        dsb::sequence::Sequence<dsb::types::VariableConnection> connections);
+        dsb::model::SlaveID slaveId,
+        dsb::sequence::Sequence<dsb::model::VariableConnection> connections);
 
     /**
     \brief  Performs a time step.
@@ -116,7 +116,7 @@ public:
     \param [in] t   The current time point.
     \param [in] dt  The step size.
     */
-    void Step(double t, double dt);
+    void Step(dsb::model::TimePoint t, dsb::model::TimeDuration dt);
 
     /**
     \brief  Terminates the execution.

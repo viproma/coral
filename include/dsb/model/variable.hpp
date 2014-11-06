@@ -1,8 +1,13 @@
-#ifndef DSB_MODEL_HPP
-#define DSB_MODEL_HPP
+/**
+\file
+\brief Types that identify or describe model variables.
+*/
+#ifndef DSB_MODEL_VARIABLE_HPP
+#define DSB_MODEL_VARIABLE_HPP
 
 #include <cstdint>
 #include <string>
+#include "boost/variant.hpp"
 
 
 namespace dsb
@@ -11,22 +16,8 @@ namespace model
 {
 
 
-/// The type used to specify (simulation) time points.
-typedef double TimePoint;
-
-
-/**
-\brief  The type used to specify (simulation) time durations.
-
-If `t1` and `t2` have type TimePoint, then `t2-t1` has type TimeDuration.
-If `t` has type TimePoint and `dt` has type TimeDuration, then `t+dt` has type
-TimePoint.
-*/
-typedef double TimeDuration;
-
-
-/// The type used for slave identification numbers.
-typedef uint16_t SlaveID;
+/// Unsigned integer type used for variable identifiers.
+typedef std::uint16_t VariableID;
 
 
 /// Variable data types supported by the DSB.
@@ -36,7 +27,6 @@ enum DataType
     INTEGER_DATATYPE    = 1 << 1,
     BOOLEAN_DATATYPE    = 1 << 2,
     STRING_DATATYPE     = 1 << 3,
-    // Reserved: STRUCTURED_DATATYPE = 1 << 4,
 };
 
 
@@ -60,10 +50,6 @@ enum Variability
     DISCRETE_VARIABILITY    = 1 << 3,
     CONTINUOUS_VARIABILITY  = 1 << 4,
 };
-
-
-/// The type used for variable identifiers.
-typedef unsigned VariableID;
 
 
 /// A description of a single variable.
@@ -107,6 +93,18 @@ private:
     dsb::model::DataType m_dataType;
     dsb::model::Causality m_causality;
     dsb::model::Variability m_variability;
+};
+
+
+/// An algebraic type that can hold values of all supported data types.
+typedef boost::variant<double, int, bool, std::string> ScalarValue;
+
+
+/// A variable ID-value pair.
+struct VariableValue
+{
+    VariableID id;
+    ScalarValue value;
 };
 
 

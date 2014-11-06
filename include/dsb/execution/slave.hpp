@@ -1,13 +1,18 @@
-#ifndef DSB_SLAVE_HPP
-#define DSB_SLAVE_HPP
+/**
+\file
+\brief Slave (instance) functionality.
+*/
+#ifndef DSB_EXECUTION_SLAVE_HPP
+#define DSB_EXECUTION_SLAVE_HPP
 
 #include "boost/noncopyable.hpp"
-#include "dsb/model.hpp"
+#include "dsb/model/time.hpp"
+#include "dsb/model/variable.hpp"
 
 
 namespace dsb
 {
-namespace slave
+namespace execution
 {
 
 

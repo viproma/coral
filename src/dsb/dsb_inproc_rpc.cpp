@@ -175,7 +175,7 @@ namespace
 
 void dsb::inproc_rpc::CallGetSlaveTypes(
     zmq::socket_t& socket,
-    std::vector<dsb::types::SlaveType>& slaveTypes)
+    std::vector<dsb::model::SlaveType>& slaveTypes)
 {
     std::deque<zmq::message_t> msg;
     Call(socket, GET_SLAVE_TYPES, msg);
@@ -185,7 +185,7 @@ void dsb::inproc_rpc::CallGetSlaveTypes(
 
     slaveTypes.clear();
     BOOST_FOREACH(const auto& st, recvdSlaveTypes.slave_type()) {
-        dsb::types::SlaveType slaveType;
+        dsb::model::SlaveType slaveType;
         const auto& sti = st.slave_type_info();
         slaveType.name = sti.name();
         slaveType.uuid = sti.uuid();
@@ -214,8 +214,8 @@ void dsb::inproc_rpc::ReturnGetSlaveTypes(
 
 void dsb::inproc_rpc::CallSetSimulationTime(
     zmq::socket_t& socket,
-    double startTime,
-    double stopTime)
+    dsb::model::TimePoint startTime,
+    dsb::model::TimePoint stopTime)
 {
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(startTime));
@@ -226,17 +226,17 @@ void dsb::inproc_rpc::CallSetSimulationTime(
 
 void dsb::inproc_rpc::UnmarshalSetSimulationTime(
     const std::deque<zmq::message_t>& msg,
-    double& startTime,
-    double& stopTime)
+    dsb::model::TimePoint& startTime,
+    dsb::model::TimePoint& stopTime)
 {
     assert (msg.size() == 3);
     ASSERT_CALL_TYPE(msg, SET_SIMULATION_TIME_CALL);
-    startTime = dsb::comm::DecodeRawDataFrame<double>(msg[1]);
-    stopTime  = dsb::comm::DecodeRawDataFrame<double>(msg[2]);
+    startTime = dsb::comm::DecodeRawDataFrame<dsb::model::TimePoint>(msg[1]);
+    stopTime  = dsb::comm::DecodeRawDataFrame<dsb::model::TimePoint>(msg[2]);
 }
 
 
-void dsb::inproc_rpc::CallAddSlave(zmq::socket_t& socket, uint16_t slaveId)
+void dsb::inproc_rpc::CallAddSlave(zmq::socket_t& socket, dsb::model::SlaveID slaveId)
 {
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
@@ -246,11 +246,11 @@ void dsb::inproc_rpc::CallAddSlave(zmq::socket_t& socket, uint16_t slaveId)
 
 void dsb::inproc_rpc::UnmarshalAddSlave(
     const std::deque<zmq::message_t>& msg,
-    uint16_t& slaveId)
+    dsb::model::SlaveID& slaveId)
 {
     assert (msg.size() == 2);
     ASSERT_CALL_TYPE(msg, ADD_SLAVE_CALL);
-    slaveId = dsb::comm::DecodeRawDataFrame<uint16_t>(msg[1]);
+    slaveId = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[1]);
 }
 
 
@@ -270,7 +270,7 @@ namespace
     };
 
     void ConvertScalarValue(
-        const dsb::types::ScalarValue& source,
+        const dsb::model::ScalarValue& source,
         dsbproto::variable::ScalarValue& target)
     {
         target.Clear();
@@ -281,8 +281,8 @@ namespace
 
 void dsb::inproc_rpc::CallSetVariables(
     zmq::socket_t& socket,
-    uint16_t slaveId,
-    dsb::sequence::Sequence<dsb::types::Variable> variables)
+    dsb::model::SlaveID slaveId,
+    dsb::sequence::Sequence<dsb::model::VariableValue> variables)
 {
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
@@ -308,15 +308,15 @@ void dsb::inproc_rpc::UnmarshalSetVariables(
 {
     assert (msg.size() == 3);
     ASSERT_CALL_TYPE(msg, SET_VARIABLES_CALL);
-    slaveId = dsb::comm::DecodeRawDataFrame<uint16_t>(msg[1]);
+    slaveId = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[1]);
     dsb::protobuf::ParseFromFrame(msg[2], setVarsData);
 }
 
 
 void dsb::inproc_rpc::CallConnectVariables(
     zmq::socket_t& socket,
-    uint16_t slaveId,
-    dsb::sequence::Sequence<dsb::types::VariableConnection> variables)
+    dsb::model::SlaveID slaveId,
+    dsb::sequence::Sequence<dsb::model::VariableConnection> variables)
 {
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
@@ -332,19 +332,20 @@ void dsb::inproc_rpc::CallConnectVariables(
 
 void dsb::inproc_rpc::UnmarshalConnectVariables(
     const std::deque<zmq::message_t>& msg,
-    uint16_t& slaveId,
+    dsb::model::SlaveID& slaveId,
     dsbproto::control::ConnectVarsData& connectVarsData)
 {
     assert (msg.size() >= 2 && (msg.size()-2) % 3 == 0);
     ASSERT_CALL_TYPE(msg, CONNECT_VARIABLES_CALL);
-    slaveId = dsb::comm::DecodeRawDataFrame<uint16_t>(msg[1]);
+    slaveId = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[1]);
     for (size_t i = 2; i < msg.size(); i+=3) {
         auto& newVar = *connectVarsData.add_connection();
-        newVar.set_input_var_id(dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i]));
+        newVar.set_input_var_id(
+            dsb::comm::DecodeRawDataFrame<dsb::model::VariableID>(msg[i]));
         newVar.mutable_output_var()->set_slave_id(
-            dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i+1]));
+            dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[i+1]));
         newVar.mutable_output_var()->set_var_id(
-            dsb::comm::DecodeRawDataFrame<uint16_t>(msg[i+2]));
+            dsb::comm::DecodeRawDataFrame<dsb::model::VariableID>(msg[i+2]));
     }
 }
 
@@ -355,7 +356,10 @@ void dsb::inproc_rpc::CallWaitForReady(zmq::socket_t& socket)
 }
 
 
-void dsb::inproc_rpc::CallStep(zmq::socket_t& socket, double t, double dt)
+void dsb::inproc_rpc::CallStep(
+    zmq::socket_t& socket,
+    dsb::model::TimePoint t,
+    dsb::model::TimeDuration dt)
 {
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(t));
@@ -370,8 +374,8 @@ void dsb::inproc_rpc::UnmarshalStep(
 {
     assert (msg.size() == 3);
     ASSERT_CALL_TYPE(msg, STEP_CALL);
-    stepData.set_timepoint(dsb::comm::DecodeRawDataFrame<double>(msg[1]));
-    stepData.set_stepsize(dsb::comm::DecodeRawDataFrame<double>(msg[2]));
+    stepData.set_timepoint(dsb::comm::DecodeRawDataFrame<dsb::model::TimePoint>(msg[1]));
+    stepData.set_stepsize(dsb::comm::DecodeRawDataFrame<dsb::model::TimeDuration>(msg[2]));
 }
 
 

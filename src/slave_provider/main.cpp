@@ -17,10 +17,10 @@
 #include "fmilibcpp/ImportContext.hpp"
 
 #include "dsb/comm.hpp"
+#include "dsb/domain/slave_provider.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/domain.hpp"
-#include "dsb/slave_provider.hpp"
 #include "dsb/util.hpp"
 
 #include "domain.pb.h"
@@ -95,7 +95,7 @@ void DsbToProto(
 void SlaveProvider(
     const std::string& reportEndpoint,
     const std::string& infoEndpoint,
-    dsb::slave::ISlaveType& slaveType)
+    dsb::domain::ISlaveType& slaveType)
 {
     auto context = zmq::context_t();
     auto report = zmq::socket_t(context, ZMQ_PUB);
@@ -159,7 +159,7 @@ void SlaveProvider(
 }
 
 
-class FmiSlaveType : public dsb::slave::ISlaveType
+class FmiSlaveType : public dsb::domain::ISlaveType
 {
 public:
     FmiSlaveType(
@@ -307,7 +307,7 @@ bool FmiSlaveType::InstantiateAndConnect(dsb::model::SlaveID slaveID  /* TODO: E
 {
     std::vector<std::string> args;
     args.push_back(boost::lexical_cast<std::string>(slaveID));
-    dsb::util::SpawnProcess(m_slaveExePath, args);
+//    dsb::util::SpawnProcess(m_slaveExePath, args);
     return false;
 }
 
@@ -334,7 +334,7 @@ try {
     const auto infoEndpoint = std::string(argv[2]);
     const auto fmuPath = std::string(argv[3]);
 
-    FmiSlaveType fmu(fmuPath);
+    FmiSlaveType fmu(fmuPath, "dummy value");
     SlaveProvider(reportEndpoint, infoEndpoint, fmu);
 } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;

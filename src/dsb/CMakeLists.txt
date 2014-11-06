@@ -2,13 +2,14 @@ set (_target "dsb")
 
 set (_publicHeaders
     "dsb/config.h"
-    "dsb/domain.hpp"
-    "dsb/execution.hpp"
-    "dsb/model.hpp"
+    "dsb/domain/controller.hpp"
+    "dsb/domain/slave_provider.hpp"
+    "dsb/execution/controller.hpp"
+    "dsb/execution/slave.hpp"
+    "dsb/model/slave.hpp"
+    "dsb/model/time.hpp"
+    "dsb/model/variable.hpp"
     "dsb/sequence.hpp"
-    "dsb/slave.hpp"
-    "dsb/slave_provider.hpp"
-    "dsb/types.hpp"
 )
 set (_privateHeaders
     "dsb/bus/domain_data.hpp"
@@ -43,9 +44,11 @@ set (_sources
     "dsb_slave_fmi.cpp"
     "dsb_util.cpp"
 
-    "dsb_domain.cpp"
-    "dsb_execution.cpp"
-    "dsb_model.cpp"
+    "dsb_domain_controller.cpp"
+    "dsb_domain_slave_provider.cpp"
+    "dsb_execution_controller.cpp"
+    "dsb_execution_slave.cpp"
+    "dsb_model_variable.cpp"
 )
 set (_testSources
     "dsb_comm_test.cpp"
@@ -53,8 +56,8 @@ set (_testSources
     "dsb_protobuf_test.cpp"
     "dsb_protocol_domain_test.cpp"
     "dsb_control_test.cpp"
-    "dsb_domain_test.cpp"
-    "dsb_execution_test.cpp"
+    "dsb_domain_controller_test.cpp"
+    "dsb_execution_controller_test.cpp"
     "dsb_inproc_rpc_test.cpp"
     "dsb_proxy_test.cpp"
     "dsb_sequence_test.cpp"

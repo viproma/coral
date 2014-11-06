@@ -1,12 +1,12 @@
-#include "dsb/execution.hpp"
+#include "dsb/execution/controller.hpp"
 
-#include <iostream>
+#include <deque>
+#include <iostream> //TODO: Only for debugging; remove later.
 #include <utility>
 
 #include "boost/thread.hpp"
 
 #include "dsb/bus/execution_agent.hpp"
-#include "dsb/bus/slave_tracker.hpp"
 #include "dsb/comm.hpp"
 #include "dsb/inproc_rpc.hpp"
 #include "dsb/util.hpp"
@@ -30,10 +30,8 @@ namespace
         auto slaveControlSocket = zmq::socket_t(*context, ZMQ_ROUTER);
         slaveControlSocket.connect(slaveControlEndpoint->c_str());
 
-        // Make a list of expected slaves, hardcoded for the time being.
-        dsb::bus::ExecutionAgent exec(rpcSocket, slaveControlSocket);
-
         // Main messaging loop
+        dsb::bus::ExecutionAgent exec(rpcSocket, slaveControlSocket);
         zmq::pollitem_t pollItems[2] = {
             { rpcSocket,          0, ZMQ_POLLIN, 0 },
             { slaveControlSocket, 0, ZMQ_POLLIN, 0 }
@@ -83,8 +81,8 @@ dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& o
 
 
 void dsb::execution::Controller::SetSimulationTime(
-    double startTime,
-    double stopTime)
+    dsb::model::TimePoint startTime,
+    dsb::model::TimePoint stopTime)
 {
     dsb::inproc_rpc::CallSetSimulationTime(m_rpcSocket, startTime, stopTime);
 }
@@ -97,18 +95,18 @@ void dsb::execution::Controller::AddSlave(uint16_t slaveId)
 
 
 void dsb::execution::Controller::SetVariables(
-    uint16_t slaveId,
-    dsb::sequence::Sequence<dsb::types::Variable> variables)
+    dsb::model::SlaveID slaveId,
+    dsb::sequence::Sequence<dsb::model::VariableValue> variables)
 {
     dsb::inproc_rpc::CallSetVariables(m_rpcSocket, slaveId, variables);
 }
 
 
 void dsb::execution::Controller::ConnectVariables(
-    uint16_t slaveId,
-    dsb::sequence::Sequence<dsb::types::VariableConnection> variables)
+    dsb::model::SlaveID slaveId,
+    dsb::sequence::Sequence<dsb::model::VariableConnection> connections)
 {
-    dsb::inproc_rpc::CallConnectVariables(m_rpcSocket, slaveId, variables);
+    dsb::inproc_rpc::CallConnectVariables(m_rpcSocket, slaveId, connections);
 }
 
 
@@ -118,7 +116,9 @@ void dsb::execution::Controller::WaitForReady()
 }
 
 
-void dsb::execution::Controller::Step(double t, double dt)
+void dsb::execution::Controller::Step(
+    dsb::model::TimePoint t,
+    dsb::model::TimeDuration dt)
 {
     WaitForReady();
     dsb::inproc_rpc::CallStep(m_rpcSocket, t, dt);

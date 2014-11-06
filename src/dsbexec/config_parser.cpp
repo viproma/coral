@@ -49,7 +49,7 @@ void ParseSystemConfig(
     const auto ptree = ReadPtreeInfoFile(path);
 
     std::map<std::string, unsigned> slaves;
-    std::map<unsigned, std::vector<dsb::types::Variable>> variables;
+    std::map<unsigned, std::vector<dsb::model::VariableValue>> variables;
 
     // NOTE: For some reason, if we put the get_child() call inside the
     // BOOST_FOREACH macro invocation, we get a segfault if the child node
@@ -69,19 +69,19 @@ void ParseSystemConfig(
         const auto initTree = slaveData.get_child("init", boost::property_tree::ptree());
         BOOST_FOREACH (const auto& initNode, initTree) {
             // TODO: support all variable types, not just double
-            dsb::types::Variable v;
+            dsb::model::VariableValue v;
             v.id = boost::lexical_cast<unsigned>(initNode.first);
             v.value = initNode.second.get_value<double>();
             variables[slaveId].push_back(v);
         }
     }
 
-    std::map<unsigned, std::vector<dsb::types::VariableConnection>> connections;
+    std::map<unsigned, std::vector<dsb::model::VariableConnection>> connections;
     const auto connTree = ptree.get_child("connections", boost::property_tree::ptree());
     BOOST_FOREACH (const auto& connNode, connTree) {
         const auto inputSpec = SplitVarSpec(connNode.first);
         const auto outputSpec = SplitVarSpec(connNode.second.data());
-        dsb::types::VariableConnection vc;
+        dsb::model::VariableConnection vc;
         vc.inputId = inputSpec.second;
         vc.otherSlaveId = slaves.at(outputSpec.first);
         vc.otherOutputId = outputSpec.second;
