@@ -7,8 +7,7 @@
 
 #include <string>
 #include "boost/noncopyable.hpp"
-#include "dsb/model/slave.hpp"
-#include "dsb/model/variable.hpp"
+#include "dsb/model.hpp"
 
 
 namespace dsb

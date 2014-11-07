@@ -8,9 +8,8 @@
 #include <deque>
 #include "zmq.hpp"
 
-#include "dsb/model/slave.hpp"
-#include "dsb/model/time.hpp"
-#include "dsb/model/variable.hpp"
+#include "dsb/domain/controller.hpp"
+#include "dsb/model.hpp"
 #include "dsb/sequence.hpp"
 #include "control.pb.h"
 #include "inproc_rpc.pb.h"
@@ -49,7 +48,7 @@ void ThrowRuntimeError(zmq::socket_t& socket, const std::string& what);
 
 void CallGetSlaveTypes(
     zmq::socket_t& socket,
-    std::vector<dsb::model::SlaveType>& slaveTypes);
+    std::vector<dsb::domain::Controller::SlaveType>& slaveTypes);
 
 void ReturnGetSlaveTypes(
     zmq::socket_t& socket,

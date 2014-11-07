@@ -240,9 +240,9 @@ Controller& Controller::operator=(Controller&& other)
 }
 
 
-std::vector<dsb::model::SlaveType> Controller::GetSlaveTypes()
+std::vector<Controller::SlaveType> Controller::GetSlaveTypes()
 {
-    std::vector<dsb::model::SlaveType> ret;
+    std::vector<Controller::SlaveType> ret;
     dsb::inproc_rpc::CallGetSlaveTypes(m_rpcSocket, ret);
     return ret;
 }

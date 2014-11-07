@@ -6,9 +6,7 @@
 #define DSB_EXECUTION_SLAVE_HPP
 
 #include "boost/noncopyable.hpp"
-#include "dsb/model/slave.hpp"
-#include "dsb/model/time.hpp"
-#include "dsb/model/variable.hpp"
+#include "dsb/model.hpp"
 
 
 namespace dsb

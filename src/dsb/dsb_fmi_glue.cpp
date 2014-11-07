@@ -1,5 +1,6 @@
 #include "dsb/fmi/glue.hpp"
 
+#include <cassert>
 #include <stdexcept>
 
 
@@ -58,5 +59,21 @@ dsb::model::Variability ToVariability(fmi1_variability_enu_t v)
             throw std::logic_error("Unknown or unsupported FMI 1.0 variable variability encountered");
     }
 }
+
+
+dsb::model::Variable ToVariable(
+    fmi1_import_variable_t* fmiVariable,
+    dsb::model::VariableID id)
+{
+    assert (fmiVariable != nullptr);
+    const auto fmiVariability = fmi1_import_get_variability(fmiVariable);
+    return dsb::model::Variable(
+        id,
+        fmi1_import_get_variable_name(fmiVariable),
+        ToDataType(fmi1_import_get_variable_base_type(fmiVariable)),
+        ToCausality(fmi1_import_get_causality(fmiVariable), fmiVariability),
+        ToVariability(fmiVariability));
+}
+
 
 }} // namespace

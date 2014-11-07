@@ -103,7 +103,7 @@ namespace
 
 void dsb::inproc_rpc::CallGetSlaveTypes(
     zmq::socket_t& socket,
-    std::vector<dsb::model::SlaveType>& slaveTypes)
+    std::vector<dsb::domain::Controller::SlaveType>& slaveTypes)
 {
     std::deque<zmq::message_t> msg;
     Call(socket, GET_SLAVE_TYPES, msg);
@@ -113,7 +113,7 @@ void dsb::inproc_rpc::CallGetSlaveTypes(
 
     slaveTypes.clear();
     BOOST_FOREACH(const auto& st, recvdSlaveTypes.slave_type()) {
-        dsb::model::SlaveType slaveType;
+        dsb::domain::Controller::SlaveType slaveType;
         const auto& sti = st.slave_type_info();
         slaveType.name = sti.name();
         slaveType.uuid = sti.uuid();

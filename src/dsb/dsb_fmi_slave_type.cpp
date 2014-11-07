@@ -6,6 +6,7 @@
 
 #include "fmilibcpp/Fmu.hpp"
 #include "fmilibcpp/ImportContext.hpp"
+#include "dsb/fmi/glue.hpp"
 
 
 namespace dsb
@@ -66,70 +67,7 @@ size_t FmiSlaveType::VariableCount() const
 
 dsb::model::Variable FmiSlaveType::Variable(size_t index) const 
 {
-    auto fmiVar = fmi1_import_get_variable(m_varList, index);
-
-    dsb::model::DataType dataType;
-    switch (fmi1_import_get_variable_base_type(fmiVar)) {
-        case fmi1_base_type_real:
-            dataType = dsb::model::REAL_DATATYPE;
-            break;
-        case fmi1_base_type_int:
-            dataType = dsb::model::INTEGER_DATATYPE;
-            break;
-        case fmi1_base_type_bool:
-            dataType = dsb::model::BOOLEAN_DATATYPE;
-            break;
-        case fmi1_base_type_str:
-            dataType = dsb::model::STRING_DATATYPE;
-            break;
-        case fmi1_base_type_enum:
-            assert (!"Enum types not supported yet");
-            break;
-        default:
-            assert (!"Unknown type");
-    }
-
-    dsb::model::Variability variability;
-    switch (fmi1_import_get_variability(fmiVar)) {
-        case fmi1_variability_enu_constant:
-            variability = dsb::model::CONSTANT_VARIABILITY;
-            break;
-        case fmi1_variability_enu_parameter:
-            variability = dsb::model::FIXED_VARIABILITY;
-            break;
-        case fmi1_variability_enu_discrete:
-            variability = dsb::model::DISCRETE_VARIABILITY;
-            break;
-        case fmi1_variability_enu_continuous:
-            variability = dsb::model::CONTINUOUS_VARIABILITY;
-            break;
-        default:
-            assert (!"Variable with variability 'unknown' encountered");
-    }
-
-    dsb::model::Causality causality;
-    switch (fmi1_import_get_causality(fmiVar)) {
-        case fmi1_causality_enu_input:
-            causality = (variability == dsb::model::FIXED_VARIABILITY)
-                        ? dsb::model::PARAMETER_CAUSALITY
-                        : dsb::model::INPUT_CAUSALITY;
-            break;
-        case fmi1_causality_enu_output:
-            causality = dsb::model::OUTPUT_CAUSALITY;
-            break;
-        case fmi1_causality_enu_internal:
-            causality = dsb::model::LOCAL_CAUSALITY;
-            break;
-        default:
-            assert (!"Variable with causality 'none' encountered");
-    }
-
-    return dsb::model::Variable(
-        index,
-        fmi1_import_get_variable_name(fmiVar),
-        dataType,
-        causality,
-        variability);
+    return ToVariable(fmi1_import_get_variable(m_varList, index), index);
 }
 
 bool FmiSlaveType::InstantiateAndConnect(dsb::model::SlaveID slaveID  /* TODO: Execution locator */ )

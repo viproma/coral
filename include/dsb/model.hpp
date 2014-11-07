@@ -1,19 +1,43 @@
 /**
 \file
-\brief Types that identify or describe model variables.
+\brief  Main module header for dsb::model.
 */
-#ifndef DSB_MODEL_VARIABLE_HPP
-#define DSB_MODEL_VARIABLE_HPP
+#ifndef DSB_MODEL_HPP
+#define DSB_MODEL_HPP
 
 #include <cstdint>
+#include <limits>
 #include <string>
 #include "boost/variant.hpp"
 
 
 namespace dsb
 {
+/// Types and constants that describe model structure.
 namespace model
 {
+
+
+/// The type used to specify (simulation) time points.
+typedef double TimePoint;
+
+
+/// A special TimePoint value that lies infinitely far in the future.
+const TimePoint ETERNITY = std::numeric_limits<TimePoint>::infinity();
+
+
+/**
+\brief  The type used to specify (simulation) time durations.
+
+If `t1` and `t2` have type TimePoint, then `t2-t1` has type TimeDuration.
+If `t` has type TimePoint and `dt` has type TimeDuration, then `t+dt` has type
+TimePoint.
+*/
+typedef double TimeDuration;
+
+
+/// Unsigned integer type used for slave identifiers.
+typedef std::uint16_t SlaveID;
 
 
 /// Unsigned integer type used for variable identifiers.
@@ -105,6 +129,21 @@ struct VariableValue
 {
     VariableID id;
     ScalarValue value;
+};
+
+
+/**
+\brief  A type that describes a variable connection.
+
+The variable connection is described from the perspective of the slave whose
+input is being connected (i.e., that slave's ID is implied known, and therefore
+not included).
+*/
+struct VariableConnection
+{
+    VariableID inputId;       ///< The input variable which is to be connected.
+    SlaveID otherSlaveId;     ///< The slave whose output variable to connect to.
+    VariableID otherOutputId; ///< The output variable which is to be connected.
 };
 
 

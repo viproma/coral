@@ -7,9 +7,7 @@ set (_publicHeaders
     "dsb/execution/controller.hpp"
     "dsb/execution/slave.hpp"
     "dsb/fmi.hpp"
-    "dsb/model/slave.hpp"
-    "dsb/model/time.hpp"
-    "dsb/model/variable.hpp"
+    "dsb/model.hpp"
     "dsb/sequence.hpp"
 )
 set (_privateHeaders
@@ -58,7 +56,7 @@ set (_sources
     "dsb_execution_controller.cpp"
     "dsb_execution_slave.cpp"
     "dsb_fmi.cpp"
-    "dsb_model_variable.cpp"
+    "dsb_model.cpp"
 )
 set (_testSources
     "dsb_comm_test.cpp"

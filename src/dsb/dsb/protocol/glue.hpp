@@ -5,7 +5,7 @@
 #ifndef DSB_PROTOCOL_GLUE_HPP
 #define DSB_PROTOCOL_GLUE_HPP
 
-#include "dsb/model/variable.hpp"
+#include "dsb/model.hpp"
 #include "variable.pb.h"
 
 

@@ -9,9 +9,7 @@
 #include <string>
 #include "zmq.hpp"
 
-#include "dsb/model/slave.hpp"
-#include "dsb/model/time.hpp"
-#include "dsb/model/variable.hpp"
+#include "dsb/model.hpp"
 #include "dsb/sequence.hpp"
 
 

@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include "zmq.hpp"
-#include "dsb/model/slave.hpp"
+#include "dsb/model.hpp"
 
 
 namespace dsb
@@ -25,6 +25,18 @@ namespace domain
 class Controller
 {
 public:
+    /// Information about a slave type.
+    struct SlaveType
+    {
+        std::string name;
+        std::string uuid;
+        std::string description;
+        std::string author;
+        std::string version;
+        std::vector<dsb::model::Variable> variables;
+        std::vector<std::string> providers;
+    };
+
     /// Constructor.
     Controller(
         std::shared_ptr<zmq::context_t> context,
@@ -40,7 +52,7 @@ public:
     /**
     \brief  Returns available slave types.
     */
-    std::vector<dsb::model::SlaveType> GetSlaveTypes();
+    std::vector<SlaveType> GetSlaveTypes();
 
 private:
     zmq::socket_t m_rpcSocket;

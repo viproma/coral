@@ -58,14 +58,8 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
     const auto nVars = fmi1_import_get_variable_list_size(fmiVars);
     for (size_t i = 0; i < nVars; ++i) {
         const auto var = fmi1_import_get_variable(fmiVars, i);
-        const auto fmiVariability = fmi1_import_get_variability(var);
         m_fmiValueRefs.push_back(fmi1_import_get_variable_vr(var));
-        m_variables.push_back(dsb::model::Variable(
-            i,
-            fmi1_import_get_variable_name(var),
-            ToDataType(fmi1_import_get_variable_base_type(var)),
-            ToCausality(fmi1_import_get_causality(var), fmiVariability),
-            ToVariability(fmiVariability)));
+        m_variables.push_back(ToVariable(var, i));
 
         // TODO: Temporary, remove later
         std::clog << "  " << i << ": " << fmi1_import_get_variable_name(var) << std::endl;
