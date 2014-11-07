@@ -215,7 +215,7 @@ void dsb::inproc_rpc::CallSetVariables(
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
 
-    dsbproto::control::SetVarsData setVarsData;
+    dsbproto::execution::SetVarsData setVarsData;
     while (!variables.Empty()) {
         const auto v = variables.Next();
         auto& newVar = *setVarsData.add_variable();
@@ -232,7 +232,7 @@ void dsb::inproc_rpc::CallSetVariables(
 void dsb::inproc_rpc::UnmarshalSetVariables(
     const std::deque<zmq::message_t>& msg,
     uint16_t& slaveId,
-    dsbproto::control::SetVarsData& setVarsData)
+    dsbproto::execution::SetVarsData& setVarsData)
 {
     assert (msg.size() == 3);
     ASSERT_CALL_TYPE(msg, SET_VARIABLES_CALL);
@@ -261,7 +261,7 @@ void dsb::inproc_rpc::CallConnectVariables(
 void dsb::inproc_rpc::UnmarshalConnectVariables(
     const std::deque<zmq::message_t>& msg,
     dsb::model::SlaveID& slaveId,
-    dsbproto::control::ConnectVarsData& connectVarsData)
+    dsbproto::execution::ConnectVarsData& connectVarsData)
 {
     assert (msg.size() >= 2 && (msg.size()-2) % 3 == 0);
     ASSERT_CALL_TYPE(msg, CONNECT_VARIABLES_CALL);
@@ -298,7 +298,7 @@ void dsb::inproc_rpc::CallStep(
 
 void dsb::inproc_rpc::UnmarshalStep(
     const std::deque<zmq::message_t>& msg,
-    dsbproto::control::StepData& stepData)
+    dsbproto::execution::StepData& stepData)
 {
     assert (msg.size() == 3);
     ASSERT_CALL_TYPE(msg, STEP_CALL);

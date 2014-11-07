@@ -11,7 +11,7 @@
 #include "dsb/domain/controller.hpp"
 #include "dsb/model.hpp"
 #include "dsb/sequence.hpp"
-#include "control.pb.h"
+#include "execution.pb.h"
 #include "inproc_rpc.pb.h"
 
 
@@ -78,7 +78,7 @@ void CallSetVariables(
 void UnmarshalSetVariables(
     const std::deque<zmq::message_t>& msg,
     dsb::model::SlaveID& slaveId,
-    dsbproto::control::SetVarsData& setVarsData);
+    dsbproto::execution::SetVarsData& setVarsData);
 
 void CallConnectVariables(
     zmq::socket_t& socket,
@@ -88,7 +88,7 @@ void CallConnectVariables(
 void UnmarshalConnectVariables(
     const std::deque<zmq::message_t>& msg,
     dsb::model::SlaveID& slaveId,
-    dsbproto::control::ConnectVarsData& setVarsData);
+    dsbproto::execution::ConnectVarsData& setVarsData);
 
 void CallWaitForReady(zmq::socket_t& socket);
 
@@ -99,7 +99,7 @@ void CallStep(
 
 void UnmarshalStep(
     const std::deque<zmq::message_t>& msg,
-    dsbproto::control::StepData& stepData);
+    dsbproto::execution::StepData& stepData);
 
 void CallTerminate(zmq::socket_t& socket);
 

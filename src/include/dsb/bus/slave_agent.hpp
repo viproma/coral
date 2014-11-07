@@ -11,7 +11,7 @@
 
 #include "zmq.hpp"
 #include "dsb/execution/slave.hpp"
-#include "control.pb.h"
+#include "execution.pb.h"
 
 
 namespace dsb
@@ -78,7 +78,7 @@ private:
     void HandleConnectVars(std::deque<zmq::message_t>& msg);
 
     // Performs the time step for ReadyHandler()
-    bool Step(const dsbproto::control::StepData& stepData);
+    bool Step(const dsbproto::execution::StepData& stepData);
 
     // A pointer to the handler function for the current state.
     void (SlaveAgent::* m_stateHandler)(std::deque<zmq::message_t>&);

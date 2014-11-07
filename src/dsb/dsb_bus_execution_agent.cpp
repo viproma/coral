@@ -3,7 +3,7 @@
 #include <iostream> // TEMPORARY
 #include <limits>
 #include "dsb/comm.hpp"
-#include "dsb/control.hpp"
+#include "dsb/protocol/execution.hpp"
 #include "dsb/util.hpp"
 
 
@@ -95,7 +95,7 @@ void ExecutionAgent::SlaveMessage(
     } else {
         std::clog << "Unauthorized slave detected" << std::endl;
         std::deque<zmq::message_t> errMsg;
-        dsb::control::CreateDeniedMessage(
+        dsb::protocol::execution::CreateDeniedMessage(
             errMsg,
             "Participant not in list of expected slaves");
         dsb::comm::AddressedSend(slaveSocket, envelope, errMsg);
