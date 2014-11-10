@@ -16,6 +16,7 @@
 #include "boost/foreach.hpp"
 #include "boost/lexical_cast.hpp"
 #include "boost/numeric/conversion/cast.hpp"
+#include "boost/range/algorithm/find_if.hpp"
 #include "boost/thread.hpp"
 
 #include "dsb/bus/domain_data.hpp"
@@ -24,6 +25,7 @@
 #include "dsb/inproc_rpc.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/domain.hpp"
+#include "dsb/protocol/glue.hpp"
 #include "dsb/util.hpp"
 
 #include "domain.pb.h"
@@ -69,6 +71,98 @@ namespace
         dsb::inproc_rpc::ReturnGetSlaveTypes(rpcSocket, slaveTypeList);
     }
 
+    void HandleInstantiateSlave(
+        zmq::socket_t& rpcSocket,
+        zmq::socket_t& infoSocket,
+        std::deque<zmq::message_t>& msg,
+        const dsb::bus::DomainData& domainData)
+    {
+        std::string slaveTypeUUID;
+        dsb::execution::Locator executionLocator;
+        dsb::model::SlaveID slaveID = 0;
+        std::string provider;
+        dsb::inproc_rpc::UnmarshalInstantiateSlave(
+            msg, slaveTypeUUID, executionLocator, slaveID, provider);
+
+        if (provider.empty()) {
+            // Search through all slave types for all providers, and use the
+            // first one that matches the UUID.
+            BOOST_FOREACH (const auto& providerSlaves, domainData.SlaveTypesByProvider()) {
+                BOOST_FOREACH (const auto& slaveTypeInfo, providerSlaves.second.slave_type()) {
+                    if (slaveTypeInfo.uuid() == slaveTypeUUID) {
+                        provider = providerSlaves.first;
+                        break;
+                    }
+                }
+                if (!provider.empty()) break;
+            }
+            if (provider.empty()) {
+                dsb::inproc_rpc::ThrowRuntimeError(rpcSocket,
+                    "Slave type not offered by any slave provider: " + slaveTypeUUID);
+                return;
+            }
+        } else {
+            // Look for the specified provider in the domain data provider list.
+            auto providerRng = domainData.SlaveTypesByProvider();
+            const auto providerIt = boost::range::find_if(providerRng,
+                [&](const std::pair<std::string, dsbproto::domain::SlaveTypeList>& a) { return a.first == provider; });
+
+            if (providerIt == providerRng.end()) {
+                dsb::inproc_rpc::ThrowRuntimeError(
+                    rpcSocket, "Unknown slave provider name: " + provider);
+                return;
+            }
+
+            // Provider was found; now check whether it provides slaves with
+            // the given UUID.
+            const auto slaveRng = providerIt->second.slave_type();
+            const auto slaveIt = boost::range::find_if(slaveRng,
+                [&](const dsbproto::domain::SlaveTypeInfo& a) { return a.uuid() == slaveTypeUUID; });
+            if (slaveIt == slaveRng.end()) {
+                dsb::inproc_rpc::ThrowRuntimeError(
+                    rpcSocket,
+                    "Slave provider \"" + provider + "\" does not provide slave: " + slaveTypeUUID);
+                return;
+            }
+        }
+
+        // Now we know both 'provider' and 'slaveTypeUUID' are valid.
+        // Send the "instantiate slave" request on to the slave provider.
+        std::deque<zmq::message_t> reqMsg;
+        dsbproto::domain::InstantiateSlaveData data;
+        data.set_slave_type_uuid(slaveTypeUUID);
+        *data.mutable_execution_locator() = dsb::protocol::ToProto(executionLocator);
+        data.set_slave_id(slaveID);
+        dsb::protocol::domain::CreateAddressedMessage(
+            reqMsg,
+            provider,
+            dp::MSG_INSTANTIATE_SLAVE,
+            domainData.SlaveProviderProtocol(provider),
+            data);
+        dsb::comm::Send(infoSocket, reqMsg);
+
+        std::deque<zmq::message_t> repMsg;
+        dsb::comm::Receive(infoSocket, repMsg); // TODO: Add a timeout here.
+        if (repMsg.size() != 3 || repMsg[1].size() != 0) {
+            throw dsb::error::ProtocolViolationException("Invalid reply format");
+        }
+        if (dsb::comm::ToString(repMsg[0]) != provider) {
+            throw dsb::error::ProtocolViolationException(
+                "Got reply from unexpected sender");
+        }
+        const auto replyHeader = dp::ParseHeader(repMsg[2]);
+        switch (replyHeader.messageType) {
+            case dp::MSG_INSTANTIATE_SLAVE_OK:
+                dsb::inproc_rpc::ReturnSuccess(rpcSocket);
+                break;
+            case dp::MSG_INSTANTIATE_SLAVE_FAILED:
+                dsb::inproc_rpc::ThrowRuntimeError(rpcSocket, "Instantiation failed");
+                break;
+            default:
+                throw dsb::error::ProtocolViolationException(
+                    "Invalid reply to INSTANTIATE_SLAVE");
+        }
+    }
 
     void HandleRPCCall(
         dsb::bus::DomainData& domainData,
@@ -78,8 +172,11 @@ namespace
         std::deque<zmq::message_t> msg;
         dsb::comm::Receive(rpcSocket, msg);
         switch (dsb::comm::DecodeRawDataFrame<dsb::inproc_rpc::CallType>(msg.front())) {
-            case dsb::inproc_rpc::GET_SLAVE_TYPES:
+            case dsb::inproc_rpc::GET_SLAVE_TYPES_CALL:
                 HandleGetSlaveTypes(rpcSocket, domainData);
+                break;
+            case dsb::inproc_rpc::INSTANTIATE_SLAVE_CALL:
+                HandleInstantiateSlave(rpcSocket, infoSocket, msg, domainData);
                 break;
             default:
                 assert (!"Invalid RPC call");
@@ -104,7 +201,7 @@ namespace
                 msg, providerId, dp::MSG_GET_SLAVE_LIST, header.protocol);
             dsb::comm::Send(infoSocket, msg);
 
-            dsb::comm::Receive(infoSocket, msg);
+            dsb::comm::Receive(infoSocket, msg); // TODO: Add timeout here
             if (msg.size() != 4 || msg[1].size() != 0) {
                 throw dsb::error::ProtocolViolationException("Invalid reply format");
             }
@@ -245,6 +342,21 @@ std::vector<Controller::SlaveType> Controller::GetSlaveTypes()
     std::vector<Controller::SlaveType> ret;
     dsb::inproc_rpc::CallGetSlaveTypes(m_rpcSocket, ret);
     return ret;
+}
+
+
+void Controller::InstantiateSlave(
+    const std::string& slaveTypeUUID,
+    const dsb::execution::Locator& executionLocator,
+    dsb::model::SlaveID slaveID,
+    const std::string& provider)
+{
+    dsb::inproc_rpc::CallInstantiateSlave(
+        m_rpcSocket,
+        slaveTypeUUID,
+        executionLocator,
+        slaveID,
+        provider);
 }
 
 

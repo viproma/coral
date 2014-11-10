@@ -2,6 +2,7 @@
 
 #include "dsb/comm.hpp"
 #include "dsb/error.hpp"
+#include "dsb/protobuf.hpp"
 #include "dsb/util.hpp"
 
 namespace dp = dsb::protocol::domain;
@@ -45,6 +46,19 @@ void dp::CreateAddressedMessage(
 }
 
 
+void dp::CreateAddressedMessage(
+    std::deque<zmq::message_t>& message,
+    const std::string& recipient,
+    dp::MessageType messageType,
+    uint16_t protocolVersion,
+    const google::protobuf::MessageLite& body)
+{
+    CreateAddressedMessage(message, recipient, messageType, protocolVersion);
+    message.push_back(zmq::message_t());
+    dsb::protobuf::SerializeToFrame(body, message.back());
+}
+
+
 dp::Header dp::ParseHeader(const zmq::message_t& headerFrame)
 {
     const size_t HEADER_SIZE = MAGIC_LENGTH + 2 + 2;
@@ -65,6 +79,9 @@ dp::Header dp::ParseHeader(const zmq::message_t& headerFrame)
         case MSG_UPDATE_AVAILABLE:
         case MSG_GET_SLAVE_LIST:
         case MSG_SLAVE_LIST:
+        case MSG_INSTANTIATE_SLAVE:
+        case MSG_INSTANTIATE_SLAVE_OK:
+        case MSG_INSTANTIATE_SLAVE_FAILED:
             h.messageType = static_cast<MessageType>(t);
             break;
         default:

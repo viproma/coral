@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "zmq.hpp"
+#include "dsb/execution/locator.hpp"
 #include "dsb/model.hpp"
 
 
@@ -53,6 +54,18 @@ public:
     \brief  Returns available slave types.
     */
     std::vector<SlaveType> GetSlaveTypes();
+
+    /**
+    \brief  Instantiates a slave and connects it to an execution.
+
+    If no slave provider is specified, and the specified slave type is offered
+    by more than one slave provider, an arbitrary one of them will be used.
+    */
+    void InstantiateSlave(
+        const std::string& slaveTypeUUID,
+        const dsb::execution::Locator& executionLocator,
+        dsb::model::SlaveID slaveID,
+        const std::string& provider = std::string());
 
 private:
     zmq::socket_t m_rpcSocket;

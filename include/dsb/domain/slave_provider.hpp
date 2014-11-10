@@ -7,6 +7,7 @@
 
 #include <string>
 #include "boost/noncopyable.hpp"
+#include "dsb/execution/locator.hpp"
 #include "dsb/model.hpp"
 
 
@@ -62,8 +63,8 @@ public:
     \returns `true` if a slave was successfully instantiated, `false` otherwise.
     */
     virtual bool InstantiateAndConnect(
-        dsb::model::SlaveID slaveID
-        /* TODO: Execution locator */) = 0;
+        dsb::model::SlaveID slaveID,
+        const dsb::execution::Locator& executionLocator) = 0;
 
     /**
     \brief  A textual description of why a previous InstantiateAndConnect()

@@ -8,6 +8,9 @@
 #include "dsb/model.hpp"
 #include "variable.pb.h"
 
+#include "dsb/execution/locator.hpp"
+#include "domain.pb.h"
+
 
 namespace dsb
 {
@@ -22,6 +25,13 @@ dsbproto::variable::VariableDefinition ToProto(
 dsb::model::Variable FromProto(
     const dsbproto::variable::VariableDefinition& protoVariable);
 
+
+dsbproto::domain::ExecutionLocator ToProto(
+    const dsb::execution::Locator& executionLocator);
+
+
+dsb::execution::Locator FromProto(
+    const dsbproto::domain::ExecutionLocator& executionLocator);
 
 }}      // namespace
 #endif  // header guard

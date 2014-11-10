@@ -68,6 +68,24 @@ void dsb::domain::SlaveProvider(
                     msg.push_back(zmq::message_t());
                     dsb::protobuf::SerializeToFrame(stl, msg.back());
                     break; }
+
+                case dp::MSG_INSTANTIATE_SLAVE: {
+                    if (msg.size() != 5) {
+                        throw dsb::error::ProtocolViolationException(
+                            "Wrong INSTANTIATE_SLAVE message format");
+                    }
+                    dsbproto::domain::InstantiateSlaveData data;
+                    dsb::protobuf::ParseFromFrame(msg[4], data);
+                    dp::MessageType reply =
+                        (slaveType.InstantiateAndConnect(
+                            data.slave_id(),
+                            dsb::protocol::FromProto(data.execution_locator())))
+                        ? dp::MSG_INSTANTIATE_SLAVE_OK
+                        : dp::MSG_INSTANTIATE_SLAVE_FAILED;
+                    msg.pop_back();
+                    msg[3] = dp::CreateHeader(reply, header.protocol);
+                    break; }
+
                 default:
                     assert (false);
             }

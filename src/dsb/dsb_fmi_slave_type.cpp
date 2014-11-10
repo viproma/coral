@@ -1,6 +1,7 @@
 #include "dsb/fmi/slave_type.hpp"
 
 #include <cassert>
+#include <stdexcept>
 
 #include "boost/lexical_cast.hpp"
 
@@ -17,8 +18,8 @@ namespace fmi
 
 FmiSlaveType::FmiSlaveType(
     const std::string& fmuPath,
-    const std::string& slaveExePath)
-    : m_slaveExePath(slaveExePath), m_varList(nullptr)
+    SlaveStarter slaveStarterFunction)
+    : m_fmuPath(fmuPath), m_slaveStarterFunction(slaveStarterFunction), m_varList(nullptr)
 {
     auto ctx = fmilib::MakeImportContext();
     auto fmu = ctx->Import(fmuPath, m_unzipDir.Path().string());
@@ -70,18 +71,23 @@ dsb::model::Variable FmiSlaveType::Variable(size_t index) const
     return ToVariable(fmi1_import_get_variable(m_varList, index), index);
 }
 
-bool FmiSlaveType::InstantiateAndConnect(dsb::model::SlaveID slaveID  /* TODO: Execution locator */ )
+bool FmiSlaveType::InstantiateAndConnect(
+    dsb::model::SlaveID slaveID,
+    const dsb::execution::Locator& executionLocator)
 {
-    std::vector<std::string> args;
-    args.push_back(boost::lexical_cast<std::string>(slaveID));
-//    dsb::util::SpawnProcess(m_slaveExePath, args);
-    return false;
+    m_instantiationFailureDescription.clear();
+    try {
+        m_slaveStarterFunction(slaveID, executionLocator, m_fmuPath);
+    } catch (const std::runtime_error& e) {
+        m_instantiationFailureDescription = e.what();
+        return false;
+    }
+    return true;
 }
 
 std::string FmiSlaveType::InstantiationFailureDescription() const 
 {
-    assert (!"InstantiationFailureDescription() not implemented yet");
-    return std::string();
+    return m_instantiationFailureDescription;
 }
 
 

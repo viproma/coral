@@ -19,11 +19,18 @@ namespace fmi
 {
 
 
+// Note for documentation: This function should throw std::runtime_error
+// on instantiation failure.
+typedef std::function<void(dsb::model::SlaveID, const dsb::execution::Locator&, const std::string&)>
+    SlaveStarter;
+
+
 /**
 \brief Makes a new slave type based on an FMU.
 */
 std::unique_ptr<dsb::domain::ISlaveType> MakeSlaveType(
-    const boost::filesystem::path& fmu);
+    const boost::filesystem::path& fmu,
+    SlaveStarter slaveStarterFunction);
 
 
 /**

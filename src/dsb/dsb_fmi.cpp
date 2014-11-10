@@ -6,9 +6,10 @@
 
 
 std::unique_ptr<dsb::domain::ISlaveType> dsb::fmi::MakeSlaveType(
-    const boost::filesystem::path& fmu)
+    const boost::filesystem::path& fmu,
+    SlaveStarter slaveStarterFunction)
 {
-    return std::make_unique<FmiSlaveType>(fmu.string(), "dummy");
+    return std::make_unique<FmiSlaveType>(fmu.string(), slaveStarterFunction);
 }
 
 

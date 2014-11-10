@@ -18,48 +18,64 @@ namespace {
 
 int main(int argc, const char** argv)
 {
-    if (argc < 5) {
+    if (argc < 4) {
         std::cerr << "Usage: " << self << " <exec. config> <sys. config> <report> <info>\n"
                   << "  exec. config = the execution configuration file\n"
                   << "  sys. config  = the system configuration file\n"
-                  << "  report       = the slave provider discovery endpoint (e.g. tcp://localhost:5432)"
-                  << "  info         = the slave provider info endpoint\n"
+                  << "  address      = address of the domain/execution brokers (e.g. tcp://localhost)"
                   << std::endl;
         return 0;
     }
     try {
         const auto execConfigFile = std::string(argv[1]);
         const auto sysConfigFile = std::string(argv[2]);
-        const auto reportEndpoint = std::string(argv[3]);
-        const auto infoEndpoint = std::string(argv[4]);
+        const auto address = std::string(argv[3]);
+
+        const auto reportEndpoint = address + ":51380";
+        const auto infoEndpoint = address + ":51382";
+        const auto execLoc = dsb::execution::Locator(
+            address + ":51390",
+            address + ":51391",
+            address + ":51392",
+            address + ":51393");
 
         auto context = std::make_shared<zmq::context_t>();
         auto domain = dsb::domain::Controller(context, reportEndpoint, infoEndpoint);
 
-        std::cout << "Press ENTER to retrieve slave type list" << std::endl;
+        auto controller = dsb::execution::SpawnExecution(context, execLoc.MasterEndpoint());
+        const auto execConfig = ParseExecutionConfig(execConfigFile);
+        ParseSystemConfig(sysConfigFile, controller);
+
+        std::cout << "Press ENTER to run simulation, 'R' to refresh slave list, or enter slave type UUID to start a slave" << std::endl;
+        dsb::model::SlaveID slaveID = 0;
         for (;;) {
-            std::cin.ignore();
-            auto slaveTypes = domain.GetSlaveTypes();
-            BOOST_FOREACH (const auto& st, slaveTypes) {
-                std::cout << st.name << ": "
-                          << st.uuid << ", "
-                          << st.description << ", "
-                          << st.author << ", "
-                          << st.version << std::endl;
-                BOOST_FOREACH (const auto& v, st.variables) {
-                    std::cout << "  v(" << v.ID() << "): " << v.Name() << std::endl;
+            std::string command;
+            std::getline(std::cin, command);
+            if (command.empty()) break;
+            else if (command == "R" || command == "r") {
+                auto slaveTypes = domain.GetSlaveTypes();
+                BOOST_FOREACH (const auto& st, slaveTypes) {
+                    std::cout << st.name << ": "
+                                << st.uuid << ", "
+                                << st.description << ", "
+                                << st.author << ", "
+                                << st.version << std::endl;
+                    BOOST_FOREACH (const auto& v, st.variables) {
+                        std::cout << "  v(" << v.ID() << "): " << v.Name() << std::endl;
+                    }
+                    BOOST_FOREACH (const auto& p, st.providers) {
+                        std::cout << "  " << p << std::endl;
+                    }
                 }
-                BOOST_FOREACH (const auto& p, st.providers) {
-                    std::cout << "  " << p << std::endl;
+            } else {
+                std::cout << "'" << command << "' interpreted as UUID, starting slave" << std::endl;
+                try {
+                    domain.InstantiateSlave(command, execLoc, ++slaveID);
+                } catch (const std::exception& e) {
+                    std::cerr << "Instantiation failed: " << e.what() << std::endl;
                 }
             }
         }
-        if (std::cin.get()) return 0;
-
-        auto controller = dsb::execution::SpawnExecution(context, reportEndpoint);
-
-        const auto execConfig = ParseExecutionConfig(execConfigFile);
-        ParseSystemConfig(sysConfigFile, controller);
 
         // =========================================================================
         // TEMPORARY DEMO CODE

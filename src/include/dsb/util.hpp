@@ -48,6 +48,10 @@ private:
 
 /**
 \brief  Starts a new process.
+
+Windows warning: This function only supports a very limited form of argument
+quoting.  The elements of args may contain spaces, but no quotation marks or
+other characters that are considered "special" in a Windows command line.
 */
 void SpawnProcess(
     const std::string& program,

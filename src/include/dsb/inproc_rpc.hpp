@@ -25,7 +25,9 @@ namespace inproc_rpc
 enum CallType
 {
     // Domain commands
-    GET_SLAVE_TYPES,
+    GET_SLAVE_TYPES_CALL,
+    INSTANTIATE_SLAVE_CALL,
+
     // Execution commands
     SET_SIMULATION_TIME_CALL,
     ADD_SLAVE_CALL,
@@ -53,6 +55,20 @@ void CallGetSlaveTypes(
 void ReturnGetSlaveTypes(
     zmq::socket_t& socket,
     dsbproto::inproc_rpc::SlaveTypeList& slaveTypes);
+
+void CallInstantiateSlave(
+    zmq::socket_t& socket,
+    const std::string& slaveTypeUUID,
+    const dsb::execution::Locator& executionLocator,
+    dsb::model::SlaveID slaveID,
+    const std::string& provider);
+
+void UnmarshalInstantiateSlave(
+    std::deque<zmq::message_t>& msg,
+    std::string& slaveTypeUUID,
+    dsb::execution::Locator& executionLocator,
+    dsb::model::SlaveID& slaveID,
+    std::string& provider);
 
 void CallSetSimulationTime(
     zmq::socket_t& socket,
