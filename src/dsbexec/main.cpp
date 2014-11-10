@@ -3,8 +3,10 @@
 #include <string>
 
 #include "boost/chrono.hpp"
+#include "boost/foreach.hpp"
 #include "zmq.hpp"
 
+#include "dsb/domain.hpp"
 #include "dsb/execution.hpp"
 #include "config_parser.hpp"
 
@@ -16,21 +18,42 @@ namespace {
 
 int main(int argc, const char** argv)
 {
-    if (argc < 4) {
-        std::cerr << "Usage: " << self << " <exec. config> <sys. config> <address>\n"
+    if (argc < 5) {
+        std::cerr << "Usage: " << self << " <exec. config> <sys. config> <report> <info>\n"
                   << "  exec. config = the execution configuration file\n"
                   << "  sys. config  = the system configuration file\n"
-                  << "  address      = the DSB server endpoint (e.g. tcp://localhost:5432)"
+                  << "  report       = the slave provider discovery endpoint (e.g. tcp://localhost:5432)"
+                  << "  info         = the slave provider info endpoint\n"
                   << std::endl;
         return 0;
     }
     try {
         const auto execConfigFile = std::string(argv[1]);
         const auto sysConfigFile = std::string(argv[2]);
-        const auto endpoint = std::string(argv[3]);
+        const auto reportEndpoint = std::string(argv[3]);
+        const auto infoEndpoint = std::string(argv[4]);
 
         auto context = std::make_shared<zmq::context_t>();
-        auto controller = dsb::execution::SpawnExecution(context, endpoint);
+        auto domain = dsb::domain::Controller(context, reportEndpoint, infoEndpoint);
+
+        std::cout << "Press ENTER to retrieve slave type list" << std::endl;
+        for (;;) {
+            std::cin.ignore();
+            auto slaveTypes = domain.GetSlaveTypes();
+            BOOST_FOREACH (const auto& st, slaveTypes) {
+                std::cout << st.name << ": "
+                          << st.uuid << ", "
+                          << st.description << ", "
+                          << st.author << ", "
+                          << st.version << std::endl;
+                BOOST_FOREACH (const auto& p, st.providers) {
+                    std::cout << "  " << p << std::endl;
+                }
+            }
+        }
+        if (std::cin.get()) return 0;
+
+        auto controller = dsb::execution::SpawnExecution(context, reportEndpoint);
 
         const auto execConfig = ParseExecutionConfig(execConfigFile);
         ParseSystemConfig(sysConfigFile, controller);

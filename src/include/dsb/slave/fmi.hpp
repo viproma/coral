@@ -4,9 +4,9 @@
 #include <ostream>
 #include <string>
 
-#include "boost/filesystem.hpp"
 #include "fmilibcpp/fmi1/Fmu.hpp"
 #include "dsb/bus/slave_agent.hpp"
+#include "dsb/util.hpp"
 
 
 namespace dsb
@@ -15,19 +15,6 @@ namespace slave
 {
 
     
-// An RAII object that creates a unique directory on construction,
-// and recursively deletes it again on destruction.
-class TempDir
-{
-public:
-    TempDir();
-    ~TempDir();
-    const boost::filesystem::path& Path() const;
-private:
-    boost::filesystem::path m_path;
-};
-
-
 class FmiSlaveInstance : public dsb::bus::ISlaveInstance
 {
 public:
@@ -50,7 +37,7 @@ public:
     bool DoStep(double currentT, double deltaT) override;
 
 private:
-    TempDir m_fmuDir;
+    dsb::util::TempDir m_fmuDir;
     std::shared_ptr<fmilib::fmi1::Fmu> m_fmu;
     bool m_initializing;
     double m_startTime, m_stopTime;

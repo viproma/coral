@@ -9,7 +9,7 @@
 
 namespace dsb
 {
-namespace broker
+namespace proxy
 {
 
 

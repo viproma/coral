@@ -2,6 +2,7 @@
 
 #include <cstdio>
 
+#include "boost/filesystem.hpp"
 #include "boost/uuid/random_generator.hpp"
 #include "boost/uuid/uuid_io.hpp"
 
@@ -24,4 +25,24 @@ std::string dsb::util::RandomUUID()
 {
     boost::uuids::random_generator gen;
     return boost::uuids::to_string(gen());
+}
+
+
+
+dsb::util::TempDir::TempDir()
+    : m_path(boost::filesystem::temp_directory_path()
+             / boost::filesystem::unique_path())
+{
+    boost::filesystem::create_directory(m_path);
+}
+
+dsb::util::TempDir::~TempDir()
+{
+    boost::system::error_code ec;
+    boost::filesystem::remove_all(m_path, ec);
+}
+
+const boost::filesystem::path& dsb::util::TempDir::Path() const
+{
+    return m_path;
 }

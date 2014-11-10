@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 #include "boost/variant.hpp"
 
 
@@ -15,6 +16,18 @@ namespace dsb
 /// Generally useful classes and type definitions.
 namespace types
 {
+
+
+/// Information about a slave type.
+struct SlaveType
+{
+    std::string name;
+    std::string uuid;
+    std::string description;
+    std::string author;
+    std::string version;
+    std::vector<std::string> providers;
+};
 
 
 /// A tagged union of all data types supported by FMI.

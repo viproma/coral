@@ -63,7 +63,7 @@ public:
                             infinite (the default), signifying that no
                             particular stop time is defined.
 
-    \throws std::runtime_error if `startTime > stopTime` or AddSlave() has
+    \throws std::logic_error if `startTime > stopTime` or AddSlave() has
         previously been called.
     */
     void SetSimulationTime(
@@ -79,7 +79,7 @@ public:
 
     \param [in] slaveId     The ID of the slave.
 
-    \throws std::runtime_error if the slave has been added before.
+    \throws std::logic_error if the slave has been added before.
     */
     void AddSlave(uint16_t slaveId);
 
@@ -89,7 +89,7 @@ public:
     \param [in] slaveId     The ID of a slave which is part of the execution.
     \param [in] variables   Variable references and values.
 
-    \throws std::runtime_error if the ID does not correspond to a slave which
+    \throws std::logic_error if the ID does not correspond to a slave which
         is part of this execution.
     */
     void SetVariables(
@@ -102,7 +102,7 @@ public:
     \param [in] slaveId     The ID of the slave whose inputs are to be connected.
     \param [in] connections References to input and output variables.
 
-    \throws std::runtime_error if `slaveId` or any of the slave IDs in
+    \throws std::logic_error if `slaveId` or any of the slave IDs in
         `connections` do not refer to slaves which have been added with
         AddSlave().
     */

@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <utility>
 
@@ -19,7 +20,7 @@ try {
     if (argc < 6) {
         const auto self = boost::filesystem::path(argv[0]).stem().string();
         std::cerr << "Usage: " << self << " <id> <control> <data pub> <data sub> <fmu path> [output file]\n"
-                  << "  id          = a number in the range 0 - 65535\n"
+                  << "  id          = a number in the range 1 - 65535\n"
                   << "  control     = Control socket endpoint (e.g. tcp://myhost:5432)\n"
                   << "  data pub    = Publisher socket endpoint\n"
                   << "  data sub    = Subscriber socket endpoint\n"
@@ -31,6 +32,10 @@ try {
         return 0;
     }
     const auto id = boost::lexical_cast<uint16_t>(argv[1]);
+    if (id == 0) {
+        std::cerr << "0 is not a valid slave ID" << std::endl;
+        return 1;
+    }
     const auto controlEndpoint = std::string(argv[2]);
     const auto dataPubEndpoint = std::string(argv[3]);
     const auto dataSubEndpoint = std::string(argv[4]);

@@ -10,12 +10,34 @@ enum DataType
     STRING  = 4;
 }
 
-// Currently supported FMI variable causalities.
+// FMI variable causalities.
 enum Causality
 {
-    PARAMETER   = 1;
-    INPUT       = 3;
-    OUTPUT      = 4;
+    PARAMETER               = 1;
+    CALCULATED_PARAMETER    = 2;
+    INPUT                   = 3;
+    OUTPUT                  = 4;
+    LOCAL                   = 5;
+}
+
+// FMI variable variabilities.
+enum Variability
+{
+    CONSTANT   = 1;
+    FIXED      = 2;
+    TUNABLE    = 3;
+    DISCRETE   = 4;
+    CONTINUOUS = 5;
+}
+
+// Information about a variable
+message VariableDefinition
+{
+    required string name = 1;
+    required uint32 valueReference = 2;
+    optional string description = 3;
+    required Causality causality = 4;
+    required Variability variability = 5;
 }
 
 // The value of a variable

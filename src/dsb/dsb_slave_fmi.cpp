@@ -13,24 +13,6 @@ namespace dsb
 namespace slave
 {
 
-TempDir::TempDir()
-    : m_path(boost::filesystem::temp_directory_path()
-             / boost::filesystem::unique_path())
-{
-    boost::filesystem::create_directory(m_path);
-}
-
-TempDir::~TempDir()
-{
-    boost::system::error_code ec;
-    boost::filesystem::remove_all(m_path, ec);
-}
-
-const boost::filesystem::path& TempDir::Path() const
-{
-    return m_path;
-}
-
 
 #define JM_CALL(expression) \
     do { \

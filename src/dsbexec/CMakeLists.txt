@@ -12,7 +12,7 @@ set (_sources
     "config_parser.cpp"
 )
 
-find_package (Boost REQUIRED COMPONENTS thread system chrono)
+find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono)
 find_package (ZMQ REQUIRED)
 
 set (_target "dsbexec")
