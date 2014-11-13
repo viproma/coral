@@ -44,6 +44,7 @@ int main(int argc, const char** argv)
 
         auto controller = dsb::execution::SpawnExecution(context, execLoc.MasterEndpoint());
         const auto execConfig = ParseExecutionConfig(execConfigFile);
+        controller.SetSimulationTime(execConfig.startTime, execConfig.stopTime);
         ParseSystemConfig(sysConfigFile, controller);
 
         std::cout << "Press ENTER to run simulation, 'R' to refresh slave list, or enter slave type UUID to start a slave" << std::endl;
