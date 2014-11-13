@@ -201,6 +201,8 @@ void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
 
 void SlaveAgent::StepFailedHandler(std::deque<zmq::message_t>& msg)
 {
+    // TODO: Remove the following message.
+    std::cerr << "This slave was unable to perform the time step." << std::endl;
     EnforceMessageType(msg, dsbproto::execution::MSG_TERMINATE);
     // We never get here, because EnforceMessageType() always throws either
     // Shutdown or ProtocolViolationException.
