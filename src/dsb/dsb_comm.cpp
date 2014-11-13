@@ -68,6 +68,22 @@ void dsb::comm::Receive(
 }
 
 
+bool dsb::comm::Receive(
+    zmq::socket_t& socket,
+    std::deque<zmq::message_t>& message,
+    boost::chrono::milliseconds timeout)
+{
+    zmq::pollitem_t pollItem = { socket, 0, ZMQ_POLLIN, 0 };
+    if (zmq::poll(&pollItem, 1, static_cast<long>(timeout.count())) == 0) {
+        return false;
+    } else {
+        assert (pollItem.revents == ZMQ_POLLIN);
+        dsb::comm::Receive(socket, message);
+        return true;
+    }
+}
+
+
 size_t dsb::comm::PopMessageEnvelope(
     std::deque<zmq::message_t>& message,
     std::deque<zmq::message_t>* envelope)

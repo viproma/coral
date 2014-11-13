@@ -142,7 +142,11 @@ namespace
         dsb::comm::Send(infoSocket, reqMsg);
 
         std::deque<zmq::message_t> repMsg;
-        dsb::comm::Receive(infoSocket, repMsg); // TODO: Add a timeout here.
+        if (!dsb::comm::Receive(infoSocket, repMsg, boost::chrono::milliseconds(2000))) {
+            // TODO: Shouldn't use hardcoded timeout, and must handle the failure better.
+            assert(!"Timeout waiting for reply from slave provider, SP possibly dead.");
+            return;
+        }
         if (repMsg.size() != 3 || repMsg[1].size() != 0) {
             throw dsb::error::ProtocolViolationException("Invalid reply format");
         }
@@ -201,7 +205,11 @@ namespace
                 msg, providerId, dp::MSG_GET_SLAVE_LIST, header.protocol);
             dsb::comm::Send(infoSocket, msg);
 
-            dsb::comm::Receive(infoSocket, msg); // TODO: Add timeout here
+            if (!dsb::comm::Receive(infoSocket, msg, boost::chrono::milliseconds(2000))) {
+                // TODO: Shouldn't use hardcoded timeout, and must handle the failure better.
+                assert(!"Timeout waiting for reply from slave provider, SP possibly dead.");
+                return;
+            }
             if (msg.size() != 4 || msg[1].size() != 0) {
                 throw dsb::error::ProtocolViolationException("Invalid reply format");
             }
