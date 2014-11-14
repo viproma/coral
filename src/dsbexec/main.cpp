@@ -4,6 +4,7 @@
 
 #include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
+#include "boost/thread.hpp"
 #include "zmq.hpp"
 
 #include "dsb/domain/controller.hpp"
@@ -42,10 +43,16 @@ int main(int argc, const char** argv)
         auto context = std::make_shared<zmq::context_t>();
         auto domain = dsb::domain::Controller(context, reportEndpoint, infoEndpoint);
 
+        // TODO: Handle this waiting more elegantly, e.g. wait until all required
+        // slave types are available.  Also, the waiting time is related to the
+        // slave provider heartbeat time.
+        std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
+        boost::this_thread::sleep_for(boost::chrono::seconds(2));
+
         auto controller = dsb::execution::SpawnExecution(context, execLoc.MasterEndpoint());
         const auto execConfig = ParseExecutionConfig(execConfigFile);
         controller.SetSimulationTime(execConfig.startTime, execConfig.stopTime);
-        ParseSystemConfig(sysConfigFile, controller);
+        ParseSystemConfig(sysConfigFile, domain, controller, execLoc);
 
         std::cout << "Press ENTER to run simulation, 'R' to refresh slave list, or enter slave type UUID to start a slave" << std::endl;
         dsb::model::SlaveID slaveID = 0;
