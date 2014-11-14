@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "boost/variant.hpp"
+#include "dsb/model.hpp"
 
 
 namespace dsb
@@ -26,6 +27,7 @@ struct SlaveType
     std::string description;
     std::string author;
     std::string version;
+    std::vector<dsb::model::Variable> variables;
     std::vector<std::string> providers;
 };
 

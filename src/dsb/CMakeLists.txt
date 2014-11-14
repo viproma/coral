@@ -4,7 +4,10 @@ set (_publicHeaders
     "dsb/config.h"
     "dsb/domain.hpp"
     "dsb/execution.hpp"
+    "dsb/model.hpp"
     "dsb/sequence.hpp"
+    "dsb/slave.hpp"
+    "dsb/slave_provider.hpp"
     "dsb/types.hpp"
 )
 set (_privateHeaders
@@ -42,6 +45,7 @@ set (_sources
 
     "dsb_domain.cpp"
     "dsb_execution.cpp"
+    "dsb_model.cpp"
 )
 set (_testSources
     "dsb_comm_test.cpp"

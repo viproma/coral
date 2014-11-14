@@ -46,6 +46,9 @@ int main(int argc, const char** argv)
                           << st.description << ", "
                           << st.author << ", "
                           << st.version << std::endl;
+                BOOST_FOREACH (const auto& v, st.variables) {
+                    std::cout << "  v(" << v.ID() << "): " << v.Name() << std::endl;
+                }
                 BOOST_FOREACH (const auto& p, st.providers) {
                     std::cout << "  " << p << std::endl;
                 }
