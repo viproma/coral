@@ -2,13 +2,13 @@ set (_target "dsb")
 
 set (_publicHeaders
     "dsb/config.h"
-    "dsb/domain.hpp"
-    "dsb/execution.hpp"
+    "dsb/domain/controller.hpp"
+    "dsb/domain/slave_provider.hpp"
+    "dsb/execution/controller.hpp"
+    "dsb/execution/slave.hpp"
+    "dsb/fmi.hpp"
     "dsb/model.hpp"
     "dsb/sequence.hpp"
-    "dsb/slave.hpp"
-    "dsb/slave_provider.hpp"
-    "dsb/types.hpp"
 )
 set (_privateHeaders
     "dsb/bus/domain_data.hpp"
@@ -18,33 +18,44 @@ set (_privateHeaders
     "dsb/bus/slave_tracker.hpp"
     "dsb/comm.hpp"
     "dsb/compat_helpers.hpp"
-    "dsb/control.hpp"
     "dsb/error.hpp"
     "dsb/inproc_rpc.hpp"
     "dsb/protobuf.hpp"
     "dsb/protocol/domain.hpp"
+    "dsb/protocol/execution.hpp"
     "dsb/proxy.hpp"
-    "dsb/slave/fmi.hpp"
     "dsb/util.hpp"
 )
-set (_internalHeaders ) # Only visible inside the "dsb" module.
+set (_internalHeaders
+    "dsb/fmi/glue.hpp"
+    "dsb/fmi/slave.hpp"
+    "dsb/fmi/slave_type.hpp"
+    "dsb/protocol/glue.hpp"
+)
 set (_sources
+    "dsb_fmi_glue.cpp"
+    "dsb_fmi_slave.cpp"
+    "dsb_fmi_slave_type.cpp"
+    "dsb_protocol_glue.cpp"
+
     "dsb_bus_domain_data.cpp"
     "dsb_bus_execution_agent.cpp"
     "dsb_bus_execution_state.cpp"
     "dsb_bus_slave_agent.cpp"
     "dsb_bus_slave_tracker.cpp"
     "dsb_comm.cpp"
-    "dsb_control.cpp"
     "dsb_inproc_rpc.cpp"
     "dsb_protobuf.cpp"
     "dsb_protocol_domain.cpp"
+    "dsb_protocol_execution.cpp"
     "dsb_proxy.cpp"
-    "dsb_slave_fmi.cpp"
     "dsb_util.cpp"
 
-    "dsb_domain.cpp"
-    "dsb_execution.cpp"
+    "dsb_domain_controller.cpp"
+    "dsb_domain_slave_provider.cpp"
+    "dsb_execution_controller.cpp"
+    "dsb_execution_slave.cpp"
+    "dsb_fmi.cpp"
     "dsb_model.cpp"
 )
 set (_testSources
@@ -52,9 +63,9 @@ set (_testSources
     "dsb_compat_helpers_test.cpp"
     "dsb_protobuf_test.cpp"
     "dsb_protocol_domain_test.cpp"
-    "dsb_control_test.cpp"
-    "dsb_domain_test.cpp"
-    "dsb_execution_test.cpp"
+    "dsb_protocol_execution_test.cpp"
+    "dsb_domain_controller_test.cpp"
+    "dsb_execution_controller_test.cpp"
     "dsb_inproc_rpc_test.cpp"
     "dsb_proxy_test.cpp"
     "dsb_sequence_test.cpp"
@@ -70,11 +81,24 @@ set (_privateHeadersFull)
 foreach (h ${_privateHeaders})
     list (APPEND _privateHeadersFull "${privateHeaderDir}/${h}")
 endforeach ()
-
-source_group ("Public Header Files" FILES ${_publicHeadersFull})
-source_group ("Private Header Files" FILES ${_privateHeadersFull})
-source_group ("Internal Header Files" FILES ${_internalHeaders})
 include_directories (${publicHeaderDir} ${privateHeaderDir})
+
+# Many files have the same (base)name, so we group them based on their
+# "package name", i.e. the name of their subdirectory under "dsb/".
+macro (CreateHeaderGroups _superGroup)
+    foreach (_hdr ${ARGN})
+        unset (_pkg)
+        string (REGEX REPLACE ".*dsb/([a-zA-Z_]+)/[a-zA-Z_]+.hpp" "\\1" _pkg "${_hdr}")
+        if (_pkg STREQUAL _hdr)
+            source_group ("${_superGroup}" FILES "${_hdr}")
+        else ()
+            source_group ("${_superGroup}\\${_pkg}" FILES "${_hdr}")
+        endif ()
+    endforeach()
+endmacro(CreateHeaderGroups)
+CreateHeaderGroups("Public Header Files" ${_publicHeadersFull})
+CreateHeaderGroups("Private Header Files" ${_privateHeadersFull})
+CreateHeaderGroups("Internal Header Files" ${_internalHeaders})
 
 # Dependencies
 find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono)

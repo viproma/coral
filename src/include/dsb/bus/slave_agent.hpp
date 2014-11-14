@@ -10,72 +10,14 @@
 #include <vector>
 
 #include "zmq.hpp"
-#include "control.pb.h"
+#include "dsb/execution/slave.hpp"
+#include "execution.pb.h"
 
 
 namespace dsb
 {
 namespace bus
 {
-
-// =============================================================================
-// TEMPORARY placeholders for FMI-based interface
-enum DataType
-{
-    REAL_DATATYPE       = 1,
-    INTEGER_DATATYPE    = 1 << 1,
-    BOOLEAN_DATATYPE    = 1 << 2,
-    STRING_DATATYPE     = 1 << 3,
-    // Reserved: STRUCTURED_DATATYPE = 1 << 4,
-};
-
-enum Causality
-{
-    PARAMETER_CAUSALITY = 1,
-    // Reserved: CALCULATED_PARAMETER_CAUSALITY = 1 << 1,
-    INPUT_CAUSALITY     = 1 << 2,
-    OUTPUT_CAUSALITY    = 1 << 3,
-    LOCAL_CAUSALITY     = 1 << 4,
-};
-
-enum Variability
-{
-    CONSTANT_VARIABILITY    = 1,
-    FIXED_VARIABILITY       = 1 << 1,
-    TUNABLE_VARIABILITY     = 1 << 2,
-    DISCRETE_VARIABILITY    = 1 << 3,
-    CONTINUOUS_VARIABILITY  = 1 << 4,
-};
-
-struct VariableInfo
-{
-    VariableInfo(unsigned reference_, const std::string& name_, DataType dataType_, Causality causality_, Variability variability_)
-        : reference(reference_), name(name_), dataType(dataType_), causality(causality_), variability(variability_)
-    { }
-
-    unsigned reference;
-    std::string name;
-    DataType dataType;
-    Causality causality;
-    Variability variability;
-};
-
-class ISlaveInstance
-{
-public:
-    virtual void Setup(double startTime, double stopTime) = 0;
-    virtual std::vector<VariableInfo> Variables() = 0;
-    virtual double GetRealVariable(unsigned varRef) = 0;
-    virtual int GetIntegerVariable(unsigned varRef) = 0;
-    virtual bool GetBooleanVariable(unsigned varRef) = 0;
-    virtual std::string GetStringVariable(unsigned varRef) = 0;
-    virtual void SetRealVariable(unsigned varRef, double value) = 0;
-    virtual void SetIntegerVariable(unsigned varRef, int value) = 0;
-    virtual void SetBooleanVariable(unsigned varRef, bool value) = 0;
-    virtual void SetStringVariable(unsigned varRef, const std::string& value) = 0;
-    virtual bool DoStep(double currentT, double deltaT) = 0;
-};
-// =============================================================================
 
 
 /**
@@ -91,15 +33,14 @@ public:
     \param [in] id              The slave ID.
     \param [in] dataSub         A SUB socket to be used for receiving variables.
     \param [in] dataPub         A PUB socket to be used for sending variables.
-    \param [in] slaveInstance   (Temporary) A pointer to the object which
+    \param [in] slaveInstance   A pointer to the object which
                                 contains the slave's mathematical model.
     */
     SlaveAgent(
         uint16_t id,
         zmq::socket_t dataSub,
         zmq::socket_t dataPub,
-        std::unique_ptr<ISlaveInstance> slaveInstance
-        );
+        dsb::execution::ISlaveInstance& slaveInstance);
 
     /**
     \brief  Prepares the first message (HELLO) which is to be sent to the master
@@ -137,7 +78,7 @@ private:
     void HandleConnectVars(std::deque<zmq::message_t>& msg);
 
     // Performs the time step for ReadyHandler()
-    bool Step(const dsbproto::control::StepData& stepData);
+    bool Step(const dsbproto::execution::StepData& stepData);
 
     // A pointer to the handler function for the current state.
     void (SlaveAgent::* m_stateHandler)(std::deque<zmq::message_t>&);
@@ -145,7 +86,7 @@ private:
     const uint16_t m_id; // The slave's ID number in the current execution
     zmq::socket_t m_dataSub;
     zmq::socket_t m_dataPub;
-    std::unique_ptr<ISlaveInstance> m_slaveInstance;
+    dsb::execution::ISlaveInstance& m_slaveInstance;
     double m_currentTime;
     double m_lastStepSize;
 

@@ -6,8 +6,8 @@
 #include "boost/foreach.hpp"
 #include "zmq.hpp"
 
-#include "dsb/domain.hpp"
-#include "dsb/execution.hpp"
+#include "dsb/domain/controller.hpp"
+#include "dsb/execution/controller.hpp"
 #include "config_parser.hpp"
 
 

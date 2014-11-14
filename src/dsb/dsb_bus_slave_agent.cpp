@@ -8,9 +8,9 @@
 #include "boost/foreach.hpp"
 
 #include "dsb/comm.hpp"
-#include "dsb/control.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
+#include "dsb/protocol/execution.hpp"
 #include "dsb/util.hpp"
 
 
@@ -18,8 +18,8 @@ namespace
 {
     uint16_t NormalMessageType(const std::deque<zmq::message_t>& msg)
     {
-        const auto mt = dsb::control::NonErrorMessageType(msg);
-        if (mt == dsbproto::control::MSG_TERMINATE) throw dsb::bus::Shutdown();
+        const auto mt = dsb::protocol::execution::NonErrorMessageType(msg);
+        if (mt == dsbproto::execution::MSG_TERMINATE) throw dsb::bus::Shutdown();
         return mt;
     }
 
@@ -30,7 +30,7 @@ namespace
 
     void EnforceMessageType(
         const std::deque<zmq::message_t>& msg,
-        dsbproto::control::MessageType expectedType)
+        dsbproto::execution::MessageType expectedType)
     {
         if (NormalMessageType(msg) != expectedType) InvalidReplyFromMaster();
     }
@@ -49,11 +49,11 @@ SlaveAgent::SlaveAgent(
         uint16_t id,
         zmq::socket_t dataSub,
         zmq::socket_t dataPub,
-        std::unique_ptr<ISlaveInstance> slaveInstance)
+        dsb::execution::ISlaveInstance& slaveInstance)
     : m_id(id),
       m_dataSub(std::move(dataSub)),
       m_dataPub(std::move(dataPub)),
-      m_slaveInstance(std::move(slaveInstance)),
+      m_slaveInstance(slaveInstance),
       m_currentTime(std::numeric_limits<double>::signaling_NaN()),
       m_lastStepSize(std::numeric_limits<double>::signaling_NaN())
 {
@@ -62,7 +62,7 @@ SlaveAgent::SlaveAgent(
 
 void SlaveAgent::Start(std::deque<zmq::message_t>& msg)
 {
-    dsb::control::CreateHelloMessage(msg, 0);
+    dsb::protocol::execution::CreateHelloMessage(msg, 0);
     m_stateHandler = &SlaveAgent::ConnectingHandler;
 }
 
@@ -75,27 +75,27 @@ void SlaveAgent::RequestReply(std::deque<zmq::message_t>& msg)
 
 void SlaveAgent::ConnectingHandler(std::deque<zmq::message_t>& msg)
 {
-    if (dsb::control::ParseHelloMessage(msg) != 0) {
+    if (dsb::protocol::execution::ParseHelloMessage(msg) != 0) {
         throw std::runtime_error("Master required unsupported protocol");
     }
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_SUBMIT);
+    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_SUBMIT);
     m_stateHandler = &SlaveAgent::ConnectedHandler;
 }
 
 
 void SlaveAgent::ConnectedHandler(std::deque<zmq::message_t>& msg)
 {
-    EnforceMessageType(msg, dsbproto::control::MSG_SETUP);
+    EnforceMessageType(msg, dsbproto::execution::MSG_SETUP);
     if (msg.size() != 2) InvalidReplyFromMaster();
-    dsbproto::control::SetupData data;
+    dsbproto::execution::SetupData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
-    m_slaveInstance->Setup(
+    m_slaveInstance.Setup(
         data.start_time(),
         data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity());
     std::clog << "Simulating from t = " << data.start_time()
               << " to " << (data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity())
               << std::endl;
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
+    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }
 
@@ -103,29 +103,29 @@ void SlaveAgent::ConnectedHandler(std::deque<zmq::message_t>& msg)
 void SlaveAgent::ReadyHandler(std::deque<zmq::message_t>& msg)
 {
     switch (NormalMessageType(msg)) {
-        case dsbproto::control::MSG_STEP: {
+        case dsbproto::execution::MSG_STEP: {
             if (msg.size() != 2) {
                 throw dsb::error::ProtocolViolationException(
                     "Wrong number of frames in STEP message");
             }
-            dsbproto::control::StepData stepData;
+            dsbproto::execution::StepData stepData;
             dsb::protobuf::ParseFromFrame(msg[1], stepData);
             if (Step(stepData)) {
-                dsb::control::CreateMessage(msg, dsbproto::control::MSG_STEP_OK);
+                dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_STEP_OK);
                 m_stateHandler = &SlaveAgent::PublishedHandler;
             } else {
                 // TODO: Remove this line when we implement proper handling of
                 // failed steps.
                 std::clog << "Step failed: t = " << stepData.timepoint()
                           << ", dt = " << stepData.stepsize() << std::endl;
-                dsb::control::CreateMessage(msg, dsbproto::control::MSG_STEP_FAILED);
+                dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_STEP_FAILED);
                 m_stateHandler = &SlaveAgent::StepFailedHandler;
             }
             break; }
-        case dsbproto::control::MSG_SET_VARS:
+        case dsbproto::execution::MSG_SET_VARS:
             HandleSetVars(msg);
             break;
-        case dsbproto::control::MSG_CONNECT_VARS:
+        case dsbproto::execution::MSG_CONNECT_VARS:
             HandleConnectVars(msg);
             break;
         default:
@@ -137,18 +137,18 @@ void SlaveAgent::ReadyHandler(std::deque<zmq::message_t>& msg)
 namespace
 {
     void SetVariable(
-        ISlaveInstance* slaveInstance,
+        dsb::execution::ISlaveInstance& slaveInstance,
         uint16_t varRef,
         const dsbproto::variable::ScalarValue& value)
     {
         if (value.has_real_value()) {
-            slaveInstance->SetRealVariable(varRef, value.real_value());
+            slaveInstance.SetRealVariable(varRef, value.real_value());
         } else if (value.has_integer_value()) {
-            slaveInstance->SetIntegerVariable(varRef, value.integer_value());
+            slaveInstance.SetIntegerVariable(varRef, value.integer_value());
         } else if (value.has_boolean_value()) {
-            slaveInstance->SetBooleanVariable(varRef, value.boolean_value());
+            slaveInstance.SetBooleanVariable(varRef, value.boolean_value());
         } else if (value.has_string_value()) {
-            slaveInstance->SetStringVariable(varRef, value.string_value());
+            slaveInstance.SetStringVariable(varRef, value.string_value());
         } else {
             assert (!"Corrupt or empty variable value received");
         }
@@ -158,7 +158,7 @@ namespace
 
 void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
 {
-    EnforceMessageType(msg, dsbproto::control::MSG_RECV_VARS);
+    EnforceMessageType(msg, dsbproto::execution::MSG_RECV_VARS);
 
     const auto allowedTimeError = m_lastStepSize * 1e-6;
 
@@ -189,19 +189,19 @@ void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
         const auto inVarRef = m_connections.at(rv);
 
         // Set our input variable.
-        SetVariable(m_slaveInstance.get(), inVarRef, inVar.value());
+        SetVariable(m_slaveInstance, inVarRef, inVar.value());
         receivedVars.insert(inVarRef);
     }
 
     // Send READY message and change state again.
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
+    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }
 
 
 void SlaveAgent::StepFailedHandler(std::deque<zmq::message_t>& msg)
 {
-    EnforceMessageType(msg, dsbproto::control::MSG_TERMINATE);
+    EnforceMessageType(msg, dsbproto::execution::MSG_TERMINATE);
     // We never get here, because EnforceMessageType() always throws either
     // Shutdown or ProtocolViolationException.
     assert (false);
@@ -216,12 +216,12 @@ void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
         throw dsb::error::ProtocolViolationException(
             "Wrong number of frames in SET_VARS message");
     }
-    dsbproto::control::SetVarsData data;
+    dsbproto::execution::SetVarsData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
     BOOST_FOREACH (const auto& var, data.variable()) {
-        SetVariable(m_slaveInstance.get(), var.id(), var.value());
+        SetVariable(m_slaveInstance, var.id(), var.value());
     }
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
+    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
 }
 
 
@@ -233,7 +233,7 @@ void SlaveAgent::HandleConnectVars(std::deque<zmq::message_t>& msg)
         throw dsb::error::ProtocolViolationException(
             "Wrong number of frames in CONNECT_VARS message");
     }
-    dsbproto::control::ConnectVarsData data;
+    dsbproto::execution::ConnectVarsData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
     BOOST_FOREACH (const auto& var, data.connection()) {
         // Look for any existing connection to the input variable, and
@@ -259,41 +259,42 @@ void SlaveAgent::HandleConnectVars(std::deque<zmq::message_t>& msg)
         m_dataSub.setsockopt(ZMQ_SUBSCRIBE, newHeader, DATA_HEADER_SIZE);
         m_connections.insert(std::make_pair(rv, var.input_var_id()));
     }
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_READY);
+    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
 }
 
 
-bool SlaveAgent::Step(const dsbproto::control::StepData& stepInfo)
+bool SlaveAgent::Step(const dsbproto::execution::StepData& stepInfo)
 {
     // Perform time step
-    if (!m_slaveInstance->DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
+    if (!m_slaveInstance.DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
         return false;
     }
     m_currentTime = stepInfo.timepoint() + stepInfo.stepsize();
     m_lastStepSize = stepInfo.stepsize();
 
-    BOOST_FOREACH (const auto varInfo, m_slaveInstance->Variables()) {
-        if (varInfo.causality != dsb::bus::OUTPUT_CAUSALITY) continue;
+    for (size_t i = 0; i < m_slaveInstance.VariableCount(); ++i) {
+        const auto varInfo = m_slaveInstance.Variable(i);
+        if (varInfo.Causality() != dsb::model::OUTPUT_CAUSALITY) continue;
 
         // Get value of output variable
         dsbproto::variable::TimestampedValue outVar;
         outVar.set_timestamp(m_currentTime);
-        switch (varInfo.dataType) {
-            case dsb::bus::REAL_DATATYPE:
+        switch (varInfo.DataType()) {
+            case dsb::model::REAL_DATATYPE:
                 outVar.mutable_value()->set_real_value(
-                    m_slaveInstance->GetRealVariable(varInfo.reference));
+                    m_slaveInstance.GetRealVariable(varInfo.ID()));
                 break;
-            case dsb::bus::INTEGER_DATATYPE:
+            case dsb::model::INTEGER_DATATYPE:
                 outVar.mutable_value()->set_integer_value(
-                    m_slaveInstance->GetIntegerVariable(varInfo.reference));
+                    m_slaveInstance.GetIntegerVariable(varInfo.ID()));
                 break;
-            case dsb::bus::BOOLEAN_DATATYPE:
+            case dsb::model::BOOLEAN_DATATYPE:
                 outVar.mutable_value()->set_boolean_value(
-                    m_slaveInstance->GetBooleanVariable(varInfo.reference));
+                    m_slaveInstance.GetBooleanVariable(varInfo.ID()));
                 break;
-            case dsb::bus::STRING_DATATYPE:
+            case dsb::model::STRING_DATATYPE:
                 outVar.mutable_value()->set_string_value(
-                    m_slaveInstance->GetStringVariable(varInfo.reference));
+                    m_slaveInstance.GetStringVariable(varInfo.ID()));
                 break;
             default:
                 assert (false);
@@ -304,7 +305,7 @@ bool SlaveAgent::Step(const dsbproto::control::StepData& stepInfo)
         // Header
         dataMsg.push_back(zmq::message_t(DATA_HEADER_SIZE));
         dsb::util::EncodeUint16(m_id, static_cast<char*>(dataMsg.front().data()));
-        dsb::util::EncodeUint16(varInfo.reference, static_cast<char*>(dataMsg.front().data()) + 2);
+        dsb::util::EncodeUint16(varInfo.ID(), static_cast<char*>(dataMsg.front().data()) + 2);
         // Body
         dataMsg.push_back(zmq::message_t());
         dsb::protobuf::SerializeToFrame(outVar, dataMsg.back());

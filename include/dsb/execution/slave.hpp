@@ -1,5 +1,9 @@
-#ifndef DSB_SLAVE_HPP
-#define DSB_SLAVE_HPP
+/**
+\file
+\brief Slave (instance) functionality.
+*/
+#ifndef DSB_EXECUTION_SLAVE_HPP
+#define DSB_EXECUTION_SLAVE_HPP
 
 #include "boost/noncopyable.hpp"
 #include "dsb/model.hpp"
@@ -7,7 +11,7 @@
 
 namespace dsb
 {
-namespace slave
+namespace execution
 {
 
 
@@ -34,29 +38,40 @@ public:
         dsb::model::TimePoint startTime,
         dsb::model::TimePoint stopTime) = 0;
 
+    /// How many variables the slave has.
+    virtual size_t VariableCount() const = 0;
+
+    /**
+    \brief  Information about the `index`-th variable.
+
+    Each variable must have a unique ID (which may, but is not required to, be
+    equal to `index`) and a unique name.
+    */
+    virtual dsb::model::Variable Variable(size_t index) const = 0;
+
     /**
     \brief  Returns the value of a real variable.
     \throws std::logic_error if there is no real variable with the given ID.
     */
-    virtual double GetRealVariable(dsb::model::VariableID variable) = 0;
+    virtual double GetRealVariable(dsb::model::VariableID variable) const = 0;
 
     /**
     \brief  Returns the value of an integer variable.
     \throws std::logic_error if there is no integer variable with the given ID.
     */
-    virtual int GetIntegerVariable(dsb::model::VariableID variable) = 0;
+    virtual int GetIntegerVariable(dsb::model::VariableID variable) const = 0;
 
     /**
     \brief  Returns the value of a boolean variable.
     \throws std::logic_error if there is no boolean variable with the given ID.
     */
-    virtual bool GetBooleanVariable(dsb::model::VariableID variable) = 0;
+    virtual bool GetBooleanVariable(dsb::model::VariableID variable) const = 0;
 
     /**
     \brief  Returns the value of a string variable.
     \throws std::logic_error if there is no string variable with the given ID.
     */
-    virtual std::string GetStringVariable(dsb::model::VariableID variable) = 0;
+    virtual std::string GetStringVariable(dsb::model::VariableID variable) const = 0;
 
     /**
     \brief  Sets the value of a real variable.
@@ -106,6 +121,14 @@ public:
     // Virtual destructor to allow deletion through base class reference.
     virtual ~ISlaveInstance() { }
 };
+
+
+void RunSlave(
+    dsb::model::SlaveID id,
+    const std::string& controlEndpoint,
+    const std::string& dataPubEndpoint,
+    const std::string& dataSubEndpoint,
+    ISlaveInstance& slaveInstance);
 
 
 }}      // namespace

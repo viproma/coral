@@ -1,4 +1,4 @@
-#include "dsb/control.hpp"
+#include "dsb/protocol/execution.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -19,7 +19,7 @@ namespace
 }
 
 
-void dsb::control::CreateHelloMessage(
+void dsb::protocol::execution::CreateHelloMessage(
     std::deque<zmq::message_t>& message,
     uint16_t protocolVersion)
 {
@@ -35,7 +35,7 @@ void dsb::control::CreateHelloMessage(
 }
 
 
-void dsb::control::CreateHelloMessage(
+void dsb::protocol::execution::CreateHelloMessage(
     std::deque<zmq::message_t>& message,
     uint16_t protocolVersion,
     const google::protobuf::MessageLite& body)
@@ -50,7 +50,7 @@ void dsb::control::CreateHelloMessage(
 }
 
 
-void dsb::control::CreateDeniedMessage(
+void dsb::protocol::execution::CreateDeniedMessage(
     std::deque<zmq::message_t>& message,
     const std::string& reason)
 {
@@ -67,9 +67,9 @@ void dsb::control::CreateDeniedMessage(
 }
 
 
-void dsb::control::CreateMessage(
+void dsb::protocol::execution::CreateMessage(
     std::deque<zmq::message_t>& message,
-    dsbproto::control::MessageType type)
+    dsbproto::execution::MessageType type)
 {
     message.clear();
 #if DSB_USE_MSVC_EMPLACE_WORKAROUND
@@ -81,9 +81,9 @@ void dsb::control::CreateMessage(
 }
 
 
-void dsb::control::CreateMessage(
+void dsb::protocol::execution::CreateMessage(
     std::deque<zmq::message_t>& message,
-    dsbproto::control::MessageType type,
+    dsbproto::execution::MessageType type,
     const google::protobuf::MessageLite& body)
 {
     CreateMessage(message, type);
@@ -96,21 +96,21 @@ void dsb::control::CreateMessage(
 }
 
 
-void dsb::control::CreateErrorMessage(
+void dsb::protocol::execution::CreateErrorMessage(
     std::deque<zmq::message_t>& message,
-    dsbproto::control::ErrorInfo::Code code,
+    dsbproto::execution::ErrorInfo::Code code,
     const std::string& details)
 {
-    dsbproto::control::ErrorInfo errorInfo;
+    dsbproto::execution::ErrorInfo errorInfo;
     errorInfo.set_code(code);
     if (!details.empty()) {
         errorInfo.set_details(details);
     }
-    CreateMessage(message, dsbproto::control::MSG_ERROR, errorInfo);
+    CreateMessage(message, dsbproto::execution::MSG_ERROR, errorInfo);
 }
 
 
-uint16_t dsb::control::ParseMessageType(const zmq::message_t& header)
+uint16_t dsb::protocol::execution::ParseMessageType(const zmq::message_t& header)
 {
     if (header.size() < 2) {
         throw dsb::error::ProtocolViolationException(
@@ -120,13 +120,13 @@ uint16_t dsb::control::ParseMessageType(const zmq::message_t& header)
 }
 
 
-uint16_t dsb::control::NonErrorMessageType(
+uint16_t dsb::protocol::execution::NonErrorMessageType(
     const std::deque<zmq::message_t>& message)
 {
     DSB_INPUT_CHECK(!message.empty());
     const auto type = ParseMessageType(message.front());
-    if (type == dsbproto::control::MSG_ERROR) {
-        dsbproto::control::ErrorInfo errorInfo;
+    if (type == dsbproto::execution::MSG_ERROR) {
+        dsbproto::execution::ErrorInfo errorInfo;
         if (message.size() > 1) {
             dsb::protobuf::ParseFromFrame(message[1], errorInfo);
         }
@@ -139,13 +139,13 @@ uint16_t dsb::control::NonErrorMessageType(
 namespace
 {
     // Returns a standard error message corresponding to the given code.
-    const char* RemoteErrorString(const dsbproto::control::ErrorInfo::Code& code)
+    const char* RemoteErrorString(const dsbproto::execution::ErrorInfo::Code& code)
     {
         switch (code) {
-            case dsbproto::control::ErrorInfo::INVALID_REQUEST:
+            case dsbproto::execution::ErrorInfo::INVALID_REQUEST:
                 return "Invalid request";
             default:
-                assert (code == dsbproto::control::ErrorInfo::UNKNOWN_ERROR
+                assert (code == dsbproto::execution::ErrorInfo::UNKNOWN_ERROR
                         && "RemoteErrorString() received an undefined error code");
                 return "Unknown error";
         }
@@ -154,7 +154,7 @@ namespace
     // Returns a detailed error message on the form
     // "standard msg. (details)"
     std::string DetailedRemoteErrorString(
-        const dsbproto::control::ErrorInfo& errorInfo)
+        const dsbproto::execution::ErrorInfo& errorInfo)
     {
         std::stringstream s;
         s << RemoteErrorString(errorInfo.code())
@@ -164,18 +164,18 @@ namespace
 }
 
 
-dsb::control::RemoteErrorException::RemoteErrorException(
+dsb::protocol::execution::RemoteErrorException::RemoteErrorException(
     const std::string& deniedReason)
     : std::runtime_error("Connection denied: " + deniedReason)
 { }
 
-dsb::control::RemoteErrorException::RemoteErrorException(
-    const dsbproto::control::ErrorInfo& errorInfo)
+dsb::protocol::execution::RemoteErrorException::RemoteErrorException(
+    const dsbproto::execution::ErrorInfo& errorInfo)
     : std::runtime_error(DetailedRemoteErrorString(errorInfo))
 { }
 
 
-uint16_t dsb::control::ParseHelloMessage(const std::deque<zmq::message_t>& message)
+uint16_t dsb::protocol::execution::ParseHelloMessage(const std::deque<zmq::message_t>& message)
 {
     DSB_INPUT_CHECK(!message.empty());
     if (message.front().size() == 8

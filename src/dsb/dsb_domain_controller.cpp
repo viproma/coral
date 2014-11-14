@@ -2,7 +2,7 @@
 #   define NOMINMAX
 #endif
 
-#include "dsb/domain.hpp"
+#include "dsb/domain/controller.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -240,9 +240,9 @@ Controller& Controller::operator=(Controller&& other)
 }
 
 
-std::vector<dsb::types::SlaveType> Controller::GetSlaveTypes()
+std::vector<Controller::SlaveType> Controller::GetSlaveTypes()
 {
-    std::vector<dsb::types::SlaveType> ret;
+    std::vector<Controller::SlaveType> ret;
     dsb::inproc_rpc::CallGetSlaveTypes(m_rpcSocket, ret);
     return ret;
 }

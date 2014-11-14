@@ -8,17 +8,17 @@
 #include <iostream>
 
 #include "dsb/comm.hpp"
-#include "dsb/control.hpp"
-#include "control.pb.h"
+#include "dsb/protocol/execution.hpp"
+#include "execution.pb.h"
 
 
 namespace
 {
     void CreateInvalidRequest(std::deque<zmq::message_t>& targetMsg)
     {
-        dsb::control::CreateErrorMessage(
+        dsb::protocol::execution::CreateErrorMessage(
             targetMsg,
-            dsbproto::control::ErrorInfo::INVALID_REQUEST,
+            dsbproto::execution::ErrorInfo::INVALID_REQUEST,
             "Slave ID not seen before, or slave was expected to be in different state");
     }
 
@@ -69,32 +69,32 @@ bool SlaveTracker::RequestReply(
     assert (!envelope.empty());
     assert (!msg.empty());
     bool sendImmediately = false;
-    switch (dsb::control::ParseMessageType(msg.front())) {
-        case dsbproto::control::MSG_HELLO:
+    switch (dsb::protocol::execution::ParseMessageType(msg.front())) {
+        case dsbproto::execution::MSG_HELLO:
 #ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
             std::clog << "MSG_HELLO" << std::endl;
 #endif
             sendImmediately = HelloHandler(msg);
             break;
-        case dsbproto::control::MSG_SUBMIT:
+        case dsbproto::execution::MSG_SUBMIT:
 #ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
             std::clog << "MSG_SUBMIT" << std::endl;
 #endif
             sendImmediately = SubmitHandler(msg);
             break;
-        case dsbproto::control::MSG_READY:
+        case dsbproto::execution::MSG_READY:
 #ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
             std::clog << "MSG_READY" << std::endl;
 #endif
             sendImmediately = ReadyHandler(msg);
             break;
-        case dsbproto::control::MSG_STEP_OK:
+        case dsbproto::execution::MSG_STEP_OK:
 #ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
             std::clog << "MSG_STEP_OK" << std::endl;
 #endif
             sendImmediately = StepOkHandler(msg);
             break;
-        case dsbproto::control::MSG_STEP_FAILED:
+        case dsbproto::execution::MSG_STEP_FAILED:
 #ifdef DSB_DEBUG_PRINT_SLAVE_MSGS
             std::clog << "MSG_STEP_FAILED" << std::endl;
 #endif
@@ -121,13 +121,13 @@ bool SlaveTracker::RequestReply(
 
 void SlaveTracker::EnqueueSetVars(
     zmq::socket_t& socket,
-    const dsbproto::control::SetVarsData& data)
+    const dsbproto::execution::SetVarsData& data)
 {
     if (State() == SLAVE_READY) {
         assert (m_pendingSetVars.empty());
         std::deque<zmq::message_t> msg;
-        dsb::control::CreateMessage(
-            msg, dsbproto::control::MSG_SET_VARS, data);
+        dsb::protocol::execution::CreateMessage(
+            msg, dsbproto::execution::MSG_SET_VARS, data);
         SendSynchronousMsg(socket, msg, SLAVE_READY, SLAVE_BUSY);
     } else {
         m_pendingSetVars.push(data);
@@ -137,13 +137,13 @@ void SlaveTracker::EnqueueSetVars(
 
 void SlaveTracker::EnqueueConnectVars(
     zmq::socket_t& socket,
-    const dsbproto::control::ConnectVarsData& data)
+    const dsbproto::execution::ConnectVarsData& data)
 {
     if (State() == SLAVE_READY) {
         assert (m_pendingConnectVars.empty());
         std::deque<zmq::message_t> msg;
-        dsb::control::CreateMessage(
-            msg, dsbproto::control::MSG_CONNECT_VARS, data);
+        dsb::protocol::execution::CreateMessage(
+            msg, dsbproto::execution::MSG_CONNECT_VARS, data);
         SendSynchronousMsg(socket, msg, SLAVE_READY, SLAVE_BUSY);
     } else {
         m_pendingConnectVars.push(data);
@@ -153,10 +153,10 @@ void SlaveTracker::EnqueueConnectVars(
 
 void SlaveTracker::SendStep(
     zmq::socket_t& socket,
-    const dsbproto::control::StepData& data)
+    const dsbproto::execution::StepData& data)
 {
     std::deque<zmq::message_t> msg;
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_STEP, data);
+    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_STEP, data);
     SendSynchronousMsg(socket, msg, SLAVE_READY, SLAVE_STEPPING);
     m_isSimulating = true;
 }
@@ -165,7 +165,7 @@ void SlaveTracker::SendStep(
 void SlaveTracker::SendTerminate(zmq::socket_t& socket)
 {
     std::deque<zmq::message_t> msg;
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_TERMINATE);
+    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_TERMINATE);
     SendSynchronousMsg(socket, msg, TERMINATABLE_STATES, SLAVE_TERMINATED);
     m_isSimulating = false;
 }
@@ -175,7 +175,7 @@ void SlaveTracker::SendRecvVars(zmq::socket_t& socket)
 {
     assert (m_isSimulating);
     std::deque<zmq::message_t> msg;
-    dsb::control::CreateMessage(msg, dsbproto::control::MSG_RECV_VARS);
+    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_RECV_VARS);
     SendSynchronousMsg(socket, msg, SLAVE_PUBLISHED, SLAVE_RECEIVING);
 }
 
@@ -209,15 +209,15 @@ bool SlaveTracker::IsSimulating() const
 bool SlaveTracker::HelloHandler(std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_UNKNOWN, SLAVE_CONNECTING)) {
-        const auto slaveProtocol = dsb::control::ParseHelloMessage(msg);
+        const auto slaveProtocol = dsb::protocol::execution::ParseHelloMessage(msg);
         if (slaveProtocol > 0) {
             std::clog << "Warning: Slave requested newer protocol version ("
                         << slaveProtocol << ")" << std::endl;
         }
         m_protocol = std::min(MAX_PROTOCOL, slaveProtocol);
-        dsb::control::CreateHelloMessage(msg, m_protocol);
+        dsb::protocol::execution::CreateHelloMessage(msg, m_protocol);
     } else {
-        dsb::control::CreateDeniedMessage(msg, "Slave already connected");
+        dsb::protocol::execution::CreateDeniedMessage(msg, "Slave already connected");
     }
     return true;
 }
@@ -226,12 +226,12 @@ bool SlaveTracker::HelloHandler(std::deque<zmq::message_t>& msg)
 bool SlaveTracker::SubmitHandler(std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_CONNECTING, SLAVE_CONNECTED)) {
-        dsbproto::control::SetupData data;
+        dsbproto::execution::SetupData data;
         data.set_start_time(m_startTime);
         if (m_stopTime < std::numeric_limits<double>::infinity()) {
             data.set_stop_time(m_stopTime);
         }
-        dsb::control::CreateMessage(msg, dsbproto::control::MSG_SETUP, data);
+        dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_SETUP, data);
     } else {
         CreateInvalidRequest(msg);
     }
@@ -243,14 +243,14 @@ bool SlaveTracker::ReadyHandler(std::deque<zmq::message_t>& msg)
 {
     if (UpdateSlaveState(SLAVE_CONNECTED | SLAVE_BUSY | SLAVE_RECEIVING, SLAVE_READY)) {
         if (!m_pendingSetVars.empty()) {
-            dsb::control::CreateMessage(
-                msg, dsbproto::control::MSG_SET_VARS, m_pendingSetVars.front());
+            dsb::protocol::execution::CreateMessage(
+                msg, dsbproto::execution::MSG_SET_VARS, m_pendingSetVars.front());
             m_pendingSetVars.pop();
             UpdateSlaveState(SLAVE_READY, SLAVE_BUSY);
             return true;
         } else if (!m_pendingConnectVars.empty()) {
-            dsb::control::CreateMessage(
-                msg, dsbproto::control::MSG_CONNECT_VARS, m_pendingConnectVars.front());
+            dsb::protocol::execution::CreateMessage(
+                msg, dsbproto::execution::MSG_CONNECT_VARS, m_pendingConnectVars.front());
             m_pendingConnectVars.pop();
             UpdateSlaveState(SLAVE_READY, SLAVE_BUSY);
             return true;

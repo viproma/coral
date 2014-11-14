@@ -1,24 +1,19 @@
 /**
 \file
-\brief Main header file for dsb::domain.
+\brief Functionality for starting and controlling a simulation domain.
 */
-#ifndef DSB_DOMAIN_HPP
-#define DSB_DOMAIN_HPP
+#ifndef DSB_DOMAIN_CONTROLLER_HPP
+#define DSB_DOMAIN_CONTROLLER_HPP
 
 #include <memory>
 #include <string>
 #include <vector>
 #include "zmq.hpp"
-#include "dsb/types.hpp"
+#include "dsb/model.hpp"
 
 
 namespace dsb
 {
-
-/**
-\brief  Functions and classes for controlling and interacting with the
-        simulation domain.
-*/
 namespace domain
 {
 
@@ -30,8 +25,19 @@ namespace domain
 class Controller
 {
 public:
-    // Constructor.  (Explicitly not Doxygen-documented, since it should
-    // only be called by SpawnExecution().
+    /// Information about a slave type.
+    struct SlaveType
+    {
+        std::string name;
+        std::string uuid;
+        std::string description;
+        std::string author;
+        std::string version;
+        std::vector<dsb::model::Variable> variables;
+        std::vector<std::string> providers;
+    };
+
+    /// Constructor.
     Controller(
         std::shared_ptr<zmq::context_t> context,
         const std::string& reportEndpoint,
@@ -46,7 +52,7 @@ public:
     /**
     \brief  Returns available slave types.
     */
-    std::vector<dsb::types::SlaveType> GetSlaveTypes();
+    std::vector<SlaveType> GetSlaveTypes();
 
 private:
     zmq::socket_t m_rpcSocket;

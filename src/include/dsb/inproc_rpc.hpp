@@ -5,13 +5,13 @@
 #ifndef DSB_INPROC_RPC_HPP
 #define DSB_INPROC_RPC_HPP
 
-#include <cstdint>
 #include <deque>
 #include "zmq.hpp"
 
+#include "dsb/domain/controller.hpp"
+#include "dsb/model.hpp"
 #include "dsb/sequence.hpp"
-#include "dsb/types.hpp"
-#include "control.pb.h"
+#include "execution.pb.h"
 #include "inproc_rpc.pb.h"
 
 
@@ -20,6 +20,7 @@ namespace dsb
 /// Definitions and functions for in-process (inter-thread) procedure calls.
 namespace inproc_rpc
 {
+
 
 enum CallType
 {
@@ -47,7 +48,7 @@ void ThrowRuntimeError(zmq::socket_t& socket, const std::string& what);
 
 void CallGetSlaveTypes(
     zmq::socket_t& socket,
-    std::vector<dsb::types::SlaveType>& slaveTypes);
+    std::vector<dsb::domain::Controller::SlaveType>& slaveTypes);
 
 void ReturnGetSlaveTypes(
     zmq::socket_t& socket,
@@ -55,49 +56,53 @@ void ReturnGetSlaveTypes(
 
 void CallSetSimulationTime(
     zmq::socket_t& socket,
-    double startTime,
-    double stopTime);
+    dsb::model::TimePoint startTime,
+    dsb::model::TimePoint stopTime);
 
 void UnmarshalSetSimulationTime(
     const std::deque<zmq::message_t>& msg,
-    double& startTime,
-    double& stopTime);
+    dsb::model::TimePoint& startTime,
+    dsb::model::TimePoint& stopTime);
 
-void CallAddSlave(zmq::socket_t& socket, uint16_t slaveId);
+void CallAddSlave(zmq::socket_t& socket, dsb::model::SlaveID slaveId);
 
 void UnmarshalAddSlave(
     const std::deque<zmq::message_t>& msg,
-    uint16_t& slaveId);
+    dsb::model::SlaveID& slaveId);
 
 void CallSetVariables(
     zmq::socket_t& socket,
-    uint16_t slaveId,
-    dsb::sequence::Sequence<dsb::types::Variable> variables);
+    dsb::model::SlaveID slaveId,
+    dsb::sequence::Sequence<dsb::model::VariableValue> variables);
 
 void UnmarshalSetVariables(
     const std::deque<zmq::message_t>& msg,
-    uint16_t& slaveId,
-    dsbproto::control::SetVarsData& setVarsData);
+    dsb::model::SlaveID& slaveId,
+    dsbproto::execution::SetVarsData& setVarsData);
 
 void CallConnectVariables(
     zmq::socket_t& socket,
-    uint16_t slaveId,
-    dsb::sequence::Sequence<dsb::types::VariableConnection> variables);
+    dsb::model::SlaveID slaveId,
+    dsb::sequence::Sequence<dsb::model::VariableConnection> variables);
 
 void UnmarshalConnectVariables(
     const std::deque<zmq::message_t>& msg,
-    uint16_t& slaveId,
-    dsbproto::control::ConnectVarsData& setVarsData);
+    dsb::model::SlaveID& slaveId,
+    dsbproto::execution::ConnectVarsData& setVarsData);
 
 void CallWaitForReady(zmq::socket_t& socket);
 
-void CallStep(zmq::socket_t& socket, double t, double dt);
+void CallStep(
+    zmq::socket_t& socket,
+    dsb::model::TimePoint t,
+    dsb::model::TimeDuration dt);
 
 void UnmarshalStep(
     const std::deque<zmq::message_t>& msg,
-    dsbproto::control::StepData& stepData);
+    dsbproto::execution::StepData& stepData);
 
 void CallTerminate(zmq::socket_t& socket);
+
 
 }}      // namespace
 #endif  // header guard

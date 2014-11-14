@@ -6,9 +6,9 @@
 #include "dsb/bus/execution_agent.hpp"
 #include "dsb/bus/slave_tracker.hpp"
 #include "dsb/comm.hpp"
-#include "dsb/control.hpp"
 #include "dsb/inproc_rpc.hpp"
-#include "control.pb.h"
+#include "dsb/protocol/execution.hpp"
+#include "execution.pb.h"
 
 
 namespace dsb
@@ -83,7 +83,7 @@ namespace
                 && "Cannot perform SET_VARS when another RPC is in progress");
 
         uint16_t slaveId = 0;
-        dsbproto::control::SetVarsData data;
+        dsbproto::execution::SetVarsData data;
         dsb::inproc_rpc::UnmarshalSetVariables(msg, slaveId, data);
         auto it = self.slaves.find(slaveId);
         if (it == self.slaves.end()) {
@@ -109,7 +109,7 @@ namespace
                 && "Cannot perform CONNECT_VARS when another RPC is in progress");
 
         uint16_t slaveId = 0;
-        dsbproto::control::ConnectVarsData data;
+        dsbproto::execution::ConnectVarsData data;
         dsb::inproc_rpc::UnmarshalConnectVariables(msg, slaveId, data);
         auto it = self.slaves.find(slaveId);
         if (it == self.slaves.end()) {
@@ -224,7 +224,7 @@ void ExecutionReady::UserMessage(
         case dsb::inproc_rpc::STEP_CALL: {
             double time = 0.0;
             double stepSize = 0.0;
-            dsbproto::control::StepData stepData;
+            dsbproto::execution::StepData stepData;
             dsb::inproc_rpc::UnmarshalStep(msg, stepData);
 
             // TODO: Some checks we may want to insert here (and send FAIL if they

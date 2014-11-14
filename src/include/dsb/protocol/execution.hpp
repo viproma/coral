@@ -1,22 +1,24 @@
 /**
 \file
-\brief Main header file for dsb::control.
+\brief Main header file for dsb::protocol::execution.
 */
-#ifndef DSB_CONTROL_HPP
-#define DSB_CONTROL_HPP
+#ifndef DSB_PROTOCOL_EXECUTION_HPP
+#define DSB_PROTOCOL_EXECUTION_HPP
 
 #include <cstdint>
 #include <deque>
 #include "google/protobuf/message_lite.h"
 #include "zmq.hpp"
-#include "control.pb.h"
+#include "execution.pb.h"
 
 
 namespace dsb
 {
+namespace protocol
+{
 
-/// Functions for communication over the "control" protocol.
-namespace control
+/// Functions for communication over the "execution execution" protocol.
+namespace execution
 {
 
 
@@ -59,7 +61,7 @@ Any pre-existing contents of `message` will be replaced.
 */
 void CreateMessage(
     std::deque<zmq::message_t>& message,
-    dsbproto::control::MessageType type);
+    dsbproto::execution::MessageType type);
 
 
 /**
@@ -69,7 +71,7 @@ Any pre-existing contents of `message` will be replaced.
 */
 void CreateMessage(
     std::deque<zmq::message_t>& message,
-    dsbproto::control::MessageType type,
+    dsbproto::execution::MessageType type,
     const google::protobuf::MessageLite& body);
 
 
@@ -80,7 +82,7 @@ Any pre-existing contents of `message` will be replaced.
 */
 void CreateErrorMessage(
     std::deque<zmq::message_t>& message,
-    dsbproto::control::ErrorInfo::Code code,
+    dsbproto::execution::ErrorInfo::Code code,
     const std::string& details = std::string());
 
 
@@ -120,7 +122,7 @@ public:
     RemoteErrorException(const std::string& deniedReason);
 
     // Constructor for ERROR messages.
-    RemoteErrorException(const dsbproto::control::ErrorInfo& errorInfo);
+    RemoteErrorException(const dsbproto::execution::ErrorInfo& errorInfo);
 };
 
 
@@ -140,5 +142,5 @@ ProtocolViolationException will be thrown.
 uint16_t ParseHelloMessage(const std::deque<zmq::message_t>& message);
 
 
-}}      // namespace
+}}}     // namespace
 #endif  // header guard

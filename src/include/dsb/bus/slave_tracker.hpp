@@ -6,7 +6,7 @@
 #include <queue>
 
 #include "zmq.hpp"
-#include "control.pb.h"
+#include "execution.pb.h"
 
 
 namespace dsb
@@ -103,7 +103,7 @@ public:
     */
     void EnqueueSetVars(
         zmq::socket_t& socket,
-        const dsbproto::control::SetVarsData& data);
+        const dsbproto::execution::SetVarsData& data);
 
     /**
     \brief  Sends a CONNECT_VARS message immediately if the slave is ready to
@@ -117,7 +117,7 @@ public:
     */
     void EnqueueConnectVars(
         zmq::socket_t& socket,
-        const dsbproto::control::ConnectVarsData& data);
+        const dsbproto::execution::ConnectVarsData& data);
 
     /**
     \brief  Sends a STEP message on `socket` and sets the IsSimulating() flag
@@ -131,7 +131,7 @@ public:
 
     \throws zmq::error_t on failure to send the message.
     */
-    void SendStep(zmq::socket_t& socket, const dsbproto::control::StepData& data);
+    void SendStep(zmq::socket_t& socket, const dsbproto::execution::StepData& data);
 
     /**
     \brief  Sends a TERMINATE message on `socket` and sets the IsSimulating()
@@ -198,8 +198,8 @@ private:
     SlaveState m_state;
     bool m_isSimulating;
     std::deque<zmq::message_t> m_envelope;
-    std::queue<dsbproto::control::SetVarsData> m_pendingSetVars;
-    std::queue<dsbproto::control::ConnectVarsData> m_pendingConnectVars;
+    std::queue<dsbproto::execution::SetVarsData> m_pendingSetVars;
+    std::queue<dsbproto::execution::ConnectVarsData> m_pendingConnectVars;
 };
 
 

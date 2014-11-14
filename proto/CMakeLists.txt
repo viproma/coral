@@ -1,7 +1,7 @@
 # Creates a library target that contains the generated protocol buffers code.
 set (protoFiles
-    "control.proto"
     "domain.proto"
+    "execution.proto"
     "inproc_rpc.proto"
     "testing.proto"
     "variable.proto"
