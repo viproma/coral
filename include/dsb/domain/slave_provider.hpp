@@ -6,6 +6,7 @@
 #define DSB_DOMAIN_SLAVE_PROVIDER_HPP
 
 #include <string>
+#include <vector>
 #include "boost/noncopyable.hpp"
 #include "dsb/execution/locator.hpp"
 #include "dsb/model.hpp"
@@ -83,7 +84,7 @@ public:
 void SlaveProvider(
     const std::string& reportEndpoint,
     const std::string& infoEndpoint,
-    dsb::domain::ISlaveType& slaveType);
+    const std::vector<dsb::domain::ISlaveType*>& slaveTypes); // TODO: Range API here.
 
 
 }}      // namespace

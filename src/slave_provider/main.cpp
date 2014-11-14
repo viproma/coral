@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "boost/filesystem/path.hpp"
+#include "boost/filesystem.hpp"
 #include "boost/lexical_cast.hpp"
 
 #include "dsb/domain/slave_provider.hpp"
@@ -33,24 +33,55 @@ void StartSlave(
 }
 
 
+void ScanDirectoryForFMUs(const std::string& directory, std::vector<std::string>& fmuPaths)
+{
+    namespace fs = boost::filesystem;
+    for (auto it = fs::recursive_directory_iterator(directory);
+         it != fs::recursive_directory_iterator();
+         ++it)
+    {
+        if (it->path().extension() == ".fmu") {
+            fmuPaths.push_back(it->path().string());
+        }
+    }
+}
+
+
 int main(int argc, const char** argv)
 {
 try {
     if (argc < 4) {
         const auto self = boost::filesystem::path(argv[0]).stem().string();
-        std::cerr << "Usage: " << self << " <report> <info> <fmu path>\n"
+        std::cerr << "Usage: " << self << " <report> <info> <fmus...>\n"
                   << "  report   = Slave provider report endpoint (e.g. tcp://myhost:5432)\n"
                   << "  info     = Slave provider info endpoint (e.g. tcp://myhost:5432)\n"
-                  << "  fmu path = Path to FMI1 FMU"
+                  << "  fmus     = Paths to FMI1 FMU and/or directories containing FMUs.\n"
+                  << "             Directories will be scanned recursively for files with .fmu extensions."
                   << std::endl;
         return 0;
     }
     const auto reportEndpoint = std::string(argv[1]);
     const auto infoEndpoint = std::string(argv[2]);
-    const auto fmuPath = std::string(argv[3]);
+    std::vector<std::string> fmuPaths;
+    for (auto i = 3; i < argc; ++i) {
+        if (boost::filesystem::is_directory(argv[i])) {
+            ScanDirectoryForFMUs(argv[i], fmuPaths);
+        } else {
+            fmuPaths.push_back(argv[i]);
+        }
+    }
 
-    auto fmu = dsb::fmi::MakeSlaveType(fmuPath, StartSlave);
-    dsb::domain::SlaveProvider(reportEndpoint, infoEndpoint, *fmu);
+    std::vector<std::unique_ptr<dsb::domain::ISlaveType>> fmus;
+    std::vector<dsb::domain::ISlaveType*> fmuPtrs;
+    for (auto it = fmuPaths.begin(); it != fmuPaths.end(); ++it) {
+        fmus.push_back(dsb::fmi::MakeSlaveType(*it, StartSlave));
+        fmuPtrs.push_back(fmus.back().get());
+        std::clog << "FMU loaded: " << *it << std::endl;
+    }
+    std::clog << fmus.size()
+              << " FMUs loaded (or whatever, I don't really care, you know)"
+              << std::endl;
+    dsb::domain::SlaveProvider(reportEndpoint, infoEndpoint, fmuPtrs);
 } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
 }

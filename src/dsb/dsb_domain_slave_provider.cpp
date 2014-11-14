@@ -1,9 +1,11 @@
 #include "dsb/domain/slave_provider.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <deque>
 
 #include "boost/chrono.hpp"
+#include "boost/foreach.hpp"
 #include "boost/numeric/conversion/cast.hpp"
 #include "boost/thread.hpp"
 #include "zmq.hpp"
@@ -23,7 +25,7 @@ namespace dp = dsb::protocol::domain;
 void dsb::domain::SlaveProvider(
     const std::string& reportEndpoint,
     const std::string& infoEndpoint,
-    dsb::domain::ISlaveType& slaveType)
+    const std::vector<dsb::domain::ISlaveType*>& slaveTypes)
 {
     auto context = zmq::context_t();
     auto report = zmq::socket_t(context, ZMQ_PUB);
@@ -56,14 +58,16 @@ void dsb::domain::SlaveProvider(
                 case dp::MSG_GET_SLAVE_LIST: {
                     msg[3] = dp::CreateHeader(dp::MSG_SLAVE_LIST, header.protocol);
                     dsbproto::domain::SlaveTypeList stl;
-                    auto st = stl.add_slave_type();
-                    st->set_name(slaveType.Name());
-                    st->set_uuid(slaveType.Uuid());
-                    st->set_description(slaveType.Description());
-                    st->set_author(slaveType.Author());
-                    st->set_version(slaveType.Version());
-                    for (size_t i = 0; i < slaveType.VariableCount(); ++i) {
-                        *st->add_variable() = dsb::protocol::ToProto(slaveType.Variable(i));
+                    BOOST_FOREACH (const auto slaveType, slaveTypes) {
+                        auto st = stl.add_slave_type();
+                        st->set_name(slaveType->Name());
+                        st->set_uuid(slaveType->Uuid());
+                        st->set_description(slaveType->Description());
+                        st->set_author(slaveType->Author());
+                        st->set_version(slaveType->Version());
+                        for (size_t i = 0; i < slaveType->VariableCount(); ++i) {
+                            *st->add_variable() = dsb::protocol::ToProto(slaveType->Variable(i));
+                        }
                     }
                     msg.push_back(zmq::message_t());
                     dsb::protobuf::SerializeToFrame(stl, msg.back());
@@ -76,10 +80,17 @@ void dsb::domain::SlaveProvider(
                     }
                     dsbproto::domain::InstantiateSlaveData data;
                     dsb::protobuf::ParseFromFrame(msg[4], data);
-                    dp::MessageType reply =
-                        (slaveType.InstantiateAndConnect(
-                            data.slave_id(),
-                            dsb::protocol::FromProto(data.execution_locator())))
+                    const auto stIt = std::find_if(
+                        slaveTypes.begin(),
+                        slaveTypes.end(),
+                        [&](const dsb::domain::ISlaveType* s)
+                            { return s->Uuid() == data.slave_type_uuid(); });
+
+                    const dp::MessageType reply =
+                        (stIt != slaveTypes.end() &&
+                            (*stIt)->InstantiateAndConnect(
+                                data.slave_id(),
+                                dsb::protocol::FromProto(data.execution_locator())))
                         ? dp::MSG_INSTANTIATE_SLAVE_OK
                         : dp::MSG_INSTANTIATE_SLAVE_FAILED;
                     msg.pop_back();
