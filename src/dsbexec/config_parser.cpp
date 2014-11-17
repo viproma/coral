@@ -166,7 +166,7 @@ void ParseSystemConfig(
             if (varDefIt == slaveType.variables.end()) {
                 throw std::runtime_error(
                     "Variable '" + varName + "' not found in slave type '"
-                    + slaveTypeName + "', you big dum-dum (quote, Severin Sadjina, NTNU)");
+                    + slaveTypeName + "'");
             }
             dsb::model::VariableValue v;
             v.id = varDefIt->ID();
