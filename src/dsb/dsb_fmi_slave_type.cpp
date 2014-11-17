@@ -21,7 +21,7 @@ FmiSlaveType::FmiSlaveType(
     SlaveStarter slaveStarterFunction)
     : m_fmuPath(fmuPath), m_slaveStarterFunction(slaveStarterFunction), m_varList(nullptr)
 {
-    auto ctx = fmilib::MakeImportContext();
+    auto ctx = fmilib::MakeImportContext(nullptr, jm_log_level_error);
     auto fmu = ctx->Import(fmuPath, m_unzipDir.Path().string());
     if (fmu->FmiVersion() != fmilib::kFmiVersion1_0) {
         throw std::runtime_error("Only FMI version 1.0 supported");

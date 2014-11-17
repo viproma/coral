@@ -103,7 +103,6 @@ void dsb::util::SpawnProcess(
         cmdLine.push_back('"');
     }
     cmdLine.push_back(0);
-    std::wclog << cmdLine.data() << std::endl;
 
     STARTUPINFOW startupInfo;
     std::memset(&startupInfo, 0, sizeof(startupInfo));

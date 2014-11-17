@@ -16,17 +16,22 @@ void StartSlave(
     const dsb::execution::Locator& executionLocator,
     const std::string& fmuPath)
 {
-    std::cout << "Starting slave with id=" << slaveID << " by connecting to "
-        << executionLocator.SlaveEndpoint() << ", FMU file is: "
-        << fmuPath << std::endl;
     const auto slaveIdString = boost::lexical_cast<std::string>(slaveID);
+    const auto outputFile = "slave_" + slaveIdString + ".csv";
     std::vector<std::string> args;
     args.push_back(slaveIdString);
     args.push_back(executionLocator.SlaveEndpoint());
     args.push_back(executionLocator.VariablePubEndpoint());
     args.push_back(executionLocator.VariableSubEndpoint());
     args.push_back(fmuPath);
-    args.push_back("slave_" + slaveIdString + ".csv");
+    args.push_back(outputFile);
+
+    std::cout << "\nStarting slave " << slaveID << '\n'
+        << "  Execution: " << executionLocator.SlaveEndpoint() << '\n'
+        << "  FMU      : " << fmuPath << '\n'
+        << "  Output   : " << outputFile << '\n'
+        << std::flush;
+    // TODO: You know what:
     dsb::util::SpawnProcess(
         "C:\\Users\\larky\\Development\\viproma\\dsb\\build32\\src\\slave\\Debug\\slave.exe",
         args);
@@ -78,9 +83,7 @@ try {
         fmuPtrs.push_back(fmus.back().get());
         std::clog << "FMU loaded: " << *it << std::endl;
     }
-    std::clog << fmus.size()
-              << " FMUs loaded (or whatever, I don't really care, you know)"
-              << std::endl;
+    std::clog << fmus.size() << " FMUs loaded" << std::endl;
     dsb::domain::SlaveProvider(reportEndpoint, infoEndpoint, fmuPtrs);
 } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
