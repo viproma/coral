@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <memory>
@@ -5,7 +6,6 @@
 
 #include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
-#include "boost/program_options.hpp"
 #include "boost/thread.hpp"
 #include "zmq.hpp"
 
@@ -119,18 +119,77 @@ int List(int argc, const char** argv)
 
         auto slaveTypes = domain.GetSlaveTypes();
         BOOST_FOREACH (const auto& st, slaveTypes) {
-            std::cout << st.name << ": "
-                        << st.uuid << ", "
-                        << st.description << ", "
-                        << st.author << ", "
-                        << st.version << std::endl;
-            BOOST_FOREACH (const auto& v, st.variables) {
-                std::cout << "  v(" << v.ID() << "): " << v.Name() << std::endl;
-            }
-            BOOST_FOREACH (const auto& p, st.providers) {
-                std::cout << "  " << p << std::endl;
+            std::cout << st.name << '\n';
+        }
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
+
+int Info(int argc, const char** argv)
+{
+    assert (argc > 1 && std::string(argv[1]) == "info");
+    if (argc < 4) {
+        std::cerr << "Usage: " << self << " info <domain> <slave type>\n"
+                  << "  domain     = domain address (e.g. tcp://localhost)\n"
+                  << "  slave type = a slave type name\n"
+                  << std::flush;
+        return 0;
+    }
+    try {
+        const auto address = std::string(argv[2]);
+        const auto slaveType = std::string(argv[3]);
+
+        auto context = std::make_shared<zmq::context_t>();
+        const auto reportEndpoint = address + ":51380";
+        const auto infoEndpoint = address + ":51382";
+        auto domain = dsb::domain::Controller(context, reportEndpoint, infoEndpoint);
+
+        // TODO: Handle this waiting more elegantly, e.g. wait until all required
+        // slave types are available.  Also, the waiting time is related to the
+        // slave provider heartbeat time.
+        std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
+        boost::this_thread::sleep_for(boost::chrono::seconds(2));
+
+        const auto slaveTypes = domain.GetSlaveTypes();
+        const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
+            [&](const dsb::domain::Controller::SlaveType& s) { return s.name == slaveType; });
+        if (it == slaveTypes.end()) {
+            throw std::runtime_error("Unknown slave type: " + slaveType);
+        }
+        const auto versionSpec = it->version.empty() ? std::string()
+                                                     : " v" + it->version;
+        std::cout << "\nname " << it->name << '\n'
+                  << "uuid " << it->uuid << '\n'
+                  << "description " << it->description << '\n'
+                  << "author " << it->author << '\n'
+                  << "version " << it->version << '\n'
+                  << "parameters {\n";
+        BOOST_FOREACH (const auto& v, it->variables) {
+            if (v.Causality() == dsb::model::PARAMETER_CAUSALITY) {
+                std::cout << "  " << v.Name() << "\n";
             }
         }
+        std::cout << "}\ninputs {\n";
+        BOOST_FOREACH (const auto& v, it->variables) {
+            if (v.Causality() == dsb::model::INPUT_CAUSALITY) {
+                std::cout << "  " << v.Name() << "\n";
+            }
+        }
+        std::cout << "}\noutputs {\n";
+        BOOST_FOREACH (const auto& v, it->variables) {
+            if (v.Causality() == dsb::model::OUTPUT_CAUSALITY) {
+                std::cout << "  " << v.Name() << "\n";
+            }
+        }
+        std::cout << "}\nproviders {\n";
+        BOOST_FOREACH (const auto& p, it->providers) {
+            std::cout << "  " << p << "\n";
+        }
+        std::cout << "}" << std::endl;
     } catch (const std::runtime_error& e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
@@ -155,6 +214,7 @@ int main(int argc, const char** argv)
     const auto command = std::string(argv[1]);
     if (command == "run") return Run(argc, argv);
     else if (command == "list") return List(argc, argv);
+    else if (command == "info") return Info(argc, argv);
     else {
         std::cerr << "Error: Invalid command: " << command;
         return 1;
