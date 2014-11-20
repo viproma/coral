@@ -58,5 +58,12 @@ void SpawnProcess(
     const std::vector<std::string>& args);
 
 
+/**
+\brief  Returns the path of the current executable.
+\throws std::runtime_error if the path could for some reason not be determined.
+*/
+boost::filesystem::path ThisExePath();
+
+
 }}      // namespace
 #endif  // header guard

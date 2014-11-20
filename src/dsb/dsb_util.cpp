@@ -129,3 +129,23 @@ void dsb::util::SpawnProcess(
     assert (!"Cannot start processes on non-Windows systems yet. (Lazy programmers, grumble grumble...)");
 #endif
 }
+
+
+boost::filesystem::path dsb::util::ThisExePath()
+{
+#ifdef _WIN32
+    std::vector<wchar_t> buf(MAX_PATH);
+    for (;;) {
+        const auto len = GetModuleFileNameW(nullptr, buf.data(), buf.size());
+        if (len == 0) {
+            throw std::runtime_error("Failed to determine executable path");
+        } else if (len >= buf.size()) {
+            buf.resize(len * 2);
+        } else {
+            return boost::filesystem::path(buf.begin(), buf.begin()+len);
+        }
+    }
+#else
+    assert (!"ThisExePath() not implemented for POSIX platforms yet");
+#endif
+}
