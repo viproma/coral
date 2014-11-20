@@ -1,4 +1,4 @@
-find_package (Boost REQUIRED COMPONENTS thread chrono filesystem system)
+find_package (Boost REQUIRED COMPONENTS program_options thread chrono filesystem system)
 find_package (ZMQ REQUIRED)
 find_package (FMILIBCPP REQUIRED)
 
