@@ -40,7 +40,11 @@ try {
     std::ofstream csvOutput;
     if (argc > 6)
     {
-        csvOutput.open(argv[6]);
+        csvOutput.open(argv[6], std::ios_base::out | std::ios_base::trunc
+#ifdef _WIN32
+            , _SH_DENYWR // Don't let other processes/threads write to the file
+#endif
+        );
         if (!csvOutput) {
             std::cerr << "Error opening output file for writing: " << argv[6] << std::endl;
             return 1;

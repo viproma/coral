@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "boost/chrono.hpp"
 #include "boost/filesystem.hpp"
 #include "boost/foreach.hpp"
 #include "boost/lexical_cast.hpp"
@@ -25,7 +26,8 @@ public:
         const std::string& fmuPath)
     {
         const auto slaveIdString = boost::lexical_cast<std::string>(slaveID);
-        const auto outputFile = "slave_" + slaveIdString + ".csv";
+        const auto timeStamp = boost::lexical_cast<std::string>(boost::chrono::system_clock::now().time_since_epoch().count());
+        const auto outputFile = "slave_" + slaveIdString + '_' + timeStamp + ".csv";
         std::vector<std::string> args;
         args.push_back(slaveIdString);
         args.push_back(executionLocator.SlaveEndpoint());

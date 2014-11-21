@@ -56,12 +56,22 @@ namespace
 }
 
 
-dsb::execution::Controller::Controller(
-    zmq::socket_t rpcSocket,
-    zmq::socket_t asyncInfoSocket)
-    : m_rpcSocket(std::move(rpcSocket)),
-      m_asyncInfoSocket(std::move(asyncInfoSocket))
+dsb::execution::Controller::Controller(const dsb::execution::Locator& locator)
+    : m_context(std::make_shared<zmq::context_t>()),
+      m_rpcSocket(*m_context, ZMQ_PAIR),
+      m_asyncInfoSocket(*m_context, ZMQ_PAIR)
 {
+    auto rpcEndpoint =
+        std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
+    auto asyncInfoEndpoint =
+        std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
+    auto slaveControlEndpoint =
+        std::make_shared<std::string>(locator.MasterEndpoint());
+
+    m_rpcSocket.bind(rpcEndpoint->c_str());
+    m_asyncInfoSocket.bind(asyncInfoEndpoint->c_str());
+    boost::thread(ControllerLoop,
+        m_context, rpcEndpoint, asyncInfoEndpoint, slaveControlEndpoint);
 }
 
 
@@ -131,22 +141,33 @@ void dsb::execution::Controller::Terminate()
 }
 
 
-dsb::execution::Controller dsb::execution::SpawnExecution(
-    std::shared_ptr<zmq::context_t> context,
-    const std::string& endpoint)
+dsb::execution::Locator dsb::execution::SpawnExecution(
+    const dsb::domain::Locator& domainLocator)
 {
-    auto rpcEndpoint =
-        std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
-    auto asyncInfoEndpoint =
-        std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
-    auto slaveControlEndpoint = std::make_shared<std::string>(endpoint);
+    zmq::context_t ctx;
+    auto sck = zmq::socket_t(ctx, ZMQ_REQ);
+    sck.connect(domainLocator.ExecReqEndpoint().c_str());
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION"));
+    dsb::comm::Send(sck, msg);
 
-    auto userSocket = zmq::socket_t(*context, ZMQ_PAIR);
-    userSocket.bind(rpcEndpoint->c_str());
-    auto asyncInfoSocket = zmq::socket_t(*context, ZMQ_PAIR);
-    asyncInfoSocket.bind(asyncInfoEndpoint->c_str());
-
-    auto thread = boost::thread(ControllerLoop,
-        context, rpcEndpoint, asyncInfoEndpoint, slaveControlEndpoint);
-    return Controller(std::move(userSocket), std::move(asyncInfoSocket));
+    if (!dsb::comm::Receive(sck, msg, boost::chrono::seconds(10))) {
+        throw std::runtime_error("Failed to spawn execution (domain connection timed out)");
+    }
+    const auto reply = dsb::comm::ToString(msg.front());
+    if (reply == "SPAWN_EXECUTION_OK" && msg.size() == 5) {
+        const auto endpointBase = domainLocator.ExecReqEndpoint().substr(
+            0,
+            domainLocator.ExecReqEndpoint().rfind(':'));
+        return dsb::execution::Locator(
+            endpointBase + ':' + dsb::comm::ToString(msg[1]),
+            endpointBase + ':' + dsb::comm::ToString(msg[2]),
+            endpointBase + ':' + dsb::comm::ToString(msg[3]),
+            endpointBase + ':' + dsb::comm::ToString(msg[4]));
+    } else if (reply == "SPAWN_EXECUTION_FAIL" && msg.size() == 2) {
+        throw std::runtime_error(
+            "Failed to spawn execution (" + dsb::comm::ToString(msg[1]) + ')');
+    } else {
+        throw std::runtime_error("Failed to spawn execution (invalid response from domain)");
+    }
 }

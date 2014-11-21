@@ -6,7 +6,9 @@ using namespace dsb::execution;
 TEST(dsb_execution, Controller)
 {
     auto context = std::make_shared<zmq::context_t>();
-    auto exec = SpawnExecution(context, "inproc://dsb_execution_test_Controller");
+    const auto execLoc =
+        dsb::execution::Locator("inproc://dsb_execution_test_Controller", "", "", "");
+    auto exec = dsb::execution::Controller(execLoc);
 
     // Unfortunately, at the current time, we can only check whether the
     // functions correctly handle the most trivial errors, and not whether they
