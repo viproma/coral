@@ -316,8 +316,7 @@ namespace domain
 
 Controller::Controller(
     std::shared_ptr<zmq::context_t> context,
-    const std::string& reportEndpoint,
-    const std::string& infoEndpoint)
+    const dsb::domain::Locator& locator)
     : m_rpcSocket(*context, ZMQ_PAIR)
 {
     auto rpcEndpoint =
@@ -326,8 +325,8 @@ Controller::Controller(
     boost::thread(MessagingLoop,
         context,
         rpcEndpoint,
-        std::make_shared<std::string>(reportEndpoint),
-        std::make_shared<std::string>(infoEndpoint));
+        std::make_shared<std::string>(locator.ReportEndpoint()),
+        std::make_shared<std::string>(locator.InfoEndpoint()));
 }
 
 

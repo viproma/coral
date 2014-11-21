@@ -18,6 +18,13 @@ namespace {
     const char* self = "dsbexec";
 }
 
+dsb::domain::Locator MakeDomainLocator(const std::string& address)
+{
+    return dsb::domain::Locator(
+        address + ":51380",
+        address + ":51382",
+        address + ":51384");
+}
 
 int Run(int argc, const char** argv)
 {
@@ -35,16 +42,14 @@ int Run(int argc, const char** argv)
         const auto execConfigFile = std::string(argv[3]);
         const auto sysConfigFile = std::string(argv[4]);
 
-        const auto reportEndpoint = address + ":51380";
-        const auto infoEndpoint = address + ":51382";
         const auto execLoc = dsb::execution::Locator(
             address + ":51390",
             address + ":51391",
             address + ":51392",
             address + ":51393");
-
+        const auto domainLoc = MakeDomainLocator(address);
         auto context = std::make_shared<zmq::context_t>();
-        auto domain = dsb::domain::Controller(context, reportEndpoint, infoEndpoint);
+        auto domain = dsb::domain::Controller(context, domainLoc);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -105,11 +110,10 @@ int List(int argc, const char** argv)
     }
     try {
         const auto address = std::string(argv[2]);
-        const auto reportEndpoint = address + ":51380";
-        const auto infoEndpoint = address + ":51382";
+        const auto domainLoc = MakeDomainLocator(address);
 
         auto context = std::make_shared<zmq::context_t>();
-        auto domain = dsb::domain::Controller(context, reportEndpoint, infoEndpoint);
+        auto domain = dsb::domain::Controller(context, domainLoc);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -143,10 +147,9 @@ int Info(int argc, const char** argv)
         const auto address = std::string(argv[2]);
         const auto slaveType = std::string(argv[3]);
 
+        const auto domainLoc = MakeDomainLocator(address);
         auto context = std::make_shared<zmq::context_t>();
-        const auto reportEndpoint = address + ":51380";
-        const auto infoEndpoint = address + ":51382";
-        auto domain = dsb::domain::Controller(context, reportEndpoint, infoEndpoint);
+        auto domain = dsb::domain::Controller(context, domainLoc);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
