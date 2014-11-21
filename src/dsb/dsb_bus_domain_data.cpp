@@ -76,6 +76,12 @@ void DomainData::UpdateSlaveTypes(
 }
 
 
+uint16_t DomainData::SlaveProviderProtocol(const std::string& slaveProviderId) const
+{
+    return m_slaveProviders.at(slaveProviderId).protocol;
+}
+
+
 //TODO: Just for debugging purposes, remove later.
 void DomainData::Dump() const
 {

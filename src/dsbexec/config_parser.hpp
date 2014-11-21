@@ -2,7 +2,9 @@
 #define DSBEXEC_CONFIG_PARSER_HPP
 
 #include <string>
+#include "dsb/domain/controller.hpp"
 #include "dsb/execution/controller.hpp"
+
 
 /**
 \brief  Sets up the system to be simulated in an execution based on a
@@ -17,7 +19,9 @@
 // and one which applies it to the controller.
 void ParseSystemConfig(
     const std::string& path,
-    dsb::execution::Controller& controller);
+    dsb::domain::Controller& domain,
+    dsb::execution::Controller& execution,
+    const dsb::execution::Locator& executionLocator);
 
 
 /// Configuration parameters for an execution run.

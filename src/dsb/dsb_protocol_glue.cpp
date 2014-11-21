@@ -137,3 +137,27 @@ dsb::model::Variable dsb::protocol::FromProto(
         causality,
         variability);
 }
+
+
+
+dsbproto::domain::ExecutionLocator dsb::protocol::ToProto(
+    const dsb::execution::Locator& executionLocator)
+{
+    dsbproto::domain::ExecutionLocator el;
+    el.set_master_endpoint(executionLocator.MasterEndpoint());
+    el.set_slave_endpoint(executionLocator.SlaveEndpoint());
+    el.set_variable_pub_endpoint(executionLocator.VariablePubEndpoint());
+    el.set_variable_sub_endpoint(executionLocator.VariableSubEndpoint());
+    return el;
+}
+
+
+dsb::execution::Locator dsb::protocol::FromProto(
+    const dsbproto::domain::ExecutionLocator& executionLocator)
+{
+    return dsb::execution::Locator(
+        executionLocator.master_endpoint(),
+        executionLocator.slave_endpoint(),
+        executionLocator.variable_pub_endpoint(),
+        executionLocator.variable_sub_endpoint());
+}

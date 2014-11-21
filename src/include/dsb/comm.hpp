@@ -7,6 +7,7 @@
 
 #include <deque>
 #include <string>
+#include "boost/chrono/duration.hpp"
 #include "zmq.hpp"
 
 
@@ -56,6 +57,20 @@ Existing message content will be overwritten.
 void Receive(
     zmq::socket_t& socket,
     std::deque<zmq::message_t>& message);
+
+
+/**
+\brief Receives a message, assuming one arrives before the timeout is reached.
+
+Existing message content will be overwritten.
+
+\returns `true` if a message was received, or `false` if the function timed out.
+\throws zmq::error_t on failure to receive a message frame.
+*/
+bool Receive(
+    zmq::socket_t& socket,
+    std::deque<zmq::message_t>& message,
+    boost::chrono::milliseconds timeout);
 
 
 /**

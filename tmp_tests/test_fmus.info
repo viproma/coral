@@ -2,13 +2,13 @@ name "Test input/output"
 descriptions "Two FMUs that test transfer of all variable types"
 
 slaves {
-    out { id 1 }
-    in  { id 2 }
+    out { type testOutput }
+    in  { type testInput }
 }
 
 connections {
-    in.2 out.2
-    in.3 out.3
-    in.4 out.4
-    in.5 out.5
+    in.real_in   out.real_out
+    in.int_in    out.int_out
+    in.bool_in   out.bool_out
+    in.string_in out.string_out
 }

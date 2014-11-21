@@ -54,15 +54,11 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
     assert (fmiVars);
 
     if (m_outputStream) *m_outputStream << "Time";
-    std::clog << "Variables:" << std::endl;
     const auto nVars = fmi1_import_get_variable_list_size(fmiVars);
     for (size_t i = 0; i < nVars; ++i) {
         const auto var = fmi1_import_get_variable(fmiVars, i);
         m_fmiValueRefs.push_back(fmi1_import_get_variable_vr(var));
         m_variables.push_back(ToVariable(var, i));
-
-        // TODO: Temporary, remove later
-        std::clog << "  " << i << ": " << fmi1_import_get_variable_name(var) << std::endl;
         if (m_outputStream) *m_outputStream << "," << fmi1_import_get_variable_name(var);
     }
     if (m_outputStream) *m_outputStream << std::endl;

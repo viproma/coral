@@ -35,6 +35,7 @@ try {
     const auto dataPubEndpoint = std::string(argv[3]);
     const auto dataSubEndpoint = std::string(argv[4]);
     const auto fmuPath = std::string(argv[5]);
+    std::clog << "DSB slave running FMU: " << fmuPath << std::endl;
 
     std::ofstream csvOutput;
     if (argc > 6)
@@ -44,6 +45,7 @@ try {
             std::cerr << "Error opening output file for writing: " << argv[6] << std::endl;
             return 1;
         }
+        std::clog << "Output printed to: " << argv[6] << std::endl;
     }
 
     auto fmiSlave = dsb::fmi::MakeSlaveInstance(

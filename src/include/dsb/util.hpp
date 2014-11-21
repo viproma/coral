@@ -48,10 +48,21 @@ private:
 
 /**
 \brief  Starts a new process.
+
+Windows warning: This function only supports a very limited form of argument
+quoting.  The elements of args may contain spaces, but no quotation marks or
+other characters that are considered "special" in a Windows command line.
 */
 void SpawnProcess(
     const std::string& program,
     const std::vector<std::string>& args);
+
+
+/**
+\brief  Returns the path of the current executable.
+\throws std::runtime_error if the path could for some reason not be determined.
+*/
+boost::filesystem::path ThisExePath();
 
 
 }}      // namespace

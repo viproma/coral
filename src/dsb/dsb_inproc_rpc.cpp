@@ -106,7 +106,7 @@ void dsb::inproc_rpc::CallGetSlaveTypes(
     std::vector<dsb::domain::Controller::SlaveType>& slaveTypes)
 {
     std::deque<zmq::message_t> msg;
-    Call(socket, GET_SLAVE_TYPES, msg);
+    Call(socket, GET_SLAVE_TYPES_CALL, msg);
     assert (!msg.empty());
     dsbproto::inproc_rpc::SlaveTypeList recvdSlaveTypes;
     dsb::protobuf::ParseFromFrame(msg[0], recvdSlaveTypes);
@@ -139,6 +139,42 @@ void dsb::inproc_rpc::ReturnGetSlaveTypes(
     ReturnSuccess(socket, msg);
 }
 
+void dsb::inproc_rpc::CallInstantiateSlave(
+    zmq::socket_t& socket,
+    const std::string& slaveTypeUUID,
+    const dsb::execution::Locator& executionLocator,
+    dsb::model::SlaveID slaveID,
+    const std::string& provider)
+{
+    std::deque<zmq::message_t> args;
+    args.push_back(dsb::comm::ToFrame(slaveTypeUUID));
+    args.push_back(dsb::comm::ToFrame(executionLocator.MasterEndpoint()));
+    args.push_back(dsb::comm::ToFrame(executionLocator.SlaveEndpoint()));
+    args.push_back(dsb::comm::ToFrame(executionLocator.VariablePubEndpoint()));
+    args.push_back(dsb::comm::ToFrame(executionLocator.VariableSubEndpoint()));
+    args.push_back(dsb::comm::EncodeRawDataFrame(slaveID));
+    args.push_back(dsb::comm::ToFrame(provider));
+    Call(socket, INSTANTIATE_SLAVE_CALL, args);
+}
+
+void dsb::inproc_rpc::UnmarshalInstantiateSlave(
+    std::deque<zmq::message_t>& msg,
+    std::string& slaveTypeUUID,
+    dsb::execution::Locator& executionLocator,
+    dsb::model::SlaveID& slaveID,
+    std::string& provider)
+{
+    assert (msg.size() == 8);
+    ASSERT_CALL_TYPE(msg, INSTANTIATE_SLAVE_CALL);
+    slaveTypeUUID = dsb::comm::ToString(msg[1]);
+    executionLocator = dsb::execution::Locator(
+        dsb::comm::ToString(msg[2]),
+        dsb::comm::ToString(msg[3]),
+        dsb::comm::ToString(msg[4]),
+        dsb::comm::ToString(msg[5]));
+    slaveID = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[6]);
+    provider = dsb::comm::ToString(msg[7]);
+}
 
 void dsb::inproc_rpc::CallSetSimulationTime(
     zmq::socket_t& socket,

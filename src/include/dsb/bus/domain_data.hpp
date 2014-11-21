@@ -45,6 +45,13 @@ public:
         const std::string& slaveProviderId,
         const dsbproto::domain::SlaveTypeList& slaveTypes);
 
+    /**
+    \brief  Returns the protocol version we use to communicate with the given
+            slave provider.
+    \throws std::out_of_range if `slaveProviderId` is unknown.
+    */
+    uint16_t SlaveProviderProtocol(const std::string& slaveProviderId) const;
+
     //TODO: Just for debugging purposes, remove later.
     void Dump() const;
 
