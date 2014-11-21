@@ -40,9 +40,7 @@ public:
     };
 
     /// Constructor.
-    Controller(
-        std::shared_ptr<zmq::context_t> context,
-        const dsb::domain::Locator& locator);
+    Controller(const dsb::domain::Locator& locator);
 
     /// Move constructor.
     Controller(Controller&& other);
@@ -68,6 +66,7 @@ public:
         const std::string& provider = std::string());
 
 private:
+    std::shared_ptr<zmq::context_t> m_context;
     zmq::socket_t m_rpcSocket;
 };
 

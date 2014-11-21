@@ -1,13 +1,11 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
-#include <memory>
 #include <string>
 
 #include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
 #include "boost/thread.hpp"
-#include "zmq.hpp"
 
 #include "dsb/domain/controller.hpp"
 #include "dsb/execution/controller.hpp"
@@ -43,8 +41,7 @@ int Run(int argc, const char** argv)
         const auto sysConfigFile = std::string(argv[4]);
 
         const auto domainLoc = MakeDomainLocator(address);
-        auto context = std::make_shared<zmq::context_t>();
-        auto domain = dsb::domain::Controller(context, domainLoc);
+        auto domain = dsb::domain::Controller(domainLoc);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -108,8 +105,7 @@ int List(int argc, const char** argv)
         const auto address = std::string(argv[2]);
         const auto domainLoc = MakeDomainLocator(address);
 
-        auto context = std::make_shared<zmq::context_t>();
-        auto domain = dsb::domain::Controller(context, domainLoc);
+        auto domain = dsb::domain::Controller(domainLoc);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -144,8 +140,7 @@ int Info(int argc, const char** argv)
         const auto slaveType = std::string(argv[3]);
 
         const auto domainLoc = MakeDomainLocator(address);
-        auto context = std::make_shared<zmq::context_t>();
-        auto domain = dsb::domain::Controller(context, domainLoc);
+        auto domain = dsb::domain::Controller(domainLoc);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the

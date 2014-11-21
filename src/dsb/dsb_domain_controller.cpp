@@ -314,16 +314,15 @@ namespace domain
 {
 
 
-Controller::Controller(
-    std::shared_ptr<zmq::context_t> context,
-    const dsb::domain::Locator& locator)
-    : m_rpcSocket(*context, ZMQ_PAIR)
+Controller::Controller(const dsb::domain::Locator& locator)
+    : m_context(std::make_shared<zmq::context_t>()),
+      m_rpcSocket(*m_context, ZMQ_PAIR)
 {
     auto rpcEndpoint =
         std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
     m_rpcSocket.bind(rpcEndpoint->c_str());
     boost::thread(MessagingLoop,
-        context,
+        m_context,
         rpcEndpoint,
         std::make_shared<std::string>(locator.ReportEndpoint()),
         std::make_shared<std::string>(locator.InfoEndpoint()));
