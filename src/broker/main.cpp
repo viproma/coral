@@ -22,10 +22,7 @@ namespace
     {
         const auto endpoint = "tcp://" + networkInterface + ":*";
         socket.bind(endpoint.c_str());
-        char buf[1024];
-        size_t length = 1024;
-        socket.getsockopt(ZMQ_LAST_ENDPOINT, buf, &length);
-        return std::string(buf);
+        return dsb::comm::LastEndpoint(socket);
     }
 
     int EndpointPort(const std::string& endpoint)
