@@ -17,7 +17,6 @@
 #include "boost/lexical_cast.hpp"
 #include "boost/numeric/conversion/cast.hpp"
 #include "boost/range/algorithm/find_if.hpp"
-#include "boost/thread.hpp"
 
 #include "dsb/bus/domain_data.hpp"
 #include "dsb/comm.hpp"
@@ -262,11 +261,15 @@ namespace
     void MessagingLoop(
         std::shared_ptr<zmq::context_t> context,
         std::shared_ptr<std::string> rpcEndpoint,
+        std::shared_ptr<std::string> destroyEndpoint,
         std::shared_ptr<std::string> reportEndpoint,
         std::shared_ptr<std::string> infoEndpoint)
     {
         zmq::socket_t rpcSocket(*context, ZMQ_PAIR);
         rpcSocket.connect(rpcEndpoint->c_str());
+
+        zmq::socket_t destroySocket(*context, ZMQ_PAIR);
+        destroySocket.connect(destroyEndpoint->c_str());
 
         zmq::socket_t reportSocket(*context, ZMQ_SUB);
         dp::SubscribeToReports(reportSocket);
@@ -278,11 +281,12 @@ namespace
         auto domainData = dsb::bus::DomainData(
             dp::MAX_PROTOCOL_VERSION, SLAVEPROVIDER_TIMEOUT);
 
-        const size_t SOCKET_COUNT = 3;
+        const size_t SOCKET_COUNT = 4;
         zmq::pollitem_t pollItems[SOCKET_COUNT] = {
-            { rpcSocket,    0, ZMQ_POLLIN, 0 },
-            { reportSocket, 0, ZMQ_POLLIN, 0 },
-            { infoSocket,   0, ZMQ_POLLIN, 0 }
+            { destroySocket, 0, ZMQ_POLLIN, 0 },
+            { rpcSocket,     0, ZMQ_POLLIN, 0 },
+            { reportSocket,  0, ZMQ_POLLIN, 0 },
+            { infoSocket,    0, ZMQ_POLLIN, 0 }
         };
         for (;;) {
             const auto pollTimeout = boost::numeric_cast<long>(
@@ -293,9 +297,12 @@ namespace
 
             try {
                 if (pollItems[0].revents & ZMQ_POLLIN) {
-                    HandleRPCCall(domainData, rpcSocket, infoSocket);
+                    return;
                 }
                 if (pollItems[1].revents & ZMQ_POLLIN) {
+                    HandleRPCCall(domainData, rpcSocket, infoSocket);
+                }
+                if (pollItems[2].revents & ZMQ_POLLIN) {
                     HandleReportMsg(recvTime, domainData, reportSocket, infoSocket);
                 }
             } catch (const dsb::error::ProtocolViolationException& e) {
@@ -316,14 +323,20 @@ namespace domain
 
 Controller::Controller(const dsb::domain::Locator& locator)
     : m_context(std::make_shared<zmq::context_t>()),
-      m_rpcSocket(*m_context, ZMQ_PAIR)
+      m_rpcSocket(*m_context, ZMQ_PAIR),
+      m_destroySocket(*m_context, ZMQ_PAIR),
+      m_active(true)
 {
-    auto rpcEndpoint =
-        std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
+    const auto rpcEndpoint = std::make_shared<std::string>(
+        "inproc://" + dsb::util::RandomUUID());
     m_rpcSocket.bind(rpcEndpoint->c_str());
-    boost::thread(MessagingLoop,
+    const auto destroyEndpoint = std::make_shared<std::string>(
+        "inproc://" + dsb::util::RandomUUID());
+    m_destroySocket.bind(destroyEndpoint->c_str());
+    m_thread = boost::thread(MessagingLoop,
         m_context,
         rpcEndpoint,
+        destroyEndpoint,
         std::make_shared<std::string>(locator.ReportEndpoint()),
         std::make_shared<std::string>(locator.InfoEndpoint()));
 }
@@ -331,15 +344,34 @@ Controller::Controller(const dsb::domain::Locator& locator)
 
 
 Controller::Controller(Controller&& other)
-    : m_rpcSocket(std::move(other.m_rpcSocket))
+    : m_context(std::move(other.m_context)),
+      m_rpcSocket(std::move(other.m_rpcSocket)),
+      m_destroySocket(std::move(other.m_destroySocket)),
+      m_active(dsb::util::SwapOut(other.m_active, false)),
+      m_thread(std::move(other.m_thread))
 {
 }
 
 
 Controller& Controller::operator=(Controller&& other)
 {
-    m_rpcSocket = std::move(other.m_rpcSocket);
+    m_rpcSocket     = std::move(other.m_rpcSocket);
+    m_destroySocket = std::move(other.m_destroySocket);
+    m_active        = dsb::util::SwapOut(other.m_active, false);
+    m_thread        = std::move(other.m_thread);
+    // Move the context last, in case it overwrites and destroys another
+    // context that is used by the above sockets.
+    m_context       = std::move(other.m_context);
     return *this;
+}
+
+
+Controller::~Controller()
+{
+    if (m_active) {
+        m_destroySocket.send("", 0);
+    }
+    m_thread.join();
 }
 
 
