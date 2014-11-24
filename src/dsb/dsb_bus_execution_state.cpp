@@ -371,7 +371,7 @@ void ExecutionTerminating::StateEntered(
     BOOST_FOREACH (auto& slave, self.slaves) {
         if (slave.second.State() & TERMINATABLE_STATES) {
             slave.second.SendTerminate(slaveSocket);
-        } else {
+        } else if (slave.second.State() != SLAVE_UNKNOWN) {
             readyToShutdown = false;
         }
     }
