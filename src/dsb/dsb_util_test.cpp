@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "dsb/util.hpp"
+#include <vector>
 
 using namespace dsb::util;
 
@@ -40,4 +41,41 @@ TEST(dsb_util, RandomUUID)
     const auto u = RandomUUID();
     EXPECT_EQ(36U, u.size());
     EXPECT_NE(u, RandomUUID());
+}
+
+TEST(dsb_util, SwapOut_value)
+{
+    int a = 123;
+    int b = SwapOut(a, 456);
+    EXPECT_EQ(456, a);
+    EXPECT_EQ(123, b);
+    int c = SwapOut(b);
+    EXPECT_EQ(0, b);
+    EXPECT_EQ(123, c);
+}
+
+TEST(dsb_util, SwapOut_class)
+{
+    std::vector<int> a;
+    a.push_back(123);
+    const auto dataPtr = a.data();
+    std::vector<int> r;
+    r.push_back(456);
+    r.push_back(789);
+
+    std::vector<int> b = SwapOut(a, r);
+    ASSERT_EQ(2U, a.size());
+    EXPECT_EQ(456, a[0]);
+    EXPECT_EQ(789, a[1]);
+
+    // The following test is (most likely) not specified C++ behaviour, but
+    // it would be a strange vector implementation that didn't implement a move
+    // as a pointer move...
+    EXPECT_EQ(1U, b.size());
+    EXPECT_EQ(dataPtr, b.data());
+
+    std::vector<int> c = SwapOut(b);
+    EXPECT_TRUE(b.empty());
+    EXPECT_EQ(1U, c.size());
+    EXPECT_EQ(dataPtr, c.data());
 }
