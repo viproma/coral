@@ -27,7 +27,8 @@ public:
     {
         const auto slaveIdString = boost::lexical_cast<std::string>(slaveID);
         const auto timeStamp = boost::lexical_cast<std::string>(boost::chrono::system_clock::now().time_since_epoch().count());
-        const auto outputFile = "slave_" + slaveIdString + '_' + timeStamp + ".csv";
+        const auto fmuBaseName = boost::filesystem::path(fmuPath).stem().string();
+        const auto outputFile = executionLocator.ExecName() + "-" + slaveIdString + "-" + fmuBaseName + ".csv";
         std::vector<std::string> args;
         args.push_back(slaveIdString);
         args.push_back(executionLocator.SlaveEndpoint());
@@ -37,7 +38,7 @@ public:
         args.push_back(outputFile);
 
         std::cout << "\nStarting slave " << slaveID << '\n'
-            << "  Execution: " << executionLocator.SlaveEndpoint() << '\n'
+            << "  Execution: " << executionLocator.ExecName() << " @ " << executionLocator.SlaveEndpoint() << '\n'
             << "  FMU      : " << fmuPath << '\n'
             << "  Output   : " << outputFile << '\n'
             << std::flush;
@@ -87,11 +88,13 @@ try {
 
     if (argc < 2 || optMap.count("help")) {
         const auto self = boost::filesystem::path(argv[0]).stem().string();
-        std::cerr << "Usage: " << self << " <domain> <fmus...> [options...]\n"
-                  << "Arguments:\n"
-                  << "  domain   The domain address\n"
-                  << "  fmus     FMU files and directories\n"
-                  << optDesc << std::endl;
+        std::cerr <<
+            "Usage:\n"
+            "  " << self << " <domain> <fmus...> [options...]\n\n"
+            "Arguments:\n"
+            "  domain   The domain address\n"
+            "  fmus     FMU files and directories\n"
+            << optDesc;
         return 0;
     }
 

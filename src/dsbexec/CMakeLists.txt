@@ -6,7 +6,7 @@ set (_sources
     "main.cpp"
 )
 
-find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono)
+find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono program_options)
 find_package (ZMQ REQUIRED)
 
 set (_target "dsbexec")

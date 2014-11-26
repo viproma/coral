@@ -148,6 +148,7 @@ dsbproto::domain::ExecutionLocator dsb::protocol::ToProto(
     el.set_slave_endpoint(executionLocator.SlaveEndpoint());
     el.set_variable_pub_endpoint(executionLocator.VariablePubEndpoint());
     el.set_variable_sub_endpoint(executionLocator.VariableSubEndpoint());
+    el.set_execution_name(executionLocator.ExecName());
     return el;
 }
 
@@ -159,5 +160,7 @@ dsb::execution::Locator dsb::protocol::FromProto(
         executionLocator.master_endpoint(),
         executionLocator.slave_endpoint(),
         executionLocator.variable_pub_endpoint(),
-        executionLocator.variable_sub_endpoint());
+        executionLocator.variable_sub_endpoint(),
+        "",
+        executionLocator.execution_name());
 }

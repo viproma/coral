@@ -157,14 +157,15 @@ private:
 /**
 \brief  Spawns a new execution.
 
-This will start a new execution in a background thread, and return an object
-which may be used to control the execution.
+This will start a new execution on the domain, and return a locator which can
+be used to connect to it.
 
-\param [in] context     The ZMQ context to use for all communication, both
-                        internal and external.
-\param [in] endpoint    The address of the execution broker.
+\param [in] domainLocator   The domain in which the execution should run.
+\param [in] executionName   A unique name for the execution.
 */
-dsb::execution::Locator SpawnExecution(const dsb::domain::Locator& domainLocator);
+dsb::execution::Locator SpawnExecution(
+    const dsb::domain::Locator& domainLocator,
+    const std::string& executionName = std::string());
 
 
 }}      //namespace

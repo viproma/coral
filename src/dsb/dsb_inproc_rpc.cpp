@@ -152,6 +152,7 @@ void dsb::inproc_rpc::CallInstantiateSlave(
     args.push_back(dsb::comm::ToFrame(executionLocator.SlaveEndpoint()));
     args.push_back(dsb::comm::ToFrame(executionLocator.VariablePubEndpoint()));
     args.push_back(dsb::comm::ToFrame(executionLocator.VariableSubEndpoint()));
+    args.push_back(dsb::comm::ToFrame(executionLocator.ExecName()));
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveID));
     args.push_back(dsb::comm::ToFrame(provider));
     Call(socket, INSTANTIATE_SLAVE_CALL, args);
@@ -164,16 +165,18 @@ void dsb::inproc_rpc::UnmarshalInstantiateSlave(
     dsb::model::SlaveID& slaveID,
     std::string& provider)
 {
-    assert (msg.size() == 8);
+    assert (msg.size() == 9);
     ASSERT_CALL_TYPE(msg, INSTANTIATE_SLAVE_CALL);
     slaveTypeUUID = dsb::comm::ToString(msg[1]);
     executionLocator = dsb::execution::Locator(
         dsb::comm::ToString(msg[2]),
         dsb::comm::ToString(msg[3]),
         dsb::comm::ToString(msg[4]),
-        dsb::comm::ToString(msg[5]));
-    slaveID = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[6]);
-    provider = dsb::comm::ToString(msg[7]);
+        dsb::comm::ToString(msg[5]),
+        "",
+        dsb::comm::ToString(msg[6]));
+    slaveID = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[7]);
+    provider = dsb::comm::ToString(msg[8]);
 }
 
 void dsb::inproc_rpc::CallSetSimulationTime(

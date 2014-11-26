@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <deque>
 #include <iostream>
+#include <map>
 #include <utility>
 
 #include "zmq.hpp"
@@ -11,6 +12,7 @@
 #include "dsb/config.h"
 #include "dsb/comm.hpp"
 #include "dsb/proxy.hpp"
+#include "dsb/util.hpp"
 #include "p2p_proxy.hpp"
 
 
@@ -82,6 +84,12 @@ namespace
         {
             return std::make_pair(m_dataSubPort, m_dataPubPort);
         }
+
+        void Stop()
+        {
+            m_control.Stop();
+            m_data.Stop();
+        }
     private:
         int m_masterControlPort;
         int m_slaveControlPort;
@@ -122,36 +130,49 @@ int main(int argc, const char** argv)
 
     auto executionRequest = zmq::socket_t(*context, ZMQ_REP);
     executionRequest.bind(execReqEndpoint.c_str());
-    std::vector<ExecutionBroker> executionBrokers;
+    std::map<std::string, ExecutionBroker> executionBrokers;
     for (;;) {
         std::deque<zmq::message_t> msg;
         dsb::comm::Receive(executionRequest, msg);
-        if (dsb::comm::ToString(msg.front()) == "SPAWN_EXECUTION") {
-            msg.clear();
+        const auto command = dsb::comm::ToString(msg.front());
+        if (command == "SPAWN_EXECUTION" && msg.size() > 1) {
             try {
+                const auto execName = dsb::comm::ToString(msg[1]);
+                if (executionBrokers.count(execName)) {
+                    throw std::runtime_error("Execution name already in use: " + execName);
+                }
 #ifdef DSB_USE_MSVC_EMPLACE_WORKAROUND
-                executionBrokers.emplace_back(ExecutionBroker(context));
+                auto b = executionBrokers.emplace(std::make_pair(execName, ExecutionBroker(context))).first;
 #else
-                executionBrokers.emplace_back(context);
+                auto b = executionBrokers.emplace(execName, ExecutionBroker(context)).first;
 #endif
-                const auto& b = executionBrokers.back();
+                msg.clear();
                 msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION_OK"));
-                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b.ControlPorts().first)));
-                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b.ControlPorts().second)));
-                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b.DataPorts().first)));
-                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b.DataPorts().second)));
+                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b->second.ControlPorts().first)));
+                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b->second.ControlPorts().second)));
+                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b->second.DataPorts().first)));
+                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b->second.DataPorts().second)));
 
                 // TODO: Remove later
-                std::clog << "Started execution broker using the following ports:\n"
-                          << "  control (master): " << b.ControlPorts().first << '\n'
-                          << "  control (slaves): " << b.ControlPorts().second << '\n'
-                          << "  data (subscribe): " << b.DataPorts().first << '\n'
-                          << "  data   (publish): " << b.DataPorts().second << std::endl;
+                std::clog << "Started broker for execution \"" << execName << "\" using the following ports:\n"
+                          << "  control (master): " << b->second.ControlPorts().first << '\n'
+                          << "  control (slaves): " << b->second.ControlPorts().second << '\n'
+                          << "  data (subscribe): " << b->second.DataPorts().first << '\n'
+                          << "  data   (publish): " << b->second.DataPorts().second << std::endl;
             } catch (const std::runtime_error& e) {
+                msg.clear();
                 msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION_FAIL"));
                 msg.push_back(dsb::comm::ToFrame(e.what()));
             }
             dsb::comm::Send(executionRequest, msg);
+        } else if (command == "TERMINATE_EXECUTION" && msg.size() > 1) {
+            const auto execID = dsb::comm::ToString(msg[1]);
+            if (executionBrokers.count(execID)) {
+                executionBrokers.at(execID).Stop();
+                executionBrokers.erase(execID);
+                std::clog << "Broker for execution \"" << execID << "\" stopped" << std::endl;
+            }
+            executionRequest.send("", 0);
         }
     }
 }
