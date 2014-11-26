@@ -102,18 +102,21 @@ int Run(int argc, const char** argv)
         const auto t0 = boost::chrono::high_resolution_clock::now();
 
         // Super advanced master algorithm.
+        std::cout << "+-------------------+\n|" << std::flush;
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
-        double nextPerc = 0.1;
+        double nextPerc = 0.05;
         for (double time = execConfig.startTime;
              time < maxTime;
              time += execConfig.stepSize)
         {
             exec.Step(time, execConfig.stepSize);
             if ((time-execConfig.startTime)/(execConfig.stopTime-execConfig.startTime) >= nextPerc) {
-                std::cout << (nextPerc * 100.0) << "%" << std::endl;
-                nextPerc += 0.1;
+                //std::cout << (nextPerc * 100.0) << "%" << std::endl;
+                std::cout << '#' << std::flush;
+                nextPerc += 0.05;
             }
         }
+        std::cout << "|\n+-------------------+\n" << std::endl;
 
         // Termination
         const auto t1 = boost::chrono::high_resolution_clock::now();
