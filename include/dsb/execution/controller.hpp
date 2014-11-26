@@ -138,12 +138,12 @@ public:
     //SimState StoreSimulationState();
     //void RestoreSimulationState(const SimState& state);
 
-private:
     // Waits until the execution is in the READY state.
-    // This function is private for the time being, but it is likely to be made
-    // public at some later time.
+    // TODO: This function should perhaps be private, but we need it to be
+    // public for the time being.
     void WaitForReady();
 
+private:
     // NOTE: When adding members here, remember to update the move constructor
     // and the move assignment operator!
     std::shared_ptr<zmq::context_t> m_context;

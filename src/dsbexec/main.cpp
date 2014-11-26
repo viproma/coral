@@ -57,7 +57,14 @@ int Run(int argc, const char** argv)
 
         // This is to work around "slow joiner syndrome".  It lets slaves'
         // subscriptions take effect before we start the simulation.
-        std::cout << "Press ENTER to start simulation." << std::endl;
+        std::cout <<
+            "Waiting for slaves..."
+            "\n[NOTE TO TESTERS: If the program appears to hang at this point, "
+            "it could be because one or more of the slaves failed to start. "
+            "Check that the number of slave windows matches the number of "
+            "expected slaves.]" << std::endl;
+        exec.WaitForReady();
+        std::cout << "All slaves are present. Press ENTER to start simulation." << std::endl;
         std::cin.ignore();
         const auto t0 = boost::chrono::high_resolution_clock::now();
 
