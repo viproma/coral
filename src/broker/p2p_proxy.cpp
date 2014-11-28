@@ -4,6 +4,7 @@
 #include <deque>
 #include <utility>
 
+#include "boost/lexical_cast.hpp"
 #include "boost/thread.hpp"
 #include "dsb/comm.hpp"
 #include "dsb/util.hpp"
@@ -12,10 +13,35 @@
 namespace dd = dsb::domain_broker;
 
 
+std::uint16_t dd::BindToEphemeralPort(
+    zmq::socket_t& socket,
+    const std::string& networkInterface)
+{
+    const auto endpoint = "tcp://" + networkInterface + ":*";
+    socket.bind(endpoint.c_str());
+    return EndpointPort(dsb::comm::LastEndpoint(socket));
+}
+
+
+std::uint16_t dd::EndpointPort(const std::string& endpoint)
+{
+    // We expect a string on the form "tcp://addr:port", where the 'addr' and
+    // 'port' substrings must both be at least one character long, and look for
+    // the last colon.
+    const size_t colonPos = endpoint.rfind(':');
+    if (endpoint.size() < 9 || colonPos < 7 || colonPos >= endpoint.size() - 1) {
+        throw std::invalid_argument("Invalid endpoint specification: " + endpoint);
+    }
+    return boost::lexical_cast<std::uint16_t>(endpoint.substr(colonPos + 1));
+}
+
+
 namespace
 {
     void SwapEnvelopes(std::deque<zmq::message_t>& msg)
     {
+        // TODO: This is currently somewhat limited in that it can only deal
+        // with single-identity envelopes.
         if (msg.size() >= 4 && msg[1].size() == 0 && msg[3].size() == 0) {
             std::swap(msg[0], msg[2]);
         } else assert (!"Received a message with the wrong envelope format");
@@ -35,31 +61,27 @@ namespace
     public:
         ProxyFunctor(
             std::shared_ptr<zmq::context_t> context,
-            zmq::socket_t&& socket1,
-            zmq::socket_t&& socket2,
+            zmq::socket_t&& socket,
             zmq::socket_t&& killSocket)
             : m_context(context),
-              m_socket1(std::move(socket1)),
-              m_socket2(std::move(socket2)),
+              m_socket(std::move(socket)),
               m_killSocket(std::move(killSocket))
         {
         }
 
         ProxyFunctor(ProxyFunctor&& other)
             : m_context(std::move(other.m_context)),
-              m_socket1(std::move(other.m_socket1)),
-              m_socket2(std::move(other.m_socket2)),
+              m_socket(std::move(other.m_socket)),
               m_killSocket(std::move(other.m_killSocket))
         {
         }
 
         void operator()()
         {
-            const size_t SOCKET_COUNT = 3;
+            const size_t SOCKET_COUNT = 2;
             zmq::pollitem_t pollItems[SOCKET_COUNT] = {
                 { m_killSocket, 0, ZMQ_POLLIN, 0 },
-                { m_socket1,    0, ZMQ_POLLIN, 0 },
-                { m_socket2,    0, ZMQ_POLLIN, 0 }
+                { m_socket,     0, ZMQ_POLLIN, 0 }
             };
             for (;;) {
                 zmq::poll(pollItems, SOCKET_COUNT);
@@ -68,10 +90,7 @@ namespace
                     return;
                 }
                 if (pollItems[1].revents & ZMQ_POLLIN) {
-                    SwapEnvelopesAndTransfer(m_socket1, m_socket2);
-                }
-                if (pollItems[2].revents & ZMQ_POLLIN) {
-                    SwapEnvelopesAndTransfer(m_socket2, m_socket1);
+                    SwapEnvelopesAndTransfer(m_socket, m_socket);
                 }
             }
 
@@ -79,8 +98,7 @@ namespace
 
     private:
         std::shared_ptr<zmq::context_t> m_context;
-        zmq::socket_t m_socket1;
-        zmq::socket_t m_socket2;
+        zmq::socket_t m_socket;
         zmq::socket_t m_killSocket;
     };
 }
@@ -89,8 +107,8 @@ namespace
 
 zmq::socket_t dd::SpawnP2PProxy(
     std::shared_ptr<zmq::context_t> context,
-    const std::string& endpoint1,
-    const std::string& endpoint2)
+    const std::string& networkInterface,
+    std::uint16_t& ephemeralPort)
 {
     auto killSocketLocal = zmq::socket_t(*context, ZMQ_PAIR);
     auto killSocketRemote = zmq::socket_t(*context, ZMQ_PAIR);
@@ -98,15 +116,14 @@ zmq::socket_t dd::SpawnP2PProxy(
     killSocketLocal.bind(killEndpoint.c_str());
     killSocketRemote.connect(killEndpoint.c_str());
 
-    auto socket1 = zmq::socket_t(*context, ZMQ_ROUTER);
-    socket1.bind(endpoint1.c_str());
-    auto socket2 = zmq::socket_t(*context, ZMQ_ROUTER);
-    socket2.bind(endpoint2.c_str());
+    auto socket = zmq::socket_t(*context, ZMQ_ROUTER);
+    const auto ep = BindToEphemeralPort(socket, networkInterface);
 
     boost::thread(ProxyFunctor(
         context,
-        std::move(socket1),
-        std::move(socket2),
+        std::move(socket),
         std::move(killSocketRemote)));
+
+    ephemeralPort = ep;
     return killSocketLocal;
 }

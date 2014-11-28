@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "boost/noncopyable.hpp"
+#include "dsb/domain/locator.hpp"
 #include "dsb/execution/locator.hpp"
 #include "dsb/model.hpp"
 
@@ -83,8 +84,7 @@ public:
 
 
 void SlaveProvider(
-    const std::string& reportEndpoint,
-    const std::string& infoEndpoint,
+    const std::string& domainBrokerAddress,
     const std::vector<dsb::domain::ISlaveType*>& slaveTypes); // TODO: Range API here.
 
 

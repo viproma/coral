@@ -333,8 +333,8 @@ Controller::Controller(const dsb::domain::Locator& locator)
         m_context,
         rpcEndpoint,
         destroyEndpoint,
-        std::make_shared<std::string>(locator.ReportEndpoint()),
-        std::make_shared<std::string>(locator.InfoEndpoint()));
+        std::make_shared<std::string>(locator.ReportMasterEndpoint()),
+        std::make_shared<std::string>(locator.InfoMasterEndpoint()));
 }
 
 

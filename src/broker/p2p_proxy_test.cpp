@@ -1,11 +1,13 @@
 #include "gtest/gtest.h"
-//#include "dsb/config.h"
 #include "p2p_proxy.hpp"
 
 #include <deque>
+#include "boost/thread.hpp"
+#include "boost/chrono.hpp"
 #include "zmq.hpp"
-#include "dsb/comm.hpp"
 
+#include "dsb/comm.hpp"
+#include "dsb/compat_helpers.hpp"
 
 namespace dd = dsb::domain_broker;
 
@@ -31,14 +33,17 @@ TEST(domain_broker, p2p_proxy_bidirectional)
     auto rep2 = zmq::socket_t(*ctx, ZMQ_DEALER);
     rep2.setsockopt(ZMQ_IDENTITY, server2Id.c_str(), server2Id.size());
 
-    auto proxy = dd::SpawnP2PProxy(ctx,
-        "inproc://dsb_p2p_proxy_test_frontend",
-        "inproc://dsb_p2p_proxy_test_backend");
+    std::uint16_t port = 0;
+    auto proxy = dd::SpawnP2PProxy(ctx, "*", port);
+    ASSERT_GT(port, 0);
 
-    req1.connect("inproc://dsb_p2p_proxy_test_frontend");
-    rep1.connect("inproc://dsb_p2p_proxy_test_backend");
-    req2.connect("inproc://dsb_p2p_proxy_test_frontend");
-    rep2.connect("inproc://dsb_p2p_proxy_test_backend");
+    const auto endpoint = "tcp://localhost:" + std::to_string(port);
+    req1.connect(endpoint.c_str());
+    rep1.connect(endpoint.c_str());
+    req2.connect(endpoint.c_str());
+    rep2.connect(endpoint.c_str());
+    // Give ZeroMQ some time to establish the connections.
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
 
     // Send a request from client 1 to server 2
     std::deque<zmq::message_t> req1Msg;

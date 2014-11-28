@@ -22,20 +22,24 @@
 namespace dp = dsb::protocol::domain;
 
 
+
+
+
 void dsb::domain::SlaveProvider(
-    const std::string& reportEndpoint,
-    const std::string& infoEndpoint,
+    const std::string& domainBrokerAddress,
     const std::vector<dsb::domain::ISlaveType*>& slaveTypes)
 {
+    const auto domainLoc = GetDomainEndpoints(domainBrokerAddress);
+
     auto context = zmq::context_t();
     auto report = zmq::socket_t(context, ZMQ_PUB);
-    report.connect(reportEndpoint.c_str());
+    report.connect(domainLoc.ReportSlavePEndpoint().c_str());
 
     const auto myId = dsb::util::RandomUUID();
 
     auto info = zmq::socket_t(context, ZMQ_DEALER);
     info.setsockopt(ZMQ_IDENTITY, myId.data(), myId.size());
-    info.connect(infoEndpoint.c_str());
+    info.connect(domainLoc.InfoSlavePEndpoint().c_str());
 
     namespace dp = dsb::protocol::domain;
     zmq::pollitem_t pollItem = { info, 0, ZMQ_POLLIN, 0 };
