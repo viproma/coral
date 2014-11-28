@@ -14,7 +14,9 @@ int main(int argc, const char** argv)
 try {
     if (argc < 6) {
         const auto self = boost::filesystem::path(argv[0]).stem().string();
-        std::cerr << "Usage: " << self << " <id> <control> <data pub> <data sub> <fmu path> [output file]\n"
+        std::cerr << "Slave demonstrator.\n"
+                  << "This program is designed to be run by a slave provider, and should normally not be run manually.\n\n"
+                  << "Usage: " << self << " <id> <control> <data pub> <data sub> <fmu path> [output file]\n"
                   << "  id          = a number in the range 1 - 65535\n"
                   << "  control     = Control socket endpoint (e.g. tcp://myhost:5432)\n"
                   << "  data pub    = Publisher socket endpoint\n"
