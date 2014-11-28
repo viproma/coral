@@ -29,7 +29,6 @@ public:
         const std::string& fmuPath)
     {
         const auto slaveIdString = boost::lexical_cast<std::string>(slaveID);
-        const auto timeStamp = boost::lexical_cast<std::string>(boost::chrono::system_clock::now().time_since_epoch().count());
         const auto fmuBaseName = boost::filesystem::path(fmuPath).stem().string();
         const auto outputFile = m_outputDir + '/' + executionLocator.ExecName()
                             + "-" + slaveIdString + "-" + fmuBaseName + ".csv";
@@ -42,7 +41,8 @@ public:
         args.push_back(outputFile);
 
         std::cout << "\nStarting slave " << slaveID << '\n'
-            << "  Execution: " << executionLocator.ExecName() << " @ " << executionLocator.SlaveEndpoint() << '\n'
+            << "  Execution: " << executionLocator.ExecName() << " @ "
+                               << executionLocator.SlaveEndpoint() << '\n'
             << "  FMU      : " << fmuPath << '\n'
             << "  Output   : " << outputFile << '\n'
             << std::flush;
@@ -55,7 +55,9 @@ private:
 };
 
 
-void ScanDirectoryForFMUs(const std::string& directory, std::vector<std::string>& fmuPaths)
+void ScanDirectoryForFMUs(
+    const std::string& directory,
+    std::vector<std::string>& fmuPaths)
 {
     namespace fs = boost::filesystem;
     for (auto it = fs::recursive_directory_iterator(directory);
@@ -76,8 +78,10 @@ try {
     po::options_description optDesc("Options");
     optDesc.add_options()
         ("help",      "Display help message")
-        ("slave-exe", po::value<std::string>(), "The path to the DSB slave executable")
-        ("output-dir,o", po::value<std::string>()->default_value(""), "The directory where output files should be written");
+        ("slave-exe", po::value<std::string>(),
+            "The path to the DSB slave executable")
+        ("output-dir,o", po::value<std::string>()->default_value(""),
+            "The directory where output files should be written");
     po::options_description argDesc;
     argDesc.add(optDesc);
     argDesc.add_options()
@@ -95,11 +99,15 @@ try {
     if (argc < 2 || optMap.count("help")) {
         const auto self = boost::filesystem::path(argv[0]).stem().string();
         std::cerr <<
+            "Slave provider demonstrator.\n"
+            "This program loads one or more FMUs and makes them available as\n"
+            "slaves on a domain.\n\n"
             "Usage:\n"
             "  " << self << " <domain> <fmus...> [options...]\n\n"
             "Arguments:\n"
-            "  domain   The domain address\n"
-            "  fmus     FMU files and directories\n"
+            "  domain   The domain address, e.g. tcp://localhost.\n"
+            "  fmus     FMU files and directories. Directories will be scanned\n"
+            "           recursively for files with an \".fmu\" extension.\n\n"
             << optDesc;
         return 0;
     }
