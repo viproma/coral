@@ -1,12 +1,12 @@
 name "Double spring/mass system"
-descriptions "A mass connected to a spring connected to a mass connected to a spring connected to the wall..."
+description "A mass connected to a spring connected to a mass connected to a spring connected to the wall..."
 
 slaves {
     spring1 {
         type spring_1d
         init {
             length 2.0
-            pos_b  1.0
+            pos_b  100.0
         }
     }
     mass1  {
