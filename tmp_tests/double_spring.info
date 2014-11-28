@@ -6,7 +6,7 @@ slaves {
         type spring_1d
         init {
             length 2.0
-            pos_b  100.0
+            pos_b  1.0
         }
     }
     mass1  {
