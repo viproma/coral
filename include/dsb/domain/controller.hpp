@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "zmq.hpp"
+#include "dsb/domain/locator.hpp"
 #include "dsb/execution/locator.hpp"
 #include "dsb/model.hpp"
 
@@ -41,8 +42,7 @@ public:
     /// Constructor.
     Controller(
         std::shared_ptr<zmq::context_t> context,
-        const std::string& reportEndpoint,
-        const std::string& infoEndpoint);
+        const dsb::domain::Locator& locator);
 
     /// Move constructor.
     Controller(Controller&& other);

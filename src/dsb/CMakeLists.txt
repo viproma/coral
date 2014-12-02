@@ -3,6 +3,7 @@ set (_target "dsb")
 set (_publicHeaders
     "dsb/config.h"
     "dsb/domain/controller.hpp"
+    "dsb/domain/locator.hpp"
     "dsb/domain/slave_provider.hpp"
     "dsb/execution/controller.hpp"
     "dsb/execution/locator.hpp"
@@ -53,6 +54,7 @@ set (_sources
     "dsb_util.cpp"
 
     "dsb_domain_controller.cpp"
+    "dsb_domain_locator.cpp"
     "dsb_domain_slave_provider.cpp"
     "dsb_execution_controller.cpp"
     "dsb_execution_locator.cpp"

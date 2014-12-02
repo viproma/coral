@@ -9,6 +9,8 @@
 #include <string>
 #include "zmq.hpp"
 
+#include "dsb/domain/locator.hpp"
+#include "dsb/execution/locator.hpp"
 #include "dsb/model.hpp"
 #include "dsb/sequence.hpp"
 
@@ -35,7 +37,7 @@ class Controller
 public:
     // Constructor.  (Explicitly not Doxygen-documented, since it should
     // only be called by SpawnExecution().
-    Controller(zmq::socket_t rpcSocket, zmq::socket_t asyncInfoSocket);
+    Controller(const dsb::execution::Locator& locator);
 
     /// Move constructor.
     Controller(Controller&& other);
@@ -139,6 +141,7 @@ private:
     // public at some later time.
     void WaitForReady();
 
+    std::shared_ptr<zmq::context_t> m_context;
     zmq::socket_t m_rpcSocket;
     zmq::socket_t m_asyncInfoSocket;
 };
@@ -154,9 +157,7 @@ which may be used to control the execution.
                         internal and external.
 \param [in] endpoint    The address of the execution broker.
 */
-Controller SpawnExecution(
-    std::shared_ptr<zmq::context_t> context,
-    const std::string& endpoint);
+dsb::execution::Locator SpawnExecution(const dsb::domain::Locator& domainLocator);
 
 
 }}      //namespace

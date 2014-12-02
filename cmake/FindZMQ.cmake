@@ -18,7 +18,7 @@
 # If ZeroMQ is not found, ZMQ_FOUND is set to false.
 
 cmake_minimum_required (VERSION 2.8.11)
-set (ZMQ_DIR "${ZMQ_DIR}" CACHE FILEPATH
+set (ZMQ_DIR "${ZMQ_DIR}" CACHE PATH
     "The directory where ZeroMQ is installed, i.e., the parent directory of the 'bin', 'lib' and 'include' directories that contain the ZeroMQ libraries and headers."
 )
 
