@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 #include "boost/filesystem/path.hpp"
 
@@ -29,6 +30,23 @@ uint16_t DecodeUint16(const char source[2]);
 
 /// Returns a string that contains a random UUID.
 std::string RandomUUID();
+
+
+/**
+\brief  Moves a value, replacing it with another one.
+
+This function works just like `std::move`, except that it only works on lvalues
+and assigns an explicit value to the variable which is being moved from.  This
+is inefficient for types that provide move semantics (`std::move` should be used
+for those), but useful for e.g. built-in types.
+*/
+template<typename T>
+T SwapOut(T& variable, const T& replacement = T())
+{
+    auto tmp = std::move(variable);
+    variable = replacement;
+    return std::move(tmp);
+}
 
 
 /**

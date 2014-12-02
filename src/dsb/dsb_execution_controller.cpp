@@ -4,8 +4,6 @@
 #include <iostream> //TODO: Only for debugging; remove later.
 #include <utility>
 
-#include "boost/thread.hpp"
-
 #include "dsb/bus/execution_agent.hpp"
 #include "dsb/comm.hpp"
 #include "dsb/inproc_rpc.hpp"
@@ -59,7 +57,8 @@ namespace
 dsb::execution::Controller::Controller(const dsb::execution::Locator& locator)
     : m_context(std::make_shared<zmq::context_t>()),
       m_rpcSocket(*m_context, ZMQ_PAIR),
-      m_asyncInfoSocket(*m_context, ZMQ_PAIR)
+      m_asyncInfoSocket(*m_context, ZMQ_PAIR),
+      m_active(true)
 {
     auto rpcEndpoint =
         std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
@@ -70,23 +69,42 @@ dsb::execution::Controller::Controller(const dsb::execution::Locator& locator)
 
     m_rpcSocket.bind(rpcEndpoint->c_str());
     m_asyncInfoSocket.bind(asyncInfoEndpoint->c_str());
-    boost::thread(ControllerLoop,
+    m_thread = boost::thread(ControllerLoop,
         m_context, rpcEndpoint, asyncInfoEndpoint, slaveControlEndpoint);
 }
 
 
 dsb::execution::Controller::Controller(Controller&& other)
-    : m_rpcSocket(std::move(other.m_rpcSocket)),
-      m_asyncInfoSocket(std::move(other.m_asyncInfoSocket))
+    : m_context(std::move(other.m_context)),
+      m_rpcSocket(std::move(other.m_rpcSocket)),
+      m_asyncInfoSocket(std::move(other.m_asyncInfoSocket)),
+      m_active(dsb::util::SwapOut(other.m_active, false)),
+      m_thread(std::move(other.m_thread))
 {
 }
 
 
 dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& other)
 {
-    m_rpcSocket = std::move(other.m_rpcSocket);
-    m_asyncInfoSocket = std::move(other.m_asyncInfoSocket);
+    m_rpcSocket         = std::move(other.m_rpcSocket);
+    m_asyncInfoSocket   = std::move(other.m_asyncInfoSocket);
+    m_active            = dsb::util::SwapOut(other.m_active, false);
+    m_thread            = std::move(other.m_thread);
+    // Move the context last, in case it overwrites and destroys another
+    // context that is used by the above sockets.
+    m_context           = std::move(other.m_context);
     return *this;
+}
+
+
+dsb::execution::Controller::~Controller()
+{
+    if (m_active) try {
+        dsb::inproc_rpc::CallTerminate(m_rpcSocket);
+    } catch (...) {
+        assert (!"dsb::execution::Controller::~Controller(): CallTerminate() threw");
+    }
+    m_thread.join();
 }
 
 
@@ -137,7 +155,9 @@ void dsb::execution::Controller::Step(
 
 void dsb::execution::Controller::Terminate()
 {
+    assert (m_active);
     dsb::inproc_rpc::CallTerminate(m_rpcSocket);
+    m_active = false;
 }
 
 

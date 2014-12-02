@@ -149,5 +149,12 @@ T DecodeRawDataFrame(const zmq::message_t& frame)
 }
 
 
+/**
+\brief Returns the value of the ZMQ_LAST_ENDPOINT socket property.
+\throws zmq::error_t if ZMQ reports an error.
+*/
+std::string LastEndpoint(zmq::socket_t& socket);
+
+
 }}      // namespace
 #endif  // header guard

@@ -7,6 +7,8 @@
 
 #include <memory>
 #include <string>
+
+#include "boost/thread.hpp"
 #include "zmq.hpp"
 
 #include "dsb/domain/locator.hpp"
@@ -31,12 +33,10 @@ Objects of this class should not be created directly; use SpawnExecution()
 instead.  The class is movable, but not copyable, thus ensuring that exactly
 one Controller object is attached to an execution at any time.
 */
-// TODO: Decide what happens when the Controller object goes out of scope!
 class Controller
 {
 public:
-    // Constructor.  (Explicitly not Doxygen-documented, since it should
-    // only be called by SpawnExecution().
+    /// Constructor.
     Controller(const dsb::execution::Locator& locator);
 
     /// Move constructor.
@@ -44,6 +44,9 @@ public:
 
     /// Move assignment operator.
     Controller& operator=(Controller&& other);
+
+    /// Destructor which terminates the simulation.
+    ~Controller();
 
     /**
     \brief  Sets the start time and, optionally, the stop time of the
@@ -135,15 +138,19 @@ public:
     //SimState StoreSimulationState();
     //void RestoreSimulationState(const SimState& state);
 
-private:
     // Waits until the execution is in the READY state.
-    // This function is private for the time being, but it is likely to be made
-    // public at some later time.
+    // TODO: This function should perhaps be private, but we need it to be
+    // public for the time being.
     void WaitForReady();
 
+private:
+    // NOTE: When adding members here, remember to update the move constructor
+    // and the move assignment operator!
     std::shared_ptr<zmq::context_t> m_context;
     zmq::socket_t m_rpcSocket;
     zmq::socket_t m_asyncInfoSocket;
+    bool m_active;
+    boost::thread m_thread;
 };
 
 

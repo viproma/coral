@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "boost/thread.hpp"
 #include "zmq.hpp"
 #include "dsb/domain/locator.hpp"
 #include "dsb/execution/locator.hpp"
@@ -23,7 +24,6 @@ namespace domain
 /**
 \brief  Domain interface.
 */
-// TODO: Decide what happens when the Controller object goes out of scope!
 class Controller
 {
 public:
@@ -40,15 +40,16 @@ public:
     };
 
     /// Constructor.
-    Controller(
-        std::shared_ptr<zmq::context_t> context,
-        const dsb::domain::Locator& locator);
+    Controller(const dsb::domain::Locator& locator);
 
     /// Move constructor.
     Controller(Controller&& other);
 
     /// Move assignment operator.
     Controller& operator=(Controller&& other);
+
+    /// Destructor.
+    ~Controller();
 
     /**
     \brief  Returns available slave types.
@@ -68,7 +69,13 @@ public:
         const std::string& provider = std::string());
 
 private:
+    // NOTE: When adding members here, remember to update the move constructor
+    // and the move assignment operator!
+    std::shared_ptr<zmq::context_t> m_context;
     zmq::socket_t m_rpcSocket;
+    zmq::socket_t m_destroySocket; // for sending termination command from destructor.
+    bool m_active;
+    boost::thread m_thread;
 };
 
 

@@ -230,3 +230,12 @@ TEST(dsb_comm, ToFrame_ToString)
     auto msg = ToFrame("foo");
     EXPECT_EQ("foo", ToString(msg));
 }
+
+TEST(dsb_comm, LastEndpoint)
+{
+    zmq::context_t ctx;
+    zmq::socket_t sck(ctx, ZMQ_REP);
+    EXPECT_TRUE(LastEndpoint(sck).empty());
+    sck.bind("inproc://dsb_comm_LastEndpoint_test");
+    EXPECT_EQ("inproc://dsb_comm_LastEndpoint_test", LastEndpoint(sck));
+}
