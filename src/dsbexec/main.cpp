@@ -55,12 +55,15 @@ int Run(int argc, const char** argv)
 
         if (argc < 2 || optMap.count("help")) {
             std::cerr <<
+                "Runs a simulation.\n\n"
                 "Usage:\n"
                 "  " << self << " run <domain> <exec.config> <sys.config> [options...]\n\n"
                 "Arguments:\n"
-                "  domain       = domain address (e.g. tcp://localhost)\n"
-                "  exec. config = the execution configuration file\n"
-                "  sys. config  = the system configuration file\n\n"
+                "  domain       = Domain address (e.g. tcp://localhost)\n"
+                "  exec. config = Configuration file which describes the simulation\n"
+                "                 settings (start time, step size, etc.)\n"
+                "  sys. config  = Configuration file which describes the system to\n"
+                "                 simulate (slaves, connections, etc.)\n\n"
                       << optDesc;
             return 0;
         }
@@ -102,18 +105,21 @@ int Run(int argc, const char** argv)
         const auto t0 = boost::chrono::high_resolution_clock::now();
 
         // Super advanced master algorithm.
+        std::cout << "+-------------------+\n|" << std::flush;
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
-        double nextPerc = 0.1;
+        double nextPerc = 0.05;
         for (double time = execConfig.startTime;
              time < maxTime;
              time += execConfig.stepSize)
         {
             exec.Step(time, execConfig.stepSize);
             if ((time-execConfig.startTime)/(execConfig.stopTime-execConfig.startTime) >= nextPerc) {
-                std::cout << (nextPerc * 100.0) << "%" << std::endl;
-                nextPerc += 0.1;
+                //std::cout << (nextPerc * 100.0) << "%" << std::endl;
+                std::cout << '#' << std::flush;
+                nextPerc += 0.05;
             }
         }
+        std::cout << "|\n+-------------------+\n" << std::endl;
 
         // Termination
         const auto t1 = boost::chrono::high_resolution_clock::now();
@@ -137,10 +143,11 @@ int List(int argc, const char** argv)
     assert (argc > 1 && std::string(argv[1]) == "list");
     if (argc < 3) {
         std::cerr <<
+            "Lists the slave types that are available on a domain.\n\n"
             "Usage:\n"
             "  " << self << " list <domain>\n\n"
             "Arguments:\n"
-            "  domain = domain address (e.g. tcp://localhost)\n";
+            "  domain = Domain address (e.g. tcp://localhost)\n";
         return 0;
     }
     try {
@@ -172,11 +179,12 @@ int Info(int argc, const char** argv)
     assert (argc > 1 && std::string(argv[1]) == "info");
     if (argc < 4) {
         std::cerr <<
+            "Shows detailed information about a slave type.\n\n"
             "Usage:\n"
             "  " << self << " info <domain> <slave type>\n\n"
             "Arguments:\n"
-            "  domain = domain address (e.g. tcp://localhost)\n"
-            "  slave type = a slave type name\n";
+            "  domain     = Domain address (e.g. tcp://localhost)\n"
+            "  slave type = A slave type name\n";
         return 0;
     }
     try {
@@ -240,11 +248,15 @@ int main(int argc, const char** argv)
 {
     if (argc < 2) {
         std::cerr <<
+            "Master demonstrator.\n"
+            "This program will connect to a domain and obtain information about\n"
+            "available slave types, and can be used to run simple simulations.\n\n"
             "Usage:\n"
             "  " << self << " <command> [command-specific args]\n\n"
             "Commands:\n"
-            "  list   List available slave types\n"
-            "  run    Run a simulation\n"
+            "  info   Shows detailed information about one slave type\n"
+            "  list   Lists available slave types\n"
+            "  run    Runs a simulation\n"
             "\n"
             "Run <command> without any additional arguments for more specific help.\n";
         return 0;
