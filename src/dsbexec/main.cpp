@@ -5,6 +5,7 @@
 
 #include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
+#include "boost/program_options.hpp"
 #include "boost/thread.hpp"
 
 #include "dsb/domain/controller.hpp"
@@ -27,18 +28,50 @@ dsb::domain::Locator MakeDomainLocator(const std::string& address)
 int Run(int argc, const char** argv)
 {
     assert (argc > 1 && std::string(argv[1]) == "run");
-    if (argc < 5) {
-        std::cerr << "Usage: " << self << " run <domain> <exec. config> <sys. config>\n"
-                  << "  domain       = domain address (e.g. tcp://localhost)\n"
-                  << "  exec. config = the execution configuration file\n"
-                  << "  sys. config  = the system configuration file"
-                  << std::endl;
-        return 0;
-    }
+    // Drop the first element (program name) to use "run" as the "program name".
+    --argc; ++argv;
+
     try {
-        const auto address = std::string(argv[2]);
-        const auto execConfigFile = std::string(argv[3]);
-        const auto sysConfigFile = std::string(argv[4]);
+        namespace po = boost::program_options;
+        po::options_description optDesc("Options");
+        optDesc.add_options()
+            ("help",      "Display help message")
+            ("name,n", po::value<std::string>()->default_value(""), "The execution name (if left unspecified, a timestamp will be used)");
+        po::options_description argDesc;
+        argDesc.add(optDesc);
+        argDesc.add_options()
+            ("domain",      po::value<std::string>(), "The address of the domain")
+            ("exec-config", po::value<std::string>(), "Execution configuration file")
+            ("sys-config",  po::value<std::string>(), "System configuration file");
+        po::positional_options_description posArgDesc;
+        posArgDesc.add("domain", 1)
+                  .add("exec-config", 1)
+                  .add("sys-config", 1);
+        po::variables_map optMap;
+        po::store(po::command_line_parser(argc, argv).options(argDesc)
+                                                     .positional(posArgDesc)
+                                                     .run(),
+                  optMap);
+
+        if (argc < 2 || optMap.count("help")) {
+            std::cerr <<
+                "Usage:\n"
+                "  " << self << " run <domain> <exec.config> <sys.config> [options...]\n\n"
+                "Arguments:\n"
+                "  domain       = domain address (e.g. tcp://localhost)\n"
+                "  exec. config = the execution configuration file\n"
+                "  sys. config  = the system configuration file\n\n"
+                      << optDesc;
+            return 0;
+        }
+        if (!optMap.count("domain")) throw std::runtime_error("Domain address not specified");
+        if (!optMap.count("exec-config")) throw std::runtime_error("No execution configuration file specified");
+        if (!optMap.count("sys-config")) throw std::runtime_error("No system configuration file specified");
+
+        const auto address = optMap["domain"].as<std::string>();
+        const auto execConfigFile = optMap["exec-config"].as<std::string>();
+        const auto sysConfigFile = optMap["sys-config"].as<std::string>();
+        const auto execName = optMap["name"].as<std::string>();
 
         const auto domainLoc = MakeDomainLocator(address);
         auto domain = dsb::domain::Controller(domainLoc);
@@ -49,7 +82,7 @@ int Run(int argc, const char** argv)
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
         boost::this_thread::sleep_for(boost::chrono::seconds(2));
 
-        const auto execLoc = dsb::execution::SpawnExecution(domainLoc);
+        const auto execLoc = dsb::execution::SpawnExecution(domainLoc, execName);
         auto exec = dsb::execution::Controller(execLoc);
         const auto execConfig = ParseExecutionConfig(execConfigFile);
         exec.SetSimulationTime(execConfig.startTime, execConfig.stopTime);
@@ -103,9 +136,11 @@ int List(int argc, const char** argv)
 {
     assert (argc > 1 && std::string(argv[1]) == "list");
     if (argc < 3) {
-        std::cerr << "Usage: " << self << " list <domain>\n"
-                  << "  domain = domain address (e.g. tcp://localhost)"
-                  << std::endl;
+        std::cerr <<
+            "Usage:\n"
+            "  " << self << " list <domain>\n\n"
+            "Arguments:\n"
+            "  domain = domain address (e.g. tcp://localhost)\n";
         return 0;
     }
     try {
@@ -136,10 +171,12 @@ int Info(int argc, const char** argv)
 {
     assert (argc > 1 && std::string(argv[1]) == "info");
     if (argc < 4) {
-        std::cerr << "Usage: " << self << " info <domain> <slave type>\n"
-                  << "  domain     = domain address (e.g. tcp://localhost)\n"
-                  << "  slave type = a slave type name\n"
-                  << std::flush;
+        std::cerr <<
+            "Usage:\n"
+            "  " << self << " info <domain> <slave type>\n\n"
+            "Arguments:\n"
+            "  domain = domain address (e.g. tcp://localhost)\n"
+            "  slave type = a slave type name\n";
         return 0;
     }
     try {
@@ -202,14 +239,14 @@ int Info(int argc, const char** argv)
 int main(int argc, const char** argv)
 {
     if (argc < 2) {
-        std::cerr << "Usage: " << self << " <command> [command-specific args]\n"
-                  << "\n"
-                  << "Commands:\n"
-                  << "  list   List available slave types\n"
-                  << "  run    Run a simulation\n"
-                  << "\n"
-                  << "Run <command> without any additional arguments for more specific help.\n"
-                  << std::flush;
+        std::cerr <<
+            "Usage:\n"
+            "  " << self << " <command> [command-specific args]\n\n"
+            "Commands:\n"
+            "  list   List available slave types\n"
+            "  run    Run a simulation\n"
+            "\n"
+            "Run <command> without any additional arguments for more specific help.\n";
         return 0;
     }
     const auto command = std::string(argv[1]);

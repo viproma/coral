@@ -1,8 +1,12 @@
+#define BOOST_CHRONO_DONT_PROVIDES_DEPRECATED_IO_SINCE_V2_0_0
 #include "dsb/execution/controller.hpp"
 
 #include <deque>
 #include <iostream> //TODO: Only for debugging; remove later.
+#include <sstream>
 #include <utility>
+
+#include "boost/chrono.hpp"
 
 #include "dsb/bus/execution_agent.hpp"
 #include "dsb/comm.hpp"
@@ -16,7 +20,7 @@ namespace
         std::shared_ptr<zmq::context_t> context,
         std::shared_ptr<std::string> rpcEndpoint,
         std::shared_ptr<std::string> asyncInfoEndpoint,
-        std::shared_ptr<std::string> slaveControlEndpoint)
+        std::shared_ptr<dsb::execution::Locator> execLocator)
     {
         auto rpcSocket = zmq::socket_t(*context, ZMQ_PAIR);
         rpcSocket.connect(rpcEndpoint->c_str());
@@ -26,7 +30,7 @@ namespace
         asyncInfoSocket.connect(asyncInfoEndpoint->c_str());
 
         auto slaveControlSocket = zmq::socket_t(*context, ZMQ_ROUTER);
-        slaveControlSocket.connect(slaveControlEndpoint->c_str());
+        slaveControlSocket.connect(execLocator->MasterEndpoint().c_str());
 
         // Main messaging loop
         dsb::bus::ExecutionAgent exec(rpcSocket, slaveControlSocket);
@@ -50,6 +54,20 @@ namespace
                 exec.SlaveMessage(msg, rpcSocket, slaveControlSocket);
             }
         }
+
+        auto execTerminationSocket = zmq::socket_t(*context, ZMQ_REQ);
+        execTerminationSocket.connect(execLocator->ExecTerminationEndpoint().c_str());
+        std::deque<zmq::message_t> termMsg;
+        termMsg.push_back(dsb::comm::ToFrame("TERMINATE_EXECUTION"));
+        termMsg.push_back(dsb::comm::ToFrame(execLocator->ExecName()));
+        dsb::comm::Send(execTerminationSocket, termMsg);
+        // TODO: The following receive was just added to force ZMQ to send the
+        // message. We don't really care about the reply.  We've tried closing
+        // the socket and even the context manually, but then the message just
+        // appears to be dropped altoghether.  This sucks, and we need to figure
+        // out what is going on at some point.
+        char temp;
+        execTerminationSocket.recv(&temp, 1);
     }
 }
 
@@ -64,13 +82,11 @@ dsb::execution::Controller::Controller(const dsb::execution::Locator& locator)
         std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
     auto asyncInfoEndpoint =
         std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
-    auto slaveControlEndpoint =
-        std::make_shared<std::string>(locator.MasterEndpoint());
-
     m_rpcSocket.bind(rpcEndpoint->c_str());
     m_asyncInfoSocket.bind(asyncInfoEndpoint->c_str());
     m_thread = boost::thread(ControllerLoop,
-        m_context, rpcEndpoint, asyncInfoEndpoint, slaveControlEndpoint);
+        m_context, rpcEndpoint, asyncInfoEndpoint,
+        std::make_shared<dsb::execution::Locator>(locator));
 }
 
 
@@ -100,7 +116,7 @@ dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& o
 dsb::execution::Controller::~Controller()
 {
     if (m_active) try {
-        dsb::inproc_rpc::CallTerminate(m_rpcSocket);
+        Terminate();
     } catch (...) {
         assert (!"dsb::execution::Controller::~Controller(): CallTerminate() threw");
     }
@@ -161,14 +177,32 @@ void dsb::execution::Controller::Terminate()
 }
 
 
-dsb::execution::Locator dsb::execution::SpawnExecution(
-    const dsb::domain::Locator& domainLocator)
+namespace
 {
+    std::string Timestamp()
+    {
+        const auto t = boost::chrono::system_clock::now();
+        std::ostringstream ss;
+        ss << boost::chrono::time_fmt(boost::chrono::timezone::utc, "%Y%m%dT%H%M%SZ") << t;
+        return ss.str();
+    }
+}
+
+
+dsb::execution::Locator dsb::execution::SpawnExecution(
+    const dsb::domain::Locator& domainLocator,
+    const std::string& executionName)
+{
+    const auto actualExecName = executionName.empty()
+        ? Timestamp()
+        : executionName;
+
     zmq::context_t ctx;
     auto sck = zmq::socket_t(ctx, ZMQ_REQ);
     sck.connect(domainLocator.ExecReqEndpoint().c_str());
     std::deque<zmq::message_t> msg;
     msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION"));
+    msg.push_back(dsb::comm::ToFrame(actualExecName));
     dsb::comm::Send(sck, msg);
 
     if (!dsb::comm::Receive(sck, msg, boost::chrono::seconds(10))) {
@@ -183,7 +217,9 @@ dsb::execution::Locator dsb::execution::SpawnExecution(
             endpointBase + ':' + dsb::comm::ToString(msg[1]),
             endpointBase + ':' + dsb::comm::ToString(msg[2]),
             endpointBase + ':' + dsb::comm::ToString(msg[3]),
-            endpointBase + ':' + dsb::comm::ToString(msg[4]));
+            endpointBase + ':' + dsb::comm::ToString(msg[4]),
+            domainLocator.ExecReqEndpoint(),
+            actualExecName);
     } else if (reply == "SPAWN_EXECUTION_FAIL" && msg.size() == 2) {
         throw std::runtime_error(
             "Failed to spawn execution (" + dsb::comm::ToString(msg[1]) + ')');

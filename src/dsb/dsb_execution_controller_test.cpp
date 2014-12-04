@@ -6,7 +6,7 @@ using namespace dsb::execution;
 TEST(dsb_execution, Controller)
 {
     const auto execLoc =
-        dsb::execution::Locator("tcp://localhost:59999", "", "", "");
+        dsb::execution::Locator("tcp://localhost:59999", "", "", "", "", "");
     auto exec = dsb::execution::Controller(execLoc);
 
     // Unfortunately, at the current time, we can only check whether the
