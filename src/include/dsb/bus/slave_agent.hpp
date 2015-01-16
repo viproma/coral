@@ -1,3 +1,7 @@
+/**
+\file
+\brief Defines the dsb::bus::SlaveAgent class.
+*/
 #ifndef DSB_BUS_SLAVE_AGENT_HPP
 #define DSB_BUS_SLAVE_AGENT_HPP
 

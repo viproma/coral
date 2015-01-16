@@ -1,5 +1,9 @@
-#ifndef DSB_SLAVE_SLAVE_HANDLER_HPP
-#define DSB_SLAVE_SLAVE_HANDLER_HPP
+/**
+\file
+\brief Defines the dsb::bus::SlaveTracker class.
+*/
+#ifndef DSB_BUS_SLAVE_TRACKER_HPP
+#define DSB_BUS_SLAVE_TRACKER_HPP
 
 #include <cstdint>
 #include <deque>

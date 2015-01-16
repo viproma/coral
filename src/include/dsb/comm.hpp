@@ -130,6 +130,14 @@ std::string ToString(const zmq::message_t& frame);
 zmq::message_t ToFrame(const std::string& s);
 
 
+/**
+\brief  Returns a message frame which contains the raw binary representation
+        of the given value.
+
+To avoid issues with different endianness, word size, etc., such messages should
+only be sent between threads in one process, and not between processes or
+across the network.  The function must only be used with POD types.
+*/
 template<typename T>
 zmq::message_t EncodeRawDataFrame(const T& value)
 {
@@ -139,6 +147,16 @@ zmq::message_t EncodeRawDataFrame(const T& value)
 }
 
 
+/**
+\brief  Returns a value of type `T` created by making a raw binary copy of the
+        contents of the given frame.
+
+To avoid issues with different endianness, word size, etc., such messages should
+only be sent between threads in one process, and not between processes or
+across the network.  The function must only be used with POD types.
+
+\pre `frame.size() == sizeof(T)`
+*/
 template<typename T>
 T DecodeRawDataFrame(const zmq::message_t& frame)
 {

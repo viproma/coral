@@ -1,3 +1,7 @@
+/**
+\file
+\brief  Defines the dsb::bus::ExecutionAgent class.
+*/
 #ifndef DSB_BUS_EXECUTION_AGENT_HPP
 #define DSB_BUS_EXECUTION_AGENT_HPP
 
@@ -14,6 +18,10 @@
 
 namespace dsb
 {
+/**
+\brief  Simulation bus internals, mainly related to communication between
+        participants.
+*/
 namespace bus
 {
 

@@ -20,6 +20,7 @@ namespace domain
 
 /// An interface for classes that represent slave types.
 class ISlaveType : boost::noncopyable
+// TODO: Rename this to ISlaveFactory or similar?
 {
 public:
     /// The name of this slave type.

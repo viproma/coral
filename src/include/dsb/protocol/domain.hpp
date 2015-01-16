@@ -1,3 +1,7 @@
+/**
+\file
+\brief Main header file for dsb::protocol::domain.
+*/
 #ifndef DSB_PROTOCOL_DOMAIN_HPP
 #define DSB_PROTOCOL_DOMAIN_HPP
 
@@ -11,6 +15,10 @@ namespace dsb
 {
 namespace protocol
 {
+/**
+\brief  Functions for constructing and parsing messages sent between domain
+        participants.
+*/
 namespace domain
 {
 

@@ -1,5 +1,9 @@
-#ifndef DSB_BROKER_PROXY_HPP
-#define DSB_BROKER_PROXY_HPP
+/**
+\file
+\brief  Main header file for dsb::proxy.
+*/
+#ifndef DSB_PROXY_HPP
+#define DSB_PROXY_HPP
 
 #include <memory>
 #include "boost/noncopyable.hpp"
