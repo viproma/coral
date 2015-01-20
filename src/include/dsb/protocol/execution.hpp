@@ -17,7 +17,10 @@ namespace dsb
 namespace protocol
 {
 
-/// Functions for communication over the "execution execution" protocol.
+/**
+\brief  Functions for constructing and parsing messages sent between execution
+        participants.
+*/
 namespace execution
 {
 

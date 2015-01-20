@@ -1,5 +1,9 @@
-// This file contains functionality that helps with compiler compatibility.
-// It should only be included in .cpp files, never in .hpp files.
+/**
+\file
+\brief Functionality that helps with compiler compatibility.
+
+This file should only be included in .cpp files, never in .hpp files.
+*/
 #ifndef DSB_COMPAT_HELPERS_HPP
 #define DSB_COMPAT_HELPERS_HPP
 

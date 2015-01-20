@@ -270,7 +270,7 @@ void dsb::inproc_rpc::CallSetVariables(
 
 void dsb::inproc_rpc::UnmarshalSetVariables(
     const std::deque<zmq::message_t>& msg,
-    uint16_t& slaveId,
+    dsb::model::SlaveID& slaveId,
     dsbproto::execution::SetVarsData& setVarsData)
 {
     assert (msg.size() == 3);

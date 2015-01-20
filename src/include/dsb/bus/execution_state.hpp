@@ -1,3 +1,7 @@
+/**
+\file
+\brief Classes which represent the various states of an execution.
+*/
 #ifndef DSB_BUS_EXECUTION_STATE_HPP
 #define DSB_BUS_EXECUTION_STATE_HPP
 

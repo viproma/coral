@@ -23,6 +23,17 @@ namespace domain
 
 /**
 \brief  Domain interface.
+
+This class is used to connect to a domain, inquire about the slave providers
+available on the domain and the slave types they offer, and instantiate slaves
+for executions.
+
+\remark
+When an object of this class is created, it will spawn a background thread that
+performs the actual communication with other domain participants.  To ensure
+that there is a one-to-one relationship between an object of this class and
+its underlying communication thread, the objects are noncopyable (but movable),
+and will attempt to shut down the thread on destruction.
 */
 class Controller
 {

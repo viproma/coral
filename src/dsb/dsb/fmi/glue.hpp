@@ -1,3 +1,7 @@
+/**
+\file
+\brief Conversions between FMI and DSB types/constants.
+*/
 #ifndef DSB_FMI_GLUE_HPP
 #define DSB_FMI_GLUE_HPP
 

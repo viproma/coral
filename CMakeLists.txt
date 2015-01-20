@@ -124,7 +124,7 @@ if (DOXYGEN_FOUND)
     set (documentedDirectories "\"${CMAKE_SOURCE_DIR}/include\"")
     if (DSB_BUILD_PRIVATE_API_DOCS)
         set (documentedDirectories
-             "${documentedDirectories} \"${CMAKE_SOURCE_DIR}/src/include\"")
+            "${documentedDirectories} \"${CMAKE_SOURCE_DIR}/src/include\" \"${CMAKE_SOURCE_DIR}/src/dsb\"")
     endif ()
     set (doxyfile "${CMAKE_BINARY_DIR}/Doxyfile")
     configure_file ("${CMAKE_SOURCE_DIR}/cmake/Doxyfile.in" ${doxyfile} @ONLY)
