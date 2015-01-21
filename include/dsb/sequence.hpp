@@ -190,7 +190,7 @@ template<typename Iterator>
 Sequence<typename detail::Value<Iterator>::type> ElementsOf(
     Iterator begin, Iterator end)
 {
-    return Sequence<detail::Value<Iterator>::type>(
+    return Sequence<typename detail::Value<Iterator>::type>(
         std::make_shared<detail::IteratorSequenceImpl<Iterator>>(begin, end));
 }
 
