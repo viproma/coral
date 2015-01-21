@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "boost/foreach.hpp"
+#include "boost/numeric/conversion/cast.hpp"
 
 #include "dsb/comm.hpp"
 #include "dsb/error.hpp"
@@ -252,8 +253,8 @@ void SlaveAgent::HandleConnectVars(std::deque<zmq::message_t>& msg)
         }
         // Make the new connection and subscription.
         RemoteVariable rv = {
-            var.output_var().slave_id(),
-            var.output_var().var_id()
+            boost::numeric_cast<uint16_t>(var.output_var().slave_id()),
+            boost::numeric_cast<uint16_t>(var.output_var().var_id())
         };
         char newHeader[DATA_HEADER_SIZE];
         dsb::util::EncodeUint16(rv.slave, newHeader);

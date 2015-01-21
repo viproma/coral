@@ -57,7 +57,7 @@ TEST(domain_broker, p2p_proxy_bidirectional)
     // Server 1: Receive request from client 2
     std::deque<zmq::message_t> rep1Msg;
     dsb::comm::Receive(rep1, rep1Msg);
-    ASSERT_EQ(4, rep1Msg.size());
+    ASSERT_EQ(4u, rep1Msg.size());
     EXPECT_TRUE(rep1Msg[0].size() == 0);
     EXPECT_EQ(client2Id, dsb::comm::ToString(rep1Msg[1]));
     EXPECT_TRUE(rep1Msg[2].size() == 0);
@@ -69,7 +69,7 @@ TEST(domain_broker, p2p_proxy_bidirectional)
     // Server 2: Receive request from client 1
     std::deque<zmq::message_t> rep2Msg;
     dsb::comm::Receive(rep2, rep2Msg);
-    ASSERT_EQ(4, rep2Msg.size());
+    ASSERT_EQ(4u, rep2Msg.size());
     EXPECT_TRUE(rep2Msg[0].size() == 0);
     EXPECT_EQ(client1Id, dsb::comm::ToString(rep2Msg[1]));
     EXPECT_TRUE(rep2Msg[2].size() == 0);
@@ -81,7 +81,7 @@ TEST(domain_broker, p2p_proxy_bidirectional)
     // Client 1: Receive reply from server 2
     std::deque<zmq::message_t> recvRep2Msg;
     dsb::comm::Receive(req1, recvRep2Msg);
-    ASSERT_EQ(3, recvRep2Msg.size());
+    ASSERT_EQ(3u, recvRep2Msg.size());
     EXPECT_EQ(server2Id, dsb::comm::ToString(recvRep2Msg[0]));
     EXPECT_TRUE(recvRep2Msg[1].size() == 0);
     EXPECT_EQ(body4, dsb::comm::ToString(recvRep2Msg[2]));
@@ -89,7 +89,7 @@ TEST(domain_broker, p2p_proxy_bidirectional)
     // Client 2: Receive reply from server 1
     std::deque<zmq::message_t> recvRep1Msg;
     dsb::comm::Receive(req2, recvRep1Msg);
-    ASSERT_EQ(3, recvRep1Msg.size());
+    ASSERT_EQ(3u, recvRep1Msg.size());
     EXPECT_EQ(server1Id, dsb::comm::ToString(recvRep1Msg[0]));
     EXPECT_TRUE(recvRep1Msg[1].size() == 0);
     EXPECT_EQ(body3, dsb::comm::ToString(recvRep1Msg[2]));

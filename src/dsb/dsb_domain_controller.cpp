@@ -254,6 +254,8 @@ namespace
             case dp::MSG_UPDATE_AVAILABLE:
                 assert (!"We do not handle UPDATE messages yet");
                 break;
+            default:
+                assert (!"Unknown report message received");
         }
     }
 
