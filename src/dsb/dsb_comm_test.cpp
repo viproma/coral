@@ -253,14 +253,14 @@ TEST(dsb_comm, Reactor)
     boost::thread([&ctx]() {
         zmq::socket_t cli1(ctx, ZMQ_REQ);
         cli1.connect("inproc://dsb_comm_Reactor_test_1");
-        cli1.send(ToFrame("client 1 hello"));
+        cli1.send("foo", 3);
     });
 
     boost::thread([&ctx]() {
         zmq::socket_t cli2(ctx, ZMQ_REQ);
         cli2.connect("inproc://dsb_comm_Reactor_test_2");
         boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
-        cli2.send(ToFrame("client 2 hello"));
+        cli2.send("bar", 3);
     });
 
     Reactor reactor;
