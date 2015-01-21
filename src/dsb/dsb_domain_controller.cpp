@@ -281,35 +281,29 @@ namespace
         auto domainData = dsb::bus::DomainData(
             dp::MAX_PROTOCOL_VERSION, SLAVEPROVIDER_TIMEOUT);
 
-        const size_t SOCKET_COUNT = 4;
-        zmq::pollitem_t pollItems[SOCKET_COUNT] = {
-            { destroySocket, 0, ZMQ_POLLIN, 0 },
-            { rpcSocket,     0, ZMQ_POLLIN, 0 },
-            { reportSocket,  0, ZMQ_POLLIN, 0 },
-            { infoSocket,    0, ZMQ_POLLIN, 0 }
-        };
-        for (;;) {
-            const auto pollTimeout = boost::numeric_cast<long>(
-                boost::chrono::milliseconds(SLAVEPROVIDER_TIMEOUT).count()
-                / (domainData.SlaveProviderCount() + 1));
-            zmq::poll(pollItems, SOCKET_COUNT, pollTimeout);
-            const auto recvTime = boost::chrono::steady_clock::now();
+        dsb::comm::Reactor reactor;
+        reactor.AddSocket(destroySocket, [&](dsb::comm::Reactor& r, zmq::socket_t&) {
+            r.Stop();
+        });
+        reactor.AddSocket(rpcSocket, [&](dsb::comm::Reactor& r, zmq::socket_t&) {
+            HandleRPCCall(domainData, rpcSocket, infoSocket);
+        });
+        reactor.AddSocket(reportSocket, [&](dsb::comm::Reactor& r, zmq::socket_t&) {
+            HandleReportMsg(boost::chrono::steady_clock::now(), domainData, reportSocket, infoSocket);
+        });
+        reactor.AddTimer(
+            boost::chrono::milliseconds(SLAVEPROVIDER_TIMEOUT) / (domainData.SlaveProviderCount() + 1),
+            -1,
+            [&](dsb::comm::Reactor& r, int) {
+                domainData.PurgeSlaveProviders(boost::chrono::steady_clock::now());
+            });
 
-            try {
-                if (pollItems[0].revents & ZMQ_POLLIN) {
-                    return;
-                }
-                if (pollItems[1].revents & ZMQ_POLLIN) {
-                    HandleRPCCall(domainData, rpcSocket, infoSocket);
-                }
-                if (pollItems[2].revents & ZMQ_POLLIN) {
-                    HandleReportMsg(recvTime, domainData, reportSocket, infoSocket);
-                }
-            } catch (const dsb::error::ProtocolViolationException& e) {
+        for (;;) {
+            try { reactor.Run(); break; }
+            catch (const dsb::error::ProtocolViolationException& e) {
                 //TODO: Proper error reporting
                 std::cerr << "Warning: Protocol violation: " << e.what() << std::endl;
             }
-            domainData.PurgeSlaveProviders(recvTime);
         }
     }
 }

@@ -1,4 +1,6 @@
 #include <cstring>
+#include <iostream>
+#include "boost/thread.hpp"
 #include "gtest/gtest.h"
 #include "dsb/comm.hpp"
 
@@ -238,4 +240,78 @@ TEST(dsb_comm, LastEndpoint)
     EXPECT_TRUE(LastEndpoint(sck).empty());
     sck.bind("inproc://dsb_comm_LastEndpoint_test");
     EXPECT_EQ("inproc://dsb_comm_LastEndpoint_test", LastEndpoint(sck));
+}
+
+TEST(dsb_comm, Reactor)
+{
+    zmq::context_t ctx;
+    zmq::socket_t svr1(ctx, ZMQ_REP);
+    svr1.bind("inproc://dsb_comm_Reactor_test_1");
+    zmq::socket_t svr2(ctx, ZMQ_REP);
+    svr2.bind("inproc://dsb_comm_Reactor_test_2");
+
+    boost::thread([&ctx]() {
+        zmq::socket_t cli1(ctx, ZMQ_REQ);
+        cli1.connect("inproc://dsb_comm_Reactor_test_1");
+        cli1.send(ToFrame("client 1 hello"));
+    });
+
+    boost::thread([&ctx]() {
+        zmq::socket_t cli2(ctx, ZMQ_REQ);
+        cli2.connect("inproc://dsb_comm_Reactor_test_2");
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+        cli2.send(ToFrame("client 2 hello"));
+    });
+
+    Reactor reactor;
+
+    bool svr1Received = false;
+    reactor.AddSocket(svr1, [&](Reactor& r, zmq::socket_t& s) {
+        svr1Received = true;
+    });
+
+    bool svr2Received = false;
+    reactor.AddSocket(svr2, [&](Reactor& r, zmq::socket_t& s) {
+        svr2Received = true;
+    }); 
+
+    // This timer has 5 events.
+    int timer1Events = 0;
+    reactor.AddTimer(boost::chrono::milliseconds(12), 5, [&](Reactor& r, int id) {
+        ++timer1Events;
+    });
+
+    // This timer runs until the reactor is stopped.
+    int timer2Events = 0;
+    reactor.AddTimer(boost::chrono::milliseconds(10), -1, [&](Reactor& r, int id) {
+        ++timer2Events;
+    });
+
+    // This timer is set up to run indefinitely, but is removed after 5 events
+    // by another timer (which subsequently removes itself).
+    int timer3Events = 0;
+    const auto timer3 = reactor.AddTimer(boost::chrono::milliseconds(9), 10, [&](Reactor& r, int id) {
+        ++timer3Events;
+    });
+    reactor.AddTimer(boost::chrono::milliseconds(4), -1, [&](Reactor& r, int id) {
+        if (timer3Events == 5) {
+            r.RemoveTimer(timer3);
+            r.RemoveTimer(id);
+        }
+    });
+
+    // This timer stops the reactor.
+    bool lifetimeExpired = false;
+    reactor.AddTimer(boost::chrono::milliseconds(100), 1, [&](Reactor& r, int id) {
+        lifetimeExpired = true;
+        r.Stop();
+    });
+    reactor.Run();
+
+    EXPECT_TRUE(svr1Received);
+    EXPECT_TRUE(svr2Received);
+    EXPECT_EQ(5, timer1Events);
+    EXPECT_TRUE(timer2Events == 9 || timer2Events == 10);
+    EXPECT_EQ(5, timer3Events);
+    EXPECT_TRUE(lifetimeExpired);
 }
