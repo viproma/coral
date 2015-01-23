@@ -294,7 +294,7 @@ void Reactor::PerformNextEvent()
             PopTimer(m_timers);
             if (t.remaining > 0) --t.remaining;
             if (t.remaining != 0) {
-                t.nextEventTime = boost::chrono::system_clock::now() + t.interval;
+                t.nextEventTime += t.interval;
                 PushTimer(m_timers, t);
             }
         }
