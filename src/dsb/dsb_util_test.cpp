@@ -79,3 +79,22 @@ TEST(dsb_util, SwapOut_class)
     EXPECT_EQ(1U, c.size());
     EXPECT_EQ(dataPtr, c.data());
 }
+
+TEST(dsb_util, OnScopeExit)
+{
+    int i = 0;
+    {
+        auto setToOne = OnScopeExit([&i]() { i = 1; });
+        EXPECT_EQ(0, i);
+    }
+    EXPECT_EQ(1, i);
+    try {
+        auto setToTwo = OnScopeExit([&i]() { i = 2; });
+        EXPECT_EQ(1, i);
+        throw 0;
+    } catch (...) {
+        EXPECT_EQ(2, i);
+        i = 3;
+    }
+    EXPECT_EQ(3, i);
+}

@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 #include "boost/filesystem/path.hpp"
+#include "boost/noncopyable.hpp"
 
 
 namespace dsb
@@ -47,6 +48,36 @@ T SwapOut(T& variable, const T& replacement = T())
     variable = replacement;
     return std::move(tmp);
 }
+
+
+template<typename Action>
+class ScopeGuard : boost::noncopyable
+{
+public:
+    ScopeGuard(Action action) : m_action(action) { }
+    ScopeGuard(ScopeGuard&& other) : m_action(std::move(other.m_action)) { }
+    ScopeGuard& operator=(ScopeGuard&& other) { m_action = std::move(other.m_action); }
+    ~ScopeGuard() { m_action(); }
+private:
+    Action m_action;
+};
+
+/**
+\brief  Scope guard.
+
+This function creates a generic RAII object that will execute a user-defined
+action on scope exit.
+~~~{.cpp}
+void Foo()
+{
+    // DoSomething() will always be called before Foo() returns.
+    auto cleanup = OnScopeExit([]() { DoSomething(); });
+    // ...
+}
+~~~
+*/
+template<typename Action>
+ScopeGuard<Action> OnScopeExit(Action action) { return ScopeGuard<Action>(action); }
 
 
 /**
