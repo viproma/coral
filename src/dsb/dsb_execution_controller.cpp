@@ -140,7 +140,7 @@ void dsb::execution::Controller::AddSlave(uint16_t slaveId)
 
 void dsb::execution::Controller::SetVariables(
     dsb::model::SlaveID slaveId,
-    dsb::sequence::Sequence<dsb::model::VariableValue> variables)
+    const std::vector<dsb::model::VariableValue>& variables)
 {
     dsb::inproc_rpc::CallSetVariables(m_rpcSocket, slaveId, variables);
 }
@@ -148,7 +148,7 @@ void dsb::execution::Controller::SetVariables(
 
 void dsb::execution::Controller::ConnectVariables(
     dsb::model::SlaveID slaveId,
-    dsb::sequence::Sequence<dsb::model::VariableConnection> connections)
+    const std::vector<dsb::model::VariableConnection>& connections)
 {
     dsb::inproc_rpc::CallConnectVariables(m_rpcSocket, slaveId, connections);
 }

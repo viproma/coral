@@ -5,8 +5,10 @@
 #ifndef DSB_EXECUTION_CONTROLLER_HPP
 #define DSB_EXECUTION_CONTROLLER_HPP
 
+#include <iterator>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "boost/thread.hpp"
 #include "zmq.hpp"
@@ -14,7 +16,6 @@
 #include "dsb/domain/locator.hpp"
 #include "dsb/execution/locator.hpp"
 #include "dsb/model.hpp"
-#include "dsb/sequence.hpp"
 
 
 namespace dsb
@@ -89,18 +90,32 @@ public:
     /**
     \brief  Sets the values of some of a slave's variables.
 
+    `VariableValueRange` may be any type for which std::begin and std::end
+    yield a pair of iterators that can be used to access a sequence of elements
+    of type dsb::model::VariableValue (e.g. a container).
+
     \param [in] slaveId     The ID of a slave which is part of the execution.
     \param [in] variables   Variable references and values.
 
     \throws std::logic_error if the ID does not correspond to a slave which
         is part of this execution.
     */
+    template<typename VariableValueRange>
     void SetVariables(
         dsb::model::SlaveID slaveId,
-        dsb::sequence::Sequence<dsb::model::VariableValue> variables);
+        const VariableValueRange& variables);
+
+    // Specialisation of the above for std::vector.
+    void SetVariables(
+        dsb::model::SlaveID slaveId,
+        const std::vector<dsb::model::VariableValue>& variables);
 
     /**
     \brief  Connects inputs of one slave to outputs of other slaves.
+
+    `VariableConnectionRange` may be any type for which std::begin and std::end
+    yield a pair of iterators that can be used to access a sequence of elements
+    of type dsb::model::VariableConnection (e.g. a container).
 
     \param [in] slaveId     The ID of the slave whose inputs are to be connected.
     \param [in] connections References to input and output variables.
@@ -109,9 +124,15 @@ public:
         `connections` do not refer to slaves which have been added with
         AddSlave().
     */
+    template<typename VariableConnectionRange>
     void ConnectVariables(
         dsb::model::SlaveID slaveId,
-        dsb::sequence::Sequence<dsb::model::VariableConnection> connections);
+        const VariableConnectionRange& connections);
+
+    // Specialisation of the above for std::vector.
+    void ConnectVariables(
+        dsb::model::SlaveID slaveId,
+        const std::vector<dsb::model::VariableConnection>& connections);
 
     /**
     \brief  Performs a time step.
@@ -166,6 +187,29 @@ be used to connect to it.
 dsb::execution::Locator SpawnExecution(
     const dsb::domain::Locator& domainLocator,
     const std::string& executionName = std::string());
+
+
+// =============================================================================
+// Template definitions
+// =============================================================================
+
+template<typename VariableValueRange>
+void Controller::SetVariables(
+    dsb::model::SlaveID slaveId,
+    const VariableValueRange& variables)
+{
+    SetVariables(std::vector<VariableValue>(
+        std::begin(variables), std::end(variables)));
+}
+
+template<typename VariableConnectionRange>
+void Controller::ConnectVariables(
+    dsb::model::SlaveID slaveId,
+    const VariableConnectionRange& connections)
+{
+    ConnectVariables(std::vector<VariableConnection>(
+        std::begin(connections), std::end(connections)));
+}
 
 
 }}      //namespace

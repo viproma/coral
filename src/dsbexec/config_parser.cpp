@@ -12,8 +12,6 @@
 #include "boost/property_tree/info_parser.hpp"
 #include "boost/property_tree/ptree.hpp"
 
-#include "dsb/sequence.hpp"
-
 
 namespace
 {
@@ -205,14 +203,10 @@ void ParseSystemConfig(
         execution.AddSlave(slave.second.id);
     }
     BOOST_FOREACH (auto& slaveVars, variables) {
-        execution.SetVariables(
-            slaveVars.first,
-            dsb::sequence::ElementsOf(slaveVars.second));
+        execution.SetVariables(slaveVars.first, slaveVars.second);
     }
     BOOST_FOREACH (auto& conn, connections) {
-        execution.ConnectVariables(
-            conn.first,
-            dsb::sequence::ElementsOf(conn.second));
+        execution.ConnectVariables(conn.first, conn.second);
     }
     BOOST_FOREACH (const auto& slave, slaves) {
         domain.InstantiateSlave(

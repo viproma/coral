@@ -10,7 +10,6 @@ set (_publicHeaders
     "dsb/execution/slave.hpp"
     "dsb/fmi.hpp"
     "dsb/model.hpp"
-    "dsb/sequence.hpp"
 )
 set (_privateHeaders
     "dsb/bus/domain_data.hpp"
@@ -72,7 +71,6 @@ set (_testSources
     "dsb_execution_controller_test.cpp"
     "dsb_inproc_rpc_test.cpp"
     "dsb_proxy_test.cpp"
-    "dsb_sequence_test.cpp"
     "dsb_util_test.cpp"
 )
 
