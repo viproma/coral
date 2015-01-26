@@ -207,6 +207,12 @@ namespace
         std::pop_heap(std::begin(v), std::end(v), EventTimeGreater<T>);
         v.pop_back();
     }
+
+    template<typename T>
+    void HeapifyTimers(std::vector<T>& v)
+    {
+        std::make_heap(std::begin(v), std::end(v), &EventTimeGreater<T>);
+    }
 }
 
 
@@ -241,12 +247,13 @@ void Reactor::RemoveTimer(int id)
         throw std::invalid_argument("Invalid timer ID");
     }
     m_timers.erase(it);
-    std::make_heap(std::begin(m_timers), std::end(m_timers), &EventTimeGreater<Timer>);
+    HeapifyTimers(m_timers);
 }
 
 
 void Reactor::Run()
 {
+    ResetTimers();
     m_continuePolling = true;
     do {
         if (m_needsRebuild) Rebuild();
@@ -268,6 +275,16 @@ void Reactor::Run()
 void Reactor::Stop()
 {
     m_continuePolling = false;
+}
+
+
+void Reactor::ResetTimers()
+{
+    const auto t0 = boost::chrono::system_clock::now();
+    for (auto it = std::begin(m_timers); it != std::end(m_timers); ++it) {
+        it->nextEventTime = t0 + it->interval;
+    }
+    HeapifyTimers(m_timers);
 }
 
 

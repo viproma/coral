@@ -330,7 +330,7 @@ TEST(dsb_comm, Reactor)
     EXPECT_EQ(1, svr2Received1);
     EXPECT_EQ(1, svr2Received2);
     EXPECT_EQ(5, timer1Events);
-    EXPECT_TRUE(timer2Events == 9 || timer2Events == 10);
+    EXPECT_TRUE(timer2Events >= 9 || timer2Events <= 11);
     EXPECT_EQ(5, timer3Events);
     EXPECT_TRUE(lifetimeExpired);
 }

@@ -215,6 +215,10 @@ public:
     /**
     \brief  Adds a timer.
 
+    If the messaging loop is running, the first event will be triggered at
+    `interval` after this function is called.  Otherwise, the first event will
+    be triggered `interval` after Run() is called.
+
     \param [in] interval    The time between events.
     \param [in] count       The total number of events.  If negative, the timer
                             runs indefinitely.
@@ -256,6 +260,7 @@ public:
     void Stop();
 
 private:
+    void ResetTimers();
     boost::chrono::milliseconds TimeToNextEvent() const;
     void PerformNextEvent();
 
