@@ -319,7 +319,8 @@ void dsb::inproc_rpc::UnmarshalConnectVariables(
 
 void dsb::inproc_rpc::CallWaitForReady(zmq::socket_t& socket)
 {
-    Call(socket, WAIT_FOR_READY_CALL, std::deque<zmq::message_t>());
+    std::deque<zmq::message_t> dummy;
+    Call(socket, WAIT_FOR_READY_CALL, dummy);
 }
 
 
@@ -348,5 +349,6 @@ void dsb::inproc_rpc::UnmarshalStep(
 
 void dsb::inproc_rpc::CallTerminate(zmq::socket_t& socket)
 {
-    Call(socket, TERMINATE_CALL, std::deque<zmq::message_t>());
+    std::deque<zmq::message_t> dummy;
+    Call(socket, TERMINATE_CALL, dummy);
 }

@@ -59,7 +59,7 @@ namespace
     public:
         ExecutionBroker(std::shared_ptr<zmq::context_t> context)
             : m_masterControlPort(-1), m_slaveControlPort(-1),
-              m_dataSubPort(-1), m_dataPubPort(-1),
+              m_dataPubPort(-1), m_dataSubPort(-1),
               m_control(EphemeralProxy(context, ZMQ_DEALER, ZMQ_ROUTER, m_masterControlPort, m_slaveControlPort)),
               m_data(EphemeralProxy(context, ZMQ_XSUB, ZMQ_XPUB, m_dataSubPort, m_dataPubPort))
         {
@@ -93,8 +93,8 @@ namespace
     private:
         int m_masterControlPort;
         int m_slaveControlPort;
-        int m_dataSubPort;
         int m_dataPubPort;
+        int m_dataSubPort;
 
         dsb::proxy::Proxy m_control;
         dsb::proxy::Proxy m_data;

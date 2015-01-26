@@ -8,6 +8,7 @@
 
 #include "boost/foreach.hpp"
 #include "boost/lexical_cast.hpp"
+#include "boost/numeric/conversion/cast.hpp"
 #include "boost/property_tree/info_parser.hpp"
 #include "boost/property_tree/ptree.hpp"
 
@@ -152,7 +153,7 @@ void ParseSystemConfig(
         const auto& slaveType = slaveTypes.find(slaveTypeName)->second;
         
         // Assign a slave ID
-        const auto slaveID = slaves.size() + 1;
+        const auto slaveID = boost::numeric_cast<uint16_t>(slaves.size() + 1);
         SlaveInstance slaveInstance = { slaveID, &slaveType };
         slaves[slaveName] = slaveInstance;
 

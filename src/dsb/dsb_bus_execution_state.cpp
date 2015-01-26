@@ -222,8 +222,6 @@ void ExecutionReady::UserMessage(
     assert (!msg.empty());
     switch (dsb::comm::DecodeRawDataFrame<dsb::inproc_rpc::CallType>(msg[0])) {
         case dsb::inproc_rpc::STEP_CALL: {
-            double time = 0.0;
-            double stepSize = 0.0;
             dsbproto::execution::StepData stepData;
             dsb::inproc_rpc::UnmarshalStep(msg, stepData);
 
