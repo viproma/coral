@@ -249,14 +249,13 @@ namespace
 void dsb::inproc_rpc::CallSetVariables(
     zmq::socket_t& socket,
     dsb::model::SlaveID slaveId,
-    dsb::sequence::Sequence<dsb::model::VariableValue> variables)
+    const std::vector<dsb::model::VariableValue>& variables)
 {
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
 
     dsbproto::execution::SetVarsData setVarsData;
-    while (!variables.Empty()) {
-        const auto v = variables.Next();
+    BOOST_FOREACH (const auto v, variables) {
         auto& newVar = *setVarsData.add_variable();
         newVar.set_id(v.id);
         ConvertScalarValue(v.value, *newVar.mutable_value());
@@ -283,12 +282,11 @@ void dsb::inproc_rpc::UnmarshalSetVariables(
 void dsb::inproc_rpc::CallConnectVariables(
     zmq::socket_t& socket,
     dsb::model::SlaveID slaveId,
-    dsb::sequence::Sequence<dsb::model::VariableConnection> variables)
+    const std::vector<dsb::model::VariableConnection>& variables)
 {
     std::deque<zmq::message_t> args;
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
-    while (!variables.Empty()) {
-        const auto v = variables.Next();
+    BOOST_FOREACH (const auto v, variables) {
         args.push_back(dsb::comm::EncodeRawDataFrame(v.inputId));
         args.push_back(dsb::comm::EncodeRawDataFrame(v.otherSlaveId));
         args.push_back(dsb::comm::EncodeRawDataFrame(v.otherOutputId));

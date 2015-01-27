@@ -6,11 +6,11 @@
 #define DSB_INPROC_RPC_HPP
 
 #include <deque>
+#include <vector>
 #include "zmq.hpp"
 
 #include "dsb/domain/controller.hpp"
 #include "dsb/model.hpp"
-#include "dsb/sequence.hpp"
 #include "execution.pb.h"
 #include "inproc_rpc.pb.h"
 
@@ -89,7 +89,7 @@ void UnmarshalAddSlave(
 void CallSetVariables(
     zmq::socket_t& socket,
     dsb::model::SlaveID slaveId,
-    dsb::sequence::Sequence<dsb::model::VariableValue> variables);
+    const std::vector<dsb::model::VariableValue>& variables);
 
 void UnmarshalSetVariables(
     const std::deque<zmq::message_t>& msg,
@@ -99,7 +99,7 @@ void UnmarshalSetVariables(
 void CallConnectVariables(
     zmq::socket_t& socket,
     dsb::model::SlaveID slaveId,
-    dsb::sequence::Sequence<dsb::model::VariableConnection> variables);
+    const std::vector<dsb::model::VariableConnection>& variables);
 
 void UnmarshalConnectVariables(
     const std::deque<zmq::message_t>& msg,
