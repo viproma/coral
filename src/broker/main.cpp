@@ -11,6 +11,7 @@
 
 #include "dsb/config.h"
 #include "dsb/comm.hpp"
+#include "dsb/compat_helpers.hpp"
 #include "dsb/proxy.hpp"
 #include "dsb/util.hpp"
 #include "p2p_proxy.hpp"
@@ -104,7 +105,7 @@ namespace
 
 int main(int argc, const char** argv)
 {
-    const long long basePort = argc > 1 ? std::atol(argv[1]) : 51380;
+    const int basePort = argc > 1 ? std::atoi(argv[1]) : 51380;
     const std::string baseEndpoint = "tcp://*:";
     const auto reportMasterEndpoint = baseEndpoint + std::to_string(basePort);
     const auto reportSlavePEndpoint = baseEndpoint + std::to_string(basePort+1);
