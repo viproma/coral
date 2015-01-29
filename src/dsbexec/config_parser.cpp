@@ -226,20 +226,32 @@ void ParseSystemConfig(
 ExecutionConfig::ExecutionConfig()
     : startTime(0.0),
       stopTime(std::numeric_limits<double>::infinity()),
-      stepSize(1.0)
+      stepSize(1.0),
+      commTimeout(boost::chrono::hours(1))
 {
 }
 
 
 ExecutionConfig ParseExecutionConfig(const std::string& path)
 {
+    auto Error = [path](const std::string msg) {
+        throw std::runtime_error("Error in configuration file (" + path + "): " + msg);
+    };
     const auto ptree = ReadPtreeInfoFile(path);
     ExecutionConfig ec;
     ec.startTime = ptree.get_child("start").get_value<double>();
-    auto stopTimeNode = ptree.get_child_optional("stop");
-    if (stopTimeNode) {
+    if (auto stopTimeNode = ptree.get_child_optional("stop")) {
         ec.stopTime = stopTimeNode->get_value<double>();
+        if (ec.stopTime < ec.startTime) Error("Stop time less than start time");
     }
+
     ec.stepSize = ptree.get_child("step_size").get_value<double>();
+    if (ec.stepSize <= 0) Error("Nonpositive step size");
+
+    if (auto commTimeoutNode = ptree.get_child_optional("comm_timeout")) {
+        ec.commTimeout = boost::chrono::seconds(
+            commTimeoutNode->get_value<typename boost::chrono::seconds::rep>());
+        if (ec.commTimeout <= boost::chrono::seconds(0)) Error("Nonpositive comm_timeout");
+    }
     return ec;
 }

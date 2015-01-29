@@ -13,13 +13,14 @@ target_include_directories (${_target}
             ${privateHeaderDir}
             ${CPPZMQ_INCLUDE_DIRS}
             ${Boost_INCLUDE_DIRS})
-target_link_libraries (${_target} "dsb" ${ZMQ_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries (${_target} "dsb" "dsbproto" ${ZMQ_LIBRARIES} ${Boost_LIBRARIES})
 
 # Test target
 set (_testTarget "${_target}_test")
 add_executable (${_testTarget} ${_headers} ${_sources} ${_testSources})
 target_link_libraries (${_testTarget}
     "dsb"
+    "dsbproto"
     "gtest_main"
     ${ZMQ_LIBRARIES}
     ${Boost_LIBRARIES}

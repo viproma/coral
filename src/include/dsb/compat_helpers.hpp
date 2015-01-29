@@ -50,10 +50,10 @@ This file should only be included in .cpp files, never in .hpp files.
 #ifdef DSB_COMPAT_TO_STRING_OVERLOADS_MISSING
     namespace std
     {
-        std::string to_string(int  i) { return std::to_string((long long) i); }
-        std::string to_string(long i) { return std::to_string((long long) i); }
-        std::string to_string(unsigned int  i) { return std::to_string((unsigned long long) i); }
-        std::string to_string(unsigned long i) { return std::to_string((unsigned long long) i); }
+        inline std::string to_string(int  i) { return std::to_string((long long) i); }
+        inline std::string to_string(long i) { return std::to_string((long long) i); }
+        inline std::string to_string(unsigned int  i) { return std::to_string((unsigned long long) i); }
+        inline std::string to_string(unsigned long i) { return std::to_string((unsigned long long) i); }
     }
 #endif
 

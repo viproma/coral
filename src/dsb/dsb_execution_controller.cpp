@@ -4,14 +4,19 @@
 #include <deque>
 #include <iostream> //TODO: Only for debugging; remove later.
 #include <sstream>
+#include <stdexcept>
 #include <utility>
 
 #include "boost/chrono.hpp"
 
 #include "dsb/bus/execution_agent.hpp"
 #include "dsb/comm.hpp"
+#include "dsb/compat_helpers.hpp"
 #include "dsb/inproc_rpc.hpp"
+#include "dsb/protobuf.hpp"
 #include "dsb/util.hpp"
+
+#include "broker.pb.h"
 
 
 namespace
@@ -59,13 +64,17 @@ namespace
         execTerminationSocket.connect(execLocator->ExecTerminationEndpoint().c_str());
         std::deque<zmq::message_t> termMsg;
         termMsg.push_back(dsb::comm::ToFrame("TERMINATE_EXECUTION"));
-        termMsg.push_back(dsb::comm::ToFrame(execLocator->ExecName()));
+        termMsg.push_back(zmq::message_t());
+        dsbproto::broker::TerminateExecutionData teData;
+        teData.set_execution_name(execLocator->ExecName());
+        dsb::protobuf::SerializeToFrame(teData, termMsg.back());
         dsb::comm::Send(execTerminationSocket, termMsg);
         // TODO: The following receive was just added to force ZMQ to send the
         // message. We don't really care about the reply.  We've tried closing
         // the socket and even the context manually, but then the message just
         // appears to be dropped altoghether.  This sucks, and we need to figure
-        // out what is going on at some point.
+        // out what is going on at some point.  See ZeroMQ issue 1264,
+        // https://github.com/zeromq/libzmq/issues/1264
         char temp;
         execTerminationSocket.recv(&temp, 1);
     }
@@ -191,8 +200,12 @@ namespace
 
 dsb::execution::Locator dsb::execution::SpawnExecution(
     const dsb::domain::Locator& domainLocator,
-    const std::string& executionName)
+    const std::string& executionName,
+    boost::chrono::seconds commTimeout)
 {
+    if (commTimeout <= boost::chrono::seconds(0)) {
+        throw std::invalid_argument("Communications timeout interval is nonpositive");
+    }
     const auto actualExecName = executionName.empty()
         ? Timestamp()
         : executionName;
@@ -200,29 +213,40 @@ dsb::execution::Locator dsb::execution::SpawnExecution(
     zmq::context_t ctx;
     auto sck = zmq::socket_t(ctx, ZMQ_REQ);
     sck.connect(domainLocator.ExecReqEndpoint().c_str());
+
     std::deque<zmq::message_t> msg;
     msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION"));
-    msg.push_back(dsb::comm::ToFrame(actualExecName));
-    dsb::comm::Send(sck, msg);
+    msg.push_back(zmq::message_t());
+    dsbproto::broker::SpawnExecutionData seData;
+    seData.set_execution_name(actualExecName);
+    seData.set_comm_timeout_seconds(commTimeout.count());
+    dsb::protobuf::SerializeToFrame(seData, msg.back());
 
+    dsb::comm::Send(sck, msg);
     if (!dsb::comm::Receive(sck, msg, boost::chrono::seconds(10))) {
         throw std::runtime_error("Failed to spawn execution (domain connection timed out)");
     }
     const auto reply = dsb::comm::ToString(msg.front());
-    if (reply == "SPAWN_EXECUTION_OK" && msg.size() == 5) {
+    if (reply == "SPAWN_EXECUTION_OK" && msg.size() == 2) {
+        dsbproto::broker::SpawnExecutionOkData seOkData;
+        dsb::protobuf::ParseFromFrame(msg.back(), seOkData);
+
         const auto endpointBase = domainLocator.ExecReqEndpoint().substr(
             0,
             domainLocator.ExecReqEndpoint().rfind(':'));
         return dsb::execution::Locator(
-            endpointBase + ':' + dsb::comm::ToString(msg[1]),
-            endpointBase + ':' + dsb::comm::ToString(msg[2]),
-            endpointBase + ':' + dsb::comm::ToString(msg[3]),
-            endpointBase + ':' + dsb::comm::ToString(msg[4]),
+            endpointBase + ':' + std::to_string(seOkData.master_port()),
+            endpointBase + ':' + std::to_string(seOkData.slave_port()),
+            endpointBase + ':' + std::to_string(seOkData.variable_pub_port()),
+            endpointBase + ':' + std::to_string(seOkData.variable_sub_port()),
             domainLocator.ExecReqEndpoint(),
-            actualExecName);
+            actualExecName,
+            commTimeout);
     } else if (reply == "SPAWN_EXECUTION_FAIL" && msg.size() == 2) {
+        dsbproto::broker::SpawnExecutionFailData seFailData;
+        dsb::protobuf::ParseFromFrame(msg.back(), seFailData);
         throw std::runtime_error(
-            "Failed to spawn execution (" + dsb::comm::ToString(msg[1]) + ')');
+            "Failed to spawn execution (" + seFailData.reason() + ')');
     } else {
         throw std::runtime_error("Failed to spawn execution (invalid response from domain)");
     }

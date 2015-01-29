@@ -85,9 +85,11 @@ int Run(int argc, const char** argv)
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
         boost::this_thread::sleep_for(boost::chrono::seconds(2));
 
-        const auto execLoc = dsb::execution::SpawnExecution(domainLoc, execName);
-        auto exec = dsb::execution::Controller(execLoc);
         const auto execConfig = ParseExecutionConfig(execConfigFile);
+        const auto execLoc = dsb::execution::SpawnExecution(
+            domainLoc, execName, execConfig.commTimeout);
+        const auto execSpawnTime = boost::chrono::high_resolution_clock::now();
+        auto exec = dsb::execution::Controller(execLoc);
         exec.SetSimulationTime(execConfig.startTime, execConfig.stopTime);
         ParseSystemConfig(sysConfigFile, domain, exec, execLoc);
 
@@ -103,6 +105,9 @@ int Run(int argc, const char** argv)
         std::cout << "All slaves are present. Press ENTER to start simulation." << std::endl;
         std::cin.ignore();
         const auto t0 = boost::chrono::high_resolution_clock::now();
+        if (t0 - execSpawnTime > execConfig.commTimeout) {
+            throw std::runtime_error("Communications timeout reached");
+        }
 
         // Super advanced master algorithm.
         std::cout << "+-------------------+\n|" << std::flush;

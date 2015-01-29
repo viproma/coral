@@ -2,6 +2,7 @@
 
 #include "boost/foreach.hpp"
 #include "dsb/comm.hpp"
+#include "dsb/compat_helpers.hpp"
 #include "dsb/protocol/glue.hpp"
 #include "dsb/protobuf.hpp"
 #include "variable.pb.h"
@@ -153,6 +154,7 @@ void dsb::inproc_rpc::CallInstantiateSlave(
     args.push_back(dsb::comm::ToFrame(executionLocator.VariablePubEndpoint()));
     args.push_back(dsb::comm::ToFrame(executionLocator.VariableSubEndpoint()));
     args.push_back(dsb::comm::ToFrame(executionLocator.ExecName()));
+    args.push_back(dsb::comm::ToFrame(std::to_string(executionLocator.CommTimeout().count())));
     args.push_back(dsb::comm::EncodeRawDataFrame(slaveID));
     args.push_back(dsb::comm::ToFrame(provider));
     Call(socket, INSTANTIATE_SLAVE_CALL, args);
@@ -165,7 +167,7 @@ void dsb::inproc_rpc::UnmarshalInstantiateSlave(
     dsb::model::SlaveID& slaveID,
     std::string& provider)
 {
-    assert (msg.size() == 9);
+    assert (msg.size() == 10);
     ASSERT_CALL_TYPE(msg, INSTANTIATE_SLAVE_CALL);
     slaveTypeUUID = dsb::comm::ToString(msg[1]);
     executionLocator = dsb::execution::Locator(
@@ -174,9 +176,10 @@ void dsb::inproc_rpc::UnmarshalInstantiateSlave(
         dsb::comm::ToString(msg[4]),
         dsb::comm::ToString(msg[5]),
         "",
-        dsb::comm::ToString(msg[6]));
-    slaveID = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[7]);
-    provider = dsb::comm::ToString(msg[8]);
+        dsb::comm::ToString(msg[6]),
+        boost::chrono::seconds(std::stoi(dsb::comm::ToString(msg[7]))));
+    slaveID = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[8]);
+    provider = dsb::comm::ToString(msg[9]);
 }
 
 void dsb::inproc_rpc::CallSetSimulationTime(

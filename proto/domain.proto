@@ -27,6 +27,7 @@ message ExecutionLocator
     required string variable_pub_endpoint = 3;
     required string variable_sub_endpoint = 4;
     required string execution_name = 5;
+    required int64 comm_timeout_seconds = 6;
 }
 
 message InstantiateSlaveData
