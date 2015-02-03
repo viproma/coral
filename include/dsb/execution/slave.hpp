@@ -5,6 +5,8 @@
 #ifndef DSB_EXECUTION_SLAVE_HPP
 #define DSB_EXECUTION_SLAVE_HPP
 
+#include <stdexcept>
+#include "boost/chrono/duration.hpp"
 #include "boost/noncopyable.hpp"
 #include "dsb/model.hpp"
 
@@ -128,7 +130,24 @@ void RunSlave(
     const std::string& controlEndpoint,
     const std::string& dataPubEndpoint,
     const std::string& dataSubEndpoint,
-    ISlaveInstance& slaveInstance);
+    ISlaveInstance& slaveInstance,
+    boost::chrono::seconds commTimeout);
+
+
+class TimeoutException : public std::runtime_error
+{
+public:
+    TimeoutException(boost::chrono::seconds timeoutDuration)
+        : std::runtime_error("Slave timed out due to lack of communication"),
+          m_timeoutDuration(timeoutDuration)
+    {
+    }
+
+    boost::chrono::seconds TimeoutDuration() const { return m_timeoutDuration; }
+
+private:
+    boost::chrono::seconds m_timeoutDuration;
+};
 
 
 }}      // namespace

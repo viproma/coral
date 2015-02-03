@@ -11,9 +11,13 @@
 
 #include "dsb/config.h"
 #include "dsb/comm.hpp"
+#include "dsb/compat_helpers.hpp"
+#include "dsb/protobuf.hpp"
 #include "dsb/proxy.hpp"
 #include "dsb/util.hpp"
 #include "p2p_proxy.hpp"
+
+#include "broker.pb.h"
 
 
 namespace
@@ -41,13 +45,14 @@ namespace
         int frontendType,
         int backendType,
         int& frontendPort,
-        int& backendPort)
+        int& backendPort,
+        boost::chrono::milliseconds silenceTimeout)
     {
         auto fe = zmq::socket_t(*context, frontendType);
         auto be = zmq::socket_t(*context, backendType);
         const auto fep = EndpointPort(BindToEphemeralPort(fe));
         const auto bep = EndpointPort(BindToEphemeralPort(be));
-        auto p = dsb::proxy::SpawnProxy(context, std::move(fe), std::move(be));
+        auto p = dsb::proxy::SpawnProxy(context, std::move(fe), std::move(be), silenceTimeout);
         //----- No exceptions may be thrown below this line -----
         frontendPort = fep;
         backendPort = bep;
@@ -57,11 +62,16 @@ namespace
     class ExecutionBroker
     {
     public:
-        ExecutionBroker(std::shared_ptr<zmq::context_t> context)
+        ExecutionBroker(
+            std::shared_ptr<zmq::context_t> context,
+            boost::chrono::seconds commTimeout)
             : m_masterControlPort(-1), m_slaveControlPort(-1),
               m_dataPubPort(-1), m_dataSubPort(-1),
-              m_control(EphemeralProxy(context, ZMQ_DEALER, ZMQ_ROUTER, m_masterControlPort, m_slaveControlPort)),
-              m_data(EphemeralProxy(context, ZMQ_XSUB, ZMQ_XPUB, m_dataSubPort, m_dataPubPort))
+              m_control(EphemeralProxy(context, ZMQ_DEALER, ZMQ_ROUTER,
+                                       m_masterControlPort, m_slaveControlPort,
+                                       commTimeout)),
+              m_data(EphemeralProxy(context, ZMQ_XSUB, ZMQ_XPUB,
+                                    m_dataSubPort, m_dataPubPort, commTimeout))
         {
         }
 
@@ -104,7 +114,7 @@ namespace
 
 int main(int argc, const char** argv)
 {
-    const long long basePort = argc > 1 ? std::atol(argv[1]) : 51380;
+    const int basePort = argc > 1 ? std::atoi(argv[1]) : 51380;
     const std::string baseEndpoint = "tcp://*:";
     const auto reportMasterEndpoint = baseEndpoint + std::to_string(basePort);
     const auto reportSlavePEndpoint = baseEndpoint + std::to_string(basePort+1);
@@ -137,21 +147,25 @@ int main(int argc, const char** argv)
         const auto command = dsb::comm::ToString(msg.front());
         if (command == "SPAWN_EXECUTION" && msg.size() > 1) {
             try {
-                const auto execName = dsb::comm::ToString(msg[1]);
+                dsbproto::broker::SpawnExecutionData seData;
+                dsb::protobuf::ParseFromFrame(msg[1], seData);
+                const auto execName = seData.execution_name();
+                const auto commTimeout = boost::chrono::seconds(seData.comm_timeout_seconds());
                 if (executionBrokers.count(execName)) {
                     throw std::runtime_error("Execution name already in use: " + execName);
                 }
-#ifdef DSB_USE_MSVC_EMPLACE_WORKAROUND
-                auto b = executionBrokers.emplace(std::make_pair(execName, ExecutionBroker(context))).first;
-#else
-                auto b = executionBrokers.emplace(execName, ExecutionBroker(context)).first;
-#endif
+                auto b = executionBrokers.insert(
+                    std::make_pair(execName, ExecutionBroker(context, commTimeout))
+                    ).first;
                 msg.clear();
                 msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION_OK"));
-                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b->second.ControlPorts().first)));
-                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b->second.ControlPorts().second)));
-                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b->second.DataPorts().first)));
-                msg.push_back(dsb::comm::ToFrame(std::to_string((long long) b->second.DataPorts().second)));
+                msg.push_back(zmq::message_t());
+                dsbproto::broker::SpawnExecutionOkData seOkData;
+                seOkData.set_master_port(b->second.ControlPorts().first);
+                seOkData.set_slave_port(b->second.ControlPorts().second);
+                seOkData.set_variable_pub_port(b->second.DataPorts().first);
+                seOkData.set_variable_sub_port(b->second.DataPorts().second);
+                dsb::protobuf::SerializeToFrame(seOkData, msg[1]);
 
                 // TODO: Remove later
                 std::clog << "Started broker for execution \"" << execName << "\" using the following ports:\n"
@@ -162,15 +176,19 @@ int main(int argc, const char** argv)
             } catch (const std::runtime_error& e) {
                 msg.clear();
                 msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION_FAIL"));
-                msg.push_back(dsb::comm::ToFrame(e.what()));
+                msg.push_back(zmq::message_t());
+                dsbproto::broker::SpawnExecutionFailData seFailData;
+                seFailData.set_reason(e.what());
+                dsb::protobuf::SerializeToFrame(seFailData, msg[1]);
             }
             dsb::comm::Send(executionRequest, msg);
         } else if (command == "TERMINATE_EXECUTION" && msg.size() > 1) {
-            const auto execID = dsb::comm::ToString(msg[1]);
+            dsbproto::broker::TerminateExecutionData teData;
+            dsb::protobuf::ParseFromFrame(msg[1], teData);
+            const auto execID = teData.execution_name();
             if (executionBrokers.count(execID)) {
                 executionBrokers.at(execID).Stop();
                 executionBrokers.erase(execID);
-                std::clog << "Broker for execution \"" << execID << "\" stopped" << std::endl;
             }
             executionRequest.send("", 0);
         }

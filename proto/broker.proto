@@ -1,0 +1,29 @@
+package dsbproto.broker;
+
+
+message SpawnExecutionData
+{
+    required string execution_name = 1;
+    required int64 comm_timeout_seconds = 2;
+}
+
+
+message SpawnExecutionOkData
+{
+    required uint32 master_port = 1;
+    required uint32 slave_port = 2;
+    required uint32 variable_pub_port = 3;
+    required uint32 variable_sub_port = 4;
+}
+
+
+message SpawnExecutionFailData
+{
+    required string reason = 1;
+}
+
+
+message TerminateExecutionData
+{
+    required string execution_name = 1;
+}

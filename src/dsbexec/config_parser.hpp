@@ -2,6 +2,7 @@
 #define DSBEXEC_CONFIG_PARSER_HPP
 
 #include <string>
+#include "boost/chrono/duration.hpp"
 #include "dsb/domain/controller.hpp"
 #include "dsb/execution/controller.hpp"
 
@@ -28,9 +29,10 @@ void ParseSystemConfig(
 struct ExecutionConfig
 {
     ExecutionConfig();
-    double startTime;   ///< Simulation start time.
-    double stopTime;    ///< Simulation stop time.
-    double stepSize;    ///< Simulation step size.
+    double startTime;                   ///< Simulation start time.
+    double stopTime;                    ///< Simulation stop time.
+    double stepSize;                    ///< Simulation step size.
+    boost::chrono::seconds commTimeout; ///< Communications silence timeout.
 };
 
 

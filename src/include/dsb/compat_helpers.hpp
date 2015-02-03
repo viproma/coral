@@ -7,8 +7,16 @@ This file should only be included in .cpp files, never in .hpp files.
 #ifndef DSB_COMPAT_HELPERS_HPP
 #define DSB_COMPAT_HELPERS_HPP
 
-#include <memory>
-#include <utility>
+#if defined(__cplusplus) && (__cplusplus <= 201103L)
+#   define DSB_COMPAT_MAKE_UNIQUE_MISSING
+#   include <memory>
+#   include <utility>
+#endif
+
+#if defined(__cplusplus) && defined(_MSC_VER) && (_MSC_VER < 1700)
+#   define DSB_COMPAT_TO_STRING_OVERLOADS_MISSING
+#   include <string>
+#endif
 
 
 // std::make_unique() is introduced in C++14, so for non-compliant compilers,
@@ -16,7 +24,7 @@ This file should only be included in .cpp files, never in .hpp files.
 // Check out section 3 here for an excellent answer:
 // http://herbsutter.com/2013/05/29/gotw-89-solution-smart-pointers/
 // (TL;DR: Exception safety, mainly.)
-#if defined(__cplusplus) && (__cplusplus <= 201103L)
+#ifdef DSB_COMPAT_MAKE_UNIQUE_MISSING
     namespace std
     {
         template<typename T>
@@ -34,5 +42,20 @@ This file should only be included in .cpp files, never in .hpp files.
         // ...continue adding more as necessary
     }
 #endif
+
+
+// Visual Studio 2010 only defines std::to_string() for the widest signed and
+// unsigned integer types, which causes ambiguity warnings when narrower types
+// are used.  Here we define the missing ones.
+#ifdef DSB_COMPAT_TO_STRING_OVERLOADS_MISSING
+    namespace std
+    {
+        inline std::string to_string(int  i) { return std::to_string((long long) i); }
+        inline std::string to_string(long i) { return std::to_string((long long) i); }
+        inline std::string to_string(unsigned int  i) { return std::to_string((unsigned long long) i); }
+        inline std::string to_string(unsigned long i) { return std::to_string((unsigned long long) i); }
+    }
+#endif
+
 
 #endif // header guard

@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "boost/chrono.hpp"
 #include "boost/thread.hpp"
 #include "zmq.hpp"
 
@@ -183,10 +184,13 @@ be used to connect to it.
 
 \param [in] domainLocator   The domain in which the execution should run.
 \param [in] executionName   A unique name for the execution.
+
+\throws std::invalid_argument if commTimeout is nonpositive.
 */
 dsb::execution::Locator SpawnExecution(
     const dsb::domain::Locator& domainLocator,
-    const std::string& executionName = std::string());
+    const std::string& executionName = std::string(),
+    boost::chrono::seconds commTimeout = boost::chrono::seconds(3600));
 
 
 // =============================================================================

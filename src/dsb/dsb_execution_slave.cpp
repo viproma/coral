@@ -20,7 +20,8 @@ void RunSlave(dsb::model::SlaveID id,
     const std::string& controlEndpoint,
     const std::string& dataPubEndpoint,
     const std::string& dataSubEndpoint,
-    ISlaveInstance& slaveInstance)
+    ISlaveInstance& slaveInstance,
+    boost::chrono::seconds commTimeout)
 {
     auto context = zmq::context_t();
     auto control = zmq::socket_t(context, ZMQ_REQ);
@@ -45,7 +46,9 @@ void RunSlave(dsb::model::SlaveID id,
     slave.Start(msg);
     for (;;) {
         dsb::comm::Send(control, msg);
-        dsb::comm::Receive(control, msg);
+        if (!dsb::comm::Receive(control, msg, commTimeout)) {
+            throw TimeoutException(commTimeout);
+        }
         try {
             slave.RequestReply(msg);
         } catch (const dsb::bus::Shutdown&) {

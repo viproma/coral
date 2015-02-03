@@ -149,6 +149,7 @@ dsbproto::domain::ExecutionLocator dsb::protocol::ToProto(
     el.set_variable_pub_endpoint(executionLocator.VariablePubEndpoint());
     el.set_variable_sub_endpoint(executionLocator.VariableSubEndpoint());
     el.set_execution_name(executionLocator.ExecName());
+    el.set_comm_timeout_seconds(executionLocator.CommTimeout().count());
     return el;
 }
 
@@ -162,5 +163,6 @@ dsb::execution::Locator dsb::protocol::FromProto(
         executionLocator.variable_pub_endpoint(),
         executionLocator.variable_sub_endpoint(),
         "",
-        executionLocator.execution_name());
+        executionLocator.execution_name(),
+        boost::chrono::seconds(executionLocator.comm_timeout_seconds()));
 }

@@ -5,7 +5,7 @@
 using namespace dsb::proxy;
 
 
-TEST(dsb_broker, proxy_unidirectional)
+TEST(dsb_proxy, unidirectional)
 {
     auto ctx = std::make_shared<zmq::context_t>();
     auto proxy = SpawnProxy(ctx,
@@ -30,7 +30,7 @@ TEST(dsb_broker, proxy_unidirectional)
 }
 
 
-TEST(dsb_broker, proxy_bidirectional_multiclient)
+TEST(dsb_proxy, bidirectional_multiclient)
 {
     auto ctx = std::make_shared<zmq::context_t>();
     auto proxy = SpawnProxy(ctx,
@@ -69,4 +69,27 @@ TEST(dsb_broker, proxy_bidirectional_multiclient)
     }
     proxy.Stop();
     EXPECT_TRUE(proxy.Thread__().try_join_for(boost::chrono::milliseconds(10)));
+}
+
+
+TEST(dsb_proxy, silence_timeout)
+{
+    using namespace boost::chrono;
+    using namespace boost::this_thread;
+
+    auto ctx = std::make_shared<zmq::context_t>();
+    auto proxy = SpawnProxy(ctx,
+        ZMQ_PULL, "inproc://dsb_proxy_test_frontend",
+        ZMQ_PUSH, "inproc://dsb_proxy_test_backend",
+        milliseconds(200));
+    auto push = zmq::socket_t(*ctx, ZMQ_PUSH);
+    push.connect("inproc://dsb_proxy_test_frontend");
+    auto pull = zmq::socket_t(*ctx, ZMQ_PULL);
+    pull.connect("inproc://dsb_proxy_test_backend");
+
+    sleep_for(milliseconds(100));
+    push.send("", 0);
+    sleep_for(milliseconds(150));
+    ASSERT_FALSE(proxy.Thread__().try_join_for(milliseconds(0)));
+    ASSERT_TRUE(proxy.Thread__().try_join_for(milliseconds(70)));
 }

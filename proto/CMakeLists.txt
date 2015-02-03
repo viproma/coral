@@ -1,5 +1,6 @@
 # Creates a library target that contains the generated protocol buffers code.
 set (protoFiles
+    "broker.proto"
     "domain.proto"
     "execution.proto"
     "inproc_rpc.proto"

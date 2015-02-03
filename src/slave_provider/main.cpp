@@ -38,6 +38,7 @@ public:
         args.push_back(executionLocator.VariablePubEndpoint());
         args.push_back(executionLocator.VariableSubEndpoint());
         args.push_back(fmuPath);
+        args.push_back(std::to_string(executionLocator.CommTimeout().count()));
         args.push_back(outputFile);
 
         std::cout << "\nStarting slave " << slaveID << '\n'

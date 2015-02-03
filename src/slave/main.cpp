@@ -12,7 +12,7 @@
 int main(int argc, const char** argv)
 {
 try {
-    if (argc < 6) {
+    if (argc < 7) {
         const auto self = boost::filesystem::path(argv[0]).stem().string();
         std::cerr << "Slave demonstrator.\n"
                   << "This program is designed to be run by a slave provider, and should normally not be run manually.\n\n"
@@ -22,6 +22,7 @@ try {
                   << "  data pub    = Publisher socket endpoint\n"
                   << "  data sub    = Subscriber socket endpoint\n"
                   << "  fmu path    = Path to FMI1 FMU\n"
+                  << "  timeout     = Number of seconds after which to terminate due to communications silence\n"
                   << "  output file = Name of output file to write.\n"
                   << "\n"
                   << "The output file will be written in CSV format.  If no output file name is given, no output will be written."
@@ -37,26 +38,34 @@ try {
     const auto dataPubEndpoint = std::string(argv[3]);
     const auto dataSubEndpoint = std::string(argv[4]);
     const auto fmuPath = std::string(argv[5]);
+    const auto commTimeout = boost::chrono::seconds(std::atoi(argv[6]));
     std::clog << "DSB slave running FMU: " << fmuPath << std::endl;
 
     std::ofstream csvOutput;
-    if (argc > 6)
+    if (argc > 7)
     {
-        csvOutput.open(argv[6], std::ios_base::out | std::ios_base::trunc
+        const auto outFile = std::string(argv[7]);
+        csvOutput.open(outFile, std::ios_base::out | std::ios_base::trunc
 #ifdef _WIN32
             , _SH_DENYWR // Don't let other processes/threads write to the file
 #endif
         );
         if (!csvOutput) {
-            std::cerr << "Error opening output file for writing: " << argv[6] << std::endl;
+            std::cerr << "Error opening output file for writing: " << outFile << std::endl;
             return 1;
         }
-        std::clog << "Output printed to: " << argv[6] << std::endl;
+        std::clog << "Output printed to: " << outFile << std::endl;
     }
 
     auto fmiSlave = dsb::fmi::MakeSlaveInstance(
         fmuPath, csvOutput.is_open() ? &csvOutput : nullptr);
-    dsb::execution::RunSlave(id, controlEndpoint, dataPubEndpoint, dataSubEndpoint, *fmiSlave);
+    dsb::execution::RunSlave(
+        id,
+        controlEndpoint,
+        dataPubEndpoint,
+        dataSubEndpoint,
+        *fmiSlave,
+        commTimeout);
     std::cout << "Slave shut down normally" << std::endl;
 
 } catch (const std::exception& e) {
