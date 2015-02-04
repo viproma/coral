@@ -8,7 +8,7 @@ built together with it.  All of the aforementioned are hereafter referred to as
 
 General
 -------
-All contributions to the software, including, but not limited to, changes and
+All contributions to the software, in the form of changes, removals or
 additions to source code and other files under source control, shall be made
 via pull requests.  A pull request must always be reviewed and merged by someone
 other than its author.
