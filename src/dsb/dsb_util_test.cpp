@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "dsb/util.hpp"
 #include <vector>
+#include "boost/filesystem.hpp"
+
 
 using namespace dsb::util;
 
@@ -97,4 +99,27 @@ TEST(dsb_util, OnScopeExit)
         i = 3;
     }
     EXPECT_EQ(3, i);
+}
+
+TEST(dsb_util, TempDir)
+{
+    boost::filesystem::path d;
+    {
+        auto tmp = TempDir();
+        d = tmp.Path();
+        ASSERT_FALSE(d.empty());
+        EXPECT_TRUE(boost::filesystem::is_directory(d));
+        EXPECT_TRUE(boost::filesystem::is_empty(d));
+    }
+    EXPECT_FALSE(boost::filesystem::exists(d));
+}
+
+TEST(dsb_util, ThisExePath)
+{
+#ifdef _WIN32
+    const auto expected = "dsb_test.exe";
+#else
+    const auto expected = "dsb_test";
+#endif
+    EXPECT_EQ(expected, ThisExePath().filename().string());
 }
