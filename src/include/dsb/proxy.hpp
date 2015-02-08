@@ -9,6 +9,7 @@
 #include "boost/chrono/duration.hpp"
 #include "boost/noncopyable.hpp"
 #include "boost/thread.hpp"
+#include "dsb/config.h"
 #include "zmq.hpp"
 
 
@@ -34,7 +35,7 @@ public:
     \post `other` no longer refers to a proxy, and the constructed object refers
         to the proxy previously handled by `other` (if any).
     */
-    Proxy(Proxy&& other);
+    Proxy(Proxy&& other) DSB_NOEXCEPT;
 
     ~Proxy();
 
@@ -43,7 +44,7 @@ public:
     \post `other` no longer refers to a proxy, and the object assigned to refers
         to the proxy previously handled by `other` (if any).
     */
-    Proxy& operator=(Proxy&& rhs);
+    Proxy& operator=(Proxy&& rhs) DSB_NOEXCEPT;
 
     /**
     \brief  Stops the proxy.

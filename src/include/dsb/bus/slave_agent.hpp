@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "zmq.hpp"
+#include "dsb/config.h"
 #include "dsb/execution/slave.hpp"
 #include "execution.pb.h"
 
@@ -108,17 +109,11 @@ private:
 };
 
 
-// TODO: move this to compat_helpers.hpp
-#if defined(_MSC_VER) && _MSC_VER <= 1800
-#   define noexcept
-#endif
-
-
 /// Exception thrown when the slave receives a TERMINATE command.
-class Shutdown : std::exception
+class Shutdown : public std::exception
 {
 public:
-    const char* what() const noexcept override { return "Normal shutdown requested by master"; }
+    const char* what() const DSB_NOEXCEPT override { return "Normal shutdown requested by master"; }
 };
 
 

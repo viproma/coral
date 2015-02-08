@@ -34,16 +34,16 @@ namespace
     {
     public:
         /// Moves `value` into the newly constructed container.
-        Unique(T&& value) : m_payload(std::move(value)) { }
+        explicit Unique(T&& value) : m_payload(std::move(value)) { }
 
         /**
         \brief  Copy constructor which moves the payload away from the source
                 container and into the target container.
         */
-        Unique(Unique& source) : m_payload(std::move(source.m_payload)) { }
+        Unique(Unique& source) DSB_NOEXCEPT : m_payload(std::move(source.m_payload)) { }
 
         /// Move constructor.
-        Unique(Unique&& source) : m_payload(std::move(source.m_payload)) { }
+        Unique(Unique&& source) DSB_NOEXCEPT : m_payload(std::move(source.m_payload)) { }
 
         /// Returns a reference to the payload value.
         T& Payload() { return m_payload; }

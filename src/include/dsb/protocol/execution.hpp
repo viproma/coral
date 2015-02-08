@@ -122,10 +122,10 @@ class RemoteErrorException : public std::runtime_error
 {
 public:
     // Constructor for DENIED messages.
-    RemoteErrorException(const std::string& deniedReason);
+    explicit RemoteErrorException(const std::string& deniedReason);
 
     // Constructor for ERROR messages.
-    RemoteErrorException(const dsbproto::execution::ErrorInfo& errorInfo);
+    explicit RemoteErrorException(const dsbproto::execution::ErrorInfo& errorInfo);
 };
 
 

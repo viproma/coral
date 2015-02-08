@@ -43,7 +43,7 @@ void ParseFromFrame(
 class SerializationException : public std::runtime_error
 {
 public:
-    SerializationException(const std::string& msg);
+    explicit SerializationException(const std::string& msg);
 };
 
 

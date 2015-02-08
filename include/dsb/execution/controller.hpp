@@ -14,6 +14,7 @@
 #include "boost/thread.hpp"
 #include "zmq.hpp"
 
+#include "dsb/config.h"
 #include "dsb/domain/locator.hpp"
 #include "dsb/execution/locator.hpp"
 #include "dsb/model.hpp"
@@ -39,13 +40,13 @@ class Controller
 {
 public:
     /// Constructor.
-    Controller(const dsb::execution::Locator& locator);
+    explicit Controller(const dsb::execution::Locator& locator);
 
     /// Move constructor.
-    Controller(Controller&& other);
+    Controller(Controller&& other) DSB_NOEXCEPT;
 
     /// Move assignment operator.
-    Controller& operator=(Controller&& other);
+    Controller& operator=(Controller&& other) DSB_NOEXCEPT;
 
     /// Destructor which terminates the simulation.
     ~Controller();

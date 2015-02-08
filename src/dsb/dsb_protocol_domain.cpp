@@ -1,5 +1,6 @@
 #include "dsb/protocol/domain.hpp"
 
+#include <cstring>
 #include "dsb/comm.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
@@ -26,7 +27,7 @@ zmq::message_t dp::CreateHeader(MessageType messageType, uint16_t protocolVersio
 {
     zmq::message_t msg(MAGIC_LENGTH + 4);
     const auto msgData = static_cast<char*>(msg.data());
-    std::strncpy(msgData, MAGIC, MAGIC_LENGTH);
+    std::memcpy(msgData, MAGIC, MAGIC_LENGTH);
     dsb::util::EncodeUint16(protocolVersion, msgData + MAGIC_LENGTH);
     dsb::util::EncodeUint16(messageType, msgData + MAGIC_LENGTH + 2);
     return msg;

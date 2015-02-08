@@ -6,6 +6,7 @@
 
 #include "boost/thread.hpp"
 #include "dsb/comm.hpp"
+#include "dsb/config.h"
 #include "dsb/util.hpp"
 
 
@@ -45,7 +46,7 @@ namespace
         {
         }
 
-        ProxyFunctor(ProxyFunctor&& other)
+        ProxyFunctor(ProxyFunctor&& other) DSB_NOEXCEPT
             : m_context(std::move(other.m_context)),
               m_socket1(std::move(other.m_socket1)),
               m_socket2(std::move(other.m_socket2)),

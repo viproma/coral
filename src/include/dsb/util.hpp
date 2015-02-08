@@ -54,9 +54,7 @@ template<typename Action>
 class ScopeGuard : boost::noncopyable
 {
 public:
-    ScopeGuard(Action action) : m_action(action) { }
-    ScopeGuard(ScopeGuard&& other) : m_action(std::move(other.m_action)) { }
-    ScopeGuard& operator=(ScopeGuard&& other) { m_action = std::move(other.m_action); }
+    explicit ScopeGuard(Action action) : m_action(action) { }
     ~ScopeGuard() { m_action(); }
 private:
     Action m_action;

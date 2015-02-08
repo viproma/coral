@@ -229,7 +229,7 @@ namespace
     class ScalarValueConverterVisitor : public boost::static_visitor<>
     {
     public:
-        ScalarValueConverterVisitor(dsbproto::variable::ScalarValue& value)
+        explicit ScalarValueConverterVisitor(dsbproto::variable::ScalarValue& value)
             : m_value(&value) { }
         void operator()(const double& value)      const { m_value->set_real_value(value); }
         void operator()(const int& value)         const { m_value->set_integer_value(value); }

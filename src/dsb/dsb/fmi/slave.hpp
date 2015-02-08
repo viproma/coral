@@ -45,7 +45,7 @@ public:
     \throws std::runtime_error if `fmuPath` does not refer to an FMU that
         implements FMI 1.0.
     */
-    FmiSlaveInstance(
+    explicit FmiSlaveInstance(
         const std::string& fmuPath,
         std::ostream* outputStream = nullptr);
 

@@ -8,7 +8,7 @@ namespace
     // The constructors only take rvalue references, to help verify that
     // make_unique() uses perfect forwarding.
     class C0 { public: C0() { } };
-    class C1 { public: int m1;          C1(int&& a1)                     : m1(a1) { } };
+    class C1 { public: int m1;          explicit C1(int&& a1)            : m1(a1) { } };
     class C2 { public: int m1, m2;      C2(int&& a1, int&& a2)           : m1(a1), m2(a2) { } };
     class C3 { public: int m1, m2, m3;  C3(int&& a1, int&& a2, int&& a3) : m1(a1), m2(a2), m3(a3) { } };
 }
