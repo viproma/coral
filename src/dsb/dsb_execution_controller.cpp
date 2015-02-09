@@ -103,7 +103,7 @@ dsb::execution::Controller::Controller(Controller&& other) DSB_NOEXCEPT
     : m_context(std::move(other.m_context)),
       m_rpcSocket(std::move(other.m_rpcSocket)),
       m_asyncInfoSocket(std::move(other.m_asyncInfoSocket)),
-      m_active(dsb::util::SwapOut(other.m_active, false)),
+      m_active(dsb::util::MoveAndReplace(other.m_active, false)),
       m_thread(std::move(other.m_thread))
 {
 }
@@ -114,7 +114,7 @@ dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& o
 {
     m_rpcSocket         = std::move(other.m_rpcSocket);
     m_asyncInfoSocket   = std::move(other.m_asyncInfoSocket);
-    m_active            = dsb::util::SwapOut(other.m_active, false);
+    m_active            = dsb::util::MoveAndReplace(other.m_active, false);
     m_thread            = std::move(other.m_thread);
     // Move the context last, in case it overwrites and destroys another
     // context that is used by the above sockets.
