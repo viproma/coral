@@ -1,6 +1,8 @@
 #include "zmq.hpp"
 
 #include <algorithm>
+#include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <deque>
 #include <iostream>
@@ -22,36 +24,18 @@
 
 namespace
 {
-    std::string BindToEphemeralPort(
-        zmq::socket_t& socket,
-        const std::string& networkInterface = "*")
-    {
-        const auto endpoint = "tcp://" + networkInterface + ":*";
-        socket.bind(endpoint.c_str());
-        return dsb::comm::LastEndpoint(socket);
-    }
-
-    int EndpointPort(const std::string& endpoint)
-    {
-        const size_t colonPos = endpoint.rfind(':');
-        if (colonPos > endpoint.size() - 1) {
-            throw std::invalid_argument("Invalid endpoint specification: " + endpoint);
-        }
-        return std::stoi(endpoint.substr(colonPos + 1));
-    }
-
     dsb::proxy::Proxy EphemeralProxy(
         std::shared_ptr<zmq::context_t> context,
         int frontendType,
         int backendType,
-        int& frontendPort,
-        int& backendPort,
+        std::uint16_t& frontendPort,
+        std::uint16_t& backendPort,
         boost::chrono::milliseconds silenceTimeout)
     {
         auto fe = zmq::socket_t(*context, frontendType);
         auto be = zmq::socket_t(*context, backendType);
-        const auto fep = EndpointPort(BindToEphemeralPort(fe));
-        const auto bep = EndpointPort(BindToEphemeralPort(be));
+        const auto fep = dsb::domain_broker::BindToEphemeralPort(fe);
+        const auto bep = dsb::domain_broker::BindToEphemeralPort(be);
         auto p = dsb::proxy::SpawnProxy(context, std::move(fe), std::move(be), silenceTimeout);
         //----- No exceptions may be thrown below this line -----
         frontendPort = fep;
@@ -65,14 +49,18 @@ namespace
         ExecutionBroker(
             std::shared_ptr<zmq::context_t> context,
             boost::chrono::seconds commTimeout)
-            : m_masterControlPort(-1), m_slaveControlPort(-1),
-              m_dataPubPort(-1), m_dataSubPort(-1),
+            : m_masterControlPort(0), m_slaveControlPort(0),
+              m_dataPubPort(0), m_dataSubPort(0),
               m_control(EphemeralProxy(context, ZMQ_DEALER, ZMQ_ROUTER,
                                        m_masterControlPort, m_slaveControlPort,
                                        commTimeout)),
               m_data(EphemeralProxy(context, ZMQ_XSUB, ZMQ_XPUB,
                                     m_dataSubPort, m_dataPubPort, commTimeout))
         {
+            assert (m_masterControlPort > 0);
+            assert (m_slaveControlPort > 0);
+            assert (m_dataPubPort > 0);
+            assert (m_dataSubPort > 0);
         }
 
         ExecutionBroker(ExecutionBroker&& other)
@@ -85,12 +73,12 @@ namespace
         {
         }
 
-        std::pair<int, int> ControlPorts() const
+        std::pair<std::uint16_t, std::uint16_t> ControlPorts() const
         {
             return std::make_pair(m_masterControlPort, m_slaveControlPort);
         }
 
-        std::pair<int, int> DataPorts() const
+        std::pair<std::uint16_t, std::uint16_t> DataPorts() const
         {
             return std::make_pair(m_dataSubPort, m_dataPubPort);
         }
@@ -101,10 +89,10 @@ namespace
             m_data.Stop();
         }
     private:
-        int m_masterControlPort;
-        int m_slaveControlPort;
-        int m_dataPubPort;
-        int m_dataSubPort;
+        std::uint16_t m_masterControlPort;
+        std::uint16_t m_slaveControlPort;
+        std::uint16_t m_dataPubPort;
+        std::uint16_t m_dataSubPort;
 
         dsb::proxy::Proxy m_control;
         dsb::proxy::Proxy m_data;
@@ -114,38 +102,50 @@ namespace
 
 int main(int argc, const char** argv)
 {
-    const int basePort = argc > 1 ? std::atoi(argv[1]) : 51380;
-    const std::string baseEndpoint = "tcp://*:";
-    const auto reportMasterEndpoint = baseEndpoint + std::to_string(basePort);
-    const auto reportSlavePEndpoint = baseEndpoint + std::to_string(basePort+1);
-    const auto infoMasterEndpoint   = baseEndpoint + std::to_string(basePort+2);
-    const auto infoSlavePEndpoint   = baseEndpoint + std::to_string(basePort+3);
-    const auto execReqEndpoint      = baseEndpoint + std::to_string(basePort+4);
-    std::cout << "Domain broker binding to the following endpoints: \n"
-              << "  report         (masters): " << reportMasterEndpoint << '\n'
-              << "  report (slave providers): " << reportSlavePEndpoint << '\n'
-              << "  info           (masters): " << infoMasterEndpoint << '\n'
-              << "  info   (slave providers): " << infoSlavePEndpoint << '\n'
-              << "  exec. request  (masters): " << execReqEndpoint << std::endl;
+    const long long basePort = argc > 1 ? std::atol(argv[1]) : 10243;
 
     auto context = std::make_shared<zmq::context_t>();
-    auto report = dsb::proxy::SpawnProxy(
-        context,
-        ZMQ_XPUB, reportMasterEndpoint,
-        ZMQ_XSUB, reportSlavePEndpoint);
-    auto info = dsb::domain_broker::SpawnP2PProxy(
-        context,
-        infoMasterEndpoint,
-        infoSlavePEndpoint);
-
+    const auto execReqEndpoint = "tcp://*:" + std::to_string(basePort);
     auto executionRequest = zmq::socket_t(*context, ZMQ_REP);
     executionRequest.bind(execReqEndpoint.c_str());
+
+    auto reportMasterSocket         = zmq::socket_t(*context, ZMQ_XPUB);
+    const auto reportMasterPort     = dsb::domain_broker::BindToEphemeralPort(reportMasterSocket);
+    const auto reportMasterEndpoint = "tcp://*:" + std::to_string(reportMasterPort);
+
+    auto reportSlavePSocket         = zmq::socket_t(*context, ZMQ_XSUB);
+    const auto reportSlavePPort     = dsb::domain_broker::BindToEphemeralPort(reportSlavePSocket);
+    const auto reportSlavePEndpoint = "tcp://*:" + std::to_string(reportSlavePPort);
+
+    auto report = dsb::proxy::SpawnProxy(
+        context,
+        std::move(reportMasterSocket),
+        std::move(reportSlavePSocket));
+
+    std::uint16_t infoPort = 0;
+    auto info = dsb::domain_broker::SpawnP2PProxy(context, "*", infoPort);
+    const auto infoEndpoint = "tcp://*:" + std::to_string(infoPort);
+
+    std::cout << "Domain broker bound to the following endpoints: \n"
+              << "  report         (masters): " << reportMasterEndpoint << '\n'
+              << "  report (slave providers): " << reportSlavePEndpoint << '\n'
+              << "  info          (everyone): " << infoEndpoint << '\n'
+              << "  exec. request  (masters): " << execReqEndpoint << std::endl;
+
     std::map<std::string, ExecutionBroker> executionBrokers;
     for (;;) {
         std::deque<zmq::message_t> msg;
         dsb::comm::Receive(executionRequest, msg);
         const auto command = dsb::comm::ToString(msg.front());
-        if (command == "SPAWN_EXECUTION" && msg.size() > 1) {
+        if (command == "GET_PROXY_PORTS") {
+            msg.clear();
+            msg.push_back(dsb::comm::ToFrame("PROXY_PORTS"));
+            msg.push_back(dsb::comm::ToFrame(std::to_string(reportMasterPort)));
+            msg.push_back(dsb::comm::ToFrame(std::to_string(reportSlavePPort)));
+            msg.push_back(dsb::comm::ToFrame(std::to_string(infoPort)));
+            msg.push_back(dsb::comm::ToFrame(std::to_string(infoPort)));
+            dsb::comm::Send(executionRequest, msg);
+        } else if (command == "SPAWN_EXECUTION" && msg.size() > 1) {
             try {
                 dsbproto::broker::SpawnExecutionData seData;
                 dsb::protobuf::ParseFromFrame(msg[1], seData);

@@ -19,10 +19,7 @@ namespace {
 
 dsb::domain::Locator MakeDomainLocator(const std::string& address)
 {
-    return dsb::domain::Locator(
-        address + ":51380",
-        address + ":51382",
-        address + ":51384");
+    return dsb::domain::GetDomainEndpoints(address + ":10243");
 }
 
 int Run(int argc, const char** argv)

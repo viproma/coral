@@ -116,10 +116,8 @@ try {
     if (!optMap.count("domain")) throw std::runtime_error("Domain address not specified");
     if (!optMap.count("fmu")) throw std::runtime_error("No FMUs specified");
 
-    const auto domainAddress = optMap["domain"].as<std::string>();
+    const auto domainAddress = optMap["domain"].as<std::string>() + ":10243";
     const auto outputDir = optMap["output-dir"].as<std::string>();
-    const auto reportEndpoint = domainAddress + ":51381";
-    const auto infoEndpoint = domainAddress + ":51383";
 
     std::string slaveExe;
     if (optMap.count("slave-exe")) {
@@ -159,7 +157,7 @@ try {
         std::clog << "FMU loaded: " << *it << std::endl;
     }
     std::clog << fmus.size() << " FMUs loaded" << std::endl;
-    dsb::domain::SlaveProvider(reportEndpoint, infoEndpoint, fmuPtrs);
+    dsb::domain::SlaveProvider(domainAddress, fmuPtrs);
 } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
 }
