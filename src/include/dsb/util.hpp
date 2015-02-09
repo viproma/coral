@@ -55,6 +55,8 @@ class ScopeGuard : boost::noncopyable
 {
 public:
     explicit ScopeGuard(Action action) : m_action(action) { }
+    ScopeGuard(ScopeGuard&& other) : m_action(std::move(other.m_action)) { }
+    ScopeGuard& operator=(ScopeGuard&& other) { m_action = std::move(other.m_action); }
     ~ScopeGuard() { m_action(); }
 private:
     Action m_action;

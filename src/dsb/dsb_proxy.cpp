@@ -126,7 +126,7 @@ dsb::proxy::Proxy::Proxy(zmq::socket_t controlSocket, boost::thread thread)
 }
 
 
-dsb::proxy::Proxy::Proxy(Proxy&& other)
+dsb::proxy::Proxy::Proxy(Proxy&& other) DSB_NOEXCEPT
     : m_controlSocket(std::move(other.m_controlSocket)),
       m_thread(std::move(other.m_thread))
 {
@@ -139,7 +139,7 @@ dsb::proxy::Proxy::~Proxy()
 }
 
 
-dsb::proxy::Proxy& dsb::proxy::Proxy::operator=(Proxy&& rhs)
+dsb::proxy::Proxy& dsb::proxy::Proxy::operator=(Proxy&& rhs) DSB_NOEXCEPT
 {
     if (m_thread.joinable()) m_thread.detach();
     m_controlSocket = std::move(rhs.m_controlSocket);

@@ -99,7 +99,7 @@ dsb::execution::Controller::Controller(const dsb::execution::Locator& locator)
 }
 
 
-dsb::execution::Controller::Controller(Controller&& other)
+dsb::execution::Controller::Controller(Controller&& other) DSB_NOEXCEPT
     : m_context(std::move(other.m_context)),
       m_rpcSocket(std::move(other.m_rpcSocket)),
       m_asyncInfoSocket(std::move(other.m_asyncInfoSocket)),
@@ -110,6 +110,7 @@ dsb::execution::Controller::Controller(Controller&& other)
 
 
 dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& other)
+    DSB_NOEXCEPT
 {
     m_rpcSocket         = std::move(other.m_rpcSocket);
     m_asyncInfoSocket   = std::move(other.m_asyncInfoSocket);

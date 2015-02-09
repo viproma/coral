@@ -339,7 +339,7 @@ Controller::Controller(const dsb::domain::Locator& locator)
 
 
 
-Controller::Controller(Controller&& other)
+Controller::Controller(Controller&& other) DSB_NOEXCEPT
     : m_context(std::move(other.m_context)),
       m_rpcSocket(std::move(other.m_rpcSocket)),
       m_destroySocket(std::move(other.m_destroySocket)),
@@ -349,7 +349,7 @@ Controller::Controller(Controller&& other)
 }
 
 
-Controller& Controller::operator=(Controller&& other)
+Controller& Controller::operator=(Controller&& other) DSB_NOEXCEPT
 {
     m_rpcSocket     = std::move(other.m_rpcSocket);
     m_destroySocket = std::move(other.m_destroySocket);

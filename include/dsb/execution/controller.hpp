@@ -203,8 +203,10 @@ void Controller::SetVariables(
     dsb::model::SlaveID slaveId,
     const VariableValueRange& variables)
 {
-    SetVariables(std::vector<VariableValue>(
-        std::begin(variables), std::end(variables)));
+    SetVariables(
+        slaveId,
+        std::vector<dsb::model::VariableValue>(
+            std::begin(variables), std::end(variables)));
 }
 
 template<typename VariableConnectionRange>
@@ -212,8 +214,10 @@ void Controller::ConnectVariables(
     dsb::model::SlaveID slaveId,
     const VariableConnectionRange& connections)
 {
-    ConnectVariables(std::vector<VariableConnection>(
-        std::begin(connections), std::end(connections)));
+    ConnectVariables(
+        slaveId,
+        std::vector<dsb::model::VariableConnection>(
+            std::begin(connections), std::end(connections)));
 }
 
 
