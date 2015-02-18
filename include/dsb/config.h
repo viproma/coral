@@ -21,6 +21,15 @@ be a valid C header.  C++-specific code should therefore be placed in
 #   endif
 #endif
 
+// The 'noexcept' keyword (C++11) is not yet supported by Visual Studio.
+#ifdef __cplusplus
+#   ifdef _MSC_VER
+#       define DSB_NOEXCEPT
+#   else
+#       define DSB_NOEXCEPT noexcept
+#   endif
+#endif
+
 // Visual Studio versions prior to 2012 have a different emplace_back()
 // signature than the standard one, due to lack of support for variadic
 // templates.

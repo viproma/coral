@@ -45,18 +45,18 @@ TEST(dsb_util, RandomUUID)
     EXPECT_NE(u, RandomUUID());
 }
 
-TEST(dsb_util, SwapOut_value)
+TEST(dsb_util, MoveAndReplace_value)
 {
     int a = 123;
-    int b = SwapOut(a, 456);
+    int b = MoveAndReplace(a, 456);
     EXPECT_EQ(456, a);
     EXPECT_EQ(123, b);
-    int c = SwapOut(b);
+    int c = MoveAndReplace(b);
     EXPECT_EQ(0, b);
     EXPECT_EQ(123, c);
 }
 
-TEST(dsb_util, SwapOut_class)
+TEST(dsb_util, MoveAndReplace_class)
 {
     std::vector<int> a;
     a.push_back(123);
@@ -65,7 +65,7 @@ TEST(dsb_util, SwapOut_class)
     r.push_back(456);
     r.push_back(789);
 
-    std::vector<int> b = SwapOut(a, r);
+    std::vector<int> b = MoveAndReplace(a, r);
     ASSERT_EQ(2U, a.size());
     EXPECT_EQ(456, a[0]);
     EXPECT_EQ(789, a[1]);
@@ -76,7 +76,7 @@ TEST(dsb_util, SwapOut_class)
     EXPECT_EQ(1U, b.size());
     EXPECT_EQ(dataPtr, b.data());
 
-    std::vector<int> c = SwapOut(b);
+    std::vector<int> c = MoveAndReplace(b);
     EXPECT_TRUE(b.empty());
     EXPECT_EQ(1U, c.size());
     EXPECT_EQ(dataPtr, c.data());

@@ -18,7 +18,9 @@
 struct StartSlave
 {
 public:
-    StartSlave(const std::string& slaveExe, const std::string& outputDir = std::string())
+    explicit StartSlave(
+        const std::string& slaveExe,
+        const std::string& outputDir = std::string())
         : m_slaveExe(slaveExe),
           m_outputDir(outputDir.empty() ? "." : outputDir)
     { }

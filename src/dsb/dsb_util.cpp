@@ -110,14 +110,14 @@ void dsb::util::SpawnProcess(
 
     PROCESS_INFORMATION processInfo;
     if (CreateProcessW(
-        NULL,
+        nullptr,
         cmdLine.data(),
-        NULL,
-        NULL,
+        nullptr,
+        nullptr,
         FALSE,
         CREATE_NEW_CONSOLE,
-        NULL,
-        NULL,
+        nullptr,
+        nullptr,
         &startupInfo,
         &processInfo)) {
         return;

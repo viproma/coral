@@ -42,7 +42,7 @@ is inefficient for types that provide move semantics (`std::move` should be used
 for those), but useful for e.g. built-in types.
 */
 template<typename T>
-T SwapOut(T& variable, const T& replacement = T())
+T MoveAndReplace(T& variable, const T& replacement = T())
 {
     auto tmp = std::move(variable);
     variable = replacement;
@@ -54,11 +54,23 @@ template<typename Action>
 class ScopeGuard : boost::noncopyable
 {
 public:
-    ScopeGuard(Action action) : m_action(action) { }
-    ScopeGuard(ScopeGuard&& other) : m_action(std::move(other.m_action)) { }
-    ScopeGuard& operator=(ScopeGuard&& other) { m_action = std::move(other.m_action); }
-    ~ScopeGuard() { m_action(); }
+    explicit ScopeGuard(Action action) : m_active(true), m_action(action) { }
+
+    ScopeGuard(ScopeGuard&& other)
+        : m_active(MoveAndReplace(other.m_active, false)),
+          m_action(std::move(other.m_action))
+    { }
+
+    ScopeGuard& operator=(ScopeGuard&& other)
+    {
+        m_active = MoveAndReplace(other.m_active, false);
+        m_action = std::move(other.m_action);
+    }
+
+    ~ScopeGuard() { if (m_active) m_action(); }
+
 private:
+    bool m_active;
     Action m_action;
 };
 

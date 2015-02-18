@@ -78,6 +78,8 @@ public:
         SlaveTracker& slaveHandler,
         zmq::socket_t& userSocket,
         zmq::socket_t& slaveSocket) = 0;
+
+    virtual ~IExecutionState() { }
 };
 
 

@@ -7,6 +7,7 @@
 #include "boost/lexical_cast.hpp"
 #include "boost/thread.hpp"
 #include "dsb/comm.hpp"
+#include "dsb/config.h"
 #include "dsb/util.hpp"
 
 
@@ -69,7 +70,7 @@ namespace
         {
         }
 
-        ProxyFunctor(ProxyFunctor&& other)
+        ProxyFunctor(ProxyFunctor&& other) DSB_NOEXCEPT
             : m_context(std::move(other.m_context)),
               m_socket(std::move(other.m_socket)),
               m_killSocket(std::move(other.m_killSocket))

@@ -1,5 +1,3 @@
-#include "zmq.hpp"
-
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -63,7 +61,7 @@ namespace
             assert (m_dataSubPort > 0);
         }
 
-        ExecutionBroker(ExecutionBroker&& other)
+        ExecutionBroker(ExecutionBroker&& other) DSB_NOEXCEPT
             : m_masterControlPort(std::move(other.m_masterControlPort)),
               m_slaveControlPort(std::move(other.m_slaveControlPort)),
               m_dataPubPort(std::move(other.m_dataPubPort)),

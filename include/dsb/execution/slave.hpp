@@ -137,7 +137,7 @@ void RunSlave(
 class TimeoutException : public std::runtime_error
 {
 public:
-    TimeoutException(boost::chrono::seconds timeoutDuration)
+    explicit TimeoutException(boost::chrono::seconds timeoutDuration)
         : std::runtime_error("Slave timed out due to lack of communication"),
           m_timeoutDuration(timeoutDuration)
     {

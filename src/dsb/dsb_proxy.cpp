@@ -34,16 +34,16 @@ namespace
     {
     public:
         /// Moves `value` into the newly constructed container.
-        Unique(T&& value) : m_payload(std::move(value)) { }
+        explicit Unique(T&& value) : m_payload(std::move(value)) { }
 
         /**
         \brief  Copy constructor which moves the payload away from the source
                 container and into the target container.
         */
-        Unique(Unique& source) : m_payload(std::move(source.m_payload)) { }
+        Unique(Unique& source) DSB_NOEXCEPT : m_payload(std::move(source.m_payload)) { }
 
         /// Move constructor.
-        Unique(Unique&& source) : m_payload(std::move(source.m_payload)) { }
+        Unique(Unique&& source) DSB_NOEXCEPT : m_payload(std::move(source.m_payload)) { }
 
         /// Returns a reference to the payload value.
         T& Payload() { return m_payload; }
@@ -126,7 +126,7 @@ dsb::proxy::Proxy::Proxy(zmq::socket_t controlSocket, boost::thread thread)
 }
 
 
-dsb::proxy::Proxy::Proxy(Proxy&& other)
+dsb::proxy::Proxy::Proxy(Proxy&& other) DSB_NOEXCEPT
     : m_controlSocket(std::move(other.m_controlSocket)),
       m_thread(std::move(other.m_thread))
 {
@@ -139,7 +139,7 @@ dsb::proxy::Proxy::~Proxy()
 }
 
 
-dsb::proxy::Proxy& dsb::proxy::Proxy::operator=(Proxy&& rhs)
+dsb::proxy::Proxy& dsb::proxy::Proxy::operator=(Proxy&& rhs) DSB_NOEXCEPT
 {
     if (m_thread.joinable()) m_thread.detach();
     m_controlSocket = std::move(rhs.m_controlSocket);
