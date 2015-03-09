@@ -19,7 +19,8 @@
 #include "boost/range/algorithm/find_if.hpp"
 
 #include "dsb/bus/domain_data.hpp"
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
+#include "dsb/comm/reactor.hpp"
 #include "dsb/error.hpp"
 #include "dsb/inproc_rpc.hpp"
 #include "dsb/protobuf.hpp"

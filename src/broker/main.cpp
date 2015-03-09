@@ -10,10 +10,10 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
+#include "dsb/comm/proxy.hpp"
 #include "dsb/compat_helpers.hpp"
 #include "dsb/protobuf.hpp"
-#include "dsb/proxy.hpp"
 #include "dsb/util.hpp"
 #include "p2p_proxy.hpp"
 
@@ -22,7 +22,7 @@
 
 namespace
 {
-    dsb::proxy::Proxy EphemeralProxy(
+    dsb::comm::Proxy EphemeralProxy(
         std::shared_ptr<zmq::context_t> context,
         int frontendType,
         int backendType,
@@ -34,7 +34,7 @@ namespace
         auto be = zmq::socket_t(*context, backendType);
         const auto fep = dsb::domain_broker::BindToEphemeralPort(fe);
         const auto bep = dsb::domain_broker::BindToEphemeralPort(be);
-        auto p = dsb::proxy::SpawnProxy(context, std::move(fe), std::move(be), silenceTimeout);
+        auto p = dsb::comm::SpawnProxy(context, std::move(fe), std::move(be), silenceTimeout);
         //----- No exceptions may be thrown below this line -----
         frontendPort = fep;
         backendPort = bep;
@@ -92,8 +92,8 @@ namespace
         std::uint16_t m_dataPubPort;
         std::uint16_t m_dataSubPort;
 
-        dsb::proxy::Proxy m_control;
-        dsb::proxy::Proxy m_data;
+        dsb::comm::Proxy m_control;
+        dsb::comm::Proxy m_data;
     };
 }
 
@@ -115,7 +115,7 @@ int main(int argc, const char** argv)
     const auto reportSlavePPort     = dsb::domain_broker::BindToEphemeralPort(reportSlavePSocket);
     const auto reportSlavePEndpoint = "tcp://*:" + std::to_string(reportSlavePPort);
 
-    auto report = dsb::proxy::SpawnProxy(
+    auto report = dsb::comm::SpawnProxy(
         context,
         std::move(reportMasterSocket),
         std::move(reportSlavePSocket));

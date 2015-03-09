@@ -10,7 +10,7 @@
 #include "boost/chrono.hpp"
 
 #include "dsb/bus/execution_agent.hpp"
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
 #include "dsb/compat_helpers.hpp"
 #include "dsb/inproc_rpc.hpp"
 #include "dsb/protobuf.hpp"

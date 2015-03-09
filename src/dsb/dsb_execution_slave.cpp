@@ -6,7 +6,7 @@
 #include "zmq.hpp"
 
 #include "dsb/bus/slave_agent.hpp"
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
 #include "dsb/util.hpp"
 
 

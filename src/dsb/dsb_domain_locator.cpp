@@ -1,6 +1,6 @@
 #include "dsb/domain/locator.hpp"
 #include "zmq.hpp"
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
 
 namespace dsb
 {

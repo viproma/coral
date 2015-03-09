@@ -1,4 +1,4 @@
-#include "dsb/proxy.hpp"
+#include "dsb/comm/proxy.hpp"
 
 #include <exception>
 #include <utility>
@@ -113,7 +113,7 @@ namespace
 }
 
 
-dsb::proxy::Proxy::Proxy(zmq::socket_t controlSocket, boost::thread thread)
+dsb::comm::Proxy::Proxy(zmq::socket_t controlSocket, boost::thread thread)
     : m_controlSocket(std::move(controlSocket)),
       m_thread(std::move(thread))
 {
@@ -126,20 +126,20 @@ dsb::proxy::Proxy::Proxy(zmq::socket_t controlSocket, boost::thread thread)
 }
 
 
-dsb::proxy::Proxy::Proxy(Proxy&& other) DSB_NOEXCEPT
+dsb::comm::Proxy::Proxy(Proxy&& other) DSB_NOEXCEPT
     : m_controlSocket(std::move(other.m_controlSocket)),
       m_thread(std::move(other.m_thread))
 {
 }
 
 
-dsb::proxy::Proxy::~Proxy()
+dsb::comm::Proxy::~Proxy()
 {
     m_thread.detach();
 }
 
 
-dsb::proxy::Proxy& dsb::proxy::Proxy::operator=(Proxy&& rhs) DSB_NOEXCEPT
+dsb::comm::Proxy& dsb::comm::Proxy::operator=(Proxy&& rhs) DSB_NOEXCEPT
 {
     if (m_thread.joinable()) m_thread.detach();
     m_controlSocket = std::move(rhs.m_controlSocket);
@@ -148,19 +148,19 @@ dsb::proxy::Proxy& dsb::proxy::Proxy::operator=(Proxy&& rhs) DSB_NOEXCEPT
 }
 
 
-void dsb::proxy::Proxy::Stop()
+void dsb::comm::Proxy::Stop()
 {
     m_controlSocket.send("", 0, ZMQ_DONTWAIT);
 }
 
 
-boost::thread& dsb::proxy::Proxy::Thread__()
+boost::thread& dsb::comm::Proxy::Thread__()
 {
     return m_thread;
 }
 
 
-dsb::proxy::Proxy dsb::proxy::SpawnProxy(
+dsb::comm::Proxy dsb::comm::SpawnProxy(
     std::shared_ptr<zmq::context_t> context,
     zmq::socket_t&& socket1,
     zmq::socket_t&& socket2,
@@ -192,7 +192,7 @@ dsb::proxy::Proxy dsb::proxy::SpawnProxy(
 }
 
 
-dsb::proxy::Proxy dsb::proxy::SpawnProxy(
+dsb::comm::Proxy dsb::comm::SpawnProxy(
     std::shared_ptr<zmq::context_t> context,
     int socketType1, const std::string& endpoint1,
     int socketType2, const std::string& endpoint2,

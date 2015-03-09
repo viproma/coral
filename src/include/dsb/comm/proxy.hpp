@@ -1,9 +1,9 @@
 /**
 \file
-\brief  Main header file for dsb::proxy.
+\brief  Contains a simple ZMQ proxy.
 */
-#ifndef DSB_PROXY_HPP
-#define DSB_PROXY_HPP
+#ifndef DSB_COMM_PROXY_HPP
+#define DSB_COMM_PROXY_HPP
 
 #include <memory>
 #include "boost/chrono/duration.hpp"
@@ -15,7 +15,7 @@
 
 namespace dsb
 {
-namespace proxy
+namespace comm
 {
 
 
