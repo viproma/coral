@@ -1,4 +1,4 @@
-#include "p2p_proxy.hpp"
+#include "dsb/comm/p2p.hpp"
 
 #include <algorithm>
 #include <deque>
@@ -12,30 +12,10 @@
 #include "dsb/util.hpp"
 
 
-namespace dd = dsb::domain_broker;
-
-
-std::uint16_t dd::BindToEphemeralPort(
-    zmq::socket_t& socket,
-    const std::string& networkInterface)
+namespace dsb
 {
-    const auto endpoint = "tcp://" + networkInterface + ":*";
-    socket.bind(endpoint.c_str());
-    return EndpointPort(dsb::comm::LastEndpoint(socket));
-}
-
-
-std::uint16_t dd::EndpointPort(const std::string& endpoint)
+namespace comm
 {
-    // We expect a string on the form "tcp://addr:port", where the 'addr' and
-    // 'port' substrings must both be at least one character long, and look for
-    // the last colon.
-    const size_t colonPos = endpoint.rfind(':');
-    if (endpoint.size() < 9 || colonPos < 7 || colonPos >= endpoint.size() - 1) {
-        throw std::invalid_argument("Invalid endpoint specification: " + endpoint);
-    }
-    return boost::lexical_cast<std::uint16_t>(endpoint.substr(colonPos + 1));
-}
 
 
 namespace
@@ -107,7 +87,7 @@ namespace
 
 
 
-zmq::socket_t dd::SpawnP2PProxy(
+zmq::socket_t SpawnP2PProxy(
     std::shared_ptr<zmq::context_t> context,
     const std::string& networkInterface,
     std::uint16_t& ephemeralPort)
@@ -129,3 +109,6 @@ zmq::socket_t dd::SpawnP2PProxy(
     ephemeralPort = ep;
     return killSocketLocal;
 }
+
+
+}} // namespace

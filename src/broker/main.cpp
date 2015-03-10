@@ -11,11 +11,12 @@
 
 #include "dsb/config.h"
 #include "dsb/comm/messaging.hpp"
+#include "dsb/comm/p2p.hpp"
 #include "dsb/comm/proxy.hpp"
+#include "dsb/comm/util.hpp"
 #include "dsb/compat_helpers.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/util.hpp"
-#include "p2p_proxy.hpp"
 
 #include "broker.pb.h"
 
@@ -32,8 +33,8 @@ namespace
     {
         auto fe = zmq::socket_t(*context, frontendType);
         auto be = zmq::socket_t(*context, backendType);
-        const auto fep = dsb::domain_broker::BindToEphemeralPort(fe);
-        const auto bep = dsb::domain_broker::BindToEphemeralPort(be);
+        const auto fep = dsb::comm::BindToEphemeralPort(fe);
+        const auto bep = dsb::comm::BindToEphemeralPort(be);
         auto p = dsb::comm::SpawnProxy(context, std::move(fe), std::move(be), silenceTimeout);
         //----- No exceptions may be thrown below this line -----
         frontendPort = fep;
@@ -108,11 +109,11 @@ int main(int argc, const char** argv)
     executionRequest.bind(execReqEndpoint.c_str());
 
     auto reportMasterSocket         = zmq::socket_t(*context, ZMQ_XPUB);
-    const auto reportMasterPort     = dsb::domain_broker::BindToEphemeralPort(reportMasterSocket);
+    const auto reportMasterPort     = dsb::comm::BindToEphemeralPort(reportMasterSocket);
     const auto reportMasterEndpoint = "tcp://*:" + std::to_string(reportMasterPort);
 
     auto reportSlavePSocket         = zmq::socket_t(*context, ZMQ_XSUB);
-    const auto reportSlavePPort     = dsb::domain_broker::BindToEphemeralPort(reportSlavePSocket);
+    const auto reportSlavePPort     = dsb::comm::BindToEphemeralPort(reportSlavePSocket);
     const auto reportSlavePEndpoint = "tcp://*:" + std::to_string(reportSlavePPort);
 
     auto report = dsb::comm::SpawnProxy(
@@ -121,7 +122,7 @@ int main(int argc, const char** argv)
         std::move(reportSlavePSocket));
 
     std::uint16_t infoPort = 0;
-    auto info = dsb::domain_broker::SpawnP2PProxy(context, "*", infoPort);
+    auto info = dsb::comm::SpawnP2PProxy(context, "*", infoPort);
     const auto infoEndpoint = "tcp://*:" + std::to_string(infoPort);
 
     std::cout << "Domain broker bound to the following endpoints: \n"

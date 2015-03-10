@@ -1,5 +1,10 @@
-#ifndef DSB_P2P_PROXY_HPP
-#define DSB_P2P_PROXY_HPP
+/**
+\file
+\brief  Functions and classes for point-to-point REQ-REP communication,
+        optionally via a broker.
+*/
+#ifndef DSB_COMM_P2P_HPP
+#define DSB_COMM_P2P_HPP
 
 #include <cstdint>
 #include <memory>
@@ -9,31 +14,13 @@
 
 namespace dsb
 {
-namespace domain_broker
+namespace comm
 {
 
 
 /**
-\brief  Binds `socket` to an ephemeral TCP port on the given network interface
-        and returns the port number.
-*/
-std::uint16_t BindToEphemeralPort(
-    zmq::socket_t& socket,
-    const std::string& networkInterface = "*");
-
-
-/**
-\brief  Given a string on the form "tcp://addr:port", returns the port number.
-
-\throws std::invalid_argument if `endpoint` does not have the structure
-    described above.
-\throws std::bad_cast if the port number is not in a valid number format.
-*/
-std::uint16_t EndpointPort(const std::string& endpoint);
-
-
-/**
-\brief  Spawns a proxy for peer-to-peer TCP communication in a background thread.
+\brief  Spawns a proxy for point-to-point TCP communication in a background
+        thread.
 
 Messages sent to this proxy should have the following format:
 ~~~
@@ -66,5 +53,5 @@ zmq::socket_t SpawnP2PProxy(
     std::uint16_t& ephemeralPort);
 
 
-}}      // namespace
-#endif  // header guard
+}} // namespace
+#endif // header guard

@@ -1,5 +1,4 @@
 #include "gtest/gtest.h"
-#include "p2p_proxy.hpp"
 
 #include <deque>
 #include "boost/thread.hpp"
@@ -9,10 +8,12 @@
 #include "dsb/comm/messaging.hpp"
 #include "dsb/compat_helpers.hpp"
 
-namespace dd = dsb::domain_broker;
+#include "dsb/comm/p2p.hpp"
+
+using namespace dsb::comm;
 
 
-TEST(domain_broker, p2p_proxy_bidirectional)
+TEST(dsb_comm, P2PProxy_bidirectional)
 {
     const std::string client1Id = "client1";
     const std::string server1Id = "server1";
@@ -34,7 +35,7 @@ TEST(domain_broker, p2p_proxy_bidirectional)
     rep2.setsockopt(ZMQ_IDENTITY, server2Id.c_str(), server2Id.size());
 
     std::uint16_t port = 0;
-    auto proxy = dd::SpawnP2PProxy(ctx, "*", port);
+    auto proxy = SpawnP2PProxy(ctx, "*", port);
     ASSERT_GT(port, 0);
 
     const auto endpoint = "tcp://localhost:" + std::to_string(port);
