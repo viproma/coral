@@ -17,6 +17,10 @@ set (_privateHeaders
     "dsb/bus/execution_state.hpp"
     "dsb/bus/slave_agent.hpp"
     "dsb/bus/slave_tracker.hpp"
+    "dsb/comm/messaging.hpp"
+    "dsb/comm/proxy.hpp"
+    "dsb/comm/reactor.hpp"
+    "dsb/comm/util.hpp"
     "dsb/comm.hpp"
     "dsb/compat_helpers.hpp"
     "dsb/error.hpp"
@@ -24,7 +28,6 @@ set (_privateHeaders
     "dsb/protobuf.hpp"
     "dsb/protocol/domain.hpp"
     "dsb/protocol/execution.hpp"
-    "dsb/proxy.hpp"
     "dsb/util.hpp"
 )
 set (_internalHeaders
@@ -44,12 +47,14 @@ set (_sources
     "dsb_bus_execution_state.cpp"
     "dsb_bus_slave_agent.cpp"
     "dsb_bus_slave_tracker.cpp"
-    "dsb_comm.cpp"
+    "dsb_comm_messaging.cpp"
+    "dsb_comm_proxy.cpp"
+    "dsb_comm_reactor.cpp"
+    "dsb_comm_util.cpp"
     "dsb_inproc_rpc.cpp"
     "dsb_protobuf.cpp"
     "dsb_protocol_domain.cpp"
     "dsb_protocol_execution.cpp"
-    "dsb_proxy.cpp"
     "dsb_util.cpp"
 
     "dsb_domain_controller.cpp"
@@ -62,7 +67,10 @@ set (_sources
     "dsb_model.cpp"
 )
 set (_testSources
-    "dsb_comm_test.cpp"
+    "dsb_comm_messaging_test.cpp"
+    "dsb_comm_proxy_test.cpp"
+    "dsb_comm_reactor_test.cpp"
+    "dsb_comm_util_test.cpp"
     "dsb_compat_helpers_test.cpp"
     "dsb_protobuf_test.cpp"
     "dsb_protocol_domain_test.cpp"
@@ -70,7 +78,6 @@ set (_testSources
     "dsb_domain_controller_test.cpp"
     "dsb_execution_controller_test.cpp"
     "dsb_inproc_rpc_test.cpp"
-    "dsb_proxy_test.cpp"
     "dsb_util_test.cpp"
 )
 

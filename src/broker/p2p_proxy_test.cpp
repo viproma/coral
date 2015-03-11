@@ -6,7 +6,7 @@
 #include "boost/chrono.hpp"
 #include "zmq.hpp"
 
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
 #include "dsb/compat_helpers.hpp"
 
 namespace dd = dsb::domain_broker;

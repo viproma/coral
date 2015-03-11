@@ -1,7 +1,7 @@
 #include "dsb/inproc_rpc.hpp"
 
 #include "boost/foreach.hpp"
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
 #include "dsb/compat_helpers.hpp"
 #include "dsb/protocol/glue.hpp"
 #include "dsb/protobuf.hpp"

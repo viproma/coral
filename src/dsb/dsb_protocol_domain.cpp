@@ -1,7 +1,7 @@
 #include "dsb/protocol/domain.hpp"
 
 #include <cstring>
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/util.hpp"

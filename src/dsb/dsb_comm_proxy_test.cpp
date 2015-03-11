@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 #include "dsb/config.h"
-#include "dsb/proxy.hpp"
+#include "dsb/comm/proxy.hpp"
 
-using namespace dsb::proxy;
+using namespace dsb::comm;
 
 
 TEST(dsb_proxy, unidirectional)

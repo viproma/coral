@@ -7,7 +7,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
 #include "dsb/protocol/execution.hpp"
 #include "execution.pb.h"
 

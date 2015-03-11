@@ -5,7 +5,7 @@
 
 #include "dsb/bus/execution_agent.hpp"
 #include "dsb/bus/slave_tracker.hpp"
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
 #include "dsb/inproc_rpc.hpp"
 #include "dsb/protocol/execution.hpp"
 #include "execution.pb.h"

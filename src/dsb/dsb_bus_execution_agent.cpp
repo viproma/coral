@@ -2,7 +2,7 @@
 
 #include <iostream> // TEMPORARY
 #include <limits>
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
 #include "dsb/protocol/execution.hpp"
 #include "dsb/util.hpp"
 

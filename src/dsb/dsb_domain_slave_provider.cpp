@@ -10,7 +10,7 @@
 #include "boost/thread.hpp"
 #include "zmq.hpp"
 
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protocol/glue.hpp"
 #include "dsb/protobuf.hpp"

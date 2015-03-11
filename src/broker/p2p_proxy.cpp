@@ -6,7 +6,8 @@
 
 #include "boost/lexical_cast.hpp"
 #include "boost/thread.hpp"
-#include "dsb/comm.hpp"
+#include "dsb/comm/messaging.hpp"
+#include "dsb/comm/util.hpp"
 #include "dsb/config.h"
 #include "dsb/util.hpp"
 
