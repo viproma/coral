@@ -35,7 +35,7 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     rep2.setsockopt(ZMQ_IDENTITY, server2Id.c_str(), server2Id.size());
 
     std::uint16_t port = 0;
-    auto proxy = SpawnP2PProxy(ctx, "*", port);
+    auto proxy = SpawnTcpP2PProxy(ctx, "*", port);
     ASSERT_GT(port, 0);
 
     const auto endpoint = "tcp://localhost:" + std::to_string(port);
@@ -100,5 +100,5 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     EXPECT_TRUE(recvRep1Msg[1].size() == 0);
     EXPECT_EQ(body3, dsb::comm::ToString(recvRep1Msg[2]));
 
-    proxy.send("", 0);
+    proxy.Terminate();
 }
