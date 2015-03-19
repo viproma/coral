@@ -18,6 +18,7 @@ set (_privateHeaders
     "dsb/bus/slave_agent.hpp"
     "dsb/bus/slave_tracker.hpp"
     "dsb/comm/messaging.hpp"
+    "dsb/comm/p2p.hpp"
     "dsb/comm/proxy.hpp"
     "dsb/comm/reactor.hpp"
     "dsb/comm/util.hpp"
@@ -48,6 +49,7 @@ set (_sources
     "dsb_bus_slave_agent.cpp"
     "dsb_bus_slave_tracker.cpp"
     "dsb_comm_messaging.cpp"
+    "dsb_comm_p2p.cpp"
     "dsb_comm_proxy.cpp"
     "dsb_comm_reactor.cpp"
     "dsb_comm_util.cpp"
@@ -68,6 +70,7 @@ set (_sources
 )
 set (_testSources
     "dsb_comm_messaging_test.cpp"
+    "dsb_comm_p2p_test.cpp"
     "dsb_comm_proxy_test.cpp"
     "dsb_comm_reactor_test.cpp"
     "dsb_comm_util_test.cpp"
@@ -97,7 +100,7 @@ include_directories (${publicHeaderDir} ${privateHeaderDir})
 macro (CreateHeaderGroups _superGroup)
     foreach (_hdr ${ARGN})
         unset (_pkg)
-        string (REGEX REPLACE ".*dsb/([a-zA-Z_]+)/[a-zA-Z_]+.hpp" "\\1" _pkg "${_hdr}")
+        string (REGEX REPLACE ".*dsb/([a-zA-Z0-9_]+)/[a-zA-Z0-9_]+.hpp" "\\1" _pkg "${_hdr}")
         if (_pkg STREQUAL _hdr)
             source_group ("${_superGroup}" FILES "${_hdr}")
         else ()

@@ -1,10 +1,22 @@
 #include "dsb/comm/util.hpp"
 
+#include "boost/lexical_cast.hpp"
+
 
 namespace dsb
 {
 namespace comm
 {
+
+
+std::uint16_t BindToEphemeralPort(
+    zmq::socket_t& socket,
+    const std::string& networkInterface)
+{
+    const auto endpoint = "tcp://" + networkInterface + ":*";
+    socket.bind(endpoint.c_str());
+    return EndpointPort(dsb::comm::LastEndpoint(socket));
+}
 
 
 std::string dsb::comm::LastEndpoint(zmq::socket_t& socket)
@@ -15,6 +27,19 @@ std::string dsb::comm::LastEndpoint(zmq::socket_t& socket)
     socket.getsockopt(ZMQ_LAST_ENDPOINT, buffer, &length);
     assert (length > 0 && buffer[length-1] == '\0');
     return std::string(buffer, length-1);
+}
+
+
+std::uint16_t EndpointPort(const std::string& endpoint)
+{
+    // We expect a string on the form "tcp://addr:port", where the 'addr' and
+    // 'port' substrings must both be at least one character long, and look for
+    // the last colon.
+    const size_t colonPos = endpoint.rfind(':');
+    if (endpoint.size() < 9 || colonPos < 7 || colonPos >= endpoint.size() - 1) {
+        throw std::invalid_argument("Invalid endpoint specification: " + endpoint);
+    }
+    return boost::lexical_cast<std::uint16_t>(endpoint.substr(colonPos + 1));
 }
 
 
