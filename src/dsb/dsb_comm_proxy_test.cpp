@@ -17,13 +17,13 @@ TEST(dsb_proxy, unidirectional)
     auto be = zmq::socket_t(*ctx, ZMQ_PULL);
     be.connect("inproc://dsb_proxy_test_backend");
 
-    for (char c = 0; c < 10; ++c) {
-        fe.send(&c, sizeof(c));
+    for (char ctx = 0; ctx < 10; ++ctx) {
+        fe.send(&ctx, sizeof(ctx));
     }
-    for (char c = 0; c < 10; ++c) {
+    for (char ctx = 0; ctx < 10; ++ctx) {
         char buf = -1;
         EXPECT_EQ(sizeof(buf), be.recv(&buf, sizeof(buf)));
-        EXPECT_EQ(c, buf);
+        EXPECT_EQ(ctx, buf);
     }
     proxy.Stop();
     EXPECT_TRUE(proxy.Thread__().try_join_for(boost::chrono::milliseconds(10)));

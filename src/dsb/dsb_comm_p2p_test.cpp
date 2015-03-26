@@ -13,6 +13,16 @@
 using namespace dsb::comm;
 
 
+namespace
+{
+    bool StillRunning(BackgroundP2PProxy& p)
+    {
+        auto& t = p.Thread__();
+        return t.joinable() && !t.try_join_for(boost::chrono::milliseconds(10));
+    }
+}
+
+
 TEST(dsb_comm, P2PProxy_bidirectional)
 {
     const std::string client1Id = "client1";
@@ -35,7 +45,8 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     rep2.setsockopt(ZMQ_IDENTITY, server2Id.c_str(), server2Id.size());
 
     std::uint16_t port = 0;
-    auto proxy = SpawnP2PProxy(ctx, "*", port);
+    auto proxy = SpawnTcpP2PProxy(ctx, "*", port);
+    ASSERT_TRUE(StillRunning(proxy));
     ASSERT_GT(port, 0);
 
     const auto endpoint = "tcp://localhost:" + std::to_string(port);
@@ -100,5 +111,36 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     EXPECT_TRUE(recvRep1Msg[1].size() == 0);
     EXPECT_EQ(body3, dsb::comm::ToString(recvRep1Msg[2]));
 
-    proxy.send("", 0);
+    ASSERT_TRUE(StillRunning(proxy));
+    proxy.Terminate();
+    ASSERT_FALSE(StillRunning(proxy));
+}
+
+TEST(dsb_comm, P2PProxy_timeout)
+{
+    auto ctx = std::make_shared<zmq::context_t>();
+    auto proxy = BackgroundP2PProxy(ctx,
+        zmq::socket_t(*ctx, ZMQ_ROUTER),
+        boost::chrono::milliseconds(100));
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+    EXPECT_TRUE(StillRunning(proxy));
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
+    EXPECT_FALSE(StillRunning(proxy));
+}
+
+TEST(dsb_comm, P2PProxy_misc)
+{
+    auto ctx = std::make_shared<zmq::context_t>();
+    auto proxy = BackgroundP2PProxy(ctx,
+        zmq::socket_t(*ctx, ZMQ_ROUTER),
+        boost::chrono::milliseconds(500));
+    EXPECT_TRUE(StillRunning(proxy));
+    auto proxy2 = std::move(proxy); // move construction
+    EXPECT_FALSE(StillRunning(proxy));
+    EXPECT_TRUE(StillRunning(proxy2));
+    proxy = std::move(proxy2); // move assignment
+    EXPECT_FALSE(StillRunning(proxy2));
+    EXPECT_TRUE(StillRunning(proxy));
+    proxy.Detach();
+    EXPECT_FALSE(StillRunning(proxy));
 }

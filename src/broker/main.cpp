@@ -122,7 +122,7 @@ int main(int argc, const char** argv)
         std::move(reportSlavePSocket));
 
     std::uint16_t infoPort = 0;
-    auto info = dsb::comm::SpawnP2PProxy(context, "*", infoPort);
+    auto infoProxy = dsb::comm::SpawnTcpP2PProxy(context, "*", infoPort);
     const auto infoEndpoint = "tcp://*:" + std::to_string(infoPort);
 
     std::cout << "Domain broker bound to the following endpoints: \n"
