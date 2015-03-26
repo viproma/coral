@@ -11,6 +11,7 @@
 #include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
+#include "dsb/comm/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protocol/glue.hpp"
 #include "dsb/protobuf.hpp"
@@ -31,13 +32,12 @@ void dsb::domain::SlaveProvider(
 {
     const auto domainLoc = GetDomainEndpoints(domainBrokerAddress);
 
-    auto context = zmq::context_t();
-    auto report = zmq::socket_t(context, ZMQ_PUB);
+    auto report = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PUB);
     report.connect(domainLoc.ReportSlavePEndpoint().c_str());
 
     const auto myId = dsb::util::RandomUUID();
 
-    auto info = zmq::socket_t(context, ZMQ_DEALER);
+    auto info = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_DEALER);
     info.setsockopt(ZMQ_IDENTITY, myId.data(), myId.size());
     info.connect(domainLoc.InfoSlavePEndpoint().c_str());
 

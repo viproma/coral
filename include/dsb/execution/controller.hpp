@@ -169,7 +169,6 @@ public:
 private:
     // NOTE: When adding members here, remember to update the move constructor
     // and the move assignment operator!
-    std::shared_ptr<zmq::context_t> m_context;
     zmq::socket_t m_rpcSocket;
     zmq::socket_t m_asyncInfoSocket;
     bool m_active;

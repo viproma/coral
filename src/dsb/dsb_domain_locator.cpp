@@ -1,6 +1,8 @@
 #include "dsb/domain/locator.hpp"
 #include "zmq.hpp"
 #include "dsb/comm/messaging.hpp"
+#include "dsb/comm/util.hpp"
+
 
 namespace dsb
 {
@@ -53,8 +55,7 @@ Locator GetDomainEndpoints(const std::string& domainBrokerAddress)
     }
     const auto baseAddress = domainBrokerAddress.substr(0, colonPos+1);
 
-    zmq::context_t ctx;
-    auto sck = zmq::socket_t(ctx, ZMQ_REQ);
+    auto sck = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
     sck.connect(domainBrokerAddress.c_str());
     std::deque<zmq::message_t> msg;
     msg.push_back(dsb::comm::ToFrame("GET_PROXY_PORTS"));

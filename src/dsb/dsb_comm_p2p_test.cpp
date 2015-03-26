@@ -6,6 +6,7 @@
 #include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
+#include "dsb/comm/util.hpp"
 #include "dsb/compat_helpers.hpp"
 
 #include "dsb/comm/p2p.hpp"
@@ -34,18 +35,18 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     const std::string body3 = "eeer...";
     const std::string body4 = "yeee-haaw!";
 
-    auto ctx = std::make_shared<zmq::context_t>();
-    auto req1 = zmq::socket_t(*ctx, ZMQ_REQ);
+    zmq::context_t ctx;
+    auto req1 = zmq::socket_t(ctx, ZMQ_REQ);
     req1.setsockopt(ZMQ_IDENTITY, client1Id.c_str(), client1Id.size());
-    auto rep1 = zmq::socket_t(*ctx, ZMQ_DEALER);
+    auto rep1 = zmq::socket_t(ctx, ZMQ_DEALER);
     rep1.setsockopt(ZMQ_IDENTITY, server1Id.c_str(), server1Id.size());
-    auto req2  = zmq::socket_t(*ctx, ZMQ_REQ);
+    auto req2  = zmq::socket_t(ctx, ZMQ_REQ);
     req2.setsockopt(ZMQ_IDENTITY, client2Id.c_str(), client2Id.size());
-    auto rep2 = zmq::socket_t(*ctx, ZMQ_DEALER);
+    auto rep2 = zmq::socket_t(ctx, ZMQ_DEALER);
     rep2.setsockopt(ZMQ_IDENTITY, server2Id.c_str(), server2Id.size());
 
     std::uint16_t port = 0;
-    auto proxy = SpawnTcpP2PProxy(ctx, "*", port);
+    auto proxy = SpawnTcpP2PProxy("*", port);
     ASSERT_TRUE(StillRunning(proxy));
     ASSERT_GT(port, 0);
 
@@ -118,9 +119,8 @@ TEST(dsb_comm, P2PProxy_bidirectional)
 
 TEST(dsb_comm, P2PProxy_timeout)
 {
-    auto ctx = std::make_shared<zmq::context_t>();
-    auto proxy = BackgroundP2PProxy(ctx,
-        zmq::socket_t(*ctx, ZMQ_ROUTER),
+    auto proxy = BackgroundP2PProxy(
+        zmq::socket_t(GlobalContext(), ZMQ_ROUTER),
         boost::chrono::milliseconds(100));
     boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
     EXPECT_TRUE(StillRunning(proxy));
@@ -130,9 +130,8 @@ TEST(dsb_comm, P2PProxy_timeout)
 
 TEST(dsb_comm, P2PProxy_misc)
 {
-    auto ctx = std::make_shared<zmq::context_t>();
-    auto proxy = BackgroundP2PProxy(ctx,
-        zmq::socket_t(*ctx, ZMQ_ROUTER),
+    auto proxy = BackgroundP2PProxy(
+        zmq::socket_t(GlobalContext(), ZMQ_ROUTER),
         boost::chrono::milliseconds(500));
     EXPECT_TRUE(StillRunning(proxy));
     auto proxy2 = std::move(proxy); // move construction

@@ -11,6 +11,7 @@
 
 #include "dsb/bus/execution_agent.hpp"
 #include "dsb/comm/messaging.hpp"
+#include "dsb/comm/util.hpp"
 #include "dsb/compat_helpers.hpp"
 #include "dsb/inproc_rpc.hpp"
 #include "dsb/protobuf.hpp"
@@ -22,19 +23,18 @@
 namespace
 {
     void ControllerLoop(
-        std::shared_ptr<zmq::context_t> context,
         std::shared_ptr<std::string> rpcEndpoint,
         std::shared_ptr<std::string> asyncInfoEndpoint,
         std::shared_ptr<dsb::execution::Locator> execLocator)
     {
-        auto rpcSocket = zmq::socket_t(*context, ZMQ_PAIR);
+        auto rpcSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PAIR);
         rpcSocket.connect(rpcEndpoint->c_str());
 
         // TODO: This socket is currently not used for anything!
-        auto asyncInfoSocket = zmq::socket_t(*context, ZMQ_PAIR);
+        auto asyncInfoSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PAIR);
         asyncInfoSocket.connect(asyncInfoEndpoint->c_str());
 
-        auto slaveControlSocket = zmq::socket_t(*context, ZMQ_ROUTER);
+        auto slaveControlSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_ROUTER);
         slaveControlSocket.connect(execLocator->MasterEndpoint().c_str());
 
         // Main messaging loop
@@ -60,7 +60,7 @@ namespace
             }
         }
 
-        auto execTerminationSocket = zmq::socket_t(*context, ZMQ_REQ);
+        auto execTerminationSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
         execTerminationSocket.connect(execLocator->ExecTerminationEndpoint().c_str());
         std::deque<zmq::message_t> termMsg;
         termMsg.push_back(dsb::comm::ToFrame("TERMINATE_EXECUTION"));
@@ -82,9 +82,8 @@ namespace
 
 
 dsb::execution::Controller::Controller(const dsb::execution::Locator& locator)
-    : m_context(std::make_shared<zmq::context_t>()),
-      m_rpcSocket(*m_context, ZMQ_PAIR),
-      m_asyncInfoSocket(*m_context, ZMQ_PAIR),
+    : m_rpcSocket(dsb::comm::GlobalContext(), ZMQ_PAIR),
+      m_asyncInfoSocket(dsb::comm::GlobalContext(), ZMQ_PAIR),
       m_active(true)
 {
     auto rpcEndpoint =
@@ -94,14 +93,13 @@ dsb::execution::Controller::Controller(const dsb::execution::Locator& locator)
     m_rpcSocket.bind(rpcEndpoint->c_str());
     m_asyncInfoSocket.bind(asyncInfoEndpoint->c_str());
     m_thread = boost::thread(ControllerLoop,
-        m_context, rpcEndpoint, asyncInfoEndpoint,
+        rpcEndpoint, asyncInfoEndpoint,
         std::make_shared<dsb::execution::Locator>(locator));
 }
 
 
 dsb::execution::Controller::Controller(Controller&& other) DSB_NOEXCEPT
-    : m_context(std::move(other.m_context)),
-      m_rpcSocket(std::move(other.m_rpcSocket)),
+    : m_rpcSocket(std::move(other.m_rpcSocket)),
       m_asyncInfoSocket(std::move(other.m_asyncInfoSocket)),
       m_active(dsb::util::MoveAndReplace(other.m_active, false)),
       m_thread(std::move(other.m_thread))
@@ -116,9 +114,6 @@ dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& o
     m_asyncInfoSocket   = std::move(other.m_asyncInfoSocket);
     m_active            = dsb::util::MoveAndReplace(other.m_active, false);
     m_thread            = std::move(other.m_thread);
-    // Move the context last, in case it overwrites and destroys another
-    // context that is used by the above sockets.
-    m_context           = std::move(other.m_context);
     return *this;
 }
 
@@ -211,8 +206,7 @@ dsb::execution::Locator dsb::execution::SpawnExecution(
         ? Timestamp()
         : executionName;
 
-    zmq::context_t ctx;
-    auto sck = zmq::socket_t(ctx, ZMQ_REQ);
+    auto sck = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
     sck.connect(domainLocator.ExecReqEndpoint().c_str());
 
     std::deque<zmq::message_t> msg;

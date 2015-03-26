@@ -1,29 +1,29 @@
 #include "gtest/gtest.h"
 #include "dsb/config.h"
 #include "dsb/comm/proxy.hpp"
+#include "dsb/comm/util.hpp"
 
 using namespace dsb::comm;
 
 
 TEST(dsb_proxy, unidirectional)
 {
-    auto ctx = std::make_shared<zmq::context_t>();
-    auto proxy = SpawnProxy(ctx,
+    auto proxy = SpawnProxy(
         ZMQ_PULL, "inproc://dsb_proxy_test_frontend",
         ZMQ_PUSH, "inproc://dsb_proxy_test_backend");
 
-    auto fe = zmq::socket_t(*ctx, ZMQ_PUSH);
+    auto fe = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PUSH);
     fe.connect("inproc://dsb_proxy_test_frontend");
-    auto be = zmq::socket_t(*ctx, ZMQ_PULL);
+    auto be = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PULL);
     be.connect("inproc://dsb_proxy_test_backend");
 
-    for (char ctx = 0; ctx < 10; ++ctx) {
-        fe.send(&ctx, sizeof(ctx));
+    for (char c = 0; c < 10; ++c) {
+        fe.send(&c, sizeof(c));
     }
-    for (char ctx = 0; ctx < 10; ++ctx) {
+    for (char c = 0; c < 10; ++c) {
         char buf = -1;
         EXPECT_EQ(sizeof(buf), be.recv(&buf, sizeof(buf)));
-        EXPECT_EQ(ctx, buf);
+        EXPECT_EQ(c, buf);
     }
     proxy.Stop();
     EXPECT_TRUE(proxy.Thread__().try_join_for(boost::chrono::milliseconds(10)));
@@ -32,8 +32,7 @@ TEST(dsb_proxy, unidirectional)
 
 TEST(dsb_proxy, bidirectional_multiclient)
 {
-    auto ctx = std::make_shared<zmq::context_t>();
-    auto proxy = SpawnProxy(ctx,
+    auto proxy = SpawnProxy(
         ZMQ_ROUTER, "inproc://dsb_proxy_test_frontend",
         ZMQ_DEALER, "inproc://dsb_proxy_test_backend");
 
@@ -41,13 +40,13 @@ TEST(dsb_proxy, bidirectional_multiclient)
     std::vector<zmq::socket_t> clients;
     for (int k = 0; k < CLIENT_COUNT; ++k) {
 #if DSB_USE_MSVC_EMPLACE_WORKAROUND
-        clients.emplace_back(zmq::socket_t(*ctx, ZMQ_REQ));
+        clients.emplace_back(zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ));
 #else
-        clients.emplace_back(*ctx, ZMQ_REQ);
+        clients.emplace_back(dsb::comm::GlobalContext(), ZMQ_REQ);
 #endif
         clients.back().connect("inproc://dsb_proxy_test_frontend");
     }
-    auto server = zmq::socket_t(*ctx, ZMQ_REP);
+    auto server = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REP);
     server.connect("inproc://dsb_proxy_test_backend");
 
     for (int i = 0; i < 100; ++i) {
@@ -77,14 +76,13 @@ TEST(dsb_proxy, silence_timeout)
     using namespace boost::chrono;
     using namespace boost::this_thread;
 
-    auto ctx = std::make_shared<zmq::context_t>();
-    auto proxy = SpawnProxy(ctx,
+    auto proxy = SpawnProxy(
         ZMQ_PULL, "inproc://dsb_proxy_test_frontend",
         ZMQ_PUSH, "inproc://dsb_proxy_test_backend",
         milliseconds(200));
-    auto push = zmq::socket_t(*ctx, ZMQ_PUSH);
+    auto push = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PUSH);
     push.connect("inproc://dsb_proxy_test_frontend");
-    auto pull = zmq::socket_t(*ctx, ZMQ_PULL);
+    auto pull = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PULL);
     pull.connect("inproc://dsb_proxy_test_backend");
 
     sleep_for(milliseconds(100));

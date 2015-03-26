@@ -24,18 +24,17 @@
 namespace
 {
     dsb::comm::Proxy EphemeralProxy(
-        std::shared_ptr<zmq::context_t> context,
         int frontendType,
         int backendType,
         std::uint16_t& frontendPort,
         std::uint16_t& backendPort,
         boost::chrono::milliseconds silenceTimeout)
     {
-        auto fe = zmq::socket_t(*context, frontendType);
-        auto be = zmq::socket_t(*context, backendType);
+        auto fe = zmq::socket_t(dsb::comm::GlobalContext(), frontendType);
+        auto be = zmq::socket_t(dsb::comm::GlobalContext(), backendType);
         const auto fep = dsb::comm::BindToEphemeralPort(fe);
         const auto bep = dsb::comm::BindToEphemeralPort(be);
-        auto p = dsb::comm::SpawnProxy(context, std::move(fe), std::move(be), silenceTimeout);
+        auto p = dsb::comm::SpawnProxy(std::move(fe), std::move(be), silenceTimeout);
         //----- No exceptions may be thrown below this line -----
         frontendPort = fep;
         backendPort = bep;
@@ -46,14 +45,13 @@ namespace
     {
     public:
         ExecutionBroker(
-            std::shared_ptr<zmq::context_t> context,
             boost::chrono::seconds commTimeout)
             : m_masterControlPort(0), m_slaveControlPort(0),
               m_dataPubPort(0), m_dataSubPort(0),
-              m_control(EphemeralProxy(context, ZMQ_DEALER, ZMQ_ROUTER,
+              m_control(EphemeralProxy(ZMQ_DEALER, ZMQ_ROUTER,
                                        m_masterControlPort, m_slaveControlPort,
                                        commTimeout)),
-              m_data(EphemeralProxy(context, ZMQ_XSUB, ZMQ_XPUB,
+              m_data(EphemeralProxy(ZMQ_XSUB, ZMQ_XPUB,
                                     m_dataSubPort, m_dataPubPort, commTimeout))
         {
             assert (m_masterControlPort > 0);
@@ -103,26 +101,24 @@ int main(int argc, const char** argv)
 {
     const long long basePort = argc > 1 ? std::atol(argv[1]) : 10243;
 
-    auto context = std::make_shared<zmq::context_t>();
     const auto execReqEndpoint = "tcp://*:" + std::to_string(basePort);
-    auto executionRequest = zmq::socket_t(*context, ZMQ_REP);
+    auto executionRequest = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REP);
     executionRequest.bind(execReqEndpoint.c_str());
 
-    auto reportMasterSocket         = zmq::socket_t(*context, ZMQ_XPUB);
+    auto reportMasterSocket         = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_XPUB);
     const auto reportMasterPort     = dsb::comm::BindToEphemeralPort(reportMasterSocket);
     const auto reportMasterEndpoint = "tcp://*:" + std::to_string(reportMasterPort);
 
-    auto reportSlavePSocket         = zmq::socket_t(*context, ZMQ_XSUB);
+    auto reportSlavePSocket         = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_XSUB);
     const auto reportSlavePPort     = dsb::comm::BindToEphemeralPort(reportSlavePSocket);
     const auto reportSlavePEndpoint = "tcp://*:" + std::to_string(reportSlavePPort);
 
     auto report = dsb::comm::SpawnProxy(
-        context,
         std::move(reportMasterSocket),
         std::move(reportSlavePSocket));
 
     std::uint16_t infoPort = 0;
-    auto infoProxy = dsb::comm::SpawnTcpP2PProxy(context, "*", infoPort);
+    auto infoProxy = dsb::comm::SpawnTcpP2PProxy("*", infoPort);
     const auto infoEndpoint = "tcp://*:" + std::to_string(infoPort);
 
     std::cout << "Domain broker bound to the following endpoints: \n"
@@ -154,7 +150,7 @@ int main(int argc, const char** argv)
                     throw std::runtime_error("Execution name already in use: " + execName);
                 }
                 auto b = executionBrokers.insert(
-                    std::make_pair(execName, ExecutionBroker(context, commTimeout))
+                    std::make_pair(execName, ExecutionBroker(commTimeout))
                     ).first;
                 msg.clear();
                 msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION_OK"));

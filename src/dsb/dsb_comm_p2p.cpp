@@ -100,20 +100,17 @@ namespace
     {
     public:
         ProxyFunctor(
-            std::shared_ptr<zmq::context_t> context,
             zmq::socket_t&& routerSocket,
             zmq::socket_t&& controlSocket,
             boost::chrono::milliseconds timeout)
-            : m_context(context),
-              m_routerSocket(std::move(routerSocket)),
+            : m_routerSocket(std::move(routerSocket)),
               m_controlSocket(std::move(controlSocket)),
               m_timeout(timeout)
         {
         }
 
         ProxyFunctor(ProxyFunctor&& other) DSB_NOEXCEPT
-            : m_context(std::move(other.m_context)),
-              m_routerSocket(std::move(other.m_routerSocket)),
+            : m_routerSocket(std::move(other.m_routerSocket)),
               m_controlSocket(std::move(other.m_controlSocket)),
               m_timeout(other.m_timeout)
         {
@@ -125,7 +122,6 @@ namespace
         }
 
     private:
-        std::shared_ptr<zmq::context_t> m_context;
         zmq::socket_t m_routerSocket;
         zmq::socket_t m_controlSocket;
         boost::chrono::milliseconds m_timeout;
@@ -134,17 +130,16 @@ namespace
 
 
 BackgroundP2PProxy::BackgroundP2PProxy(
-    std::shared_ptr<zmq::context_t> context,
     zmq::socket_t&& routerSocket,
     boost::chrono::milliseconds timeout)
-    : m_controlSocket(*context, ZMQ_PAIR)
+    : m_controlSocket(GlobalContext(), ZMQ_PAIR)
 {
     EnforceRouter(routerSocket);
     DSB_INPUT_CHECK(timeout == NEVER_TIMEOUT
         || (timeout.count() > 0
             && timeout.count() < std::numeric_limits<long>::max()));
 
-    auto controlSocketRemote = zmq::socket_t(*context, ZMQ_PAIR);
+    auto controlSocketRemote = zmq::socket_t(GlobalContext(), ZMQ_PAIR);
     const int linger = 0;
     m_controlSocket.setsockopt(ZMQ_LINGER, &linger, sizeof(linger));
     controlSocketRemote.setsockopt(ZMQ_LINGER, &linger, sizeof(linger));
@@ -153,7 +148,6 @@ BackgroundP2PProxy::BackgroundP2PProxy(
     m_controlSocket.bind(controlEndpoint.c_str());
     controlSocketRemote.connect(controlEndpoint.c_str());
     m_thread = boost::thread(ProxyFunctor(
-        context,
         std::move(routerSocket),
         std::move(controlSocketRemote),
         timeout));
@@ -217,14 +211,13 @@ boost::thread& BackgroundP2PProxy::Thread__()
 
 
 BackgroundP2PProxy SpawnTcpP2PProxy(
-    std::shared_ptr<zmq::context_t> context,
     const std::string& networkInterface,
     boost::chrono::milliseconds timeout,
     std::uint16_t& ephemeralPort)
 {
-    auto routerSocket = zmq::socket_t(*context, ZMQ_ROUTER);
+    auto routerSocket = zmq::socket_t(GlobalContext(), ZMQ_ROUTER);
     const auto ephemeralPort_ = BindToEphemeralPort(routerSocket, networkInterface);
-    auto proxy = BackgroundP2PProxy(context, std::move(routerSocket), timeout);
+    auto proxy = BackgroundP2PProxy(std::move(routerSocket), timeout);
     // ---- Critical line; no exceptions thrown below ----
     ephemeralPort = ephemeralPort_;
     return std::move(proxy);
@@ -232,11 +225,10 @@ BackgroundP2PProxy SpawnTcpP2PProxy(
 
 
 BackgroundP2PProxy SpawnTcpP2PProxy(
-    std::shared_ptr<zmq::context_t> context,
     const std::string& networkInterface,
     std::uint16_t& ephemeralPort)
 {
-    return SpawnTcpP2PProxy(context, networkInterface, NEVER_TIMEOUT, ephemeralPort);
+    return SpawnTcpP2PProxy(networkInterface, NEVER_TIMEOUT, ephemeralPort);
 }
 
 

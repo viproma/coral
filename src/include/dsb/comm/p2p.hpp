@@ -105,9 +105,11 @@ public:
     \brief  Starts a proxy which uses the given socket to route messages between
             peers.
 
-    \param [in] context
-        The context to use for the "control" communication between the
-        foreground and background threads.
+    It is recommended that `routerSocket` be a socket created with the ZMQ
+    context returned by dsb::comm:GlobalContext().  Otherwise, care must be
+    taken to ensure that `routerSocket`'s context does not get destroyed while
+    the proxy is still running.
+
     \param [in] routerSocket
         A socket of ROUTER type, which will be used for routing messages between
         clients and servers.
@@ -119,7 +121,6 @@ public:
     \throws zmq::error_t if ZMQ reports an error.
     */
     BackgroundP2PProxy(
-        std::shared_ptr<zmq::context_t> context,
         zmq::socket_t&& routerSocket,
         boost::chrono::milliseconds timeout = NEVER_TIMEOUT);
 
@@ -174,9 +175,6 @@ private:
 This is a convenience function which creates a BackgroundP2PProxy which is
 already bound to a TCP endpoint using an ephemeral port number.
 
-\param [in] context    
-    A ZMQ context which will be used for the proxy router socket as well as
-    being passed on to the BackgroundP2PProxy constructor.
 \param [in] networkInterface
     The network interface to which the proxy should bind.  That is, the proxy
     will be bound to the endpoint `tcp://networkInterface:*`).
@@ -191,14 +189,12 @@ already bound to a TCP endpoint using an ephemeral port number.
 \throws zmq::error_t if ZMQ reports an error.
 */
 BackgroundP2PProxy SpawnTcpP2PProxy(
-    std::shared_ptr<zmq::context_t> context,
     const std::string& networkInterface,
     boost::chrono::milliseconds timeout,
     std::uint16_t& ephemeralPort);
 
 /// An overload of SpawnTcpP2PProxy where `timeout = NEVER_TIMEOUT`.
 BackgroundP2PProxy SpawnTcpP2PProxy(
-    std::shared_ptr<zmq::context_t> context,
     const std::string& networkInterface,
     std::uint16_t& ephemeralPort);
 
