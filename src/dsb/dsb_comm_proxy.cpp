@@ -5,6 +5,8 @@
 
 #include "boost/numeric/conversion/cast.hpp"
 #include "boost/thread.hpp"
+
+#include "dsb/comm/util.hpp"
 #include "dsb/util.hpp"
 
 
@@ -57,13 +59,11 @@ namespace
     {
     public:
         ProxyFunctor(
-            std::shared_ptr<zmq::context_t> context,
             Unique<zmq::socket_t> socket1,
             Unique<zmq::socket_t> socket2,
             const std::string& controlEndpoint,
             long silenceTimeoutMillis)
-            : m_context(context),
-              m_socket1(socket1),
+            : m_socket1(socket1),
               m_socket2(socket2),
               // std::string was never designed for thread safety, and may be
               // implemented with COW, so we trick it into always making a copy.
@@ -74,12 +74,11 @@ namespace
 
         void operator()()
         {
-            assert ((void*) *m_context);
             assert ((void*) m_socket1.Payload());
             assert ((void*) m_socket2.Payload());
             assert (!m_controlEndpoint.empty());
 
-            auto controlSocket = zmq::socket_t(*m_context, ZMQ_PAIR);
+            auto controlSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PAIR);
             controlSocket.connect(m_controlEndpoint.c_str());
             zmq::pollitem_t pollItems[3] = {
                 { controlSocket,        0, ZMQ_POLLIN, 0 },
@@ -103,7 +102,6 @@ namespace
         }
 
     private:
-        std::shared_ptr<zmq::context_t> m_context;
         Unique<zmq::socket_t> m_socket1;
         Unique<zmq::socket_t> m_socket2;
         const std::string m_controlEndpoint;
@@ -161,18 +159,16 @@ boost::thread& dsb::comm::Proxy::Thread__()
 
 
 dsb::comm::Proxy dsb::comm::SpawnProxy(
-    std::shared_ptr<zmq::context_t> context,
     zmq::socket_t&& socket1,
     zmq::socket_t&& socket2,
     boost::chrono::milliseconds silenceTimeout)
 {
-    assert ((void*) *context && "context not initialised");
     assert ((void*) socket1 && "socket1 not initialised");
     assert ((void*) socket2 && "socket2 not initialised");
     auto silenceTimeoutMillis = boost::numeric_cast<long>(silenceTimeout.count());
 
     const auto controlEndpoint = "inproc://" + dsb::util::RandomUUID();
-    auto controlSocket = zmq::socket_t(*context, ZMQ_PAIR);
+    auto controlSocket = zmq::socket_t(GlobalContext(), ZMQ_PAIR);
     // We set the linger period to zero milliseconds because the proxy may have
     // terminated (due to timeout) by the time we try to send anything to it.
     const int lingerMillis = 0;
@@ -180,7 +176,6 @@ dsb::comm::Proxy dsb::comm::SpawnProxy(
     controlSocket.bind(controlEndpoint.c_str());
 
     auto thread = boost::thread(ProxyFunctor(
-            context,
             Unique<zmq::socket_t>(std::move(socket1)),
             Unique<zmq::socket_t>(std::move(socket2)),
             controlEndpoint,
@@ -193,15 +188,13 @@ dsb::comm::Proxy dsb::comm::SpawnProxy(
 
 
 dsb::comm::Proxy dsb::comm::SpawnProxy(
-    std::shared_ptr<zmq::context_t> context,
     int socketType1, const std::string& endpoint1,
     int socketType2, const std::string& endpoint2,
     boost::chrono::milliseconds silenceTimeout)
 {
-    assert ((void*) *context && "context not initialised");
-    auto socket1 = zmq::socket_t(*context, socketType1);
+    auto socket1 = zmq::socket_t(GlobalContext(), socketType1);
     socket1.bind(endpoint1.c_str());
-    auto socket2 = zmq::socket_t(*context, socketType2);
+    auto socket2 = zmq::socket_t(GlobalContext(), socketType2);
     socket2.bind(endpoint2.c_str());
-    return SpawnProxy(context, std::move(socket1), std::move(socket2), silenceTimeout);
+    return SpawnProxy(std::move(socket1), std::move(socket2), silenceTimeout);
 }

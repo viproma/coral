@@ -21,6 +21,8 @@
 #include "dsb/bus/domain_data.hpp"
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/reactor.hpp"
+#include "dsb/comm/util.hpp"
+
 #include "dsb/error.hpp"
 #include "dsb/inproc_rpc.hpp"
 #include "dsb/protobuf.hpp"
@@ -262,23 +264,22 @@ namespace
 
 
     void MessagingLoop(
-        std::shared_ptr<zmq::context_t> context,
         std::shared_ptr<std::string> rpcEndpoint,
         std::shared_ptr<std::string> destroyEndpoint,
         std::shared_ptr<std::string> reportEndpoint,
         std::shared_ptr<std::string> infoEndpoint)
     {
-        zmq::socket_t rpcSocket(*context, ZMQ_PAIR);
+        zmq::socket_t rpcSocket(dsb::comm::GlobalContext(), ZMQ_PAIR);
         rpcSocket.connect(rpcEndpoint->c_str());
 
-        zmq::socket_t destroySocket(*context, ZMQ_PAIR);
+        zmq::socket_t destroySocket(dsb::comm::GlobalContext(), ZMQ_PAIR);
         destroySocket.connect(destroyEndpoint->c_str());
 
-        zmq::socket_t reportSocket(*context, ZMQ_SUB);
+        zmq::socket_t reportSocket(dsb::comm::GlobalContext(), ZMQ_SUB);
         dp::SubscribeToReports(reportSocket);
         reportSocket.connect(reportEndpoint->c_str());
 
-        zmq::socket_t infoSocket(*context, ZMQ_REQ);
+        zmq::socket_t infoSocket(dsb::comm::GlobalContext(), ZMQ_REQ);
         infoSocket.connect(infoEndpoint->c_str());
 
         auto domainData = dsb::bus::DomainData(
@@ -319,9 +320,8 @@ namespace domain
 
 
 Controller::Controller(const dsb::domain::Locator& locator)
-    : m_context(std::make_shared<zmq::context_t>()),
-      m_rpcSocket(*m_context, ZMQ_PAIR),
-      m_destroySocket(*m_context, ZMQ_PAIR),
+    : m_rpcSocket(dsb::comm::GlobalContext(), ZMQ_PAIR),
+      m_destroySocket(dsb::comm::GlobalContext(), ZMQ_PAIR),
       m_active(true)
 {
     const auto rpcEndpoint = std::make_shared<std::string>(
@@ -331,7 +331,6 @@ Controller::Controller(const dsb::domain::Locator& locator)
         "inproc://" + dsb::util::RandomUUID());
     m_destroySocket.bind(destroyEndpoint->c_str());
     m_thread = boost::thread(MessagingLoop,
-        m_context,
         rpcEndpoint,
         destroyEndpoint,
         std::make_shared<std::string>(locator.ReportMasterEndpoint()),
@@ -341,8 +340,7 @@ Controller::Controller(const dsb::domain::Locator& locator)
 
 
 Controller::Controller(Controller&& other) DSB_NOEXCEPT
-    : m_context(std::move(other.m_context)),
-      m_rpcSocket(std::move(other.m_rpcSocket)),
+    : m_rpcSocket(std::move(other.m_rpcSocket)),
       m_destroySocket(std::move(other.m_destroySocket)),
       m_active(dsb::util::MoveAndReplace(other.m_active, false)),
       m_thread(std::move(other.m_thread))
@@ -356,9 +354,6 @@ Controller& Controller::operator=(Controller&& other) DSB_NOEXCEPT
     m_destroySocket = std::move(other.m_destroySocket);
     m_active        = dsb::util::MoveAndReplace(other.m_active, false);
     m_thread        = std::move(other.m_thread);
-    // Move the context last, in case it overwrites and destroys another
-    // context that is used by the above sockets.
-    m_context       = std::move(other.m_context);
     return *this;
 }
 

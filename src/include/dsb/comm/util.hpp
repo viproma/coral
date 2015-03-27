@@ -17,6 +17,15 @@ namespace comm
 
 
 /**
+\brief  Returns a reference to a global ZMQ context.
+
+This function is thread safe as long as it is not used in a static
+initialisation setting.
+*/
+zmq::context_t& GlobalContext();
+
+
+/**
 \brief  Binds `socket` to an ephemeral TCP port on the given network interface
         and returns the port number.
 */

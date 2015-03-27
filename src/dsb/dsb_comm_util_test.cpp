@@ -9,6 +9,14 @@
 using namespace dsb::comm;
 
 
+TEST(dsb_comm, GlobalContext)
+{
+    auto& c1 = GlobalContext();
+    auto& c2 = GlobalContext();
+    EXPECT_EQ(&c1, &c2);
+}
+
+
 TEST(dsb_comm, BindToEphemeralPort)
 {
     zmq::context_t ctx;

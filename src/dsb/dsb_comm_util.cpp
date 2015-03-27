@@ -9,6 +9,17 @@ namespace comm
 {
 
 
+namespace
+{
+    zmq::context_t globalContext;
+}
+
+zmq::context_t& GlobalContext()
+{
+    return globalContext;
+}
+
+
 std::uint16_t BindToEphemeralPort(
     zmq::socket_t& socket,
     const std::string& networkInterface)

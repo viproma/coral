@@ -72,7 +72,6 @@ public:
 private:
     // Only SpawnProxy() may construct this class.
     friend Proxy SpawnProxy(
-        std::shared_ptr<zmq::context_t> context,
         zmq::socket_t&& socket1,
         zmq::socket_t&& socket2,
         boost::chrono::milliseconds silenceTimeout);
@@ -103,12 +102,11 @@ occur:
     period of time (see `silenceTimeout` below).
   - The program terminates.
 
-\param [in] context
-    The ZMQ context that is used to create a communication channel between the
-    proxy thread and the parent thread, for the Proxy::Stop() function. It is
-    recommended that this be the same context which is used to create `socket1`
-    and `socket2`, since it will be kept alive for at least as long as the proxy
-    runs (by the magic of `std::shared_ptr`).
+It is recommended that `socket1` and `socket2` be sockets created with the ZMQ
+context returned by dsb::comm:GlobalContext().  Otherwise, care must be
+taken to ensure that their context(s) are kept alive for as long as the proxy
+is running.
+
 \param [in] socket1
     One of the sockets that should be linked by the proxy.
 \param [in] socket2
@@ -123,13 +121,11 @@ occur:
 
 \throws zmq::error_t if ZMQ reports an error.
 
-\pre `context` refers to a valid context, and `socket1` and `socket2` refer to
-    valid, connected/bound sockets.
+\pre `socket1` and `socket2` refer to valid, connected/bound sockets.
 \post `socket1` and `socket2` no longer refer to sockets (as their contents have
     been moved to the proxy thread).
 */
 Proxy SpawnProxy(
-    std::shared_ptr<zmq::context_t> context,
     zmq::socket_t&& socket1,
     zmq::socket_t&& socket2,
     boost::chrono::milliseconds silenceTimeout = NEVER_TIMEOUT);
@@ -141,12 +137,6 @@ Proxy SpawnProxy(
 This function creates two ZMQ sockets and binds them to the specified endpoints.
 It then forwards to SpawnProxy() to spawn the actual proxy.
 
-\param [in] context
-    The ZMQ context that is used to create a communication channel between the
-    proxy thread and the parent thread, for the Proxy::Stop() function. It is
-    recommended that this be the same context which is used to create `socket1`
-    and `socket2`, since it will be kept alive for at least as long as the proxy
-    runs (by the magic of `std::shared_ptr`).
 \param [in] socketType1
     The type of the first socket.
 \param [in] endpoint1
@@ -164,12 +154,10 @@ It then forwards to SpawnProxy() to spawn the actual proxy.
 
 \throws zmq::error_t if ZMQ reports an error.
 
-\pre `context` refers to a valid context, `socketType1` and `socketType2` are
-    valid ZMQ socket types, `endpoint1` and `endpoint2` are well-formed ZMQ
-    endpoint specifications.
+\pre `socketType1` and `socketType2` are valid ZMQ socket types,
+     `endpoint1` and `endpoint2` are well-formed ZMQ endpoint specifications.
 */
 Proxy SpawnProxy(
-    std::shared_ptr<zmq::context_t> context,
     int socketType1, const std::string& endpoint1,
     int socketType2, const std::string& endpoint2,
     boost::chrono::milliseconds silenceTimeout = NEVER_TIMEOUT);
