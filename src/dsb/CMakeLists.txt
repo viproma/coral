@@ -25,17 +25,15 @@ set (_privateHeaders
     "dsb/comm.hpp"
     "dsb/compat_helpers.hpp"
     "dsb/error.hpp"
+    "dsb/fmi/glue.hpp"
+    "dsb/fmi/slave.hpp"
+    "dsb/fmi/slave_type.hpp"
     "dsb/inproc_rpc.hpp"
     "dsb/protobuf.hpp"
     "dsb/protocol/domain.hpp"
     "dsb/protocol/execution.hpp"
-    "dsb/util.hpp"
-)
-set (_internalHeaders
-    "dsb/fmi/glue.hpp"
-    "dsb/fmi/slave.hpp"
-    "dsb/fmi/slave_type.hpp"
     "dsb/protocol/glue.hpp"
+    "dsb/util.hpp"
 )
 set (_sources
     "dsb_fmi_glue.cpp"
@@ -110,7 +108,6 @@ macro (CreateHeaderGroups _superGroup)
 endmacro(CreateHeaderGroups)
 CreateHeaderGroups("Public Header Files" ${_publicHeadersFull})
 CreateHeaderGroups("Private Header Files" ${_privateHeadersFull})
-CreateHeaderGroups("Internal Header Files" ${_internalHeaders})
 
 # Dependencies
 find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono)
@@ -121,7 +118,6 @@ find_package (FMILIBCPP REQUIRED)
 add_library (${_target} STATIC
     ${_publicHeadersFull}
     ${_privateHeadersFull}
-    ${_internalHeaders}
     ${_sources})
 target_include_directories(${_target}
     PRIVATE "$<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>"
