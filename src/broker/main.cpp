@@ -99,6 +99,8 @@ namespace
 
 int main(int argc, const char** argv)
 {
+try
+{
     const long long basePort = argc > 1 ? std::atol(argv[1]) : 10243;
 
     const auto execReqEndpoint = "tcp://*:" + std::to_string(basePort);
@@ -188,4 +190,11 @@ int main(int argc, const char** argv)
             executionRequest.send("", 0);
         }
     }
+} catch (const std::logic_error& e) {
+    std::cerr << "Internal error: " << e.what() << std::endl;
+    return 2;
+} catch (const std::exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
+}
 }
