@@ -108,7 +108,9 @@ try {
             "Usage:\n"
             "  " << self << " <domain> <fmus...> [options...]\n\n"
             "Arguments:\n"
-            "  domain   The domain address, e.g. tcp://localhost.\n"
+            "  domain   The domain address, on the form \"tcp://hostname:port\",\n"
+            "           where the \":port\" part is only required if a nonstandard\n"
+            "           port is used.\n"
             "  fmus     FMU files and directories. Directories will be scanned\n"
             "           recursively for files with an \".fmu\" extension.\n\n"
             << optDesc;
@@ -118,7 +120,7 @@ try {
     if (!optMap.count("domain")) throw std::runtime_error("Domain address not specified");
     if (!optMap.count("fmu")) throw std::runtime_error("No FMUs specified");
 
-    const auto domainAddress = optMap["domain"].as<std::string>() + ":10243";
+    const auto domainAddress = optMap["domain"].as<std::string>();
     const auto outputDir = optMap["output-dir"].as<std::string>();
 
     std::string slaveExe;
@@ -162,6 +164,7 @@ try {
     dsb::domain::SlaveProvider(domainAddress, fmuPtrs);
 } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
 }
 return 0;
 }

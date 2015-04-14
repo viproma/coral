@@ -15,6 +15,7 @@
 #include "dsb/comm/proxy.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/compat_helpers.hpp"
+#include "dsb/domain/locator.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/util.hpp"
 
@@ -101,7 +102,8 @@ int main(int argc, const char** argv)
 {
 try
 {
-    const long long basePort = argc > 1 ? std::atol(argv[1]) : 10243;
+    const long long basePort = argc > 1 ? std::atol(argv[1])
+                                        : dsb::domain::DEFAULT_DOMAIN_BROKER_PORT;
 
     const auto execReqEndpoint = "tcp://*:" + std::to_string(basePort);
     auto executionRequest = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REP);

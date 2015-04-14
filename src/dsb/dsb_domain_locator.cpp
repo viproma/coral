@@ -1,8 +1,10 @@
 #include "dsb/domain/locator.hpp"
+
 #include "zmq.hpp"
+
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"
-
+#include "dsb/compat_helpers.hpp"
 
 namespace dsb
 {
@@ -42,21 +44,23 @@ const std::string& Locator::ExecReqEndpoint() const { return m_execReqEndpoint; 
 
 Locator GetDomainEndpoints(const std::string& domainBrokerAddress)
 {
-    //TODO: Check whether address contains a port number, and if not, use
-    // a default one.
-    if (domainBrokerAddress.size() < 6
-        || domainBrokerAddress.substr(0, 6) != "tcp://")
-    {
-        throw std::runtime_error("Invalid broker address: " + domainBrokerAddress);
+    if (domainBrokerAddress.substr(0, 6) != "tcp://") {
+        throw std::runtime_error(
+            "Invalid broker address: " + domainBrokerAddress
+            + " (only TCP communication supported)");
     }
     const auto colonPos = domainBrokerAddress.rfind(':');
-    if (colonPos == std::string::npos || colonPos == 3) {
-        throw std::runtime_error("Broker port not specified: " + domainBrokerAddress);
+    std::string baseAddress, fullAddress;
+    if (colonPos == 3) {
+        baseAddress = domainBrokerAddress + ':';
+        fullAddress = baseAddress + std::to_string(DEFAULT_DOMAIN_BROKER_PORT);
+    } else {
+        baseAddress = domainBrokerAddress.substr(0, colonPos+1);
+        fullAddress = domainBrokerAddress;
     }
-    const auto baseAddress = domainBrokerAddress.substr(0, colonPos+1);
 
     auto sck = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
-    sck.connect(domainBrokerAddress.c_str());
+    sck.connect(fullAddress.c_str());
     std::deque<zmq::message_t> msg;
     msg.push_back(dsb::comm::ToFrame("GET_PROXY_PORTS"));
     dsb::comm::Send(sck, msg);
@@ -69,7 +73,7 @@ Locator GetDomainEndpoints(const std::string& domainBrokerAddress)
         baseAddress + dsb::comm::ToString(msg[2]),
         baseAddress + dsb::comm::ToString(msg[3]),
         baseAddress + dsb::comm::ToString(msg[4]),
-        domainBrokerAddress);
+        fullAddress);
 }
 
 

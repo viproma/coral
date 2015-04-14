@@ -19,7 +19,7 @@ namespace {
 
 dsb::domain::Locator MakeDomainLocator(const std::string& address)
 {
-    return dsb::domain::GetDomainEndpoints(address + ":10243");
+    return dsb::domain::GetDomainEndpoints(address);
 }
 
 int Run(int argc, const char** argv)
@@ -56,7 +56,9 @@ int Run(int argc, const char** argv)
                 "Usage:\n"
                 "  " << self << " run <domain> <exec.config> <sys.config> [options...]\n\n"
                 "Arguments:\n"
-                "  domain       = Domain address (e.g. tcp://localhost)\n"
+                "  domain       = The domain address, on the form \"tcp://hostname:port\",\n"
+                "                 where the \":port\" part is only required if a nonstandard\n"
+                "                 port is used.\n"
                 "  exec. config = Configuration file which describes the simulation\n"
                 "                 settings (start time, step size, etc.)\n"
                 "  sys. config  = Configuration file which describes the system to\n"
@@ -149,7 +151,9 @@ int List(int argc, const char** argv)
             "Usage:\n"
             "  " << self << " list <domain>\n\n"
             "Arguments:\n"
-            "  domain = Domain address (e.g. tcp://localhost)\n";
+            "  domain = The domain address, on the form \"tcp://hostname:port\",\n"
+            "           where the \":port\" part is only required if a nonstandard\n"
+            "           port is used.\n";
         return 0;
     }
     try {
@@ -185,7 +189,9 @@ int Info(int argc, const char** argv)
             "Usage:\n"
             "  " << self << " info <domain> <slave type>\n\n"
             "Arguments:\n"
-            "  domain     = Domain address (e.g. tcp://localhost)\n"
+            "  domain     = The domain address, on the form \"tcp://hostname:port\",\n"
+            "               where the \":port\" part is only required if a nonstandard\n"
+            "               port is used.\n"
             "  slave type = A slave type name\n";
         return 0;
     }
