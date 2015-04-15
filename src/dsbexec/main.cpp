@@ -56,7 +56,7 @@ int Run(int argc, const char** argv)
                 "Usage:\n"
                 "  " << self << " run <domain> <exec.config> <sys.config> [options...]\n\n"
                 "Arguments:\n"
-                "  domain       = The domain address, on the form \"tcp://hostname:port\",\n"
+                "  domain       = The domain address, of the form \"tcp://hostname:port\",\n"
                 "                 where the \":port\" part is only required if a nonstandard\n"
                 "                 port is used.\n"
                 "  exec. config = Configuration file which describes the simulation\n"
@@ -151,7 +151,7 @@ int List(int argc, const char** argv)
             "Usage:\n"
             "  " << self << " list <domain>\n\n"
             "Arguments:\n"
-            "  domain = The domain address, on the form \"tcp://hostname:port\",\n"
+            "  domain = The domain address, of the form \"tcp://hostname:port\",\n"
             "           where the \":port\" part is only required if a nonstandard\n"
             "           port is used.\n";
         return 0;
@@ -189,7 +189,7 @@ int Info(int argc, const char** argv)
             "Usage:\n"
             "  " << self << " info <domain> <slave type>\n\n"
             "Arguments:\n"
-            "  domain     = The domain address, on the form \"tcp://hostname:port\",\n"
+            "  domain     = The domain address, of the form \"tcp://hostname:port\",\n"
             "               where the \":port\" part is only required if a nonstandard\n"
             "               port is used.\n"
             "  slave type = A slave type name\n";

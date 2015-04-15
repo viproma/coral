@@ -108,7 +108,7 @@ try {
             "Usage:\n"
             "  " << self << " <domain> <fmus...> [options...]\n\n"
             "Arguments:\n"
-            "  domain   The domain address, on the form \"tcp://hostname:port\",\n"
+            "  domain   The domain address, of the form \"tcp://hostname:port\",\n"
             "           where the \":port\" part is only required if a nonstandard\n"
             "           port is used.\n"
             "  fmus     FMU files and directories. Directories will be scanned\n"
