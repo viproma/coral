@@ -1,6 +1,7 @@
 #ifndef DSB_DOMAIN_LOCATOR
 #define DSB_DOMAIN_LOCATOR
 
+#include <cstdint>
 #include <string>
 
 
@@ -37,7 +38,8 @@ private:
 };
 
 
-//TODO: This function is temporary and should be moved or removed.
+//TODO: This stuff is temporary and should be moved or removed.
+static const std::uint16_t DEFAULT_DOMAIN_BROKER_PORT = 10242;
 Locator GetDomainEndpoints(const std::string& domainBrokerAddress);
 
 
