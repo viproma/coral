@@ -99,3 +99,40 @@ TEST(dsb_comm, Reactor)
     EXPECT_EQ(5, timer3Events);
     EXPECT_TRUE(lifetimeExpired);
 }
+
+
+// Regression test for issue VIPROMA-39
+TEST(dsb_comm, Reactor_bug39)
+{
+    Reactor reactor;
+    zmq::context_t ctx;
+    auto sck1 = zmq::socket_t(ctx, ZMQ_PAIR);
+    sck1.bind("inproc://dsb_comm_Reactor_bug39");
+
+    int canary = 87634861;
+    reactor.AddSocket(sck1, [canary](Reactor& r, zmq::socket_t& s) {
+        // Add enough dummy handlers that we're sure to trigger a reallocation.
+        for (size_t i = 0; i < 1000; ++i) {
+            const int backup = canary;
+            r.AddSocket(s, [] (Reactor&, zmq::socket_t&) { });
+            if (canary != backup) throw std::runtime_error("Memory error detected");
+        }
+        r.Stop();
+    });
+    reactor.AddTimer(boost::chrono::milliseconds(10), 1, [canary](Reactor& r, int) {
+        for (size_t i = 0; i < 1000; ++i) {
+            const int backup = canary;
+            r.AddTimer(boost::chrono::milliseconds(10), 1, [](Reactor&,int){});
+            if (canary != backup) throw std::runtime_error("Memory error detected");
+        }
+        r.Stop();
+    });
+
+    boost::thread([&ctx]() {
+        auto sck2 = zmq::socket_t(ctx, ZMQ_PAIR);
+        sck2.connect("inproc://dsb_comm_Reactor_bug39");
+        sck2.send("hello", 5);
+    }).detach();
+
+    ASSERT_NO_THROW(reactor.Run());
+}
