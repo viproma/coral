@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <queue>
 #include <string>
 
 #include "boost/chrono.hpp"
@@ -90,7 +91,17 @@ int Run(int argc, const char** argv)
         const auto execSpawnTime = boost::chrono::high_resolution_clock::now();
         auto exec = dsb::execution::Controller(execLoc);
         exec.SetSimulationTime(execConfig.startTime, execConfig.stopTime);
-        ParseSystemConfig(sysConfigFile, domain, exec, execLoc);
+        std::vector<SimulationEvent> unsortedScenario;
+        ParseSystemConfig(sysConfigFile, domain, exec, execLoc, unsortedScenario, &std::clog);
+
+        // Put the scenario events into a priority queue, in order of ascending
+        // event time.
+        auto eventTimeGreater = [] (const SimulationEvent& a, const SimulationEvent& b) {
+            return a.timePoint > b.timePoint;
+        };
+        auto scenario = std::priority_queue
+            <SimulationEvent, decltype(unsortedScenario), decltype(eventTimeGreater)>
+            (eventTimeGreater, std::move(unsortedScenario));
 
         // This is to work around "slow joiner syndrome".  It lets slaves'
         // subscriptions take effect before we start the simulation.
@@ -116,6 +127,12 @@ int Run(int argc, const char** argv)
              time < maxTime;
              time += execConfig.stepSize)
         {
+            while (!scenario.empty() && scenario.top().timePoint <= time) {
+                exec.SetVariables(
+                    scenario.top().slave,
+                    std::vector<dsb::model::VariableValue>(1, scenario.top().variableChange));
+                scenario.pop();
+            }
             exec.Step(time, execConfig.stepSize);
             if ((time-execConfig.startTime)/(execConfig.stopTime-execConfig.startTime) >= nextPerc) {
                 //std::cout << (nextPerc * 100.0) << "%" << std::endl;

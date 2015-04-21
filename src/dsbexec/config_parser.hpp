@@ -1,10 +1,25 @@
 #ifndef DSBEXEC_CONFIG_PARSER_HPP
 #define DSBEXEC_CONFIG_PARSER_HPP
 
+#include <ostream>
 #include <string>
+#include <vector>
 #include "boost/chrono/duration.hpp"
 #include "dsb/domain/controller.hpp"
 #include "dsb/execution/controller.hpp"
+#include "dsb/model.hpp"
+
+
+struct SimulationEvent
+{
+    SimulationEvent(
+        dsb::model::TimePoint t,
+        dsb::model::SlaveID s,
+        const dsb::model::VariableValue& v);
+    dsb::model::TimePoint timePoint;
+    dsb::model::SlaveID slave;
+    dsb::model::VariableValue variableChange;
+};
 
 
 /**
@@ -22,7 +37,9 @@ void ParseSystemConfig(
     const std::string& path,
     dsb::domain::Controller& domain,
     dsb::execution::Controller& execution,
-    const dsb::execution::Locator& executionLocator);
+    const dsb::execution::Locator& executionLocator,
+    std::vector<SimulationEvent>& scenario,
+    std::ostream* warningLog);
 
 
 /// Configuration parameters for an execution run.
