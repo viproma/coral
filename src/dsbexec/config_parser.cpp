@@ -13,6 +13,15 @@
 #include "boost/property_tree/ptree.hpp"
 
 
+SimulationEvent::SimulationEvent(
+    dsb::model::TimePoint t,
+    dsb::model::SlaveID s,
+    const dsb::model::VariableValue& v)
+    : timePoint(t), slave(s), variableChange(v)
+{
+}
+
+
 namespace
 {
     // Parses an INFO file as a property tree.
@@ -118,7 +127,9 @@ void ParseSystemConfig(
     const std::string& path,
     dsb::domain::Controller& domain,
     dsb::execution::Controller& execution,
-    const dsb::execution::Locator& executionLocator)
+    const dsb::execution::Locator& executionLocator,
+    std::vector<SimulationEvent>& scenarioOut,
+    std::ostream* warningLog)
 {
     const auto ptree = ReadPtreeInfoFile(path);
 
@@ -199,6 +210,53 @@ void ParseSystemConfig(
         }
     }
 
+    std::vector<SimulationEvent> scenario;
+    const auto scenTree = ptree.get_child("scenario", boost::property_tree::ptree());
+    BOOST_FOREACH (const auto& scenNode, scenTree) {
+        // Iterate elements of the form: timePoint { ... }
+        try {
+            const auto timePoint = boost::lexical_cast<dsb::model::TimePoint>(scenNode.first);
+            BOOST_FOREACH (const auto& varChangeNode, scenNode.second) {
+                // Iterate elements of the form: varName varValue
+                const auto varSpec = SplitVarSpec(varChangeNode.first);
+                try {
+                    const auto& affectedSlave = FindSlaveInstance(slaves, varSpec.first);
+                    const auto& var = FindVariable(affectedSlave, varSpec.second);
+                    if (warningLog) {
+                        if (var.Causality() == dsb::model::INPUT_CAUSALITY) {
+                            *warningLog << "Warning: " << varChangeNode.first
+                                << " is an input variable.  If it is connected to"
+                                   " an output, the scenario event may not have the"
+                                   " intended effect." << std::endl;
+                        } else if (var.Causality() != dsb::model::PARAMETER_CAUSALITY) {
+                            *warningLog << "Warning: " << varChangeNode.first
+                                << " is not a parameter, and should therefore"
+                                   " normally not be changed manually." << std::endl;
+                        }
+                        if (var.Variability() == dsb::model::CONSTANT_VARIABILITY
+                            || var.Variability() == dsb::model::FIXED_VARIABILITY) {
+                            *warningLog << "Warning: " << varChangeNode.first
+                                << " is not a modifiable variable." << std::endl;
+                        }
+                    }
+                    dsb::model::VariableValue varVal;
+                    varVal.id = var.ID();
+                    varVal.value = ParseVariableValue(var, varChangeNode.second);
+                    scenario.push_back(SimulationEvent(
+                        timePoint,
+                        affectedSlave.id,
+                        varVal));
+                } catch (const std::exception& e) {
+                    throw std::runtime_error("For variable " + varChangeNode.first
+                        + ": " + e.what());
+                }
+            }
+        } catch (const std::exception& e) {
+            throw std::runtime_error("In scenario event at t=" + scenNode.first
+                + ": " + e.what());
+        }
+    }
+
     BOOST_FOREACH (const auto& slave, slaves) {
         execution.AddSlave(slave.second.id);
     }
@@ -214,6 +272,8 @@ void ParseSystemConfig(
             executionLocator,
             slave.second.id);
     }
+
+    scenarioOut.swap(scenario);
 }
 
 

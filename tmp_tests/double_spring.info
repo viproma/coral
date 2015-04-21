@@ -41,3 +41,14 @@ connections {
     spring2.pos_a mass1.pos
     mass1.force2 spring2.force_a
 }
+
+scenario {
+    5 {
+        mass1.mass 0.1
+        spring1.stiffness 10.0
+    }
+    9 {
+        mass1.pos 1.0
+        mass2.pos 3.0
+    }
+}
