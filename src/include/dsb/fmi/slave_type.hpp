@@ -9,7 +9,7 @@
 #include <string>
 
 #include "fmilib.h"
-#include "fmilibcpp/fmi1/Fmu.hpp"
+#include "dsb/fmilib/fmu1.hpp"
 
 #include "dsb/domain/slave_provider.hpp"
 #include "dsb/execution/locator.hpp"
@@ -67,7 +67,7 @@ private:
     const std::string m_fmuPath;
     const SlaveStarter m_slaveStarterFunction;
     dsb::util::TempDir m_unzipDir;
-    std::shared_ptr<fmilib::fmi1::Fmu> m_fmu;
+    std::shared_ptr<dsb::fmilib::Fmu1> m_fmu;
     fmi1_import_variable_list_t* m_varList;
     std::string m_instantiationFailureDescription;
 };

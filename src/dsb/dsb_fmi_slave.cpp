@@ -7,7 +7,7 @@
 
 #include "boost/foreach.hpp"
 #include "fmilib.h"
-#include "fmilibcpp/ImportContext.hpp"
+#include "dsb/fmilib/importcontext.hpp"
 #include "dsb/fmi/glue.hpp"
 
 
@@ -34,12 +34,12 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
     : m_initialized(false),
       m_outputStream(outputStream)
 {
-    auto ctx = fmilib::MakeImportContext(nullptr, jm_log_level_error);
+    auto ctx = dsb::fmilib::MakeImportContext(nullptr, jm_log_level_error);
     auto fmu = ctx->Import(fmuPath, m_fmuDir.Path().string());
-    if (fmu->FmiVersion() != fmilib::kFmiVersion1_0) {
+    if (fmu->FmiVersion() != dsb::fmilib::kFmiVersion1_0) {
         throw std::runtime_error("Only FMI version 1.0 supported");
     }
-    m_fmu = std::static_pointer_cast<fmilib::fmi1::Fmu>(fmu);
+    m_fmu = std::static_pointer_cast<dsb::fmilib::Fmu1>(fmu);
 
     JM_CALL(fmi1_import_instantiate_slave(
         m_fmu->Handle(),
