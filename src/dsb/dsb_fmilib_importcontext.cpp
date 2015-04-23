@@ -59,18 +59,21 @@ dsb::fmilib::ImportContext::~ImportContext()
 
 
 std::shared_ptr<dsb::fmilib::Fmu> dsb::fmilib::ImportContext::Import(
-    const std::string& fmuPath,
-    const std::string& unzipDir)
+    const boost::filesystem::path& fmuPath,
+    const boost::filesystem::path& unzipDir)
 {
-    switch (fmi_import_get_fmi_version(m_handle, fmuPath.c_str(), unzipDir.c_str()))
+    switch (fmi_import_get_fmi_version(
+        m_handle,
+        fmuPath.string().c_str(),
+        unzipDir.string().c_str()))
     {
         case fmi_version_1_enu:
             return std::make_shared<dsb::fmilib::Fmu1>(shared_from_this(), unzipDir);
         case fmi_version_2_0_enu:
         case fmi_version_unsupported_enu:
-            throw std::runtime_error("Unsupported FMI version for FMU '" + fmuPath + "'");
+            throw std::runtime_error("Unsupported FMI version for FMU '" + fmuPath.string() + "'");
         case fmi_version_unknown_enu:
-            throw std::runtime_error("Failed to import FMU '" + fmuPath + "'");
+            throw std::runtime_error("Failed to import FMU '" + fmuPath.string() + "'");
     }
     // Never get here
     throw std::logic_error("Internal error");

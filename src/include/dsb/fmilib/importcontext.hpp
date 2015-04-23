@@ -4,8 +4,10 @@
 #include <memory>
 #include <string>
 
+#include "boost/filesystem/path.hpp"
 #include "boost/noncopyable.hpp"
 #include "fmilib.h"
+
 #include "dsb/fmilib/logger.hpp"
 
 
@@ -55,7 +57,9 @@ public:
     \param [in] unzipDir    The directory into which the contents of the
                             FMU will be unzipped.
     */
-    std::shared_ptr<Fmu> Import(const std::string& fmuPath, const std::string& unzipDir);
+    std::shared_ptr<Fmu> Import(
+        const boost::filesystem::path& fmuPath,
+        const boost::filesystem::path& unzipDir);
 
     /**
     \brief  The current log level used by FMI Library.

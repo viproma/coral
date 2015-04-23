@@ -1,7 +1,9 @@
 #ifndef DSB_FMILIB_FMU1_HPP
 #define DSB_FMILIB_FMU1_HPP
 
+#include <memory>
 #include <string>
+#include "boost/filesystem/path.hpp"
 #include "fmilib.h"
 
 #include "dsb/config.h"
@@ -30,7 +32,7 @@ public:
                             have been unzipped.
     */
     Fmu1(std::shared_ptr<dsb::fmilib::ImportContext> context,
-        const std::string& dirName);
+        const boost::filesystem::path& dirName);
 
     ~Fmu1();
 
@@ -60,6 +62,13 @@ public:
 
 private:
     fmi1_import_t* m_handle;
+
+#ifdef _WIN32
+    // Workaround for VIPROMA-42 (Resources and Binary\<Platform> fmu folders
+    // should be added to search path).
+    class AdditionalDllDirectory;
+    std::unique_ptr<AdditionalDllDirectory> m_additionalDllDirectory;
+#endif
 };
 
 
