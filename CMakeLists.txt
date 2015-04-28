@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8.11)
+cmake_minimum_required (VERSION 3.0.0)
 
 # CMake guidelines/tips for this project:
 #
@@ -56,9 +56,6 @@ endif ()
 # The export name to use for libraries.
 set (exportTarget "${CMAKE_PROJECT_NAME}-targets")
 
-# Location of header-only external projects.
-set (CPPZMQ_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/external/cppzmq")
-
 # ==============================================================================
 # Build settings
 # ==============================================================================
@@ -92,6 +89,12 @@ set (Boost_USE_MULTITHREADED ON)
 set (Boost_USE_STATIC_LIBS ON)
 add_definitions("-DBOOST_ALL_NO_LIB") # Disables Boost's auto-linking feature.
 add_definitions("-DBOOST_SYSTEM_NO_DEPRECATED") # Disable some deprecated stuff.
+
+# Workaround to enable compilation of Google Test 1.7.0 on VS2012
+# https://stackoverflow.com/questions/12558327/google-test-in-visual-studio-2012
+if (MSVC11)
+    add_definitions("-D_VARIADIC_MAX=10")
+endif()
 
 # ==============================================================================
 # Other initialisation

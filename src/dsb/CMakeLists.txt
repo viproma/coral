@@ -123,7 +123,7 @@ CreateHeaderGroups("Private Header Files" ${_privateHeadersFull})
 
 # Dependencies
 find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono)
-find_package (ZMQ REQUIRED)
+find_package (CPPZMQ REQUIRED)
 find_package (FMILIB REQUIRED)
 
 # Main library target
@@ -131,31 +131,31 @@ add_library (${_target} STATIC
     ${_publicHeadersFull}
     ${_privateHeadersFull}
     ${_sources})
-target_include_directories(${_target}
-    PRIVATE "$<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>"
-            ${FMILIB_INCLUDE_DIRS}
-            ${ZMQ_INCLUDE_DIRS}
-            ${CPPZMQ_INCLUDE_DIRS}
-            ${Boost_INCLUDE_DIRS}
+target_link_libraries (${_target}
+    PRIVATE "dsbproto"
+            ${FMILIB_LIBRARIES}
+            ${CPPZMQ_LIBRARIES}
 )
+# FindBoost uses old CMake conventions
+target_link_libraries (${_target} LINK_PRIVATE ${Boost_LIBRARIES})
+target_include_directories(${_target} PRIVATE ${Boost_INCLUDE_DIRS})
+
 install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
 
 # Test target
 set (_testTarget "${_target}_test")
 add_executable (${_testTarget} ${_testSources})
 target_link_libraries (${_testTarget}
-    ${_target}
-    "gtest_main"
-    "dsbproto"
-    ${FMILIB_LIBRARIES}
-    ${ZMQ_LIBRARIES}
-    ${Boost_LIBRARIES}
+    PRIVATE ${_target}
+            "gtest_main"
+            "dsbproto"
+            ${FMILIB_LIBRARIES}
+            ${CPPZMQ_LIBRARIES}
 )
+# FindBoost uses "old style" library references
+target_link_libraries (${_target} LINK_PRIVATE ${Boost_LIBRARIES})
 target_include_directories(${_testTarget}
     PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>"
-            ${FMILIB_INCLUDE_DIRS}
-            ${ZMQ_INCLUDE_DIRS}
-            ${CPPZMQ_INCLUDE_DIRS}
             ${Boost_INCLUDE_DIRS}
 )
 target_compile_definitions(${_testTarget} PRIVATE

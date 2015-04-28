@@ -7,13 +7,13 @@ set (_sources
 )
 
 find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono program_options)
-find_package (ZMQ REQUIRED)
+find_package (CPPZMQ REQUIRED)
 
 set (_target "dsbexec")
 add_executable (${_target} ${_headers} ${_sources})
+target_link_libraries (${_target} PRIVATE "dsb" "dsbproto" ${CPPZMQ_LIBRARIES})
+target_link_libraries (${_target} LINK_PRIVATE ${Boost_LIBRARIES}) # FindBoost uses old style library specs
 target_include_directories (${_target}
     PRIVATE ${publicHeaderDir}
             ${privateHeaderDir}
-            ${CPPZMQ_INCLUDE_DIRS}
             ${Boost_INCLUDE_DIRS})
-target_link_libraries (${_target} "dsb" "dsbproto" ${ZMQ_LIBRARIES} ${Boost_LIBRARIES})
