@@ -9,7 +9,7 @@
 #include <ostream>
 #include <string>
 
-#include "fmilibcpp/fmi1/Fmu.hpp"
+#include "dsb/fmilib/fmu1.hpp"
 #include "dsb/execution/slave.hpp"
 #include "dsb/util.hpp"
 
@@ -67,7 +67,7 @@ public:
 
 private:
     dsb::util::TempDir m_fmuDir;
-    std::shared_ptr<fmilib::fmi1::Fmu> m_fmu;
+    std::shared_ptr<dsb::fmilib::Fmu1> m_fmu;
     bool m_initialized;
     dsb::model::TimePoint m_startTime, m_stopTime;
 

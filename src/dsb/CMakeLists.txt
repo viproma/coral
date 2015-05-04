@@ -28,6 +28,11 @@ set (_privateHeaders
     "dsb/fmi/glue.hpp"
     "dsb/fmi/slave.hpp"
     "dsb/fmi/slave_type.hpp"
+    "dsb/fmilib/fmu.hpp"
+    "dsb/fmilib/fmu1.hpp"
+    "dsb/fmilib/importcontext.hpp"
+    "dsb/fmilib/logger.hpp"
+    "dsb/fmilib/streamlogger.hpp"
     "dsb/inproc_rpc.hpp"
     "dsb/protobuf.hpp"
     "dsb/protocol/domain.hpp"
@@ -51,6 +56,10 @@ set (_sources
     "dsb_comm_proxy.cpp"
     "dsb_comm_reactor.cpp"
     "dsb_comm_util.cpp"
+    "dsb_fmilib_fmu.cpp"
+    "dsb_fmilib_fmu1.cpp"
+    "dsb_fmilib_importcontext.cpp"
+    "dsb_fmilib_streamlogger.cpp"
     "dsb_inproc_rpc.cpp"
     "dsb_protobuf.cpp"
     "dsb_protocol_domain.cpp"
@@ -73,6 +82,9 @@ set (_testSources
     "dsb_comm_reactor_test.cpp"
     "dsb_comm_util_test.cpp"
     "dsb_compat_helpers_test.cpp"
+    "dsb_fmilib_fmu1_test.cpp"
+    "dsb_fmilib_importcontext_test.cpp"
+    "dsb_fmilib_streamlogger_test.cpp"
     "dsb_protobuf_test.cpp"
     "dsb_protocol_domain_test.cpp"
     "dsb_protocol_execution_test.cpp"
@@ -112,7 +124,7 @@ CreateHeaderGroups("Private Header Files" ${_privateHeadersFull})
 # Dependencies
 find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono)
 find_package (ZMQ REQUIRED)
-find_package (FMILIBCPP REQUIRED)
+find_package (FMILIB REQUIRED)
 
 # Main library target
 add_library (${_target} STATIC
@@ -121,7 +133,6 @@ add_library (${_target} STATIC
     ${_sources})
 target_include_directories(${_target}
     PRIVATE "$<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>"
-            ${FMILIBCPP_INCLUDE_DIRS}
             ${FMILIB_INCLUDE_DIRS}
             ${ZMQ_INCLUDE_DIRS}
             ${CPPZMQ_INCLUDE_DIRS}
@@ -136,17 +147,18 @@ target_link_libraries (${_testTarget}
     ${_target}
     "gtest_main"
     "dsbproto"
-    ${FMILIBCPP_LIBRARIES}
     ${FMILIB_LIBRARIES}
     ${ZMQ_LIBRARIES}
     ${Boost_LIBRARIES}
 )
 target_include_directories(${_testTarget}
     PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>"
-            ${FMILIBCPP_INCLUDE_DIRS}
             ${FMILIB_INCLUDE_DIRS}
             ${ZMQ_INCLUDE_DIRS}
             ${CPPZMQ_INCLUDE_DIRS}
             ${Boost_INCLUDE_DIRS}
+)
+target_compile_definitions(${_testTarget} PRIVATE
+    "DSB_TEST_FMU_DIRECTORY=${CMAKE_SOURCE_DIR}/external/fmus"
 )
 add_test (NAME ${_testTarget} COMMAND ${_testTarget})
