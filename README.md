@@ -39,22 +39,25 @@ compilers:
 
 In addition, the following tools are needed:
 
-  - [CMake](http://cmake.org) v2.8.11 or newer, to generate the build system.
-  - The [Protocol Buffers](https://code.google.com/p/protobuf/) compiler, to
-    parse the protocol buffer files and generate C++ code for them.
+  - [CMake](http://cmake.org) v3.0 or newer, to generate the build system.
+  - The [Protocol Buffers](https://developers.google.com/protocol-buffers/)
+    compiler, to parse the protocol buffer files and generate C++ code for them.
   - [Doxygen](http://doxygen.org), to generate API documentation (optional).
 
 Finally, the following libraries are used by DSB and must therefore be present:
 
-  - [Boost](http://boost.org) (only tested with v1.55, but older versions may
-    still work).
-  - [ZeroMQ](http://zeromq.org) v3.2 or newer.
-  - [Protocol Buffers](https://code.google.com/p/protobuf/) v2.5 or newer.
+  - [Boost](http://boost.org) (currently tested with v1.58, but older and newer
+    versions are likely to work as well).
+  - [ZeroMQ](http://zeromq.org) v4.0 or newer.
+  - [FMI Library](http://jmodelica.org/FMILibrary) v2.0 or newer.
+  - [Protocol Buffers](https://developers.google.com/protocol-buffers/) v2.5 or
+    newer.
 
-Tip to Debian users: You can obtain all of these by running the following
-command (at least on the "testing" version):
+Tip to Debian users: You can obtain most of these by running the following
+command:
 
-    sudo apt-get install g++ cmake protobuf-compiler doxygen libboost-all-dev libzmq-dev libprotobuf-dev
+    sudo apt-get install g++ cmake protobuf-compiler doxygen libboost-all-dev \
+        libzmq3-dev libprotobuf-dev
 
 Building
 --------
@@ -83,17 +86,31 @@ other tools are installed in standard locations.  Look for messages that say
 does not give a fatal error when that's not found, even though it's a mandatory
 dependency.)  The locations of missing dependencies can usually be specified
 by running CMake again, this time providing explicit paths with the -D switch.
-For example:
+For example, the path where the Boost libraries are installed can be specified
+with the `BOOST_ROOT` variable, like this:
 
     cmake -DBOOST_ROOT=/path/to/boost
 
-If this becomes necessary, you may want to run one or more of the following
-commands to obtain information about which variables can be set in this manner:
+The variables that may need to be set in this manner are:
+
+    BOOST_ROOT                  Path to Boost
+    FMILIB_DIR                  Path to FMI Library
+    ZMQ_DIR                     Path to ZeroMQ
+    CPPZMQ_DIR                  Path to zmq.hpp
+    PROTOBUF_SRC_ROOT_FOLDER    The Protocol Buffers source directory (Windows
+                                only; Protobuf must be built first)
+
+With the exception of the last one, the paths specified in this manner are
+typically "prefix paths", i.e. the ones that contain `bin/`, `lib/`, `include/`
+etc. for the library in question.  For more detailed information, try the
+following commands:
 
     cmake --help-module FindDoxygen
     cmake --help-module FindBoost
     cmake --help-module FindProtobuf
-    cmake --help-module FindZMQ -DCMAKE_MODULE_PATH=../cmake
+
+For details about finding ZMQ, CPPZMQ and FMI Library, please look at the
+comments at the start of the relevant `cmake/FindXXX.cmake` files.
 
 ### Compilation ###
 

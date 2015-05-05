@@ -12,7 +12,7 @@ cmake_minimum_required (VERSION 3.0.0)
 project ("dsb")
 set (projectSummary "Distributed Simulation Bus")
 set (versionMajor "0")
-set (versionMinor "1")
+set (versionMinor "2")
 set (versionPatch "0")
 
 option (DSB_BUILD_PRIVATE_API_DOCS
