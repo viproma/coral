@@ -1,7 +1,9 @@
 #include "dsb/fmilib/fmu1.hpp"
 
-#define NOMINMAX
-#include <Windows.h>
+#ifdef _WIN32
+#   define NOMINMAX
+#   include <Windows.h>
+#endif
 
 #include <cassert>
 #include <cstdlib>

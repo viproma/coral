@@ -1,5 +1,6 @@
 #include "dsb/domain/locator.hpp"
 
+#include <stdexcept>
 #include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
