@@ -30,7 +30,7 @@ std::uint16_t BindToEphemeralPort(
 }
 
 
-std::string dsb::comm::LastEndpoint(zmq::socket_t& socket)
+std::string LastEndpoint(zmq::socket_t& socket)
 {
     const size_t MAX_ENDPOINT_SIZE = 257; // including terminating zero
     char buffer[MAX_ENDPOINT_SIZE];
