@@ -158,9 +158,9 @@ try {
     for (auto it = fmuPaths.begin(); it != fmuPaths.end(); ++it) {
         fmus.push_back(dsb::fmi::MakeSlaveType(*it, StartSlave(slaveExe, outputDir)));
         fmuPtrs.push_back(fmus.back().get());
-        std::clog << "FMU loaded: " << *it << std::endl;
+        std::cout << "FMU loaded: " << *it << std::endl;
     }
-    std::clog << fmus.size() << " FMUs loaded" << std::endl;
+    std::cout << fmus.size() << " FMUs loaded" << std::endl;
     dsb::domain::SlaveProvider(domainAddress, fmuPtrs);
 } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
