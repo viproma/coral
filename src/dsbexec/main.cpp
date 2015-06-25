@@ -2,6 +2,7 @@
 #include <cassert>
 #include <iostream>
 #include <queue>
+#include <map>
 #include <string>
 
 #include "boost/chrono.hpp"
@@ -197,6 +198,137 @@ int List(int argc, const char** argv)
 }
 
 
+// Helper function which returns whether s contains c
+bool Contains(const std::string& s, char c)
+{
+    return s.find(c) < s.size();
+}
+
+
+int LsVars(int argc, const char** argv)
+{
+    assert (argc > 1 && std::string(argv[1]) == "ls-vars");
+    // Drop the first element (program name) to use "ls-vars" as the "program name".
+    --argc; ++argv;
+
+    try {
+        namespace po = boost::program_options;
+        po::options_description optDesc("Options");
+        optDesc.add_options()
+            ("help", "Display help message")
+            ("type,t", po::value<std::string>()->default_value("birs"),
+                "The data type(s) to include.  May contain one or more of the "
+                "following characters: b=boolean, i=integer, r=real, s=string")
+            ("causality,c", po::value<std::string>()->default_value("cilop"),
+                "The causalities to include.  May contain one or more of the "
+                "following characters: c=calculated parameter, i=input, "
+                "l=local, o=output, p=parameter")
+            ("variability,v", po::value<std::string>()->default_value("cdftu"),
+                "The variabilities to include.  May contain one or more of the "
+                "following characters: c=constant, d=discrete, f=fixed, "
+                "t=tunable, u=continuous")
+            ("long,l",
+                "\"Long\" format.  Shows type, causality and variability as a "
+                "3-character string after the variable name.");
+        po::options_description argDesc;
+        argDesc.add(optDesc);
+        argDesc.add_options()
+            ("domain",      po::value<std::string>(), "The address of the domain")
+            ("slave-type",  po::value<std::string>(), "A slave type name");
+        po::positional_options_description posArgDesc;
+        posArgDesc.add("domain", 1)
+                  .add("slave-type", 1);
+        po::variables_map optMap;
+        po::store(po::command_line_parser(argc, argv).options(argDesc)
+                                                     .positional(posArgDesc)
+                                                     .run(),
+                  optMap);
+
+        if (argc < 2 || optMap.count("help")) {
+            std::cerr <<
+                "Prints a list of variables for one slave type.\n\n"
+                "Usage:\n"
+                "  " << self << " ls-vars <domain> <slave type> [options...]\n\n"
+                "Arguments:\n"
+                "  domain       = The domain address, of the form \"tcp://hostname:port\",\n"
+                "                 where the \":port\" part is only required if a nonstandard\n"
+                "                 port is used.\n"
+                "  slave type   = The name of the slave type whose variables are to\n"
+                "                 be listed\n"
+                "\n"
+                << optDesc;
+            return 0;
+        }
+        if (!optMap.count("domain")) throw std::runtime_error("Domain address not specified");
+        if (!optMap.count("slave-type")) throw std::runtime_error("Slave type name not specified");
+
+        const auto address = optMap["domain"].as<std::string>();
+        const auto slaveType = optMap["slave-type"].as<std::string>();
+
+        const auto types = optMap["type"].as<std::string>();
+        const auto causalities = optMap["causality"].as<std::string>();
+        const auto variabilities = optMap["variability"].as<std::string>();
+        const bool longForm = optMap.count("long") > 0;
+
+        // Now we have read all the command-line arguments, connect to the
+        // domain and find the slave type
+        const auto domainLoc = MakeDomainLocator(address);
+        auto domain = dsb::domain::Controller(domainLoc);
+
+        // TODO: Handle this waiting more elegantly, e.g. wait until all required
+        // slave types are available.  Also, the waiting time is related to the
+        // slave provider heartbeat time.
+        boost::this_thread::sleep_for(boost::chrono::seconds(2));
+
+        const auto slaveTypes = domain.GetSlaveTypes();
+        const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
+            [&](const dsb::domain::Controller::SlaveType& s) { return s.name == slaveType; });
+        if (it == slaveTypes.end()) {
+            throw std::runtime_error("Unknown slave type: " + slaveType);
+        }
+        // `it` is now an iterator which points to the slave type.
+
+        // Create mappings from enums to characters specified in options.
+        std::map<dsb::model::DataType, char> typeChar;
+        typeChar[dsb::model::REAL_DATATYPE   ] = 'r';
+        typeChar[dsb::model::INTEGER_DATATYPE] = 'i';
+        typeChar[dsb::model::BOOLEAN_DATATYPE] = 'b';
+        typeChar[dsb::model::STRING_DATATYPE ] = 's';
+        std::map<dsb::model::Causality, char> causalityChar;
+        causalityChar[dsb::model::PARAMETER_CAUSALITY           ] = 'p';
+        causalityChar[dsb::model::CALCULATED_PARAMETER_CAUSALITY] = 'c';
+        causalityChar[dsb::model::INPUT_CAUSALITY               ] = 'i';
+        causalityChar[dsb::model::OUTPUT_CAUSALITY              ] = 'o';
+        causalityChar[dsb::model::LOCAL_CAUSALITY               ] = 'l';
+        std::map<dsb::model::Variability, char> variabilityChar;
+        variabilityChar[dsb::model::CONSTANT_VARIABILITY  ] = 'c';
+        variabilityChar[dsb::model::FIXED_VARIABILITY     ] = 'f';
+        variabilityChar[dsb::model::TUNABLE_VARIABILITY   ] = 't';
+        variabilityChar[dsb::model::DISCRETE_VARIABILITY  ] = 'd';
+        variabilityChar[dsb::model::CONTINUOUS_VARIABILITY] = 'u';
+
+        // Finally, list the variables
+        BOOST_FOREACH (const auto& v, it->variables) {
+            const auto vt = typeChar.at(v.DataType());
+            const auto vc = causalityChar.at(v.Causality());
+            const auto vv = variabilityChar.at(v.Variability());
+            if (Contains(types, vt) && Contains(causalities, vc)
+                && Contains(variabilities, vv))
+            {
+                std::cout << v.Name();
+                if (longForm) {
+                    std::cout << ' ' << vt << vc << vv;
+                }
+                std::cout << '\n';
+            }
+        }
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
 int Info(int argc, const char** argv)
 {
     assert (argc > 1 && std::string(argv[1]) == "info");
@@ -279,8 +411,9 @@ int main(int argc, const char** argv)
             "Usage:\n"
             "  " << self << " <command> [command-specific args]\n\n"
             "Commands:\n"
-            "  info   Shows detailed information about one slave type\n"
-            "  list   Lists available slave types\n"
+            "  info     Shows detailed information about one slave type\n"
+            "  list     Lists available slave types\n"
+            "  ls-vars  Lists information about a slave type's variables\n"
             "  run    Runs a simulation\n"
             "\n"
             "Run <command> without any additional arguments for more specific help.\n";
@@ -289,6 +422,7 @@ int main(int argc, const char** argv)
     const auto command = std::string(argv[1]);
     if (command == "run") return Run(argc, argv);
     else if (command == "list") return List(argc, argv);
+    else if (command == "ls-vars") return LsVars(argc, argv);
     else if (command == "info") return Info(argc, argv);
     else {
         std::cerr << "Error: Invalid command: " << command;
