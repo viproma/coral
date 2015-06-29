@@ -198,6 +198,12 @@ void ParseSystemConfig(
             if (inputVar.DataType() != outputVar.DataType()) {
                 throw std::runtime_error("Incompatible data types");
             }
+            if (inputVar.Causality() != dsb::model::INPUT_CAUSALITY) {
+                throw std::runtime_error("Not an input variable: " + inputVar.Name());
+            }
+            if (outputVar.Causality() != dsb::model::OUTPUT_CAUSALITY) {
+                throw std::runtime_error("Not an output variable: " + outputVar.Name());
+            }
             dsb::model::VariableConnection vc;
             vc.inputId = inputVar.ID();
             vc.otherSlaveId = outputSlave.id;
