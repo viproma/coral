@@ -90,7 +90,7 @@ size_t FmiSlaveInstance::VariableCount() const
 }
 
 
-dsb::model::Variable FmiSlaveInstance::Variable(size_t index) const
+dsb::model::VariableDescription FmiSlaveInstance::Variable(size_t index) const
 {
     return m_variables.at(index);
 }
@@ -159,7 +159,7 @@ namespace
 {
     void PrintVariable(
         std::ostream& out,
-        const dsb::model::Variable& varInfo,
+        const dsb::model::VariableDescription& varInfo,
         dsb::execution::ISlaveInstance& slaveInstance)
     {
         out << ","; // << varInfo.name << " ";

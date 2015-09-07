@@ -2,9 +2,12 @@
 #define DSBEXEC_CONFIG_PARSER_HPP
 
 #include <ostream>
+#include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 #include "boost/chrono/duration.hpp"
+#include "dsb/config.h"
 #include "dsb/domain/controller.hpp"
 #include "dsb/execution/controller.hpp"
 #include "dsb/model.hpp"
@@ -15,10 +18,12 @@ struct SimulationEvent
     SimulationEvent(
         dsb::model::TimePoint t,
         dsb::model::SlaveID s,
-        const dsb::model::VariableValue& v);
+        dsb::model::VariableID v,
+        const dsb::model::ScalarValue& n);
     dsb::model::TimePoint timePoint;
     dsb::model::SlaveID slave;
-    dsb::model::VariableValue variableChange;
+    dsb::model::VariableID variable;
+    dsb::model::ScalarValue newValue;
 };
 
 
@@ -37,19 +42,70 @@ void ParseSystemConfig(
     const std::string& path,
     dsb::domain::Controller& domain,
     dsb::execution::Controller& execution,
-    const dsb::execution::Locator& executionLocator,
+    const dsb::net::ExecutionLocator& executionLocator,
     std::vector<SimulationEvent>& scenario,
+    boost::chrono::milliseconds commTimeout,
     std::ostream* warningLog);
+
+
+class SetVariablesException : public std::runtime_error
+{
+public:
+    SetVariablesException();
+    const char* what() const DSB_NOEXCEPT override;
+    void AddSlaveError(const std::string& slaveName, const std::string& errMsg);
+private:
+    std::string m_msg;
+    std::vector<std::pair<std::string, std::string>> m_slaveErrors;
+};
 
 
 /// Configuration parameters for an execution run.
 struct ExecutionConfig
 {
     ExecutionConfig();
-    double startTime;                   ///< Simulation start time.
-    double stopTime;                    ///< Simulation stop time.
-    double stepSize;                    ///< Simulation step size.
-    boost::chrono::seconds commTimeout; ///< Communications silence timeout.
+    /// Simulation start time
+    double startTime;
+
+    /// Simulation stop time
+    double stopTime;
+
+    /// Simulation step size
+    double stepSize;
+
+    /**
+    \brief  General command/communications timeout, in milliseconds
+
+    This is how long the master will wait for replies to commands sent to a
+    slave before it considers the connection to be broken.  It should generally
+    be a short duration, as it is used for "cheap" operations (everything
+    besides the "step" command).  The default value is 1 second.
+    */
+    boost::chrono::milliseconds commTimeout;
+
+    /**
+    \brief  Time step timeout multiplier
+
+    This controls the amount of time the slaves get to carry out a time step.
+    The timeout is set equal to `stepTimeoutMultiplier` times the step size,
+    where the step size is assumed to be in seconds.
+
+    The default value is 100, allowing for a simulation which runs at, at most,
+    a hundredth of real-time speed.
+    */
+    double stepTimeoutMultiplier;
+
+    /**
+    \brief  Slave timeout, in seconds
+
+    This controls how long the slaves (and the execution broker, if this is
+    used) will wait for commands from the master.  This should generally be
+    a long duration, as the execution master could for instance be waiting
+    for some user input before starting/continuing the simulation.
+
+    The default value is 1 hour.
+    */
+    boost::chrono::seconds slaveTimeout;
 };
 
 

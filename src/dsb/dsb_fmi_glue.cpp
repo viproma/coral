@@ -61,13 +61,13 @@ dsb::model::Variability ToVariability(fmi1_variability_enu_t v)
 }
 
 
-dsb::model::Variable ToVariable(
+dsb::model::VariableDescription ToVariable(
     fmi1_import_variable_t* fmiVariable,
     dsb::model::VariableID id)
 {
     assert (fmiVariable != nullptr);
     const auto fmiVariability = fmi1_import_get_variability(fmiVariable);
-    return dsb::model::Variable(
+    return dsb::model::VariableDescription(
         id,
         fmi1_import_get_variable_name(fmiVariable),
         ToDataType(fmi1_import_get_variable_base_type(fmiVariable)),

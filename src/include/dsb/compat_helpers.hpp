@@ -7,10 +7,15 @@ This file should only be included in .cpp files, never in .hpp files.
 #ifndef DSB_COMPAT_HELPERS_HPP
 #define DSB_COMPAT_HELPERS_HPP
 
-#if defined(__cplusplus) && (__cplusplus <= 201103L)
-#   define DSB_COMPAT_MAKE_UNIQUE_MISSING
-#   include <memory>
-#   include <utility>
+#include "dsb/config.h"
+
+// std::make_unique is a C++14 feature, first included in VS2013 and GCC 4.9
+#if (__cplusplus <= 201103L) \
+    && !(defined(__GNUC__) && (DSB_GNUC_VERSION >= 40900)) \
+    && !(defined(_MSC_VER) && (_MSC_VER >= DSB_MSC12_VER))
+#    define DSB_COMPAT_MAKE_UNIQUE_MISSING
+#    include <memory>
+#    include <utility>
 #endif
 
 #if defined(__cplusplus) && defined(_MSC_VER) && (_MSC_VER < 1700)
@@ -38,6 +43,12 @@ This file should only be included in .cpp files, never in .hpp files.
 
         template<typename T, typename A1, typename A2, typename A3>
         unique_ptr<T> make_unique(A1&& arg1, A2&& arg2, A3&& arg3) { return unique_ptr<T>(new T(std::forward<A1>(arg1), std::forward<A2>(arg2), std::forward<A3>(arg3))); }
+
+        template<typename T, typename A1, typename A2, typename A3, typename A4>
+        unique_ptr<T> make_unique(A1&& arg1, A2&& arg2, A3&& arg3, A4&& arg4) { return unique_ptr<T>(new T(std::forward<A1>(arg1), std::forward<A2>(arg2), std::forward<A3>(arg3), std::forward<A4>(arg4))); }
+
+        template<typename T, typename A1, typename A2, typename A3, typename A4, typename A5>
+        unique_ptr<T> make_unique(A1&& arg1, A2&& arg2, A3&& arg3, A4&& arg4, A5&& arg5) { return unique_ptr<T>(new T(std::forward<A1>(arg1), std::forward<A2>(arg2), std::forward<A3>(arg3), std::forward<A4>(arg4), std::forward<A5>(arg5))); }
 
         // ...continue adding more as necessary
     }

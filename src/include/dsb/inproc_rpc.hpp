@@ -6,13 +6,14 @@
 #define DSB_INPROC_RPC_HPP
 
 #include <deque>
-#include <vector>
 #include "zmq.hpp"
+#include "google/protobuf/message_lite.h"
 
-#include "dsb/domain/controller.hpp"
-#include "dsb/model.hpp"
-#include "execution.pb.h"
-#include "inproc_rpc.pb.h"
+#ifdef DSB_USE_OLD_DOMAIN_INPROC_RPC
+#   include <vector>
+#   include "dsb/domain/controller.hpp"
+#   include "domain_controller.pb.h"
+#endif
 
 
 namespace dsb
@@ -21,32 +22,42 @@ namespace dsb
 namespace inproc_rpc
 {
 
+void Call(
+    zmq::socket_t& socket,
+    int call,
+    const google::protobuf::MessageLite* args = nullptr,
+    google::protobuf::MessageLite* returnValue = nullptr);
 
-enum CallType
-{
-    // Domain commands
-    GET_SLAVE_TYPES_CALL,
-    INSTANTIATE_SLAVE_CALL,
+int GetCallType(const std::deque<zmq::message_t>& msg);
 
-    // Execution commands
-    SET_SIMULATION_TIME_CALL,
-    ADD_SLAVE_CALL,
-    SET_VARIABLES_CALL,
-    CONNECT_VARIABLES_CALL,
-    TERMINATE_CALL,
-    WAIT_FOR_READY_CALL,
-    STEP_CALL,
-};
-
-void ReturnSuccess(zmq::socket_t& socket);
+void UnmarshalArgs(
+    const std::deque<zmq::message_t>& msg,
+    google::protobuf::MessageLite& args);
 
 void ReturnSuccess(
     zmq::socket_t& socket,
-    std::deque<zmq::message_t>& returnValues);
+    const google::protobuf::MessageLite* returnValue = nullptr);
 
 void ThrowLogicError(zmq::socket_t& socket, const std::string& what);
 
 void ThrowRuntimeError(zmq::socket_t& socket, const std::string& what);
+
+
+#ifdef DSB_USE_OLD_DOMAIN_INPROC_RPC
+// =============================================================================
+// Domain controller RPC stuff. To be phased out, as was done with the
+// execution controller RPC.  (When this is done, also remember to remove the
+// macro definition from the Doxygen configuration file (PREDEFINED property).
+
+enum CallType
+{
+    GET_SLAVE_TYPES_CALL,
+    INSTANTIATE_SLAVE_CALL,
+};
+
+void ReturnSuccess(
+    zmq::socket_t& socket,
+    std::deque<zmq::message_t>& returnValues);
 
 void CallGetSlaveTypes(
     zmq::socket_t& socket,
@@ -54,70 +65,23 @@ void CallGetSlaveTypes(
 
 void ReturnGetSlaveTypes(
     zmq::socket_t& socket,
-    dsbproto::inproc_rpc::SlaveTypeList& slaveTypes);
+    dsbproto::domain_controller::SlaveTypeList& slaveTypes);
 
-void CallInstantiateSlave(
+dsb::net::SlaveLocator CallInstantiateSlave(
     zmq::socket_t& socket,
     const std::string& slaveTypeUUID,
-    const dsb::execution::Locator& executionLocator,
-    dsb::model::SlaveID slaveID,
     const std::string& provider);
 
 void UnmarshalInstantiateSlave(
     std::deque<zmq::message_t>& msg,
     std::string& slaveTypeUUID,
-    dsb::execution::Locator& executionLocator,
-    dsb::model::SlaveID& slaveID,
     std::string& provider);
 
-void CallSetSimulationTime(
+void ReturnInstantiateSlave(
     zmq::socket_t& socket,
-    dsb::model::TimePoint startTime,
-    dsb::model::TimePoint stopTime);
+    const dsb::net::SlaveLocator& slaveLocator);
 
-void UnmarshalSetSimulationTime(
-    const std::deque<zmq::message_t>& msg,
-    dsb::model::TimePoint& startTime,
-    dsb::model::TimePoint& stopTime);
-
-void CallAddSlave(zmq::socket_t& socket, dsb::model::SlaveID slaveId);
-
-void UnmarshalAddSlave(
-    const std::deque<zmq::message_t>& msg,
-    dsb::model::SlaveID& slaveId);
-
-void CallSetVariables(
-    zmq::socket_t& socket,
-    dsb::model::SlaveID slaveId,
-    const std::vector<dsb::model::VariableValue>& variables);
-
-void UnmarshalSetVariables(
-    const std::deque<zmq::message_t>& msg,
-    dsb::model::SlaveID& slaveId,
-    dsbproto::execution::SetVarsData& setVarsData);
-
-void CallConnectVariables(
-    zmq::socket_t& socket,
-    dsb::model::SlaveID slaveId,
-    const std::vector<dsb::model::VariableConnection>& variables);
-
-void UnmarshalConnectVariables(
-    const std::deque<zmq::message_t>& msg,
-    dsb::model::SlaveID& slaveId,
-    dsbproto::execution::ConnectVarsData& setVarsData);
-
-void CallWaitForReady(zmq::socket_t& socket);
-
-void CallStep(
-    zmq::socket_t& socket,
-    dsb::model::TimePoint t,
-    dsb::model::TimeDuration dt);
-
-void UnmarshalStep(
-    const std::deque<zmq::message_t>& msg,
-    dsbproto::execution::StepData& stepData);
-
-void CallTerminate(zmq::socket_t& socket);
+#endif // DSB_OLD_DOMAIN_INPROC_RPC
 
 
 }}      // namespace

@@ -1,35 +1,87 @@
+#define DSB_USE_OLD_DOMAIN_INPROC_RPC
 #include "dsb/inproc_rpc.hpp"
+#undef DSB_USE_OLD_DOMAIN_INPROC_RPC
 
-#include "boost/foreach.hpp"
+#include <cassert>
+#include <stdexcept>
+
 #include "dsb/comm/messaging.hpp"
-#include "dsb/compat_helpers.hpp"
-#include "dsb/protocol/glue.hpp"
 #include "dsb/protobuf.hpp"
-#include "variable.pb.h"
+
+// For DSB_USE_OLD_DOMAIN_INPROC_RPC code:
+#include "boost/foreach.hpp"
+#include "dsb/protocol/glue.hpp"
 
 
 enum CallResult
 {
     SUCCESS_CALL_RESULT,
+    RUNTIME_ERROR_CALL_RESULT,
     LOGIC_ERROR_CALL_RESULT,
-    RUNTIME_ERROR_CALL_RESULT
 };
 
 
-void dsb::inproc_rpc::ReturnSuccess(zmq::socket_t& socket)
+void dsb::inproc_rpc::Call(
+    zmq::socket_t& socket,
+    int call,
+    const google::protobuf::MessageLite* args,
+    google::protobuf::MessageLite* returnValue)
 {
-    auto m = dsb::comm::EncodeRawDataFrame(SUCCESS_CALL_RESULT);
-    socket.send(m);
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::EncodeRawDataFrame(call));
+    if (args) {
+        msg.push_back(zmq::message_t());
+        dsb::protobuf::SerializeToFrame(*args, msg.back());
+    }
+    dsb::comm::Send(socket, msg);
+
+    dsb::comm::Receive(socket, msg);
+    const auto result = dsb::comm::DecodeRawDataFrame<CallResult>(msg[0]);
+    if (result == SUCCESS_CALL_RESULT) {
+        assert(msg.size() == (returnValue ? 2 : 1));
+        if (msg.size() == 2) {
+            dsb::protobuf::ParseFromFrame(msg[1], *returnValue);
+        }
+    } else {
+        assert (msg.size() == 2);
+        const auto what = dsb::comm::ToString(msg[1]);
+        if (result == RUNTIME_ERROR_CALL_RESULT) {
+            throw std::runtime_error(what);
+        } else {
+            assert(result == LOGIC_ERROR_CALL_RESULT);
+            throw std::logic_error(what);
+        }
+    }
+}
+
+
+int dsb::inproc_rpc::GetCallType(const std::deque<zmq::message_t>& msg)
+{
+    assert(msg.size() == 1 || msg.size() == 2);
+    return dsb::comm::DecodeRawDataFrame<int>(msg[0]);
+}
+
+
+void dsb::inproc_rpc::UnmarshalArgs(
+    const std::deque<zmq::message_t>& msg,
+    google::protobuf::MessageLite& args)
+{
+    assert(msg.size() == 2);
+    dsb::protobuf::ParseFromFrame(msg[1], args);
 }
 
 
 void dsb::inproc_rpc::ReturnSuccess(
     zmq::socket_t& socket,
-    std::deque<zmq::message_t>& returnValues)
+    const google::protobuf::MessageLite* returnValue)
 {
-    auto m = dsb::comm::EncodeRawDataFrame(SUCCESS_CALL_RESULT);
-    socket.send(m, ZMQ_SNDMORE);
-    dsb::comm::Send(socket, returnValues);
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::EncodeRawDataFrame(SUCCESS_CALL_RESULT));
+    if (returnValue) {
+        msg.push_back(zmq::message_t());
+        dsb::protobuf::SerializeToFrame(*returnValue, msg.back());
+    }
+    dsb::comm::Send(socket, msg);
 }
 
 
@@ -54,6 +106,19 @@ void dsb::inproc_rpc::ThrowRuntimeError(
     socket.send(m1);
 }
 
+// =============================================================================
+// Domain controller RPC stuff. To be phased out, as was done with the
+// execution controller RPC.
+
+void dsb::inproc_rpc::ReturnSuccess(
+    zmq::socket_t& socket,
+    std::deque<zmq::message_t>& returnValues)
+{
+    auto m = dsb::comm::EncodeRawDataFrame(SUCCESS_CALL_RESULT);
+    socket.send(m, ZMQ_SNDMORE);
+    dsb::comm::Send(socket, returnValues);
+}
+
 
 namespace
 {
@@ -66,7 +131,7 @@ namespace
     call, if any.  The function throws std::runtime_error or std::logic_error
     if the call fails.
     */
-    void Call(
+    void RpcCall(
         zmq::socket_t& socket,
         dsb::inproc_rpc::CallType call,
         std::deque<zmq::message_t>& msg)
@@ -98,6 +163,7 @@ namespace
     }
 }
 
+
 #define ASSERT_CALL_TYPE(msg, callType) \
     assert (dsb::comm::DecodeRawDataFrame<dsb::inproc_rpc::CallType>(msg[0]) == callType);
 
@@ -107,9 +173,9 @@ void dsb::inproc_rpc::CallGetSlaveTypes(
     std::vector<dsb::domain::Controller::SlaveType>& slaveTypes)
 {
     std::deque<zmq::message_t> msg;
-    Call(socket, GET_SLAVE_TYPES_CALL, msg);
+    RpcCall(socket, GET_SLAVE_TYPES_CALL, msg);
     assert (!msg.empty());
-    dsbproto::inproc_rpc::SlaveTypeList recvdSlaveTypes;
+    dsbproto::domain_controller::SlaveTypeList recvdSlaveTypes;
     dsb::protobuf::ParseFromFrame(msg[0], recvdSlaveTypes);
 
     slaveTypes.clear();
@@ -133,223 +199,45 @@ void dsb::inproc_rpc::CallGetSlaveTypes(
 
 void dsb::inproc_rpc::ReturnGetSlaveTypes(
     zmq::socket_t& socket,
-    dsbproto::inproc_rpc::SlaveTypeList& slaveTypes)
+    dsbproto::domain_controller::SlaveTypeList& slaveTypes)
 {
     auto msg = std::deque<zmq::message_t>(1);
     dsb::protobuf::SerializeToFrame(slaveTypes, msg[0]);
     ReturnSuccess(socket, msg);
 }
 
-void dsb::inproc_rpc::CallInstantiateSlave(
+dsb::net::SlaveLocator dsb::inproc_rpc::CallInstantiateSlave(
     zmq::socket_t& socket,
     const std::string& slaveTypeUUID,
-    const dsb::execution::Locator& executionLocator,
-    dsb::model::SlaveID slaveID,
     const std::string& provider)
 {
-    std::deque<zmq::message_t> args;
-    args.push_back(dsb::comm::ToFrame(slaveTypeUUID));
-    args.push_back(dsb::comm::ToFrame(executionLocator.MasterEndpoint()));
-    args.push_back(dsb::comm::ToFrame(executionLocator.SlaveEndpoint()));
-    args.push_back(dsb::comm::ToFrame(executionLocator.VariablePubEndpoint()));
-    args.push_back(dsb::comm::ToFrame(executionLocator.VariableSubEndpoint()));
-    args.push_back(dsb::comm::ToFrame(executionLocator.ExecName()));
-    args.push_back(dsb::comm::ToFrame(std::to_string(executionLocator.CommTimeout().count())));
-    args.push_back(dsb::comm::EncodeRawDataFrame(slaveID));
-    args.push_back(dsb::comm::ToFrame(provider));
-    Call(socket, INSTANTIATE_SLAVE_CALL, args);
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::ToFrame(slaveTypeUUID));
+    msg.push_back(dsb::comm::ToFrame(provider));
+    RpcCall(socket, INSTANTIATE_SLAVE_CALL, msg);
+    assert (msg.size() == 2);
+    return dsb::net::SlaveLocator(
+        dsb::comm::ToString(msg[0]),
+        dsb::comm::ToString(msg[1]));
 }
 
 void dsb::inproc_rpc::UnmarshalInstantiateSlave(
     std::deque<zmq::message_t>& msg,
     std::string& slaveTypeUUID,
-    dsb::execution::Locator& executionLocator,
-    dsb::model::SlaveID& slaveID,
     std::string& provider)
 {
-    assert (msg.size() == 10);
+    assert (msg.size() == 3);
     ASSERT_CALL_TYPE(msg, INSTANTIATE_SLAVE_CALL);
     slaveTypeUUID = dsb::comm::ToString(msg[1]);
-    executionLocator = dsb::execution::Locator(
-        dsb::comm::ToString(msg[2]),
-        dsb::comm::ToString(msg[3]),
-        dsb::comm::ToString(msg[4]),
-        dsb::comm::ToString(msg[5]),
-        "",
-        dsb::comm::ToString(msg[6]),
-        boost::chrono::seconds(std::stoi(dsb::comm::ToString(msg[7]))));
-    slaveID = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[8]);
-    provider = dsb::comm::ToString(msg[9]);
+    provider = dsb::comm::ToString(msg[2]);
 }
 
-void dsb::inproc_rpc::CallSetSimulationTime(
+void dsb::inproc_rpc::ReturnInstantiateSlave(
     zmq::socket_t& socket,
-    dsb::model::TimePoint startTime,
-    dsb::model::TimePoint stopTime)
+    const dsb::net::SlaveLocator& slaveLocator)
 {
-    std::deque<zmq::message_t> args;
-    args.push_back(dsb::comm::EncodeRawDataFrame(startTime));
-    args.push_back(dsb::comm::EncodeRawDataFrame(stopTime));
-    Call(socket, SET_SIMULATION_TIME_CALL, args);
-}
-
-
-void dsb::inproc_rpc::UnmarshalSetSimulationTime(
-    const std::deque<zmq::message_t>& msg,
-    dsb::model::TimePoint& startTime,
-    dsb::model::TimePoint& stopTime)
-{
-    assert (msg.size() == 3);
-    ASSERT_CALL_TYPE(msg, SET_SIMULATION_TIME_CALL);
-    startTime = dsb::comm::DecodeRawDataFrame<dsb::model::TimePoint>(msg[1]);
-    stopTime  = dsb::comm::DecodeRawDataFrame<dsb::model::TimePoint>(msg[2]);
-}
-
-
-void dsb::inproc_rpc::CallAddSlave(zmq::socket_t& socket, dsb::model::SlaveID slaveId)
-{
-    std::deque<zmq::message_t> args;
-    args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
-    Call(socket, ADD_SLAVE_CALL, args);
-}
-
-
-void dsb::inproc_rpc::UnmarshalAddSlave(
-    const std::deque<zmq::message_t>& msg,
-    dsb::model::SlaveID& slaveId)
-{
-    assert (msg.size() == 2);
-    ASSERT_CALL_TYPE(msg, ADD_SLAVE_CALL);
-    slaveId = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[1]);
-}
-
-
-namespace
-{
-    class ScalarValueConverterVisitor : public boost::static_visitor<>
-    {
-    public:
-        explicit ScalarValueConverterVisitor(dsbproto::variable::ScalarValue& value)
-            : m_value(&value) { }
-        void operator()(const double& value)      const { m_value->set_real_value(value); }
-        void operator()(const int& value)         const { m_value->set_integer_value(value); }
-        void operator()(const bool& value)        const { m_value->set_boolean_value(value); }
-        void operator()(const std::string& value) const { m_value->set_string_value(value); }
-    private:
-        dsbproto::variable::ScalarValue* m_value;
-    };
-
-    void ConvertScalarValue(
-        const dsb::model::ScalarValue& source,
-        dsbproto::variable::ScalarValue& target)
-    {
-        target.Clear();
-        boost::apply_visitor(ScalarValueConverterVisitor(target), source);
-    }
-}
-
-
-void dsb::inproc_rpc::CallSetVariables(
-    zmq::socket_t& socket,
-    dsb::model::SlaveID slaveId,
-    const std::vector<dsb::model::VariableValue>& variables)
-{
-    std::deque<zmq::message_t> args;
-    args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
-
-    dsbproto::execution::SetVarsData setVarsData;
-    BOOST_FOREACH (const auto v, variables) {
-        auto& newVar = *setVarsData.add_variable();
-        newVar.set_id(v.id);
-        ConvertScalarValue(v.value, *newVar.mutable_value());
-    }
-    args.push_back(zmq::message_t());
-    dsb::protobuf::SerializeToFrame(setVarsData, args.back());
-
-    Call(socket, SET_VARIABLES_CALL, args);
-}
-
-
-void dsb::inproc_rpc::UnmarshalSetVariables(
-    const std::deque<zmq::message_t>& msg,
-    dsb::model::SlaveID& slaveId,
-    dsbproto::execution::SetVarsData& setVarsData)
-{
-    assert (msg.size() == 3);
-    ASSERT_CALL_TYPE(msg, SET_VARIABLES_CALL);
-    slaveId = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[1]);
-    dsb::protobuf::ParseFromFrame(msg[2], setVarsData);
-}
-
-
-void dsb::inproc_rpc::CallConnectVariables(
-    zmq::socket_t& socket,
-    dsb::model::SlaveID slaveId,
-    const std::vector<dsb::model::VariableConnection>& variables)
-{
-    std::deque<zmq::message_t> args;
-    args.push_back(dsb::comm::EncodeRawDataFrame(slaveId));
-    BOOST_FOREACH (const auto v, variables) {
-        args.push_back(dsb::comm::EncodeRawDataFrame(v.inputId));
-        args.push_back(dsb::comm::EncodeRawDataFrame(v.otherSlaveId));
-        args.push_back(dsb::comm::EncodeRawDataFrame(v.otherOutputId));
-    }
-    Call(socket, CONNECT_VARIABLES_CALL, args);
-}
-
-
-void dsb::inproc_rpc::UnmarshalConnectVariables(
-    const std::deque<zmq::message_t>& msg,
-    dsb::model::SlaveID& slaveId,
-    dsbproto::execution::ConnectVarsData& connectVarsData)
-{
-    assert (msg.size() >= 2 && (msg.size()-2) % 3 == 0);
-    ASSERT_CALL_TYPE(msg, CONNECT_VARIABLES_CALL);
-    slaveId = dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[1]);
-    for (size_t i = 2; i < msg.size(); i+=3) {
-        auto& newVar = *connectVarsData.add_connection();
-        newVar.set_input_var_id(
-            dsb::comm::DecodeRawDataFrame<dsb::model::VariableID>(msg[i]));
-        newVar.mutable_output_var()->set_slave_id(
-            dsb::comm::DecodeRawDataFrame<dsb::model::SlaveID>(msg[i+1]));
-        newVar.mutable_output_var()->set_var_id(
-            dsb::comm::DecodeRawDataFrame<dsb::model::VariableID>(msg[i+2]));
-    }
-}
-
-
-void dsb::inproc_rpc::CallWaitForReady(zmq::socket_t& socket)
-{
-    std::deque<zmq::message_t> dummy;
-    Call(socket, WAIT_FOR_READY_CALL, dummy);
-}
-
-
-void dsb::inproc_rpc::CallStep(
-    zmq::socket_t& socket,
-    dsb::model::TimePoint t,
-    dsb::model::TimeDuration dt)
-{
-    std::deque<zmq::message_t> args;
-    args.push_back(dsb::comm::EncodeRawDataFrame(t));
-    args.push_back(dsb::comm::EncodeRawDataFrame(dt));
-    Call(socket, STEP_CALL, args);
-}
-
-
-void dsb::inproc_rpc::UnmarshalStep(
-    const std::deque<zmq::message_t>& msg,
-    dsbproto::execution::StepData& stepData)
-{
-    assert (msg.size() == 3);
-    ASSERT_CALL_TYPE(msg, STEP_CALL);
-    stepData.set_timepoint(dsb::comm::DecodeRawDataFrame<dsb::model::TimePoint>(msg[1]));
-    stepData.set_stepsize(dsb::comm::DecodeRawDataFrame<dsb::model::TimeDuration>(msg[2]));
-}
-
-
-void dsb::inproc_rpc::CallTerminate(zmq::socket_t& socket)
-{
-    std::deque<zmq::message_t> dummy;
-    Call(socket, TERMINATE_CALL, dummy);
+    std::deque<zmq::message_t> msg;
+    msg.push_back(dsb::comm::ToFrame(slaveLocator.Endpoint()));
+    msg.push_back(dsb::comm::ToFrame(slaveLocator.Identity()));
+    ReturnSuccess(socket, msg);
 }

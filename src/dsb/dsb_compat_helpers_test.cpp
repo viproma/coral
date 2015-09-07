@@ -1,6 +1,12 @@
 #include "gtest/gtest.h"
 #include "dsb/compat_helpers.hpp"
 
+// This is to verify that our tests are actually valid.  In other words, they
+// ought to pass with compilers that actually do supply make_unique() too.
+#ifndef DSB_COMPAT_MAKE_UNIQUE_MISSING
+#   include <memory>
+#endif
+
 
 namespace
 {

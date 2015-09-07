@@ -2,10 +2,12 @@
 set (protoFiles
     "broker.proto"
     "domain.proto"
+    "domain_controller.proto"
     "execution.proto"
-    "inproc_rpc.proto"
+    "execution_controller.proto"
+    "model.proto"
+    "net.proto"
     "testing.proto"
-    "variable.proto"
 )
 
 # We want the files to appear in the Visual Studio UI, so we add them

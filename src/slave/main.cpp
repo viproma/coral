@@ -1,75 +1,91 @@
-#include <exception>
+#include <cstring>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <stdexcept>
 
 #include "boost/filesystem/path.hpp"
 #include "boost/lexical_cast.hpp"
+#include "zmq.hpp"
 
+#include "dsb/compat_helpers.hpp"
 #include "dsb/execution/slave.hpp"
 #include "dsb/fmi.hpp"
 
 
+/*
+Command line arguments:
+ 0  Program name (of course).
+ 1  Slave provider feedback endpoint (see below).
+ 2  FMU path
+ 3  The endpoint to which the slave should bind, in the URL format used by
+    dsb::comm::P2PEndpoint.
+ 4  Communications timeout, i.e., the number of seconds of inactivity before
+    the slave will shut itself down.
+ 5  The name of an output file, which will be written in CSV format.  This is
+    optional, and if no file is specified, no file will be written.
+
+The program will open a PUSH socket and connect it to the slave provider
+feedback endpoint.  If anything goes wrong during the startup process, it will
+send a 2-frame message on this channel, which contains (ERROR,<details>).
+If all goes well, it will instead send a 2-frame message which contains
+(OK,<bound endpoint>) just before the RunSlave() call.
+*/
 int main(int argc, const char** argv)
 {
+//    std::cin.ignore();
+    // We use this socket to report back to the provider that started the slave.
+    zmq::context_t context;
+    std::unique_ptr<zmq::socket_t> feedbackSocket;
 try {
-    if (argc < 7) {
-        const auto self = boost::filesystem::path(argv[0]).stem().string();
-        std::cerr << "Slave demonstrator.\n"
-                  << "This program is designed to be run by a slave provider, and should normally not be run manually.\n\n"
-                  << "Usage: " << self << " <id> <control> <data pub> <data sub> <fmu path> [output file]\n"
-                  << "  id          = a number in the range 1 - 65535\n"
-                  << "  control     = Control socket endpoint (e.g. tcp://myhost:5432)\n"
-                  << "  data pub    = Publisher socket endpoint\n"
-                  << "  data sub    = Subscriber socket endpoint\n"
-                  << "  fmu path    = Path to FMI1 FMU\n"
-                  << "  timeout     = Number of seconds after which to terminate due to communications silence\n"
-                  << "  output file = Name of output file to write.\n"
-                  << "\n"
-                  << "The output file will be written in CSV format.  If no output file name is given, no output will be written."
-                  << std::endl;
-        return 0;
-    }
-    const auto id = boost::lexical_cast<uint16_t>(argv[1]);
-    if (id == 0) {
-        std::cerr << "0 is not a valid slave ID" << std::endl;
-        return 1;
-    }
-    const auto controlEndpoint = std::string(argv[2]);
-    const auto dataPubEndpoint = std::string(argv[3]);
-    const auto dataSubEndpoint = std::string(argv[4]);
-    const auto fmuPath = std::string(argv[5]);
-    const auto commTimeout = boost::chrono::seconds(std::atoi(argv[6]));
-    std::clog << "DSB slave running FMU: " << fmuPath << std::endl;
+    if (argc < 5) throw std::runtime_error("Missing command line arguments");
+
+    const auto feedbackEndpoint = std::string(argv[1]);
+    feedbackSocket = std::make_unique<zmq::socket_t>(context, ZMQ_PUSH);
+    feedbackSocket->connect(feedbackEndpoint.c_str());
+
+    const auto fmuPath = std::string(argv[2]);
+    const auto bindpoint = std::string(argv[3]);
+    const auto commTimeout = boost::chrono::seconds(std::atoi(argv[4]));
 
     std::ofstream csvOutput;
-    if (argc > 7)
+    if (argc > 5)
     {
-        const auto outFile = std::string(argv[7]);
+        const auto outFile = std::string(argv[5]);
         csvOutput.open(outFile, std::ios_base::out | std::ios_base::trunc
 #ifdef _WIN32
             , _SH_DENYWR // Don't let other processes/threads write to the file
 #endif
         );
         if (!csvOutput) {
-            std::cerr << "Error opening output file for writing: " << outFile << std::endl;
-            return 1;
+            throw std::runtime_error("Error opening output file for writing: " + outFile);
         }
         std::clog << "Output printed to: " << outFile << std::endl;
     }
 
-    auto fmiSlave = dsb::fmi::MakeSlaveInstance(
-        fmuPath, csvOutput.is_open() ? &csvOutput : nullptr);
-    dsb::execution::RunSlave(
-        id,
-        controlEndpoint,
-        dataPubEndpoint,
-        dataSubEndpoint,
-        *fmiSlave,
-        commTimeout);
+    std::shared_ptr<dsb::execution::ISlaveInstance> fmiSlave =
+        dsb::fmi::MakeSlaveInstance(fmuPath, csvOutput.is_open() ? &csvOutput : nullptr);
+    auto slaveRunner = dsb::execution::SlaveRunner(fmiSlave, bindpoint, commTimeout);
+    auto boundpoint = slaveRunner.BoundEndpoint();
+    feedbackSocket->send("OK", 2, ZMQ_SNDMORE);
+    feedbackSocket->send(boundpoint.data(), boundpoint.size());
+    slaveRunner.Run();
     std::cout << "Slave shut down normally" << std::endl;
 
-} catch (const std::exception& e) {
+} catch (const std::runtime_error& e) {
+    if (feedbackSocket) {
+        feedbackSocket->send("ERROR", 5, ZMQ_SNDMORE);
+        feedbackSocket->send(e.what(), std::strlen(e.what()));
+    }
     std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
+} catch (const std::exception& e) {
+    auto msg = std::string("Internal error (") + e.what() + ')';
+    if (feedbackSocket) {
+        feedbackSocket->send("ERROR", 5, ZMQ_SNDMORE);
+        feedbackSocket->send(msg.data(), msg.size());
+    }
+    std::cerr << msg << std::endl;
     return 2;
 }
 return 0;

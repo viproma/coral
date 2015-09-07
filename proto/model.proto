@@ -1,5 +1,4 @@
-package dsbproto.variable;
-
+package dsbproto.model;
 
 // The FMI variable data types.
 enum DataType
@@ -50,9 +49,8 @@ message ScalarValue
     optional string string_value = 4;
 }
 
-// A timestamped variable value
-message TimestampedValue
+message Variable
 {
-    required double timestamp = 1;
-    required ScalarValue value = 2;
+    required uint32 slave_id = 1;
+    required uint32 variable_id = 2;
 }

@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <iostream>
 #include <string>
@@ -10,50 +11,110 @@
 #include "boost/lexical_cast.hpp"
 #include "boost/program_options.hpp"
 
+#include "zmq.hpp"
+
+#include "dsb/comm/messaging.hpp"
+#include "dsb/comm/p2p.hpp"
+#include "dsb/comm/util.hpp"
 #include "dsb/domain/slave_provider.hpp"
 #include "dsb/fmi.hpp"
 #include "dsb/util.hpp"
 
 
+// Note: Not threadsafe
+std::string RandomString(size_t length)
+{
+    static const auto wordChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvxyz-_";
+    static const auto wordCharsLen = std::strlen(wordChars);
+    auto id = std::string(length, '\xFF');
+    for (size_t i = 0; i < length; ++i) {
+        id[i] = wordChars[std::rand() % wordCharsLen];
+    }
+    return id;
+}
+
+
 struct StartSlave
 {
 public:
-    explicit StartSlave(
+    StartSlave(
+        const std::string& proxyEndpoint,
         const std::string& slaveExe,
-        const std::string& outputDir = std::string())
-        : m_slaveExe(slaveExe),
+        boost::chrono::seconds commTimeout,
+        const std::string& outputDir)
+        : m_proxyEndpoint(proxyEndpoint),
+          m_slaveExe(slaveExe),
+          m_commTimeout(commTimeout),
           m_outputDir(outputDir.empty() ? "." : outputDir)
-    { }
-
-    void operator()(
-        dsb::model::SlaveID slaveID,
-        const dsb::execution::Locator& executionLocator,
-        const std::string& fmuPath)
     {
-        const auto slaveIdString = boost::lexical_cast<std::string>(slaveID);
+    }
+
+    dsb::net::SlaveLocator operator()(const std::string& fmuPath)
+    {
         const auto fmuBaseName = boost::filesystem::path(fmuPath).stem().string();
-        const auto outputFile = m_outputDir + '/' + executionLocator.ExecName()
-                            + "-" + slaveIdString + "-" + fmuBaseName + ".csv";
+        const auto outputFile = m_outputDir + '/'
+            + dsb::util::Timestamp() + '_' + fmuBaseName + '_'
+            + RandomString(6) + ".csv";
+
+        auto slaveStatusSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PULL);
+        const auto slaveStatusPort = dsb::comm::BindToEphemeralPort(slaveStatusSocket);
+        const auto slaveStatusEp = "tcp://localhost:" + boost::lexical_cast<std::string>(slaveStatusPort);
+
+        const auto slaveBindEndpoint =
+            dsb::comm::P2PEndpoint(m_proxyEndpoint, RandomString(6));
+
         std::vector<std::string> args;
-        args.push_back(slaveIdString);
-        args.push_back(executionLocator.SlaveEndpoint());
-        args.push_back(executionLocator.VariablePubEndpoint());
-        args.push_back(executionLocator.VariableSubEndpoint());
+        args.push_back(slaveStatusEp);
         args.push_back(fmuPath);
-        args.push_back(std::to_string(executionLocator.CommTimeout().count()));
+        args.push_back(slaveBindEndpoint.URL());
+        args.push_back(std::to_string(m_commTimeout.count()));
         args.push_back(outputFile);
 
-        std::cout << "\nStarting slave " << slaveID << '\n'
-            << "  Execution: " << executionLocator.ExecName() << " @ "
-                               << executionLocator.SlaveEndpoint() << '\n'
+        std::cout << "\nStarting slave...\n"
             << "  FMU      : " << fmuPath << '\n'
             << "  Output   : " << outputFile << '\n'
             << std::flush;
         dsb::util::SpawnProcess(m_slaveExe, args);
+
+        std::clog << "Waiting for verification..." << std::flush;
+        const int feedbackTimeoutSecs = 5;
+        std::deque<zmq::message_t> slaveStatus;
+        const auto feedbackTimedOut = !dsb::comm::Receive(
+            slaveStatusSocket,
+            slaveStatus,
+            boost::chrono::seconds(feedbackTimeoutSecs));
+        if (feedbackTimedOut) {
+            throw std::runtime_error(
+                "Slave took more than "
+                + boost::lexical_cast<std::string>(feedbackTimeoutSecs)
+                + " seconds to start; presumably it has failed altogether");
+        } else if (slaveStatus.size() != 2) {
+            throw std::runtime_error("Invalid data received from slave executable");
+        } else if (dsb::comm::ToString(slaveStatus[0]) == "ERROR") {
+            throw std::runtime_error(dsb::comm::ToString(slaveStatus.at(1)));
+        } else if (dsb::comm::ToString(slaveStatus[0]) != "OK") {
+            throw std::runtime_error("Invalid data received from slave executable");
+        }
+        std::clog << "OK" << std::endl;
+        // At this point, we know that slaveStatus contains two frames, where
+        // the first one is "OK", signifying that the slave seems to be up and
+        // running.  The second one contains the bound endpoint for the slave.
+        const auto slaveBoundEndpoint = dsb::comm::P2PEndpoint(
+            dsb::comm::ToString(slaveStatus[1]));
+        // Later, slaveBoundEndpoint may be different (e.g. if the slave binds
+        // locally to a different port or endpoint than the slave provider, but
+        // for now we only support the proxy solution.
+        assert(slaveBoundEndpoint.Endpoint() == slaveBindEndpoint.Endpoint());
+        assert(slaveBoundEndpoint.Identity() == slaveBindEndpoint.Identity());
+        return dsb::net::SlaveLocator(
+            std::string(), // signifying that we use same proxy as provider
+            slaveBoundEndpoint.Identity());
     }
 
 private:
+    std::string m_proxyEndpoint;
     std::string m_slaveExe;
+    boost::chrono::seconds m_commTimeout;
     std::string m_outputDir;
 };
 
@@ -84,7 +145,9 @@ try {
         ("slave-exe", po::value<std::string>(),
             "The path to the DSB slave executable")
         ("output-dir,o", po::value<std::string>()->default_value(""),
-            "The directory where output files should be written");
+            "The directory where output files should be written")
+        ("timeout", po::value<unsigned int>()->default_value(3600),
+            "The number of seconds of inactivity before a slave shuts itself down");
     po::options_description argDesc;
     argDesc.add(optDesc);
     argDesc.add_options()
@@ -122,6 +185,7 @@ try {
 
     const auto domainAddress = optMap["domain"].as<std::string>();
     const auto outputDir = optMap["output-dir"].as<std::string>();
+    const auto timeout = boost::chrono::seconds(optMap["timeout"].as<unsigned int>());
 
     std::string slaveExe;
     if (optMap.count("slave-exe")) {
@@ -141,8 +205,9 @@ try {
             throw std::runtime_error("Slave executable not specified or found");
         }
     }
-
     assert (!slaveExe.empty());
+
+    const auto domainLoc = dsb::net::GetDomainEndpoints(domainAddress);
 
     std::vector<std::string> fmuPaths;
     BOOST_FOREACH (const auto& fmuSpec, optMap["fmu"].as<std::vector<std::string>>()) {
@@ -152,16 +217,16 @@ try {
             fmuPaths.push_back(fmuSpec);
         }
     }
-
     std::vector<std::unique_ptr<dsb::domain::ISlaveType>> fmus;
     std::vector<dsb::domain::ISlaveType*> fmuPtrs;
     for (auto it = fmuPaths.begin(); it != fmuPaths.end(); ++it) {
-        fmus.push_back(dsb::fmi::MakeSlaveType(*it, StartSlave(slaveExe, outputDir)));
+        fmus.push_back(dsb::fmi::MakeSlaveType(*it,
+            StartSlave(domainLoc.InfoSlavePEndpoint(), slaveExe, timeout, outputDir)));
         fmuPtrs.push_back(fmus.back().get());
         std::cout << "FMU loaded: " << *it << std::endl;
     }
     std::cout << fmus.size() << " FMUs loaded" << std::endl;
-    dsb::domain::SlaveProvider(domainAddress, fmuPtrs);
+    dsb::domain::SlaveProvider(domainLoc, fmuPtrs);
 } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 1;

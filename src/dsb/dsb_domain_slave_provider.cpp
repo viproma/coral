@@ -19,27 +19,21 @@
 #include "dsb/util.hpp"
 #include "domain.pb.h"
 
-
 namespace dp = dsb::protocol::domain;
 
 
-
-
-
 void dsb::domain::SlaveProvider(
-    const std::string& domainBrokerAddress,
+    const dsb::net::DomainLocator& domainLocator,
     const std::vector<dsb::domain::ISlaveType*>& slaveTypes)
 {
-    const auto domainLoc = GetDomainEndpoints(domainBrokerAddress);
-
     auto report = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PUB);
-    report.connect(domainLoc.ReportSlavePEndpoint().c_str());
+    report.connect(domainLocator.ReportSlavePEndpoint().c_str());
 
     const auto myId = dsb::util::RandomUUID();
 
     auto info = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_DEALER);
     info.setsockopt(ZMQ_IDENTITY, myId.data(), myId.size());
-    info.connect(domainLoc.InfoSlavePEndpoint().c_str());
+    info.connect(domainLocator.InfoSlavePEndpoint().c_str());
 
     namespace dp = dsb::protocol::domain;
     zmq::pollitem_t pollItem = { info, 0, ZMQ_POLLIN, 0 };
@@ -90,15 +84,22 @@ void dsb::domain::SlaveProvider(
                         [&](const dsb::domain::ISlaveType* s)
                             { return s->Uuid() == data.slave_type_uuid(); });
 
-                    const dp::MessageType reply =
-                        (stIt != slaveTypes.end() &&
-                            (*stIt)->InstantiateAndConnect(
-                                data.slave_id(),
-                                dsb::protocol::FromProto(data.execution_locator())))
-                        ? dp::MSG_INSTANTIATE_SLAVE_OK
-                        : dp::MSG_INSTANTIATE_SLAVE_FAILED;
-                    msg.pop_back();
-                    msg[3] = dp::CreateHeader(reply, header.protocol);
+                    dsb::net::SlaveLocator slaveLocator;
+                    if (stIt != slaveTypes.end() && (*stIt)->Instantiate(slaveLocator)) {
+                        msg[3] = dp::CreateHeader(
+                            dp::MSG_INSTANTIATE_SLAVE_OK, header.protocol);
+                        dsbproto::net::SlaveLocator slaveLocPb;
+                        slaveLocPb.set_endpoint(slaveLocator.Endpoint());
+                        slaveLocPb.set_identity(slaveLocator.Identity());
+                        dsb::protobuf::SerializeToFrame(slaveLocPb, msg[4]);
+                    } else {
+                        msg[3] = dp::CreateHeader(
+                            dp::MSG_INSTANTIATE_SLAVE_FAILED,
+                            header.protocol);
+                        dsbproto::domain::Error errorPb;
+                        errorPb.set_message((*stIt)->InstantiationFailureDescription());
+                        dsb::protobuf::SerializeToFrame(errorPb, msg[4]);
+                    }
                     break; }
 
                 default:

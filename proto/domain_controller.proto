@@ -1,11 +1,11 @@
-package dsbproto.inproc_rpc;
+package dsbproto.domain_controller;
 
 import "domain.proto";
 
 
 message SlaveTypeInfo
 {
-    required dsbproto.domain.SlaveTypeInfo slave_type_info = 1;
+    required domain.SlaveTypeInfo slave_type_info = 1;
     repeated string provider = 2;
 }
 

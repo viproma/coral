@@ -13,9 +13,8 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/domain/locator.hpp"
-#include "dsb/execution/locator.hpp"
 #include "dsb/model.hpp"
+#include "dsb/net.hpp"
 
 
 namespace dsb
@@ -49,12 +48,12 @@ public:
         std::string description;
         std::string author;
         std::string version;
-        std::vector<dsb::model::Variable> variables;
+        std::vector<dsb::model::VariableDescription> variables;
         std::vector<std::string> providers;
     };
 
     /// Constructor.
-    explicit Controller(const dsb::domain::Locator& locator);
+    explicit Controller(const dsb::net::DomainLocator& locator);
 
     /// Move constructor.
     Controller(Controller&& other) DSB_NOEXCEPT;
@@ -76,10 +75,8 @@ public:
     If no slave provider is specified, and the specified slave type is offered
     by more than one slave provider, an arbitrary one of them will be used.
     */
-    void InstantiateSlave(
+    dsb::net::SlaveLocator InstantiateSlave(
         const std::string& slaveTypeUUID,
-        const dsb::execution::Locator& executionLocator,
-        dsb::model::SlaveID slaveID,
         const std::string& provider = std::string());
 
 private:

@@ -65,9 +65,15 @@ set (exportTarget "${CMAKE_PROJECT_NAME}-targets")
 
 # Compiler/language settings
 if (CMAKE_COMPILER_IS_GNUCXX)
-    # Use C++11 features, treat all warnings as errors.
+    # Use C++11/C++14 features (to the extent possible), treat all warnings
+    # as errors.
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9.0")
+        set (gccStd "c++0x")
+    else ()
+        set (gccStd "c++1y")
+    endif ()
     set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror -Wno-unused-function")
+        "${CMAKE_CXX_FLAGS} -std=c++1y -Wall -Werror -Wno-unused-function")
 
     # Workaround to make Google Test compile with MinGW
     if (MINGW)

@@ -5,14 +5,21 @@
 #ifndef DSB_EXECUTION_SLAVE_HPP
 #define DSB_EXECUTION_SLAVE_HPP
 
+#include <memory>
 #include <stdexcept>
 #include "boost/chrono/duration.hpp"
 #include "boost/noncopyable.hpp"
+#include "dsb/config.h"
 #include "dsb/model.hpp"
 
 
 namespace dsb
 {
+
+// Forward declarations to avoid dependencies on internal classes.
+namespace bus { class SlaveAgent; }
+namespace comm { class Reactor; }
+
 namespace execution
 {
 
@@ -49,7 +56,7 @@ public:
     Each variable must have a unique ID (which may, but is not required to, be
     equal to `index`) and a unique name.
     */
-    virtual dsb::model::Variable Variable(size_t index) const = 0;
+    virtual dsb::model::VariableDescription Variable(size_t index) const = 0;
 
     /**
     \brief  Returns the value of a real variable.
@@ -125,13 +132,29 @@ public:
 };
 
 
-void RunSlave(
-    dsb::model::SlaveID id,
-    const std::string& controlEndpoint,
-    const std::string& dataPubEndpoint,
-    const std::string& dataSubEndpoint,
-    ISlaveInstance& slaveInstance,
-    boost::chrono::seconds commTimeout);
+class SlaveRunner
+{
+public:
+    SlaveRunner(
+        std::shared_ptr<ISlaveInstance> slaveInstance,
+        std::string bindURL,
+        boost::chrono::seconds commTimeout);
+
+    SlaveRunner(SlaveRunner&&) DSB_NOEXCEPT;
+
+    SlaveRunner& operator=(SlaveRunner&&) DSB_NOEXCEPT;
+
+    ~SlaveRunner();
+
+    std::string BoundEndpoint();
+
+    void Run();
+
+private:
+    std::shared_ptr<ISlaveInstance> m_slaveInstance;
+    std::unique_ptr<dsb::comm::Reactor> m_reactor;
+    std::unique_ptr<dsb::bus::SlaveAgent> m_slaveAgent;
+};
 
 
 class TimeoutException : public std::runtime_error

@@ -9,6 +9,7 @@
 #include <limits>
 #include <string>
 #include "boost/variant.hpp"
+#include "dsb/config.h"
 
 
 namespace dsb
@@ -38,6 +39,10 @@ typedef double TimeDuration;
 
 /// Unsigned integer type used for slave identifiers.
 typedef std::uint16_t SlaveID;
+
+
+/// An invalid slave identifier.
+const SlaveID INVALID_SLAVE_ID = 0;
 
 
 /// Unsigned integer type used for variable identifiers.
@@ -77,10 +82,10 @@ enum Variability
 
 
 /// A description of a single variable.
-class Variable
+class VariableDescription
 {
 public:
-    Variable(
+    VariableDescription(
         dsb::model::VariableID id,
         const std::string& name,
         dsb::model::DataType dataType,
@@ -124,26 +129,78 @@ private:
 typedef boost::variant<double, int, bool, std::string> ScalarValue;
 
 
-/// A variable ID-value pair.
-struct VariableValue
+/**
+\brief  An object that identifies a variable in a simulation, and which consists
+        of a slave ID and a variable ID.
+*/
+class Variable
 {
-    VariableID id;
-    ScalarValue value;
+public:
+    explicit Variable(SlaveID slave = INVALID_SLAVE_ID, VariableID id = 0)
+        : m_slave(slave), m_id(id) { }
+
+    dsb::model::SlaveID Slave() const DSB_NOEXCEPT { return m_slave; }
+    dsb::model::VariableID ID() const DSB_NOEXCEPT { return m_id; }
+    bool Empty() const DSB_NOEXCEPT { return m_slave == INVALID_SLAVE_ID; }
+
+private:
+    dsb::model::SlaveID m_slave;
+    dsb::model::VariableID m_id;
 };
 
 
 /**
-\brief  A type that describes a variable connection.
-
-The variable connection is described from the perspective of the slave whose
-input is being connected (i.e., that slave's ID is implied known, and therefore
-not included).
+\brief  An object which represents the action of assigning an initial value to
+        a variable, or to connect it to another variable.
 */
-struct VariableConnection
+class VariableSetting
 {
-    VariableID inputId;       ///< The input variable which is to be connected.
-    SlaveID otherSlaveId;     ///< The slave whose output variable to connect to.
-    VariableID otherOutputId; ///< The output variable which is to be connected.
+public:
+    /// Indicates a variable which should be given a specific value.
+    VariableSetting(
+        VariableID variable,
+        const ScalarValue& value);
+
+    /// Indicates an input variable which should be connected to an output variable.
+    VariableSetting(
+        VariableID inputVar,
+        const dsb::model::Variable& outputVar);
+
+    /**
+    \brief  Indicates an input variable which should both be given a specific
+            value *and* connected to an output variable.
+    */
+    VariableSetting(
+        VariableID inputVar,
+        const ScalarValue& value,
+        const dsb::model::Variable& outputVar);
+
+    /// The variable ID.
+    VariableID Variable() const DSB_NOEXCEPT;
+
+    /// Whether the variable is to be given a value.
+    bool HasValue() const DSB_NOEXCEPT;
+
+    /**
+    \brief  The variable value, if any.
+    \pre `HasValue() == true`
+    */
+    const ScalarValue& Value() const;
+
+    /// Whether the variable is to be connected.
+    bool IsConnected() const DSB_NOEXCEPT;
+
+    /**
+    \brief  The output to which the variable is to be connected, if any.
+    \pre `IsConnected() == true`
+    */
+    const dsb::model::Variable& ConnectedOutput() const;
+
+private:
+    VariableID m_variable;
+    bool m_hasValue;
+    ScalarValue m_value;
+    dsb::model::Variable m_connectedOutput;
 };
 
 

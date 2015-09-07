@@ -1,24 +1,27 @@
 package dsbproto.execution;
 
-import "variable.proto";
+import "model.proto";
 
 
 // Message type identifiers.
 enum MessageType
 {
+    // Handshake
     MSG_DENIED       =  0;
     MSG_HELLO        =  1;
-    MSG_ERROR        =  2;
-    MSG_TERMINATE    =  3;
-    MSG_SUBMIT       =  4;
-    MSG_SETUP        =  5;
-    MSG_READY        =  6;
-    MSG_SET_VARS     =  7;
-    MSG_STEP         =  8;
-    MSG_STEP_OK      =  9;
-    MSG_STEP_FAILED  = 10;
-    MSG_RECV_VARS    = 11;
-    MSG_CONNECT_VARS = 12;
+
+    // Commands
+    MSG_SETUP        = 10;
+    MSG_SET_VARS     = 11;
+    MSG_STEP         = 12;
+    MSG_ACCEPT_STEP  = 13;
+    MSG_TERMINATE    = 14;
+
+    // Responses
+    MSG_ERROR        = 30;
+    MSG_READY        = 31;
+    MSG_STEP_OK      = 32;
+    MSG_STEP_FAILED  = 33;
 }
 
 
@@ -42,8 +45,8 @@ message VarInfo
 {
     required int32 id = 1;
     required string name = 2;
-    required variable.DataType type = 3;
-    required variable.Causality causality = 4;
+    required model.DataType type = 3;
+    required model.Causality causality = 4;
 }
 
 
@@ -55,46 +58,28 @@ message SlaveDescription
     repeated VarInfo variable = 10;
 }
 
-// A message that acts as a unique identifier for a certain variable for
-// a certain slave.
-message VariableRef
-{
-    required int32 slave_id = 1;
-    required int32 var_id = 2;
-}
-
-// A message that instructs a slave to connect one of its input variables
-// to another slave's output variable.
-message VariableConnection
-{
-    required int32 input_var_id = 1;
-    required VariableRef output_var = 2;
-}
-
 // The ID number and a value for one of a slave's variables.
-message Variable
+message SlaveVariableSetting
 {
-    required int32 id = 1;
-    required variable.ScalarValue value = 2;
+    required uint32 variable_id = 1;
+    optional model.ScalarValue value = 2;
+    optional model.Variable connected_output = 3;
 }
 
 // The body of a SETUP message
 message SetupData
 {
-    required double start_time = 1;
-    optional double stop_time = 2;
+    required uint32 slave_id = 1;
+    required double start_time = 2;
+    optional double stop_time = 3;
+    required string variable_pub_endpoint = 4;
+    required string variable_sub_endpoint = 5;
 }
 
 // A message that is sent by the master to a slave to set some of its variables.
 message SetVarsData
 {
-    repeated Variable variable = 1;
-}
-
-/// The body of a CONNECT_VARS message
-message ConnectVarsData
-{
-    repeated VariableConnection connection = 1;
+    repeated SlaveVariableSetting variable = 1;
 }
 
 // The body of a STEP message
@@ -102,4 +87,11 @@ message StepData
 {
     required double timepoint = 1;
     required double stepsize = 2;
+}
+
+// A timestamped variable value
+message TimestampedValue
+{
+    required double timestamp = 1;
+    required model.ScalarValue value = 2;
 }

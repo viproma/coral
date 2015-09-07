@@ -7,6 +7,8 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <system_error>
+#include "dsb/config.h"
 
 
 namespace dsb
@@ -25,6 +27,18 @@ public:
         : std::runtime_error(whatArg) { }
 
     explicit ProtocolViolationException(const char* whatArg)
+        : std::runtime_error(whatArg) { }
+};
+
+
+/// Exception thrown on an attempt to use an unsupported protocol.
+class ProtocolNotSupported : public std::runtime_error
+{
+public:
+    explicit ProtocolNotSupported(const std::string& whatArg)
+        : std::runtime_error(whatArg) { }
+
+    explicit ProtocolNotSupported(const char* whatArg)
         : std::runtime_error(whatArg) { }
 };
 
@@ -83,22 +97,85 @@ debug their code.
 #define DSB_INPUT_CHECK(test)                                                  \
     do {                                                                       \
         if (!(test)) {                                                         \
-            dsb::error::InternalThrow<std::invalid_argument >                  \
+            dsb::error::detail::Throw<std::invalid_argument>                   \
                 (__FUNCTION__, -1, "Input requirement not satisfied", #test);  \
         }                                                                      \
     } while(false)
 
 
-namespace
+/**
+\brief  An exception which is used to signal that one or more of a function's
+        preconditions were not met.
+
+Note that `std::invalid_argument` should be used to signal problems with
+function arguments, even though such could also, strictly speaking, be
+classified as precondition violations.
+
+\see #DSB_PRECONDITION_CHECK
+*/
+class PreconditionViolation : public std::logic_error
+{
+public:
+    explicit PreconditionViolation(const std::string& whatArg)
+        : std::logic_error(whatArg) { }
+};
+
+
+/**
+\def    DSB_PRECONDITION_CHECK(test)
+\brief  Throws a dsb::error::PreconditionViolation if the given boolean
+        expression evaluates to `false`.
+
+This macro may be used to verify that a function's preconditions hold.
+For example, say that you have a class `File` that looks like this:
+~~~{.cpp}
+class File
+{
+public:
+    void Open(const std::string& filename);
+    void Close();
+    bool IsOpen() const;
+};
+~~~
+A reasonable implementation of the `Open` method could then start like this:
+~~~{.cpp}
+void File::Open()
+{
+    DSB_PRECONDITION_CHECK(!IsOpen());
+    DSB_INPUT_CHECK(!filename.empty());
+    ...
+}
+~~~
+If the first test fails (i.e., if a file has already been opened), an exception
+of type dsb::error::PreconditionViolation will be thrown, with an error message
+similar to the following:
+
+    File::Open: Precondition not satisfied: !IsOpen()
+
+To ensure consistent, clear and understandable exceptions, the test expression
+should be formulated so that it is possible for a user, who does not know
+the internals of your class or function, to understand what is going on and
+how to fix it.
+
+\param[in]  test    An expression which can be implicitly converted to `bool`.
+*/
+#define DSB_PRECONDITION_CHECK(test)                                        \
+    do {                                                                    \
+        if (!(test)) {                                                      \
+            dsb::error::detail::Throw<dsb::error::PreconditionViolation>    \
+                (__FUNCTION__, -1, "Precondition not satisfied", #test);    \
+        }                                                                   \
+    } while(false)
+
+
+namespace detail
 {
     // Internal helper function.
     // This function is only designed for use by the macros in this header,
     // and it is subject to change without warning at any time.
     template<class ExceptionT>
-    inline void InternalThrow(const char* location,
-                              int lineNo,
-                              const char* msg,
-                              const char* detail)
+    inline void Throw(
+        const char* location, int lineNo, const char* msg, const char* detail)
     {
         std::stringstream s;
         s << location;
@@ -110,5 +187,56 @@ namespace
 }
 
 
-}}      // namespace
+/**
+\brief  Generic errors
+
+These are for conditions that are not covered by std::errc, but which are not
+specific to simulation as such.
+*/
+enum class generic_error
+{
+    /// An ongoing operation was aborted
+    aborted = 1,
+
+    /// A pending operation was canceled before it was started
+    canceled,
+
+    /// An ongoing operation failed
+    operation_failed,
+};
+
+/// Error category for generic errors
+const std::error_category& generic_category() DSB_NOEXCEPT;
+
+/// Simulation errors.
+enum class sim_error
+{
+    /// Slave is unable to perform a time step
+    cannot_perform_timestep = 1
+};
+
+/// Error category for simulation errors.
+const std::error_category& sim_category() DSB_NOEXCEPT;
+
+
+// Standard functions to make std::error_code and std::error_condition from
+// generic_error and sim_error.
+std::error_code make_error_code(generic_error e) DSB_NOEXCEPT;
+std::error_code make_error_code(sim_error e) DSB_NOEXCEPT;
+std::error_condition make_error_condition(generic_error e) DSB_NOEXCEPT;
+std::error_condition make_error_condition(sim_error e) DSB_NOEXCEPT;
+
+
+}} // namespace
+
+
+namespace std
+{
+    // Register sim_error for implicit conversion to std::error_code
+    // TODO: Should this be error_condition?
+    template<>
+    struct is_error_code_enum<dsb::error::sim_error>
+        : public true_type
+    { };
+}
 #endif  // header guard

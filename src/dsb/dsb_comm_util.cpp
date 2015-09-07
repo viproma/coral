@@ -8,7 +8,6 @@ namespace dsb
 namespace comm
 {
 
-
 namespace
 {
     zmq::context_t globalContext;

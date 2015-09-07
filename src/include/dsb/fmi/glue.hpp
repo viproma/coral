@@ -35,7 +35,7 @@ dsb::model::Variability ToVariability(fmi1_variability_enu_t v);
 
 
 /// Converts an FMI 1.0 variable description to a Variable object.
-dsb::model::Variable ToVariable(
+dsb::model::VariableDescription ToVariable(
     fmi1_import_variable_t* fmiVariable,
     dsb::model::VariableID id);
 
