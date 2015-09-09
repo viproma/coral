@@ -40,11 +40,16 @@ update KB2533623.  If these are not present, the directory will simply not be
 added to the DLL search path.  For details, see:
 https://msdn.microsoft.com/en-us/library/windows/desktop/hh310513%28v=vs.85%29.aspx
 */
+#ifndef LOAD_LIBRARY_SEARCH_DEFAULT_DIRS
+#	define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS 0x00001000
+#endif
+
 class dsb::fmilib::Fmu1::AdditionalDllDirectory
 {
     typedef void* DLL_DIRECTORY_COOKIE;
     typedef DLL_DIRECTORY_COOKIE (WINAPI * AddDllDirectoryT)(PCWSTR);
     typedef BOOL (WINAPI * RemoveDllDirectoryT)(DLL_DIRECTORY_COOKIE);
+    typedef BOOL (WINAPI * SetDefaultDllDirectoriesT)(DWORD);
 
 public:
     AdditionalDllDirectory(const boost::filesystem::path& baseDir)
@@ -56,8 +61,13 @@ public:
                 GetProcAddress(kernel32Handle, "AddDllDirectory"));
             m_removeDllDirectory = reinterpret_cast<RemoveDllDirectoryT>(
                 GetProcAddress(kernel32Handle, "RemoveDllDirectory"));
+            auto setDefaultDllDirectories = reinterpret_cast<SetDefaultDllDirectoriesT>(
+                GetProcAddress(kernel32Handle, "SetDefaultDllDirectories"));
 
-            if (addDllDirectory && m_removeDllDirectory) {
+            if (addDllDirectory && m_removeDllDirectory && setDefaultDllDirectories) {
+                if (!setDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)) {
+                    assert(!"SetDefaultDllDirectories() failed");
+                }
 #ifdef _WIN64
                 const auto platformSubdir = L"win64";
 #else
