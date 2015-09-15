@@ -64,10 +64,10 @@ private:
     fmi1_import_t* m_handle;
 
 #ifdef _WIN32
-    // Workaround for VIPROMA-42 (Resources and Binary\<Platform> fmu folders
-    // should be added to search path).
+    // Workaround for VIPROMA-67 (FMU DLL search paths on Windows).
+    class AdditionalPath;
     class AdditionalDllDirectory;
-    std::unique_ptr<AdditionalDllDirectory> m_additionalDllDirectory;
+    std::unique_ptr<AdditionalPath> m_additionalDllSearchPath;
 #endif
 };
 
