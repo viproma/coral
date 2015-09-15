@@ -66,7 +66,6 @@ private:
 #ifdef _WIN32
     // Workaround for VIPROMA-67 (FMU DLL search paths on Windows).
     class AdditionalPath;
-    class AdditionalDllDirectory;
     std::unique_ptr<AdditionalPath> m_additionalDllSearchPath;
 #endif
 };
