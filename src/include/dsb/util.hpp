@@ -9,6 +9,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "boost/filesystem/path.hpp"
 #include "boost/noncopyable.hpp"
 
@@ -34,6 +35,15 @@ std::string RandomUUID();
 
 
 /**
+\brief  Returns the current UTC time in the ISO 8601 "basic" format.
+
+This returns a string on the form `yyyymmddThhmmssZ` (where the lower-case
+letters represent the date/time numbers).
+*/
+std::string Timestamp();
+
+
+/**
 \brief  Moves a value, replacing it with another one.
 
 This function works just like `std::move`, except that it only works on lvalues
@@ -41,12 +51,49 @@ and assigns an explicit value to the variable which is being moved from.  This
 is inefficient for types that provide move semantics (`std::move` should be used
 for those), but useful for e.g. built-in types.
 */
-template<typename T>
-T MoveAndReplace(T& variable, const T& replacement = T())
+template<typename T1, typename T2>
+T1 MoveAndReplace(T1& variable, const T2& replacement)
 {
     auto tmp = std::move(variable);
     variable = replacement;
     return std::move(tmp);
+}
+
+/**
+\brief  Overload of MoveAndReplace() that replaces `variable` with a
+        default-constructed value.
+*/
+template<typename T>
+T MoveAndReplace(T& variable)
+{
+    return MoveAndReplace(variable, T());
+}
+
+
+/**
+\brief  Calls the given function(-like object), but only after moving it from
+        its original location.
+
+`MoveAndCall(f, x)` is equivalent to the following:
+~~~{.cpp}
+auto tmp = std::move(f);
+tmp(x);
+~~~
+This is useful for functions that may only be called once (e.g. one-shot
+callbacks).
+*/
+template<typename F>
+void MoveAndCall(F& f)
+{
+    auto tmp = std::move(f);
+    tmp();
+}
+
+template<typename F, typename A0>
+void MoveAndCall(F& f, A0&& a0)
+{
+    auto tmp = std::move(f);
+    tmp(std::forward<A0>(a0));
 }
 
 

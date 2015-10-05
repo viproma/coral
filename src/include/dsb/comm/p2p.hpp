@@ -7,6 +7,7 @@
 #define DSB_COMM_P2P_HPP
 
 #include <cstdint>
+#include <deque>
 #include <memory>
 #include <string>
 
@@ -125,6 +126,22 @@ public:
         boost::chrono::milliseconds timeout = NEVER_TIMEOUT);
 
     /**
+    \brief  Starts a proxy and binds it to the given endpoint.
+
+    \param [in] endpoint
+        The endpoint on which the proxy should listen for incoming messages.
+    \param [in] timeout
+        The timeout period, or #NEVER_TIMEOUT if the proxy should run
+        indefinitely.
+
+    \throws std::invalid_argument if `endpoint` is empty.
+    \throws zmq::error_t if ZMQ reports an error.
+    */
+    BackgroundP2PProxy(
+        const std::string& endpoint,
+        boost::chrono::milliseconds timeout = NEVER_TIMEOUT);
+
+    /**
     \brief  Destructor which terminates the proxy if it hasn't been terminated
             or detached already.
     */
@@ -164,6 +181,7 @@ public:
     boost::thread& Thread__();
 
 private:
+    void Init(zmq::socket_t&& routerSocket, boost::chrono::milliseconds timeout);
     zmq::socket_t m_controlSocket;
     boost::thread m_thread;
 };
@@ -197,6 +215,273 @@ BackgroundP2PProxy SpawnTcpP2PProxy(
 BackgroundP2PProxy SpawnTcpP2PProxy(
     const std::string& networkInterface,
     std::uint16_t& ephemeralPort);
+
+
+/**
+\brief  An endpoint description which may refer to an endpoint which is
+        accessed via a P2P proxy.
+*/
+class P2PEndpoint
+{
+public:
+    P2PEndpoint();
+
+    P2PEndpoint(const std::string& url);
+
+    P2PEndpoint(const std::string& endpoint, const std::string& identity);
+
+    const std::string& Endpoint() const;
+
+    bool IsBehindProxy() const;
+
+    const std::string& Identity() const;
+
+    std::string URL() const;
+
+private:
+    std::string m_endpoint;
+    std::string m_identity;
+};
+
+
+/// Flags for P2PReqSocket::Send()
+enum P2PSendFlags
+{
+    /// Allows a message to be sent out of the strict request-reply order.
+    SEND_OUT_OF_ORDER = 1
+};
+
+
+/**
+\brief  A client socket for communication with a single server node in a
+        request-reply pattern, either directly or via a P2P proxy.
+
+The purpose of this class is to communicate with one other node, the "server",
+in a request-reply pattern.  The server may be connected directly, socket to
+socket, or it may be connected via a P2P proxy.  After connection, the presence
+of the proxy (or lack thereof) does not affect client code.
+
+\see P2PRepSocket, which is the corresponding server socket.
+\see SpawnP2PProxy, which sets up a P2P proxy.
+*/
+class P2PReqSocket
+{
+public:
+    /// Constructs a new, unconnected socket.
+    P2PReqSocket();
+
+    /// Move constructor
+#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
+    P2PReqSocket(P2PReqSocket&&) = default;
+#else
+    P2PReqSocket(P2PReqSocket&&) DSB_NOEXCEPT;
+#endif
+
+    /// Move assignment
+#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
+    P2PReqSocket& operator=(P2PReqSocket&&) = default;
+#else
+    P2PReqSocket& operator=(P2PReqSocket&&) DSB_NOEXCEPT;
+#endif
+
+#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
+    ~P2PReqSocket() = default;
+#endif
+
+    /**
+    \brief  Connects to a server.
+
+    This function may only be called if the socket is not already connected or
+    bound.
+    */
+    void Connect(const P2PEndpoint& server);
+
+    /**
+    \brief  Binds to an endpoint to accept an incoming direct connection from
+            a server.
+
+    This function may only be called if the socket is not already connected or
+    bound.
+    */
+    void Bind(const std::string& localEndpoint);
+
+    /**
+    \brief  Disconnects and/or unbinds the socket.
+
+    If the socket is not connected or bound, this function has no effect.
+    */
+    void Close();
+
+    /**
+    \brief  Sends a request.
+
+    This function may only be called if the socket is connected or bound, and
+    may normally not be called again before a reply has been received with
+    Receive().
+
+    The exception is if the following Send() is called with `flags` set to
+    `SEND_OUT_OF_ORDER`, which disables this check.  Use this at your own risk.
+    */
+    void Send(std::deque<zmq::message_t>& msg, int flags = 0);
+
+    /**
+    \brief  Receives a reply.
+
+    This function may only be called if the socket is connected or bound, and
+    then only after a request has been sent with Send()().
+    */
+    void Receive(std::deque<zmq::message_t>& msg);
+
+    /**
+    \brief  The underlying ZMQ socket.
+
+    This reference is only valid after the socket has been connected/bound.
+    The socket is of type REQ.
+    */
+    zmq::socket_t& Socket();
+    const zmq::socket_t& Socket() const;
+
+private:
+    enum State
+    {
+        DISCONNECTED,
+        CONNECTED,
+        PROXY_CONNECTED,
+        BOUND,
+    };
+    State m_connectedState;
+    bool m_awaitingRep;
+    std::unique_ptr<zmq::socket_t> m_socket;
+    zmq::message_t m_serverIdentity;
+};
+
+
+/**
+\brief  A server socket for communication with client nodes in a
+        request-reply pattern, either directly or via a P2P proxy.
+
+The purpose of this class is to communicate with one or more other nodes, the
+"clients", in a request-reply pattern.  The clients may be connected directly,
+socket to socket, or they may be connected via a P2P proxy.  (These two methods
+cannot be used at once by different clients.)  After connection, the presence
+of the proxy (or lack thereof) does not affect code that uses this class.
+
+\see P2PReqSocket, which is the corresponding client socket.
+\see SpawnP2PProxy, which sets up a P2P proxy.
+*/
+class P2PRepSocket
+{
+public:
+    /// Constructs a new, unconnected socket.
+    P2PRepSocket();
+
+    /// Move constructor
+#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
+    P2PRepSocket(P2PRepSocket&&) = default;
+#else
+    P2PRepSocket(P2PRepSocket&&) DSB_NOEXCEPT;
+#endif
+
+    /// Move assignment
+#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
+    P2PRepSocket& operator=(P2PRepSocket&&) = default;
+#else
+    P2PRepSocket& operator=(P2PRepSocket&&) DSB_NOEXCEPT;
+#endif
+
+#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
+    ~P2PRepSocket() = default;
+#endif
+
+    /**
+    \brief  Binds to a local endpoint or connects to a proxy and waits for
+            incoming requests from clients.
+
+    This function may only be called if the socket is not already connected or
+    bound.
+    */
+    void Bind(const P2PEndpoint& bindpoint);
+
+    /**
+    \brief  Connects to a single client and waits for incoming requests from it.
+
+    This function may only be called if the socket is not already connected or
+    bound.
+    */
+    void Connect(const std::string& clientEndpoint);
+
+    /**
+    \brief  Disconnects and/or unbinds the socket.
+
+    If the socket is not connected or bound, this function has no effect.
+    */
+    void Close();
+
+    /**
+    \brief  Returns the endpoint this socket has been bound to, or the endpoint
+            of the proxy it is connected to along with the socket identity.
+    */
+    const P2PEndpoint& BoundEndpoint() const;
+
+    /**
+    \brief  Receives a request.
+
+    The sender's identity will be stored and used when a reply is sent with
+    Send().
+
+    This function may only be called if the socket is connected or bound, and
+    may not be called again before a reply has been sent with Send().
+    */
+    void Receive(std::deque<zmq::message_t>& msg);
+
+    /**
+    \brief  Sends a reply.
+
+    This function may only be called if the socket is connected or bound, and
+    then only after a request has been received with Receive().
+    */
+    void Send(std::deque<zmq::message_t>& msg);
+
+    /**
+    \brief  The underlying ZMQ socket.
+
+    This reference is only valid after the socket has been connected/bound.
+    If ProxyBind() has been called, the socket is of type DEALER, otherwise it
+    has type REP.
+    */
+    zmq::socket_t& Socket();
+    const zmq::socket_t& Socket() const;
+
+private:
+    void EnforceConnected() const;
+    void EnforceDisconnected() const;
+    enum State
+    {
+        DISCONNECTED,
+        BOUND,
+        PROXY_BOUND,
+        CONNECTED
+    };
+    State m_connectedState;
+    bool m_processingReq;
+    std::unique_ptr<zmq::socket_t> m_socket;
+    P2PEndpoint m_boundEndpoint;
+    zmq::message_t m_clientIdentity;
+};
+
+
+/**
+\brief Receives a message, given that one arrives before the timeout is reached.
+
+Existing message content will be overwritten.
+
+\returns `true` if a message was received, or `false` if the function timed out.
+\throws zmq::error_t on failure to receive a message frame.
+*/
+bool Receive(
+    P2PRepSocket& socket,
+    std::deque<zmq::message_t>& message,
+    boost::chrono::milliseconds timeout);
 
 
 }} // namespace

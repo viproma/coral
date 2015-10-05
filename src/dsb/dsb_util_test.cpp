@@ -1,5 +1,7 @@
 #include "gtest/gtest.h"
 #include "dsb/util.hpp"
+#include <functional>
+#include <stdexcept>
 #include <vector>
 #include "boost/filesystem.hpp"
 
@@ -80,6 +82,28 @@ TEST(dsb_util, MoveAndReplace_class)
     EXPECT_TRUE(b.empty());
     EXPECT_EQ(1U, c.size());
     EXPECT_EQ(dataPtr, c.data());
+}
+
+TEST(dsb_util_DecodeUint16_Test, MoveAndCall)
+{
+    int i = -1;
+
+    std::function<void()> f0 = [&]() {
+        ++i;
+        EXPECT_FALSE(f0);
+    };
+    EXPECT_TRUE(!!f0);
+    MoveAndCall(f0);
+    EXPECT_EQ(0, i);
+
+    std::function<void(int)> f1 = [&](int x) {
+        ++i;
+        EXPECT_EQ(123, x);
+        EXPECT_FALSE(f1);
+    };
+    EXPECT_TRUE(!!f1);
+    MoveAndCall(f1, 123);
+    EXPECT_EQ(1, i);
 }
 
 TEST(dsb_util, OnScopeExit)

@@ -1,14 +1,16 @@
+#define NOMINMAX
 #include "dsb/bus/execution_state.hpp"
 
-#include <iostream>
-#include "boost/foreach.hpp"
+#include <algorithm>
+#include <limits>
+#include <stdexcept>
+#include <string>
 
-#include "dsb/bus/execution_agent.hpp"
-#include "dsb/bus/slave_tracker.hpp"
-#include "dsb/comm/messaging.hpp"
-#include "dsb/inproc_rpc.hpp"
-#include "dsb/protocol/execution.hpp"
-#include "execution.pb.h"
+#include "dsb/bus/execution_manager_private.hpp"
+#include "dsb/bus/slave_control_messenger.hpp"
+#include "dsb/bus/slave_controller.hpp"
+#include "dsb/compat_helpers.hpp"
+#include "dsb/util.hpp"
 
 
 namespace dsb
@@ -17,391 +19,336 @@ namespace bus
 {
 
 
-namespace
+// =============================================================================
+
+
+void ConfigExecutionState::Terminate(ExecutionManagerPrivate& self)
 {
-    // This function handles an SET_SIMULATION_TIME call from the user.
-    // It sends a (more or less) immediate reply, which is either OK or FAILED.
-    // The latter happens if the start time is greater than the stop time, or
-    // if the function is called after slaves have been added.
-    void PerformSetSimulationTimeRPC(
-        ExecutionAgentPrivate& self,
-        std::deque<zmq::message_t>& msg,
-        zmq::socket_t& userSocket)
-    {
-        assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC
-                && "Cannot perform SET_SIMULATION_TIME when another RPC is in progress");
+    self.DoTerminate();
+}
 
-        double startTime, stopTime;
-        dsb::inproc_rpc::UnmarshalSetSimulationTime(msg, startTime, stopTime);
-        if (startTime > stopTime) {
-            dsb::inproc_rpc::ThrowLogicError(
-                userSocket,
-                "Attempted to set start time greater than stop time");
-        } else if (!self.slaves.empty()) {
-            dsb::inproc_rpc::ThrowLogicError(
-                userSocket,
-                "Simulation time must be set before slaves are added");
-        } else {
-            self.startTime = startTime;
-            self.stopTime  = stopTime;
-            dsb::inproc_rpc::ReturnSuccess(userSocket);
-        }
+
+void ConfigExecutionState::BeginConfig(
+    ExecutionManagerPrivate& /*self*/,
+    ExecutionManager::BeginConfigHandler onComplete)
+{
+    // Do nothing, we're already here.
+    onComplete(std::error_code());
+}
+
+
+void ConfigExecutionState::EndConfig(
+    ExecutionManagerPrivate& self,
+    ExecutionManager::BeginConfigHandler onComplete)
+{
+    self.SwapState(
+        std::make_unique<PrimingExecutionState>(std::move(onComplete)));
+}
+
+
+void ConfigExecutionState::SetSimulationTime(
+    ExecutionManagerPrivate& self,
+    dsb::model::TimePoint startTime,
+    dsb::model::TimePoint stopTime)
+{
+    DSB_PRECONDITION_CHECK(self.slaves.empty());
+    DSB_INPUT_CHECK(startTime <= stopTime);
+    self.slaveSetup.startTime = startTime;
+    self.slaveSetup.stopTime = stopTime;
+}
+
+
+// NOTE:
+// None of the per-slave operation completion handlers in the CONFIG state
+// should capture the 'this' pointer of the ConfigExecutionState object.
+// The reason is that if the user calls EndConfig() while operations are still
+// pending, the operations will not complete in this state, but in the PRIMING
+// state.  Hence, the object will have been deleted and replaced with a
+// PrimingExecutionState object.
+
+dsb::model::SlaveID ConfigExecutionState::AddSlave(
+    ExecutionManagerPrivate& self,
+    const dsb::net::SlaveLocator& slaveLocator,
+    dsb::comm::Reactor& reactor,
+    boost::chrono::milliseconds timeout,
+    ExecutionManager::AddSlaveHandler onComplete)
+{
+    DSB_INPUT_CHECK(!!onComplete);
+    if (self.lastSlaveID == std::numeric_limits<dsb::model::SlaveID>::max()) {
+        throw std::length_error("Maximum number of slaves reached");
     }
+    const auto id = ++self.lastSlaveID;
+    const auto selfPtr = &self;
+    self.slaves.insert(std::make_pair(id, std::make_unique<dsb::bus::SlaveController>(
+        reactor,
+        slaveLocator,
+        id,
+        self.slaveSetup,
+        timeout,
+        [id, onComplete, selfPtr] (const std::error_code& ec) {
+            if (!ec) {
+                onComplete(std::error_code(), id);
+            } else {
+                selfPtr->slaves[id]->Close();
+                selfPtr->slaves.erase(id);
+                onComplete(ec, dsb::model::INVALID_SLAVE_ID);
+            }
+            selfPtr->SlaveOpComplete();
+        })));
+    selfPtr->SlaveOpStarted();
+    return id;
+}
 
-    // This function handles an ADD_SLAVE call from the user.  It sends a (more or
-    // less) immediate reply, which is either OK or FAILED.
-    // The latter happens if the supplied slave ID already exists.
-    void PerformAddSlaveRPC(
-        ExecutionAgentPrivate& self,
-        std::deque<zmq::message_t>& msg,
-        zmq::socket_t& userSocket)
-    {
-        assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC
-                && "Cannot perform ADD_SLAVE when another RPC is in progress");
 
-        uint16_t slaveId = 0;
-        dsb::inproc_rpc::UnmarshalAddSlave(msg, slaveId);
-        if (self.slaves.insert(std::make_pair(slaveId, dsb::bus::SlaveTracker(self.startTime, self.stopTime))).second) {
-            dsb::inproc_rpc::ReturnSuccess(userSocket);
-        } else {
-            dsb::inproc_rpc::ThrowLogicError(userSocket, "Slave already added");
-        }
+void ConfigExecutionState::SetVariables(
+    ExecutionManagerPrivate& self,
+    dsb::model::SlaveID slave,
+    const std::vector<dsb::model::VariableSetting>& settings,
+    boost::chrono::milliseconds timeout,
+    ExecutionManager::SetVariablesHandler onComplete)
+{
+    const auto selfPtr = &self;
+    self.slaves.at(slave)->SetVariables(
+        settings,
+        timeout,
+        [onComplete, selfPtr](const std::error_code& ec) {
+            const auto onExit = dsb::util::OnScopeExit([=]() {
+                selfPtr->SlaveOpComplete();
+            });
+            onComplete(ec);
+        });
+    self.SlaveOpStarted();
+}
+
+
+// =============================================================================
+
+
+PrimingExecutionState::PrimingExecutionState(
+    ExecutionManager::EndConfigHandler onComplete)
+    : m_onComplete(std::move(onComplete))
+{
+}
+
+
+void PrimingExecutionState::StateEntered(ExecutionManagerPrivate& self)
+{
+    const auto selfPtr = &self;
+    self.WhenAllSlaveOpsComplete([selfPtr, this] (const std::error_code& ec) {
+        assert(!ec);
+        const auto keepMeAlive = selfPtr->SwapState(std::make_unique<ReadyExecutionState>());
+        assert(keepMeAlive.get() == this);
+        dsb::util::MoveAndCall(m_onComplete, std::error_code());
+   });
+}
+
+
+// =============================================================================
+
+
+void ReadyExecutionState::Terminate(ExecutionManagerPrivate& self)
+{
+    self.DoTerminate();
+}
+
+
+void ReadyExecutionState::BeginConfig(
+    ExecutionManagerPrivate& self,
+    ExecutionManager::BeginConfigHandler onComplete)
+{
+    self.SwapState(std::make_unique<ConfigExecutionState>());
+    onComplete(std::error_code());
+}
+
+
+void ReadyExecutionState::Step(
+    ExecutionManagerPrivate& self,
+    dsb::model::TimeDuration stepSize,
+    boost::chrono::milliseconds timeout,
+    ExecutionManager::StepHandler onComplete,
+    ExecutionManager::SlaveStepHandler onSlaveStepComplete)
+{
+    self.SwapState(std::make_unique<SteppingExecutionState>(
+        stepSize, timeout, std::move(onComplete), std::move(onSlaveStepComplete)));
+}
+
+
+// =============================================================================
+
+
+SteppingExecutionState::SteppingExecutionState(
+    dsb::model::TimeDuration stepSize,
+    boost::chrono::milliseconds timeout,
+    ExecutionManager::StepHandler onComplete,
+    ExecutionManager::SlaveStepHandler onSlaveStepComplete)
+    : m_stepSize(stepSize),
+      m_timeout(timeout),
+      m_onComplete(std::move(onComplete)),
+      m_onSlaveStepComplete(std::move(onSlaveStepComplete))
+{
+}
+
+
+void SteppingExecutionState::StateEntered(ExecutionManagerPrivate& self)
+{
+    const auto selfPtr = &self; // Because we can't capture references in lambdas
+    for (auto it = begin(self.slaves); it != end(self.slaves); ++it) {
+        const auto slaveID = it->first;
+        it->second->Step(
+            self.CurrentSimTime(),
+            m_stepSize,
+            m_timeout,
+            [selfPtr, slaveID, this] (const std::error_code& ec) {
+                const auto onExit = dsb::util::OnScopeExit([=]() {
+                    selfPtr->SlaveOpComplete();
+                });
+                if (m_onSlaveStepComplete) m_onSlaveStepComplete(ec, slaveID);
+            });
+        self.SlaveOpStarted();
     }
-
-    // This function handles a SET_VARS call from the user.  It sends a (more or
-    // less) immediate reply, which is either OK or FAILED.
-    // The latter happens if the supplied slave ID is invalid.  Any errors
-    // reported by the slave in question are reported asynchronously, and not
-    // handled by this function at all.
-    void PerformSetVarsRPC(
-        ExecutionAgentPrivate& self,
-        std::deque<zmq::message_t>& msg,
-        zmq::socket_t& userSocket,
-        zmq::socket_t& slaveSocket)
-    {
-        assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC
-                && "Cannot perform SET_VARS when another RPC is in progress");
-
-        uint16_t slaveId = 0;
-        dsbproto::execution::SetVarsData data;
-        dsb::inproc_rpc::UnmarshalSetVariables(msg, slaveId, data);
-        auto it = self.slaves.find(slaveId);
-        if (it == self.slaves.end()) {
-            dsb::inproc_rpc::ThrowLogicError(userSocket, "Invalid slave ID");
-        } else {
-            it->second.EnqueueSetVars(slaveSocket, data);
-            dsb::inproc_rpc::ReturnSuccess(userSocket);
+    self.WhenAllSlaveOpsComplete([selfPtr, this] (const std::error_code& ec) {
+        assert(!ec);
+        bool stepFailed = false;
+        bool fatalError = false;
+        for (auto it = begin(selfPtr->slaves); it != end(selfPtr->slaves); ++it) {
+            if (it->second->State() == SLAVE_STEP_OK) {
+                // do nothing
+            } else if (it->second->State() == SLAVE_STEP_FAILED) {
+                stepFailed = true;
+            } else {
+                assert(it->second->State() == SLAVE_NOT_CONNECTED);
+                fatalError = true;
+                break; // because there's no point in continuing
+            }
         }
-    }
-
-    // This function handles a CONNECT_VARS call from the user.  It sends a
-    // (more or less) immediate reply, which is either OK or FAILED.
-    // The latter happens if the supplied slave ID is invalid.  Any errors
-    // reported by the slave in question are reported asynchronously, and not
-    // handled by this function at all.
-    void PerformConnectVarsRPC(
-        ExecutionAgentPrivate& self,
-        std::deque<zmq::message_t>& msg,
-        zmq::socket_t& userSocket,
-        zmq::socket_t& slaveSocket)
-    {
-        assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC
-                && "Cannot perform CONNECT_VARS when another RPC is in progress");
-
-        uint16_t slaveId = 0;
-        dsbproto::execution::ConnectVarsData data;
-        dsb::inproc_rpc::UnmarshalConnectVariables(msg, slaveId, data);
-        auto it = self.slaves.find(slaveId);
-        if (it == self.slaves.end()) {
-            dsb::inproc_rpc::ThrowLogicError(userSocket, "Invalid slave ID");
+        if (fatalError) {
+            const auto keepMeAlive = selfPtr->SwapState(
+                std::make_unique<FatalErrorExecutionState>());
+            assert(keepMeAlive.get() == this);
+            m_onComplete(make_error_code(dsb::error::generic_error::operation_failed));
+        } else if (stepFailed) {
+            const auto keepMeAlive = selfPtr->SwapState(
+                std::make_unique<StepFailedExecutionState>());
+            assert(keepMeAlive.get() == this);
+            m_onComplete(dsb::error::sim_error::cannot_perform_timestep);
         } else {
-            BOOST_FOREACH (const auto& conn, data.connection()) {
-                if (!self.slaves.count(conn.output_var().slave_id())) {
-                    dsb::inproc_rpc::ThrowLogicError(
-                        userSocket,
-                        "Invalid slave ID in output variable specification");
-                    return;
+            const auto keepMeAlive = selfPtr->SwapState(
+                std::make_unique<StepOkExecutionState>(m_stepSize));
+            assert(keepMeAlive.get() == this);
+            m_onComplete(std::error_code());
+        }
+    });           
+}
+
+
+// =============================================================================
+
+
+StepOkExecutionState::StepOkExecutionState(dsb::model::TimeDuration stepSize)
+    : m_stepSize(stepSize)
+{
+}
+
+
+void StepOkExecutionState::Terminate(ExecutionManagerPrivate& self)
+{
+    self.DoTerminate();
+}
+
+
+void StepOkExecutionState::AcceptStep(
+    ExecutionManagerPrivate& self,
+    boost::chrono::milliseconds timeout,
+    ExecutionManager::AcceptStepHandler onComplete,
+    ExecutionManager::SlaveAcceptStepHandler onSlaveAcceptStepComplete)
+{
+    self.AdvanceSimTime(m_stepSize);
+    self.SwapState(std::make_unique<AcceptingExecutionState>(
+        timeout, std::move(onComplete), std::move(onSlaveAcceptStepComplete)));
+}
+
+
+// =============================================================================
+
+
+AcceptingExecutionState::AcceptingExecutionState(
+    boost::chrono::milliseconds timeout,
+    ExecutionManager::AcceptStepHandler onComplete,
+    ExecutionManager::SlaveAcceptStepHandler onSlaveAcceptStepComplete)
+    : m_timeout(timeout),
+      m_onComplete(std::move(onComplete)),
+      m_onSlaveAcceptStepComplete(std::move(onSlaveAcceptStepComplete))
+{
+}
+
+
+void AcceptingExecutionState::StateEntered(ExecutionManagerPrivate& self)
+{
+    const auto selfPtr = &self; // Because we can't capture references in lambdas
+    for (auto it = begin(self.slaves); it != end(self.slaves); ++it) {
+        const auto slaveID = it->first;
+        it->second->AcceptStep(
+            m_timeout,
+            [selfPtr, slaveID, this] (const std::error_code& ec) {
+                const auto onExit = dsb::util::OnScopeExit([=]() {
+                    selfPtr->SlaveOpComplete();
+                });
+                if (m_onSlaveAcceptStepComplete) {
+                    m_onSlaveAcceptStepComplete(ec, slaveID);
                 }
+            });
+        self.SlaveOpStarted();
+    }
+    self.WhenAllSlaveOpsComplete([selfPtr, this] (const std::error_code& ec) {
+        assert(!ec);
+        bool error = false;
+        for (auto it = begin(selfPtr->slaves); it != end(selfPtr->slaves); ++it) {
+            if (it->second->State() != SLAVE_READY) {
+                assert(it->second->State() == SLAVE_NOT_CONNECTED);
+                error = true;
+                break;
             }
-            it->second.EnqueueConnectVars(slaveSocket, data);
-            dsb::inproc_rpc::ReturnSuccess(userSocket);
         }
-    }
-}
-
-
-// =============================================================================
-// Initializing
-// =============================================================================
-
-ExecutionInitializing::ExecutionInitializing() : m_waitingForReady(false) { }
-
-void ExecutionInitializing::StateEntered(
-    ExecutionAgentPrivate& self,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    // This assert may be removed in the future, if we add RPCs that may cross
-    // into the "initialized" state.
-    assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC);
-}
-
-void ExecutionInitializing::UserMessage(
-    ExecutionAgentPrivate& self,
-    std::deque<zmq::message_t>& msg,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC);
-    assert (!msg.empty());
-    switch (dsb::comm::DecodeRawDataFrame<dsb::inproc_rpc::CallType>(msg[0])) {
-        case dsb::inproc_rpc::SET_SIMULATION_TIME_CALL:
-            PerformSetSimulationTimeRPC(self, msg, userSocket);
-            break;
-        case dsb::inproc_rpc::SET_VARIABLES_CALL:
-            PerformSetVarsRPC(self, msg, userSocket, slaveSocket);
-            break;
-        case dsb::inproc_rpc::CONNECT_VARIABLES_CALL:
-            PerformConnectVarsRPC(self, msg, userSocket, slaveSocket);
-            break;
-        case dsb::inproc_rpc::WAIT_FOR_READY_CALL:
-            self.rpcInProgress = ExecutionAgentPrivate::WAIT_FOR_READY_RPC;
-            break;
-        case dsb::inproc_rpc::TERMINATE_CALL:
-            self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
-            dsb::inproc_rpc::ReturnSuccess(userSocket);
-            break;
-        case dsb::inproc_rpc::ADD_SLAVE_CALL:
-            PerformAddSlaveRPC(self, msg, userSocket);
-            break;
-        default:
-            assert (!"Invalid command received while execution is in 'initializing' state");
-    }
-}
-
-void ExecutionInitializing::SlaveWaiting(
-    ExecutionAgentPrivate& self,
-    SlaveTracker& slaveHandler,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    // Check whether all slaves are Ready, and if so, switch to Ready state.
-    bool allReady = true;
-    BOOST_FOREACH (const auto& slave, self.slaves) {
-        if (slave.second.State() != SLAVE_READY) allReady = false;
-    }
-    if (allReady) self.ChangeState<ExecutionReady>(userSocket, slaveSocket);
-}
-
-// =============================================================================
-// Ready
-// =============================================================================
-
-void ExecutionReady::StateEntered(
-    ExecutionAgentPrivate& self,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    // Any RPC in progress will by definition have succeeded when this state is
-    // reached.
-    if (self.rpcInProgress != ExecutionAgentPrivate::NO_RPC) {
-        assert (self.rpcInProgress == ExecutionAgentPrivate::WAIT_FOR_READY_RPC
-                || self.rpcInProgress == ExecutionAgentPrivate::STEP_RPC);
-        dsb::inproc_rpc::ReturnSuccess(userSocket);
-        self.rpcInProgress = ExecutionAgentPrivate::NO_RPC;
-    }
-}
-
-void ExecutionReady::UserMessage(
-    ExecutionAgentPrivate& self,
-    std::deque<zmq::message_t>& msg,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    assert (self.rpcInProgress == ExecutionAgentPrivate::NO_RPC);
-    assert (!msg.empty());
-    switch (dsb::comm::DecodeRawDataFrame<dsb::inproc_rpc::CallType>(msg[0])) {
-        case dsb::inproc_rpc::STEP_CALL: {
-            dsbproto::execution::StepData stepData;
-            dsb::inproc_rpc::UnmarshalStep(msg, stepData);
-
-            // TODO: Some checks we may want to insert here (and send FAIL if they
-            // do not pass):
-            //   - Is the time point of the first step equal to the start time?
-            //   - Is the time point plus the step size greater than the stop time?
-            //   - Is the time point equal to the previous time point plus the
-            //     previous step size?
-            //   - Have any slaves been added to the simulation?
-
-            // Create the STEP message body
-            BOOST_FOREACH(auto& slave, self.slaves) {
-                slave.second.SendStep(slaveSocket, stepData);
-            }
-            self.rpcInProgress = ExecutionAgentPrivate::STEP_RPC;
-            self.ChangeState<ExecutionStepping>(userSocket, slaveSocket);
-            break; }
-        case dsb::inproc_rpc::TERMINATE_CALL:
-            self.ChangeState<ExecutionTerminating>(userSocket, slaveSocket);
-            dsb::inproc_rpc::ReturnSuccess(userSocket);
-            break;
-        case dsb::inproc_rpc::ADD_SLAVE_CALL:
-            PerformAddSlaveRPC(self, msg, userSocket);
-            break;
-        case dsb::inproc_rpc::SET_VARIABLES_CALL:
-            PerformSetVarsRPC(self, msg, userSocket, slaveSocket);
-            self.ChangeState<ExecutionInitializing>(userSocket, slaveSocket);
-            break;
-        case dsb::inproc_rpc::CONNECT_VARIABLES_CALL:
-            PerformConnectVarsRPC(self, msg, userSocket, slaveSocket);
-            self.ChangeState<ExecutionInitializing>(userSocket, slaveSocket);
-            break;
-        case dsb::inproc_rpc::WAIT_FOR_READY_CALL:
-            dsb::inproc_rpc::ReturnSuccess(userSocket);
-            break;
-        default:
-            assert (!"Invalid command received while execution is in 'ready' state");
-    }
-}
-
-void ExecutionReady::SlaveWaiting(
-    ExecutionAgentPrivate& self,
-    SlaveTracker& slaveHandler,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-}
-
-// =============================================================================
-// Stepping
-// =============================================================================
-
-void ExecutionStepping::StateEntered(
-    ExecutionAgentPrivate& self,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    assert (self.rpcInProgress == ExecutionAgentPrivate::STEP_RPC);
-}
-
-void ExecutionStepping::UserMessage(
-    ExecutionAgentPrivate& self,
-    std::deque<zmq::message_t>& msg,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    assert (false);
-}
-
-void ExecutionStepping::SlaveWaiting(
-    ExecutionAgentPrivate& self,
-    SlaveTracker& slaveHandler,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    assert (slaveHandler.State() != SLAVE_STEP_FAILED
-            && "A slave was unable to perform its time step, and we don't handle that too well yet...");
-    bool allPublished = true;
-    BOOST_FOREACH (const auto& slave, self.slaves) {
-        if (slave.second.IsSimulating() && slave.second.State() != SLAVE_PUBLISHED) {
-            allPublished = false;
+        if (error) {
+            const auto keepMeAlive = selfPtr->SwapState(
+                std::make_unique<FatalErrorExecutionState>());
+            assert(keepMeAlive.get() == this);
+            m_onComplete(make_error_code(dsb::error::generic_error::operation_failed));
+            return;
+        } else {
+            const auto keepMeAlive = selfPtr->SwapState(
+                std::make_unique<ReadyExecutionState>());
+            assert(keepMeAlive.get() == this);
+            m_onComplete(std::error_code());
         }
-    }
-    if (allPublished) {
-        self.ChangeState<ExecutionPublished>(userSocket, slaveSocket);
-    }
+    });
 }
 
-// =============================================================================
-// Published
-// =============================================================================
 
-void ExecutionPublished::StateEntered(
-    ExecutionAgentPrivate& self,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    assert (self.rpcInProgress == ExecutionAgentPrivate::STEP_RPC);
-    BOOST_FOREACH (auto& slave, self.slaves) {
-        if (slave.second.IsSimulating()) {
-            slave.second.SendRecvVars(slaveSocket);
-        } else assert (false);
-    }
-}
-
-void ExecutionPublished::UserMessage(
-    ExecutionAgentPrivate& self,
-    std::deque<zmq::message_t>& msg,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    assert (false);
-}
-
-void ExecutionPublished::SlaveWaiting(
-    ExecutionAgentPrivate& self,
-    SlaveTracker& slaveHandler,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    // Check whether all slaves are Ready, and if so, switch to Ready state.
-    bool allReady = true;
-    BOOST_FOREACH (const auto& slave, self.slaves) {
-        if (slave.second.State() != SLAVE_READY) allReady = false;
-    }
-    if (allReady) self.ChangeState<ExecutionReady>(userSocket, slaveSocket);
-}
-
-// =============================================================================
-// Terminating
 // =============================================================================
 
 
-ExecutionTerminating::ExecutionTerminating()
+void StepFailedExecutionState::Terminate(ExecutionManagerPrivate& self)
 {
+    self.DoTerminate();
 }
 
-void ExecutionTerminating::StateEntered(
-    ExecutionAgentPrivate& self,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
+
+// =============================================================================
+
+
+void FatalErrorExecutionState::Terminate(ExecutionManagerPrivate& self)
 {
-    bool readyToShutdown = true;
-    BOOST_FOREACH (auto& slave, self.slaves) {
-        if (slave.second.State() & TERMINATABLE_STATES) {
-            slave.second.SendTerminate(slaveSocket);
-        } else if (slave.second.State() != SLAVE_UNKNOWN) {
-            readyToShutdown = false;
-        }
-    }
-    if (readyToShutdown) self.Shutdown();
+    self.DoTerminate();
 }
 
-void ExecutionTerminating::UserMessage(
-    ExecutionAgentPrivate& self,
-    std::deque<zmq::message_t>& msg,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    assert (false);
-}
 
-void ExecutionTerminating::SlaveWaiting(
-    ExecutionAgentPrivate& self,
-    SlaveTracker& slaveHandler,
-    zmq::socket_t& userSocket,
-    zmq::socket_t& slaveSocket)
-{
-    assert (slaveHandler.State() & TERMINATABLE_STATES);
-    slaveHandler.SendTerminate(slaveSocket);
+// =============================================================================
 
-    bool readyToShutdown = true;
-    BOOST_FOREACH (auto& slave, self.slaves) {
-        if (slave.second.State() != SLAVE_TERMINATED) {
-            readyToShutdown = false;
-            break;
-        }
-    }
-    if (readyToShutdown) self.Shutdown();
+
+void TerminatedExecutionState::Terminate(ExecutionManagerPrivate& self)
+{
+    // Do nothing, we're already here.
 }
 
 

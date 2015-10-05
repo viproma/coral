@@ -16,8 +16,9 @@
 SimulationEvent::SimulationEvent(
     dsb::model::TimePoint t,
     dsb::model::SlaveID s,
-    const dsb::model::VariableValue& v)
-    : timePoint(t), slave(s), variableChange(v)
+    dsb::model::VariableID v,
+    const dsb::model::ScalarValue& n)
+    : timePoint(t), slave(s), variable(v), newValue(n)
 {
 }
 
@@ -62,7 +63,7 @@ namespace
 
 
     dsb::model::ScalarValue ParseVariableValue(
-        const dsb::model::Variable& variableDefinition,
+        const dsb::model::VariableDescription& variableDefinition,
         const boost::property_tree::ptree& valueNode)
     {
         try {
@@ -87,38 +88,206 @@ namespace
         }
     }
 
-    struct SlaveInstance
-    {
-        dsb::model::SlaveID id;
-        const dsb::domain::Controller::SlaveType* slaveType;
-    };
-
-    const SlaveInstance& FindSlaveInstance(
-        const std::map<std::string, SlaveInstance>& slaves,
+    const dsb::domain::Controller::SlaveType& GetSlaveType(
+        const std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
         const std::string& slaveName)
     {
         const auto slaveIt = slaves.find(slaveName);
         if (slaveIt == slaves.end()) {
             throw std::runtime_error("Unknown slave: " + slaveName);
         }
-        return slaveIt->second;
+        return *slaveIt->second;
     }
 
 
-    const dsb::model::Variable& FindVariable(
-        const SlaveInstance& slaveInstance,
+    const dsb::model::VariableDescription& FindVariable(
+        const dsb::domain::Controller::SlaveType& slaveType,
         const std::string& varName)
     {
-        const auto& variables = slaveInstance.slaveType->variables;
+        const auto& variables = slaveType.variables;
         const auto varIt = std::find_if(
             variables.begin(),
             variables.end(),
-            [&](const dsb::model::Variable& varDef) { return varDef.Name() == varName; });
+            [&](const dsb::model::VariableDescription& varDef) { return varDef.Name() == varName; });
         if (varIt == variables.end()) {
             throw std::runtime_error(
                 "Variable not found: " + varName);
         }
         return *varIt;
+    }
+
+    struct VariableValue
+    {
+        dsb::model::VariableID id;
+        dsb::model::ScalarValue value;
+    };
+
+    struct VariableConnection
+    {
+        dsb::model::VariableID inputId;
+        std::string otherSlaveName;
+        dsb::model::VariableID otherOutputId;
+    };
+}
+
+
+// Helper functions for ParseSystemConfig
+namespace
+{
+    // Parses the "slave" node in 'ptree', building two maps:
+    //   slaves   : maps slave names to slave types
+    //   variables: maps slave names to lists of variable values
+    void ParseSlavesNode(
+        const boost::property_tree::ptree& ptree,
+        const std::multimap<std::string, dsb::domain::Controller::SlaveType>& slaveTypes,
+        std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
+        std::map<std::string, std::vector<VariableValue>>& variables)
+    {
+        assert(slaves.empty());
+        assert(variables.empty());
+        // NOTE: For some reason, if we put the get_child() call inside the
+        // BOOST_FOREACH macro invocation, we get a segfault if the child node
+        // does not exist.
+        const auto slaveTree = ptree.get_child("slaves", boost::property_tree::ptree());
+        BOOST_FOREACH (const auto& slaveNode, slaveTree) {
+            const auto slaveName = slaveNode.first;
+            if (slaves.count(slaveName)) {
+                throw std::runtime_error(
+                    "Configuration file contains two slaves with the name '"
+                    + slaveName + "'");
+            }
+            const auto slaveData = slaveNode.second;
+            const auto slaveTypeName = slaveData.get<std::string>("type");
+            const auto typeCount = slaveTypes.count(slaveTypeName);
+            if (typeCount == 0) {
+                throw std::runtime_error(
+                    "Slave type not found in domain: " + slaveTypeName);
+            } else if (typeCount > 1) {
+                throw std::runtime_error(
+                    "Two or more slave types with the same name found in domain: " + slaveTypeName);
+            }
+            const auto& slaveType = slaveTypes.find(slaveTypeName)->second;
+            slaves[slaveName] = &slaveType;
+
+            const auto initTree = slaveData.get_child("init", boost::property_tree::ptree());
+            BOOST_FOREACH (const auto& initNode, initTree) {
+                const auto varName = initNode.first;
+                const auto varDefIt = std::find_if(
+                    slaveType.variables.begin(),
+                    slaveType.variables.end(),
+                    [&](const dsb::model::VariableDescription& varDef) { return varDef.Name() == varName; });
+                if (varDefIt == slaveType.variables.end()) {
+                    throw std::runtime_error(
+                        "Variable '" + varName + "' not found in slave type '"
+                        + slaveTypeName + "'");
+                }
+                VariableValue v;
+                v.id = varDefIt->ID();
+                v.value = ParseVariableValue(*varDefIt, initNode.second);
+                variables[slaveName].push_back(v);
+            }
+        }
+    }
+
+    // Parses the "connections" node in 'ptree', building a mapping
+    // ('connections') from slave names to lists of variable connections.
+    void ParseConnectionsNode(
+        const boost::property_tree::ptree& ptree,
+        const std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
+        std::map<std::string, std::vector<VariableConnection>>& connections)
+    {
+        assert(connections.empty());
+        const auto connTree = ptree.get_child("connections", boost::property_tree::ptree());
+        BOOST_FOREACH (const auto& connNode, connTree) {
+            const auto inputSpec = SplitVarSpec(connNode.first);
+            const auto outputSpec = SplitVarSpec(connNode.second.data());
+            try {
+                const auto& inputSlaveType = GetSlaveType(slaves, inputSpec.first);
+                const auto& outputSlaveType = GetSlaveType(slaves, outputSpec.first);
+                const auto& inputVar = FindVariable(inputSlaveType, inputSpec.second);
+                const auto& outputVar = FindVariable(outputSlaveType, outputSpec.second);
+                if (inputVar.DataType() != outputVar.DataType()) {
+                    throw std::runtime_error("Incompatible data types");
+                }
+                if (inputVar.Causality() != dsb::model::INPUT_CAUSALITY) {
+                    throw std::runtime_error("Not an input variable: " + inputVar.Name());
+                }
+                if (outputVar.Causality() != dsb::model::OUTPUT_CAUSALITY) {
+                    throw std::runtime_error("Not an output variable: " + outputVar.Name());
+                }
+                VariableConnection vc;
+                vc.inputId = inputVar.ID();
+                vc.otherSlaveName = outputSpec.first;
+                vc.otherOutputId = outputVar.ID();
+                connections[inputSpec.first].push_back(vc);
+            } catch (const std::runtime_error& e) {
+                throw std::runtime_error("In connection between "
+                    + connNode.first + " and " + connNode.second.data() + ": "
+                    + e.what());
+            }
+        }
+    }
+
+    // Parses the "scenario" node in 'ptree', producing two lists:
+    //      scenario:  a list of scenario events, where the slave IDs are left
+    //          undetermined since we don't know them yet.
+    //      scenarioEventsSlaveName:  a list of the same length as 'scenario',
+    //          which contains the names of the slaves that should receive
+    //          the corresponding events in 'scenario'
+    void ParseScenarioNode(
+        const boost::property_tree::ptree& ptree,
+        const std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
+        std::ostream* warningLog,
+        std::vector<SimulationEvent>& scenario,
+        std::vector<std::string>& scenarioEventSlaveName)
+    {
+        assert(scenario.empty());
+        assert(scenarioEventSlaveName.empty());
+        const auto scenTree = ptree.get_child("scenario", boost::property_tree::ptree());
+        BOOST_FOREACH (const auto& scenNode, scenTree) {
+            // Iterate elements of the form: timePoint { ... }
+            try {
+                const auto timePoint = boost::lexical_cast<dsb::model::TimePoint>(scenNode.first);
+                BOOST_FOREACH (const auto& varChangeNode, scenNode.second) {
+                    // Iterate elements of the form: varName varValue
+                    const auto varSpec = SplitVarSpec(varChangeNode.first);
+                    const auto& affectedSlaveName = varSpec.first;
+                    const auto& affectedVarName = varSpec.second;
+                    try {
+                        const auto& var = FindVariable(*slaves.at(affectedSlaveName), affectedVarName);
+                        if (warningLog) {
+                            if (var.Causality() == dsb::model::INPUT_CAUSALITY) {
+                                *warningLog << "Warning: " << varChangeNode.first
+                                    << " is an input variable.  If it is connected to"
+                                       " an output, the scenario event may not have the"
+                                       " intended effect." << std::endl;
+                            } else if (var.Causality() != dsb::model::PARAMETER_CAUSALITY) {
+                                *warningLog << "Warning: " << varChangeNode.first
+                                    << " is not a parameter, and should therefore"
+                                       " normally not be changed manually." << std::endl;
+                            }
+                            if (var.Variability() == dsb::model::CONSTANT_VARIABILITY
+                                || var.Variability() == dsb::model::FIXED_VARIABILITY) {
+                                *warningLog << "Warning: " << varChangeNode.first
+                                    << " is not a modifiable variable." << std::endl;
+                            }
+                        }
+                        scenario.push_back(SimulationEvent(
+                            timePoint,
+                            dsb::model::INVALID_SLAVE_ID,
+                            var.ID(),
+                            ParseVariableValue(var, varChangeNode.second)));
+                        scenarioEventSlaveName.push_back(affectedSlaveName);
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("For variable " + varChangeNode.first
+                            + ": " + e.what());
+                    }
+                }
+            } catch (const std::exception& e) {
+                throw std::runtime_error("In scenario event at t=" + scenNode.first
+                    + ": " + e.what());
+            }
+        }
     }
 }
 
@@ -127,159 +296,104 @@ void ParseSystemConfig(
     const std::string& path,
     dsb::domain::Controller& domain,
     dsb::execution::Controller& execution,
-    const dsb::execution::Locator& executionLocator,
+    const dsb::net::ExecutionLocator& executionLocator,
     std::vector<SimulationEvent>& scenarioOut,
+    boost::chrono::milliseconds commTimeout,
     std::ostream* warningLog)
 {
     const auto ptree = ReadPtreeInfoFile(path);
-
     const auto slaveTypes = SlaveTypesByName(domain);
 
-    std::map<std::string, SlaveInstance> slaves;
-    std::map<dsb::model::SlaveID, std::vector<dsb::model::VariableValue>> variables;
+    std::map<std::string, const dsb::domain::Controller::SlaveType*> slaves;
+    std::map<std::string, std::vector<VariableValue>> variables;
+    ParseSlavesNode(ptree, slaveTypes, slaves, variables);
 
-    // NOTE: For some reason, if we put the get_child() call inside the
-    // BOOST_FOREACH macro invocation, we get a segfault if the child node
-    // does not exist.
-    const auto slaveTree = ptree.get_child("slaves", boost::property_tree::ptree());
-    BOOST_FOREACH (const auto& slaveNode, slaveTree) {
-        const auto slaveName = slaveNode.first;
-        if (slaves.count(slaveName)) {
-            throw std::runtime_error(
-                "Configuration file contains two slaves with the name '"
-                + slaveName + "'");
-        }
-        const auto slaveData = slaveNode.second;
-        const auto slaveTypeName = slaveData.get<std::string>("type");
-        const auto typeCount = slaveTypes.count(slaveTypeName);
-        if (typeCount == 0) {
-            throw std::runtime_error(
-                "Slave type not found in domain: " + slaveTypeName);
-        } else if (typeCount > 1) {
-            throw std::runtime_error(
-                "Two or more slave types with the same name found in domain: " + slaveTypeName);
-        }
-        const auto& slaveType = slaveTypes.find(slaveTypeName)->second;
-        
-        // Assign a slave ID
-        const auto slaveID = boost::numeric_cast<uint16_t>(slaves.size() + 1);
-        SlaveInstance slaveInstance = { slaveID, &slaveType };
-        slaves[slaveName] = slaveInstance;
-
-        const auto initTree = slaveData.get_child("init", boost::property_tree::ptree());
-        BOOST_FOREACH (const auto& initNode, initTree) {
-            const auto varName = initNode.first;
-            const auto varDefIt = std::find_if(
-                slaveType.variables.begin(),
-                slaveType.variables.end(),
-                [&](const dsb::model::Variable& varDef) { return varDef.Name() == varName; });
-            if (varDefIt == slaveType.variables.end()) {
-                throw std::runtime_error(
-                    "Variable '" + varName + "' not found in slave type '"
-                    + slaveTypeName + "'");
-            }
-            dsb::model::VariableValue v;
-            v.id = varDefIt->ID();
-            v.value = ParseVariableValue(*varDefIt, initNode.second);
-            variables[slaveID].push_back(v);
-        }
-    }
-
-    std::map<dsb::model::SlaveID, std::vector<dsb::model::VariableConnection>> connections;
-    const auto connTree = ptree.get_child("connections", boost::property_tree::ptree());
-    BOOST_FOREACH (const auto& connNode, connTree) {
-        const auto inputSpec = SplitVarSpec(connNode.first);
-        const auto outputSpec = SplitVarSpec(connNode.second.data());
-        try {
-            const auto& inputSlave = FindSlaveInstance(slaves, inputSpec.first);
-            const auto& outputSlave = FindSlaveInstance(slaves, outputSpec.first);
-            const auto& inputVar = FindVariable(inputSlave, inputSpec.second);
-            const auto& outputVar = FindVariable(outputSlave, outputSpec.second);
-            if (inputVar.DataType() != outputVar.DataType()) {
-                throw std::runtime_error("Incompatible data types");
-            }
-            if (inputVar.Causality() != dsb::model::INPUT_CAUSALITY) {
-                throw std::runtime_error("Not an input variable: " + inputVar.Name());
-            }
-            if (outputVar.Causality() != dsb::model::OUTPUT_CAUSALITY) {
-                throw std::runtime_error("Not an output variable: " + outputVar.Name());
-            }
-            dsb::model::VariableConnection vc;
-            vc.inputId = inputVar.ID();
-            vc.otherSlaveId = outputSlave.id;
-            vc.otherOutputId = outputVar.ID();
-            connections[inputSlave.id].push_back(vc);
-        } catch (const std::runtime_error& e) {
-            throw std::runtime_error("In connection between "
-                + connNode.first + " and " + connNode.second.data() + ": "
-                + e.what());
-        }
-    }
+    std::map<std::string, std::vector<VariableConnection>> connections;
+    ParseConnectionsNode(ptree, slaves, connections);
 
     std::vector<SimulationEvent> scenario;
-    const auto scenTree = ptree.get_child("scenario", boost::property_tree::ptree());
-    BOOST_FOREACH (const auto& scenNode, scenTree) {
-        // Iterate elements of the form: timePoint { ... }
-        try {
-            const auto timePoint = boost::lexical_cast<dsb::model::TimePoint>(scenNode.first);
-            BOOST_FOREACH (const auto& varChangeNode, scenNode.second) {
-                // Iterate elements of the form: varName varValue
-                const auto varSpec = SplitVarSpec(varChangeNode.first);
-                try {
-                    const auto& affectedSlave = FindSlaveInstance(slaves, varSpec.first);
-                    const auto& var = FindVariable(affectedSlave, varSpec.second);
-                    if (warningLog) {
-                        if (var.Causality() == dsb::model::INPUT_CAUSALITY) {
-                            *warningLog << "Warning: " << varChangeNode.first
-                                << " is an input variable.  If it is connected to"
-                                   " an output, the scenario event may not have the"
-                                   " intended effect." << std::endl;
-                        } else if (var.Causality() != dsb::model::PARAMETER_CAUSALITY) {
-                            *warningLog << "Warning: " << varChangeNode.first
-                                << " is not a parameter, and should therefore"
-                                   " normally not be changed manually." << std::endl;
-                        }
-                        if (var.Variability() == dsb::model::CONSTANT_VARIABILITY
-                            || var.Variability() == dsb::model::FIXED_VARIABILITY) {
-                            *warningLog << "Warning: " << varChangeNode.first
-                                << " is not a modifiable variable." << std::endl;
-                        }
-                    }
-                    dsb::model::VariableValue varVal;
-                    varVal.id = var.ID();
-                    varVal.value = ParseVariableValue(var, varChangeNode.second);
-                    scenario.push_back(SimulationEvent(
-                        timePoint,
-                        affectedSlave.id,
-                        varVal));
-                } catch (const std::exception& e) {
-                    throw std::runtime_error("For variable " + varChangeNode.first
-                        + ": " + e.what());
-                }
-            }
-        } catch (const std::exception& e) {
-            throw std::runtime_error("In scenario event at t=" + scenNode.first
-                + ": " + e.what());
+    std::vector<std::string> scenarioEventSlaveName; // We don't know IDs yet, so we keep a parallel list of names
+    ParseScenarioNode(ptree, slaves, warningLog, scenario, scenarioEventSlaveName);
+
+    // Add all the slaves to the execution and map their names to their
+    // numeric IDs.
+    std::map<std::string, std::shared_future<dsb::model::SlaveID>> slaveIDs;
+    BOOST_FOREACH (const auto& slave, slaves) {
+        auto slaveLoc = domain.InstantiateSlave(slave.second->uuid);
+        slaveIDs[slave.first] = execution.AddSlave(slaveLoc, commTimeout).share();
+    }
+
+    // Using the name-ID mapping, build lists of variable settings from the
+    // lists of initial values and connections, and execute "set variables"
+    // commands for each slave.
+    std::map<std::string, std::vector<dsb::model::VariableSetting>>
+        varSettings;
+    BOOST_FOREACH (const auto& slaveVars, variables) {
+        const auto& slaveName = slaveVars.first;
+        BOOST_FOREACH (const auto& varValue, slaveVars.second) {
+            varSettings[slaveName].push_back(dsb::model::VariableSetting(
+                varValue.id,
+                varValue.value));
         }
     }
+    BOOST_FOREACH (const auto& slaveConns, connections) {
+        const auto& slaveName = slaveConns.first;
+        BOOST_FOREACH (const auto& conn, slaveConns.second) {
+            varSettings[slaveName].push_back(dsb::model::VariableSetting(
+                conn.inputId,
+                dsb::model::Variable(slaveIDs.at(conn.otherSlaveName).get(), conn.otherOutputId)));
+        }
+    }
+    std::vector<std::pair<std::string, std::future<void>>> futureResults;
+    BOOST_FOREACH (const auto& varSetting, varSettings) {
+        const auto& slaveName = varSetting.first;
+        const auto slaveID = slaveIDs.at(slaveName).get();
+        futureResults.push_back(std::make_pair(
+            slaveName,
+            execution.SetVariables(slaveID, varSetting.second, commTimeout)));
+    }
 
-    BOOST_FOREACH (const auto& slave, slaves) {
-        execution.AddSlave(slave.second.id);
+    // Check that all operations succeeded, build a list of errors for those
+    // that didn't.
+    bool anyErrors = false;
+    SetVariablesException svEx;
+    BOOST_FOREACH (auto& result, futureResults)
+    {
+        try { result.second.get(); }
+        catch (const std::exception& e) {
+            anyErrors = true;
+            svEx.AddSlaveError(result.first, e.what());
+        }
     }
-    BOOST_FOREACH (auto& slaveVars, variables) {
-        execution.SetVariables(slaveVars.first, slaveVars.second);
-    }
-    BOOST_FOREACH (auto& conn, connections) {
-        execution.ConnectVariables(conn.first, conn.second);
-    }
-    BOOST_FOREACH (const auto& slave, slaves) {
-        domain.InstantiateSlave(
-            slave.second.slaveType->uuid,
-            executionLocator,
-            slave.second.id);
-    }
+    if (anyErrors) throw svEx;
 
+    // Update the scenario with the correct numeric slave IDs.
+    for (size_t i = 0; i < scenario.size(); ++i) {
+        scenario[i].slave = slaveIDs[scenarioEventSlaveName[i]].get();
+    }
     scenarioOut.swap(scenario);
+}
+
+
+SetVariablesException::SetVariablesException()
+    : std::runtime_error("Error setting variable(s)"),
+      m_msg("Error setting variable(s) for the following slave(s):")
+{
+}
+
+
+const char* SetVariablesException::what() const DSB_NOEXCEPT
+{
+    return m_msg.c_str();
+}
+
+
+void SetVariablesException::AddSlaveError(
+    const std::string& slaveName,
+    const std::string& errMsg)
+{
+    m_slaveErrors.push_back(std::make_pair(slaveName, errMsg));
+    m_msg += ' ' + slaveName + " (" + errMsg + ");";
 }
 
 
@@ -287,7 +401,9 @@ ExecutionConfig::ExecutionConfig()
     : startTime(0.0),
       stopTime(std::numeric_limits<double>::infinity()),
       stepSize(1.0),
-      commTimeout(boost::chrono::hours(1))
+      commTimeout(boost::chrono::seconds(1)),
+      stepTimeoutMultiplier(100.0),
+      slaveTimeout(boost::chrono::hours(1))
 {
 }
 
@@ -299,19 +415,34 @@ ExecutionConfig ParseExecutionConfig(const std::string& path)
     };
     const auto ptree = ReadPtreeInfoFile(path);
     ExecutionConfig ec;
-    ec.startTime = ptree.get_child("start").get_value<double>();
-    if (auto stopTimeNode = ptree.get_child_optional("stop")) {
-        ec.stopTime = stopTimeNode->get_value<double>();
-        if (ec.stopTime < ec.startTime) Error("Stop time less than start time");
+
+    if (auto node = ptree.get_child_optional("start")) {
+        ec.startTime = node->get_value<double>();
     }
+
+    if (auto node = ptree.get_child_optional("stop")) {
+        ec.stopTime = node->get_value<double>();
+    }
+    if (ec.stopTime < ec.startTime) Error("Stop time less than start time");
 
     ec.stepSize = ptree.get_child("step_size").get_value<double>();
     if (ec.stepSize <= 0) Error("Nonpositive step size");
 
-    if (auto commTimeoutNode = ptree.get_child_optional("comm_timeout")) {
-        ec.commTimeout = boost::chrono::seconds(
-            commTimeoutNode->get_value<typename boost::chrono::seconds::rep>());
-        if (ec.commTimeout <= boost::chrono::seconds(0)) Error("Nonpositive comm_timeout");
+    if (auto commTimeoutNode = ptree.get_child_optional("comm_timeout_ms")) {
+        ec.commTimeout = boost::chrono::milliseconds(
+            commTimeoutNode->get_value<typename boost::chrono::milliseconds::rep>());
+        if (ec.commTimeout <= boost::chrono::milliseconds(0)) Error("Nonpositive comm_timeout_ms");
+    }
+
+    if (auto stepTimeoutMultiplierNode = ptree.get_child_optional("step_timeout_multiplier")) {
+        ec.stepTimeoutMultiplier = stepTimeoutMultiplierNode->get_value<double>();
+        if (ec.stepTimeoutMultiplier <= 0.0) Error("Nonpositive slave_timeout_multiplier");
+    }
+
+    if (auto slaveTimeoutNode = ptree.get_child_optional("slave_timeout_s")) {
+        ec.slaveTimeout = boost::chrono::seconds(
+            slaveTimeoutNode->get_value<typename boost::chrono::seconds::rep>());
+        if (ec.slaveTimeout <= boost::chrono::seconds(0)) Error("Nonpositive slave_timeout_ms");
     }
     return ec;
 }

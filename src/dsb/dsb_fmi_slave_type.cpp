@@ -66,18 +66,16 @@ size_t FmiSlaveType::VariableCount() const
     return fmi1_import_get_variable_list_size(m_varList);
 }
 
-dsb::model::Variable FmiSlaveType::Variable(size_t index) const 
+dsb::model::VariableDescription FmiSlaveType::Variable(size_t index) const 
 {
     return ToVariable(fmi1_import_get_variable(m_varList, index), index);
 }
 
-bool FmiSlaveType::InstantiateAndConnect(
-    dsb::model::SlaveID slaveID,
-    const dsb::execution::Locator& executionLocator)
+bool FmiSlaveType::Instantiate(dsb::net::SlaveLocator& slaveLocator)
 {
     m_instantiationFailureDescription.clear();
     try {
-        m_slaveStarterFunction(slaveID, executionLocator, m_fmuPath);
+        slaveLocator = m_slaveStarterFunction(m_fmuPath);
     } catch (const std::runtime_error& e) {
         m_instantiationFailureDescription = e.what();
         return false;

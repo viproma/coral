@@ -1,5 +1,6 @@
 #include "dsb/bus/slave_agent.hpp"
 
+#include <cassert>
 #include <iostream> // TEMPORARY
 #include <limits>
 #include <set>
@@ -9,6 +10,9 @@
 #include "boost/numeric/conversion/cast.hpp"
 
 #include "dsb/comm/messaging.hpp"
+#include "dsb/comm/util.hpp"
+#include "dsb/compat_helpers.hpp"
+#include "dsb/execution/slave.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/execution.hpp"
@@ -47,24 +51,45 @@ namespace bus
 
 
 SlaveAgent::SlaveAgent(
-        uint16_t id,
-        zmq::socket_t dataSub,
-        zmq::socket_t dataPub,
-        dsb::execution::ISlaveInstance& slaveInstance)
-    : m_id(id),
-      m_dataSub(std::move(dataSub)),
-      m_dataPub(std::move(dataPub)),
+    dsb::comm::Reactor& reactor,
+    dsb::execution::ISlaveInstance& slaveInstance,
+    const dsb::comm::P2PEndpoint& bindpoint,
+    boost::chrono::milliseconds commTimeout)
+    : m_stateHandler(&SlaveAgent::NotConnectedHandler),
       m_slaveInstance(slaveInstance),
+      m_commTimeout(commTimeout),
+      m_control(),
+      m_dataSub(),
+      m_dataPub(),
+      m_id(dsb::model::INVALID_SLAVE_ID),
       m_currentTime(std::numeric_limits<double>::signaling_NaN()),
       m_lastStepSize(std::numeric_limits<double>::signaling_NaN())
 {
+    m_control.Bind(bindpoint);
+    reactor.AddSocket(
+        m_control.Socket(),
+        [this](dsb::comm::Reactor& r, zmq::socket_t& s) {
+            assert(&s == &m_control.Socket());
+            std::deque<zmq::message_t> msg;
+            if (!dsb::comm::Receive(m_control, msg, m_commTimeout)) {
+                throw dsb::execution::TimeoutException(
+                    boost::chrono::duration_cast<boost::chrono::seconds>(m_commTimeout));
+            }
+            try {
+                RequestReply(msg);
+            } catch (const dsb::bus::Shutdown&) {
+                // TODO: Handle slave shutdown via other means?
+                r.Stop();
+                return;
+            }
+            m_control.Send(msg);
+        });
 }
 
 
-void SlaveAgent::Start(std::deque<zmq::message_t>& msg)
+const dsb::comm::P2PEndpoint& SlaveAgent::BoundEndpoint() const
 {
-    dsb::protocol::execution::CreateHelloMessage(msg, 0);
-    m_stateHandler = &SlaveAgent::ConnectingHandler;
+    return m_control.BoundEndpoint();
 }
 
 
@@ -74,12 +99,12 @@ void SlaveAgent::RequestReply(std::deque<zmq::message_t>& msg)
 }
 
 
-void SlaveAgent::ConnectingHandler(std::deque<zmq::message_t>& msg)
+void SlaveAgent::NotConnectedHandler(std::deque<zmq::message_t>& msg)
 {
     if (dsb::protocol::execution::ParseHelloMessage(msg) != 0) {
         throw std::runtime_error("Master required unsupported protocol");
     }
-    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_SUBMIT);
+    dsb::protocol::execution::CreateHelloMessage(msg, 0);
     m_stateHandler = &SlaveAgent::ConnectedHandler;
 }
 
@@ -90,9 +115,14 @@ void SlaveAgent::ConnectedHandler(std::deque<zmq::message_t>& msg)
     if (msg.size() != 2) InvalidReplyFromMaster();
     dsbproto::execution::SetupData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
+    m_id = data.slave_id();
     m_slaveInstance.Setup(
         data.start_time(),
         data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity());
+    m_dataPub = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PUB);
+    m_dataPub->connect(data.variable_pub_endpoint().c_str());
+    m_dataSub = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_SUB);
+    m_dataSub->connect(data.variable_sub_endpoint().c_str());
     std::clog << "Simulating from t = " << data.start_time()
               << " to " << (data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity())
               << std::endl;
@@ -115,19 +145,12 @@ void SlaveAgent::ReadyHandler(std::deque<zmq::message_t>& msg)
                 dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_STEP_OK);
                 m_stateHandler = &SlaveAgent::PublishedHandler;
             } else {
-                // TODO: Remove this line when we implement proper handling of
-                // failed steps.
-                std::clog << "Step failed: t = " << stepData.timepoint()
-                          << ", dt = " << stepData.stepsize() << std::endl;
                 dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_STEP_FAILED);
                 m_stateHandler = &SlaveAgent::StepFailedHandler;
             }
             break; }
         case dsbproto::execution::MSG_SET_VARS:
             HandleSetVars(msg);
-            break;
-        case dsbproto::execution::MSG_CONNECT_VARS:
-            HandleConnectVars(msg);
             break;
         default:
             InvalidReplyFromMaster();
@@ -140,7 +163,7 @@ namespace
     void SetVariable(
         dsb::execution::ISlaveInstance& slaveInstance,
         uint16_t varRef,
-        const dsbproto::variable::ScalarValue& value)
+        const dsbproto::model::ScalarValue& value)
     {
         if (value.has_real_value()) {
             slaveInstance.SetRealVariable(varRef, value.real_value());
@@ -159,7 +182,7 @@ namespace
 
 void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
 {
-    EnforceMessageType(msg, dsbproto::execution::MSG_RECV_VARS);
+    EnforceMessageType(msg, dsbproto::execution::MSG_ACCEPT_STEP);
 
     const auto allowedTimeError = m_lastStepSize * 1e-6;
 
@@ -168,11 +191,11 @@ void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
     while (receivedVars.size() < m_connections.size()) {
         // Receive message from other and store the body in inVar.
         std::deque<zmq::message_t> dataMsg;
-        dsb::comm::Receive(m_dataSub, dataMsg);
+        dsb::comm::Receive(*m_dataSub, dataMsg);
         assert (dataMsg.size() == 2
                 && "Wrong number of frames in data message");
 
-        dsbproto::variable::TimestampedValue inVar;
+        dsbproto::execution::TimestampedValue inVar;
         dsb::protobuf::ParseFromFrame(dataMsg.back(), inVar);
         assert (inVar.timestamp() < m_currentTime + allowedTimeError
                 && "Data received from the future");
@@ -202,8 +225,6 @@ void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
 
 void SlaveAgent::StepFailedHandler(std::deque<zmq::message_t>& msg)
 {
-    // TODO: Remove the following message.
-    std::cerr << "This slave was unable to perform the time step." << std::endl;
     EnforceMessageType(msg, dsbproto::execution::MSG_TERMINATE);
     // We never get here, because EnforceMessageType() always throws either
     // Shutdown or ProtocolViolationException.
@@ -222,45 +243,38 @@ void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
     dsbproto::execution::SetVarsData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
     BOOST_FOREACH (const auto& var, data.variable()) {
-        SetVariable(m_slaveInstance, var.id(), var.value());
-    }
-    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
-}
-
-
-// TODO: Make this function signature more consistent with Step() (or the other
-// way around).
-void SlaveAgent::HandleConnectVars(std::deque<zmq::message_t>& msg)
-{
-    if (msg.size() != 2) {
-        throw dsb::error::ProtocolViolationException(
-            "Wrong number of frames in CONNECT_VARS message");
-    }
-    dsbproto::execution::ConnectVarsData data;
-    dsb::protobuf::ParseFromFrame(msg[1], data);
-    BOOST_FOREACH (const auto& var, data.connection()) {
-        // Look for any existing connection to the input variable, and
-        // unsubscribe and remove it.
-        for (auto it = m_connections.begin(); it != m_connections.end(); ++it) {
-            if (it->second == var.input_var_id()) {
-                char oldHeader[DATA_HEADER_SIZE];
-                dsb::util::EncodeUint16(it->first.slave, oldHeader);
-                dsb::util::EncodeUint16(it->first.var,   oldHeader + 2);
-                m_dataSub.setsockopt(ZMQ_UNSUBSCRIBE, oldHeader, DATA_HEADER_SIZE);
-                m_connections.erase(it);
-                break;
-            }
+        // TODO: Remove debug output
+        if (var.has_value()) {
+            std::clog << "Setting value of var " << var.variable_id() << std::endl;
+            SetVariable(m_slaveInstance, var.variable_id(), var.value());
         }
-        // Make the new connection and subscription.
-        RemoteVariable rv = {
-            boost::numeric_cast<uint16_t>(var.output_var().slave_id()),
-            boost::numeric_cast<uint16_t>(var.output_var().var_id())
-        };
-        char newHeader[DATA_HEADER_SIZE];
-        dsb::util::EncodeUint16(rv.slave, newHeader);
-        dsb::util::EncodeUint16(rv.var,   newHeader + 2);
-        m_dataSub.setsockopt(ZMQ_SUBSCRIBE, newHeader, DATA_HEADER_SIZE);
-        m_connections.insert(std::make_pair(rv, var.input_var_id()));
+        if (var.has_connected_output()) {
+            std::clog << "Connecting var " << var.variable_id() << " to slave "
+                << var.connected_output().slave_id() << ", var "
+                << var.connected_output().variable_id() << std::endl;
+            // Look for any existing connection to the input variable, and
+            // unsubscribe and remove it.
+            for (auto it = m_connections.begin(); it != m_connections.end(); ++it) {
+                if (it->second == var.variable_id()) {
+                    char oldHeader[DATA_HEADER_SIZE];
+                    dsb::util::EncodeUint16(it->first.slave, oldHeader);
+                    dsb::util::EncodeUint16(it->first.var,   oldHeader + 2);
+                    m_dataSub->setsockopt(ZMQ_UNSUBSCRIBE, oldHeader, DATA_HEADER_SIZE);
+                    m_connections.erase(it);
+                    break;
+                }
+            }
+            // Make the new connection and subscription.
+            RemoteVariable rv = {
+                boost::numeric_cast<uint16_t>(var.connected_output().slave_id()),
+                boost::numeric_cast<uint16_t>(var.connected_output().variable_id())
+            };
+            char newHeader[DATA_HEADER_SIZE];
+            dsb::util::EncodeUint16(rv.slave, newHeader);
+            dsb::util::EncodeUint16(rv.var,   newHeader + 2);
+            m_dataSub->setsockopt(ZMQ_SUBSCRIBE, newHeader, DATA_HEADER_SIZE);
+            m_connections.insert(std::make_pair(rv, var.variable_id()));
+        }
     }
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
 }
@@ -280,7 +294,7 @@ bool SlaveAgent::Step(const dsbproto::execution::StepData& stepInfo)
         if (varInfo.Causality() != dsb::model::OUTPUT_CAUSALITY) continue;
 
         // Get value of output variable
-        dsbproto::variable::TimestampedValue outVar;
+        dsbproto::execution::TimestampedValue outVar;
         outVar.set_timestamp(m_currentTime);
         switch (varInfo.DataType()) {
             case dsb::model::REAL_DATATYPE:
@@ -313,7 +327,7 @@ bool SlaveAgent::Step(const dsbproto::execution::StepData& stepInfo)
         dataMsg.push_back(zmq::message_t());
         dsb::protobuf::SerializeToFrame(outVar, dataMsg.back());
         // Send it
-        dsb::comm::Send(m_dataPub, dataMsg);
+        dsb::comm::Send(*m_dataPub, dataMsg);
     }
     return true;
 }

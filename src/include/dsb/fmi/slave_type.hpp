@@ -12,8 +12,8 @@
 #include "dsb/fmilib/fmu1.hpp"
 
 #include "dsb/domain/slave_provider.hpp"
-#include "dsb/execution/locator.hpp"
 #include "dsb/fmi.hpp"
+#include "dsb/net.hpp"
 #include "dsb/util.hpp"
 
 
@@ -57,10 +57,8 @@ public:
     std::string Author() const override;
     std::string Version() const override;
     size_t VariableCount() const override;
-    virtual dsb::model::Variable Variable(size_t index) const override;
-    virtual bool InstantiateAndConnect(
-        dsb::model::SlaveID slaveID,
-        const dsb::execution::Locator& executionLocator) override;
+    virtual dsb::model::VariableDescription Variable(size_t index) const override;
+    virtual bool Instantiate(dsb::net::SlaveLocator& slaveLocator) override;
     virtual std::string InstantiationFailureDescription() const override;
 
 private:

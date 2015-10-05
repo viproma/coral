@@ -15,7 +15,7 @@
 #include "dsb/comm/proxy.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/compat_helpers.hpp"
-#include "dsb/domain/locator.hpp"
+#include "dsb/net.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/util.hpp"
 
@@ -47,23 +47,19 @@ namespace
     public:
         ExecutionBroker(
             boost::chrono::seconds commTimeout)
-            : m_masterControlPort(0), m_slaveControlPort(0),
+            : m_controlPort(0),
               m_dataPubPort(0), m_dataSubPort(0),
-              m_control(EphemeralProxy(ZMQ_DEALER, ZMQ_ROUTER,
-                                       m_masterControlPort, m_slaveControlPort,
-                                       commTimeout)),
+              m_control(dsb::comm::SpawnTcpP2PProxy("*", commTimeout, m_controlPort)),
               m_data(EphemeralProxy(ZMQ_XSUB, ZMQ_XPUB,
                                     m_dataSubPort, m_dataPubPort, commTimeout))
         {
-            assert (m_masterControlPort > 0);
-            assert (m_slaveControlPort > 0);
+            assert (m_controlPort > 0);
             assert (m_dataPubPort > 0);
             assert (m_dataSubPort > 0);
         }
 
         ExecutionBroker(ExecutionBroker&& other) DSB_NOEXCEPT
-            : m_masterControlPort(std::move(other.m_masterControlPort)),
-              m_slaveControlPort(std::move(other.m_slaveControlPort)),
+            : m_controlPort(std::move(other.m_controlPort)),
               m_dataPubPort(std::move(other.m_dataPubPort)),
               m_dataSubPort(std::move(other.m_dataSubPort)),
               m_control(std::move(other.m_control)),
@@ -71,9 +67,10 @@ namespace
         {
         }
 
+        // TODO: Return just one value here, if this all turns out to work.
         std::pair<std::uint16_t, std::uint16_t> ControlPorts() const
         {
-            return std::make_pair(m_masterControlPort, m_slaveControlPort);
+            return std::make_pair(m_controlPort, m_controlPort);
         }
 
         std::pair<std::uint16_t, std::uint16_t> DataPorts() const
@@ -83,16 +80,15 @@ namespace
 
         void Stop()
         {
-            m_control.Stop();
+            m_control.Terminate();
             m_data.Stop();
         }
     private:
-        std::uint16_t m_masterControlPort;
-        std::uint16_t m_slaveControlPort;
+        std::uint16_t m_controlPort;
         std::uint16_t m_dataPubPort;
         std::uint16_t m_dataSubPort;
 
-        dsb::comm::Proxy m_control;
+        dsb::comm::BackgroundP2PProxy m_control;
         dsb::comm::Proxy m_data;
     };
 }
@@ -103,7 +99,7 @@ int main(int argc, const char** argv)
 try
 {
     const long long basePort = argc > 1 ? std::atol(argv[1])
-                                        : dsb::domain::DEFAULT_DOMAIN_BROKER_PORT;
+                                        : dsb::net::DEFAULT_DOMAIN_BROKER_PORT;
 
     const auto execReqEndpoint = "tcp://*:" + std::to_string(basePort);
     auto executionRequest = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REP);

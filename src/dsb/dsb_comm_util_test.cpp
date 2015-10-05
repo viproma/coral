@@ -49,6 +49,7 @@ TEST(dsb_comm, LastEndpoint)
     EXPECT_EQ("inproc://dsb_comm_LastEndpoint_test", LastEndpoint(sck));
 }
 
+
 TEST(dsb_comm, EndpointPort)
 {
     EXPECT_EQ(1234, EndpointPort("tcp://some.addr:1234"));

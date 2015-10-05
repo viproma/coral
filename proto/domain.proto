@@ -1,6 +1,6 @@
 package dsbproto.domain;
 
-import "variable.proto";
+import "model.proto";
 
 
 message SlaveTypeInfo
@@ -10,7 +10,7 @@ message SlaveTypeInfo
    optional string description = 3;
    optional string author = 4;
    optional string version = 5;
-   repeated dsbproto.variable.VariableDefinition variable = 6;
+   repeated model.VariableDefinition variable = 6;
 }
 
 
@@ -20,19 +20,13 @@ message SlaveTypeList
 }
 
 
-message ExecutionLocator
-{
-    required string master_endpoint = 1;
-    required string slave_endpoint = 2;
-    required string variable_pub_endpoint = 3;
-    required string variable_sub_endpoint = 4;
-    required string execution_name = 5;
-    required int64 comm_timeout_seconds = 6;
-}
-
 message InstantiateSlaveData
 {
     required string slave_type_uuid = 1;
-    required ExecutionLocator execution_locator = 2;
-    required uint32 slave_id = 3;
+}
+
+
+message Error
+{
+    optional string message = 1;
 }

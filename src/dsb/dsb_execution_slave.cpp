@@ -8,6 +8,8 @@
 #include "dsb/bus/slave_agent.hpp"
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"
+#include "dsb/comm/p2p.hpp"
+#include "dsb/compat_helpers.hpp"
 #include "dsb/util.hpp"
 
 
@@ -17,46 +19,52 @@ namespace execution
 {
 
 
-void RunSlave(dsb::model::SlaveID id,
-    const std::string& controlEndpoint,
-    const std::string& dataPubEndpoint,
-    const std::string& dataSubEndpoint,
-    ISlaveInstance& slaveInstance,
+SlaveRunner::SlaveRunner(
+    std::shared_ptr<ISlaveInstance> slaveInstance,
+    std::string bindURL,
     boost::chrono::seconds commTimeout)
+    : m_slaveInstance(slaveInstance),
+      m_reactor(std::make_unique<dsb::comm::Reactor>()),
+      m_slaveAgent(std::make_unique<dsb::bus::SlaveAgent>(
+        *m_reactor,
+        *slaveInstance,
+        dsb::comm::P2PEndpoint(bindURL),
+        commTimeout))
 {
-    auto control = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
+}
 
-    // Encode `id` into a 2-byte buffer, and use it as the ZMQ socket identity.
-    char idBuffer[2];
-    dsb::util::EncodeUint16(id, idBuffer);
-    control.setsockopt(ZMQ_IDENTITY, idBuffer, 2);
 
-    control.connect(controlEndpoint.c_str());
-    auto dataPub = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PUB);
-    dataPub.connect(dataPubEndpoint.c_str());
-    auto dataSub = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_SUB);
-    dataSub.connect(dataSubEndpoint.c_str());
+SlaveRunner::SlaveRunner(SlaveRunner&& other) DSB_NOEXCEPT
+    : m_slaveInstance(std::move(other.m_slaveInstance)),
+      m_reactor(std::move(other.m_reactor)),
+      m_slaveAgent(std::move(other.m_slaveAgent))
+{
+}
+SlaveRunner& SlaveRunner::operator=(SlaveRunner&& other) DSB_NOEXCEPT
+{
+    m_slaveInstance = std::move(other.m_slaveInstance);
+    m_reactor = std::move(other.m_reactor);
+    m_slaveAgent = std::move(other.m_slaveAgent);
+    return *this;
+}
 
-    dsb::bus::SlaveAgent slave(
-        id,
-        std::move(dataSub),
-        std::move(dataPub),
-        slaveInstance);
-    std::deque<zmq::message_t> msg;
-    slave.Start(msg);
-    for (;;) {
-        dsb::comm::Send(control, msg);
-        if (!dsb::comm::Receive(control, msg, commTimeout)) {
-            throw TimeoutException(commTimeout);
-        }
-        try {
-            slave.RequestReply(msg);
-        } catch (const dsb::bus::Shutdown&) {
-            // TODO: Handle slave shutdown via other means?
-            return;
-        }
-    }
-};
+
+// The destructor doesn't actually do anything, we just needed to declare
+// it explicitly in the header to be able to use std::unique_ptr with Reactor
+// as an incomplete type.
+SlaveRunner::~SlaveRunner() { }
+
+
+std::string SlaveRunner::BoundEndpoint()
+{
+    return m_slaveAgent->BoundEndpoint().URL();
+}
+
+
+void SlaveRunner::Run()
+{
+    m_reactor->Run();
+}
 
 
 }} // namespace

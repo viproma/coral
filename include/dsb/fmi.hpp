@@ -25,7 +25,7 @@ namespace fmi
 
 See MakeSlaveType() for details.
 */
-typedef std::function<void(dsb::model::SlaveID, const dsb::execution::Locator&, const std::string&)>
+typedef std::function<dsb::net::SlaveLocator(const std::string&)>
     SlaveStarter;
 
 
@@ -44,12 +44,10 @@ separate process, or wherever is deemed appropriate for the client program.
 (This flexibility is the reason for why the function must be supplied by the
 caller.)  The function must have the following signature:
 ~~~{.cpp}
-void MySlaveStarter(
-    dsb::model::SlaveID id,                 // The ID of the new slave instance
-    const dsb::execution::Locator& exeLoc,  // The execution locator
-    const std::string& fmu                  // The FMU path
-);
+dsb::net::SlaveLocator MySlaveStarter(const std::string& fmu);
 ~~~
+The input argument will be the path to the FMU, and the function should return
+an object that allows the master to locate the instantiated slave.
 The function may throw an exception derived from std::runtime_error if it fails
 to instantiate and/or connect the slave.
 

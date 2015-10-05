@@ -19,10 +19,47 @@ namespace {
     const char* self = "dsbexec";
 }
 
-dsb::domain::Locator MakeDomainLocator(const std::string& address)
+dsb::net::DomainLocator MakeDomainLocator(const std::string& address)
 {
-    return dsb::domain::GetDomainEndpoints(address);
+    return dsb::net::GetDomainEndpoints(address);
 }
+
+int Test(int argc, const char** argv)
+{
+    assert (argc > 1 && std::string(argv[1]) == "test");
+    --argc; ++argv;
+
+    const auto address = "tcp://localhost";
+    const auto domainLoc = MakeDomainLocator(address);
+    auto domain = dsb::domain::Controller(domainLoc);
+
+    // TODO: Handle this waiting more elegantly, e.g. wait until all required
+    // slave types are available.  Also, the waiting time is related to the
+    // slave provider heartbeat time.
+    std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
+    boost::this_thread::sleep_for(boost::chrono::seconds(2));
+
+    const auto execLoc = dsb::execution::SpawnExecution(
+        domainLoc, std::string(), boost::chrono::seconds(60));
+    auto exec = dsb::execution::Controller(execLoc);
+
+    try {
+        exec.BeginConfig();
+        exec.EndConfig();
+        exec.SetSimulationTime(0, 1);
+
+
+        exec.Terminate();
+    } catch (const std::logic_error& e) {
+        std::cerr << "logic_error: " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "exception: " << e.what() << std::endl;
+    }
+    std::cout << "Done. Press ENTER to quit" << std::endl;
+    std::cin.ignore();
+    return 0;
+}
+
 
 int Run(int argc, const char** argv)
 {
@@ -65,7 +102,47 @@ int Run(int argc, const char** argv)
                 "                 settings (start time, step size, etc.)\n"
                 "  sys. config  = Configuration file which describes the system to\n"
                 "                 simulate (slaves, connections, etc.)\n\n"
-                      << optDesc;
+                      << optDesc << "\n"
+                "Execution configuration file:\n"
+                "  The execution configuration file is a simple text file consisting of keys\n"
+                "  and values, where each key is separated from its value by whitespace.\n"
+                "  (Specifically, it must be in the Boost INFO format; see here for more info:\n"
+                "  http://www.boost.org/doc/libs/release/libs/property_tree/ ).  The\n"
+                "  following example file contains all the settings currently available:\n"
+                "\n"
+                "      ; Time step size (mandatory)\n"
+                "      step_size 0.2\n"
+                "\n"
+                "      ; Simulation start time (optional, defaults to 0)\n"
+                "      start 0.0\n"
+                "\n"
+                "      ; Simulation end time (optional, defaults to \"indefinitely\")\n"
+                "      stop 100.0\n"
+                "\n"
+                "      ; General command/communications timeout, in milliseconds (optional,\n"
+                "      ; defaults to 1000 ms)\n"
+                "      ;\n"
+                "      ; This is how long the master will wait for replies to commands sent\n"
+                "      ; to a slave before it considers the connection to be broken.  It should\n"
+                "      ; generally be a short duration, as it is used for \"cheap\" operations\n"
+                "      ; (i.e., everything besides the \"perform time step\" command).\n"
+                "      comm_timeout_ms 5000\n"
+                "\n"
+                "      ; Time step timeout multiplier (optional, defaults to 100)\n"
+                "      ;\n"
+                "      ; This controls the amount of time the slaves get to carry out a time\n"
+                "      ; step.  The timeout is set equal to step_timeout_multiplier` times the\n"
+                "      ; step size, where the step size is assumed to be in seconds.\n"
+                "      step_timeout_multiplier 10\n"
+                "\n"
+                "      ; Slave timeout, in seconds (optional, defaults to 3600 s = 1 hour)\n"
+                "      ;\n"
+                "      ; This controls how long the slaves (and the execution broker, if this\n"
+                "      ; is used) will wait for commands from the master.  This should\n"
+                "      ; generally be a long duration, as the execution master could for\n"
+                "      ; instance be waiting for some user input before starting/continuing\n"
+                "      ; the simulation.\n"
+                "      slave_timeout_s 1000\n";
             return 0;
         }
         if (!optMap.count("domain")) throw std::runtime_error("Domain address not specified");
@@ -88,12 +165,14 @@ int Run(int argc, const char** argv)
 
         const auto execConfig = ParseExecutionConfig(execConfigFile);
         const auto execLoc = dsb::execution::SpawnExecution(
-            domainLoc, execName, execConfig.commTimeout);
+            domainLoc, execName, execConfig.slaveTimeout);
         const auto execSpawnTime = boost::chrono::high_resolution_clock::now();
         auto exec = dsb::execution::Controller(execLoc);
+
         exec.SetSimulationTime(execConfig.startTime, execConfig.stopTime);
         std::vector<SimulationEvent> unsortedScenario;
-        ParseSystemConfig(sysConfigFile, domain, exec, execLoc, unsortedScenario, &std::clog);
+        ParseSystemConfig(sysConfigFile, domain, exec, execLoc, unsortedScenario,
+                          execConfig.commTimeout, &std::clog);
 
         // Put the scenario events into a priority queue, in order of ascending
         // event time.
@@ -106,17 +185,12 @@ int Run(int argc, const char** argv)
 
         // This is to work around "slow joiner syndrome".  It lets slaves'
         // subscriptions take effect before we start the simulation.
-        std::cout <<
-            "Waiting for slaves..."
-            "\n[NOTE TO TESTERS: If the program appears to hang at this point, "
-            "it could be because one or more of the slaves failed to start. "
-            "Check that the number of slave windows matches the number of "
-            "expected slaves.]" << std::endl;
-        exec.WaitForReady();
+        std::cout << "Waiting for slaves..." << std::endl;
+        exec.EndConfig();
         std::cout << "All slaves are present. Press ENTER to start simulation." << std::endl;
         std::cin.ignore();
         const auto t0 = boost::chrono::high_resolution_clock::now();
-        if (t0 - execSpawnTime > execConfig.commTimeout) {
+        if (t0 - execSpawnTime > execConfig.slaveTimeout) {
             throw std::runtime_error("Communications timeout reached");
         }
 
@@ -124,17 +198,33 @@ int Run(int argc, const char** argv)
         std::cout << "+-------------------+\n|" << std::flush;
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
         double nextPerc = 0.05;
+        const auto stepTimeout = boost::chrono::seconds(
+            boost::numeric_cast<typename boost::chrono::seconds::rep>(
+                execConfig.stepSize * execConfig.stepTimeoutMultiplier));
         for (double time = execConfig.startTime;
              time < maxTime;
              time += execConfig.stepSize)
         {
-            while (!scenario.empty() && scenario.top().timePoint <= time) {
-                exec.SetVariables(
-                    scenario.top().slave,
-                    std::vector<dsb::model::VariableValue>(1, scenario.top().variableChange));
-                scenario.pop();
+            if (!scenario.empty() && scenario.top().timePoint <= time) {
+                exec.BeginConfig();
+                std::map<dsb::model::SlaveID, std::vector<dsb::model::VariableSetting>>
+                    varChanges;
+                while (!scenario.empty() && scenario.top().timePoint <= time) {
+                    varChanges[scenario.top().slave].push_back(
+                        dsb::model::VariableSetting(
+                            scenario.top().variable,
+                            scenario.top().newValue));
+                    scenario.pop();
+                }
+                for (auto it = begin(varChanges); it != end(varChanges); ++it) {
+                    exec.SetVariables(it->first, it->second, execConfig.commTimeout);
+                }
+                exec.EndConfig();
             }
-            exec.Step(time, execConfig.stepSize);
+            if (exec.Step(execConfig.stepSize, stepTimeout) != dsb::execution::STEP_COMPLETE) {
+                throw std::runtime_error("One or more slaves failed to perform the time step");
+            }
+            exec.AcceptStep(execConfig.commTimeout);
             if ((time-execConfig.startTime)/(execConfig.stopTime-execConfig.startTime) >= nextPerc) {
                 //std::cout << (nextPerc * 100.0) << "%" << std::endl;
                 std::cout << '#' << std::flush;
@@ -420,12 +510,18 @@ int main(int argc, const char** argv)
         return 0;
     }
     const auto command = std::string(argv[1]);
-    if (command == "run") return Run(argc, argv);
-    else if (command == "list") return List(argc, argv);
-    else if (command == "ls-vars") return LsVars(argc, argv);
-    else if (command == "info") return Info(argc, argv);
-    else {
-        std::cerr << "Error: Invalid command: " << command;
-        return 1;
+    try {
+        if (command == "run") return Run(argc, argv);
+        else if (command == "list") return List(argc, argv);
+        else if (command == "ls-vars") return LsVars(argc, argv);
+        else if (command == "info") return Info(argc, argv);
+        else if (command == "test") return Test(argc, argv);
+        else {
+            std::cerr << "Error: Invalid command: " << command;
+            return 1;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error: Unexpected internal error: " << e.what() << std::endl;
+        return 255;
     }
 }

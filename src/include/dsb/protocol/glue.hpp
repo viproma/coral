@@ -6,9 +6,10 @@
 #define DSB_PROTOCOL_GLUE_HPP
 
 #include "dsb/model.hpp"
-#include "variable.pb.h"
+#include "model.pb.h"
+#include "net.pb.h"
 
-#include "dsb/execution/locator.hpp"
+#include "dsb/net.hpp"
 #include "domain.pb.h"
 
 
@@ -19,21 +20,42 @@ namespace protocol
 
 
 /// Converts a variable definition to a protocol buffer.
-dsbproto::variable::VariableDefinition ToProto(
-    const dsb::model::Variable& dsbVariable);
+dsbproto::model::VariableDefinition ToProto(
+    const dsb::model::VariableDescription& dsbVariable);
 
 /// Converts a protocol buffer to a variable definition.
-dsb::model::Variable FromProto(
-    const dsbproto::variable::VariableDefinition& protoVariable);
+dsb::model::VariableDescription FromProto(
+    const dsbproto::model::VariableDefinition& protoVariable);
 
 /// Converts an execution locator to a protocol buffer.
-dsbproto::domain::ExecutionLocator ToProto(
-    const dsb::execution::Locator& executionLocator);
+dsbproto::net::ExecutionLocator ToProto(
+    const dsb::net::ExecutionLocator& executionLocator);
 
 /// Converts a protocol buffer to an execution locator.
-dsb::execution::Locator FromProto(
-    const dsbproto::domain::ExecutionLocator& executionLocator);
+dsb::net::ExecutionLocator FromProto(
+    const dsbproto::net::ExecutionLocator& executionLocator);
 
+/// Converts a ScalarValue to a protocol buffer (in place).
+void ConvertToProto(
+    const dsb::model::ScalarValue& source,
+    dsbproto::model::ScalarValue& target);
+
+/// Converts a protocol buffer to a ScalarValue.
+dsb::model::ScalarValue FromProto(const dsbproto::model::ScalarValue& source);
+
+/// Converts a Variable to a protocol buffer (in place).
+void ConvertToProto(
+    const dsb::model::Variable& source,
+    dsbproto::model::Variable& target);
+
+/// Converts a protocol buffer to a Variable.
+dsb::model::Variable FromProto(const dsbproto::model::Variable& source);
+
+void ConvertToProto(
+    const dsb::net::SlaveLocator& source,
+    dsbproto::net::SlaveLocator& target);
+
+dsb::net::SlaveLocator FromProto(const dsbproto::net::SlaveLocator& source);
 
 }}      // namespace
 #endif  // header guard
