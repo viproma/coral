@@ -3,6 +3,8 @@
 
 #ifdef _WIN32
 #   include <Windows.h>
+#else
+#   include <unistd.h>
 #endif
 
 #include <cstdio>
@@ -98,6 +100,16 @@ namespace
 }
 #endif
 
+#ifndef _WIN32
+namespace
+{
+    bool IsExecutable(const std::string& path)
+    {
+        return access(path.c_str(), X_OK) == 0;
+    }
+}
+#endif
+
 
 void dsb::util::SpawnProcess(
     const std::string& program,
@@ -131,13 +143,38 @@ void dsb::util::SpawnProcess(
         &startupInfo,
         &processInfo)) {
         return;
-    } else {
-        throw std::runtime_error("Failed to start process: " + program);
     }
 
 #else // not Win32
-    assert (!"Cannot start processes on non-Windows systems yet. (Lazy programmers, grumble grumble...)");
+    if (!IsExecutable(program)) {
+        throw std::runtime_error("Not an executable file: "+program);
+    }
+
+    std::vector<const char*> argz;
+    std::cout << program;
+    argz.push_back(program.c_str());
+    for (auto it = begin(args); it != end(args); ++it) {
+        std::cout << ' ' << *it;
+        argz.push_back(it->c_str());
+    }
+    std::cout << std::endl;
+    argz.push_back(nullptr);
+
+    const auto pid = fork();
+    if (pid == 0) {
+        // We are in child process; execute program immediately.
+        // NOTE: execv() doesn't actually modify the argument vector, so the
+        // const_cast is OK. For the gritty details, see:
+        // http://pubs.opengroup.org/onlinepubs/9699919799/functions/exec.html
+        execv(program.c_str(), const_cast<char* const*>(argz.data()));
+        std::perror("dsb::util::SpawnProcess(): failed to execute program");
+        _exit(1);
+    } else if (pid > 0) {
+        // We are in parent process; return immediately.
+        return;
+    }
 #endif
+    throw std::runtime_error("Failed to start process: " + program);
 }
 
 
