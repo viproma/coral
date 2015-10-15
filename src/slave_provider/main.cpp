@@ -41,10 +41,12 @@ public:
         const std::string& proxyEndpoint,
         const std::string& slaveExe,
         boost::chrono::seconds commTimeout,
+        boost::chrono::seconds instantiationTimeout,
         const std::string& outputDir)
         : m_proxyEndpoint(proxyEndpoint),
           m_slaveExe(slaveExe),
           m_commTimeout(commTimeout),
+          m_instantiationTimeout(instantiationTimeout),
           m_outputDir(outputDir.empty() ? "." : outputDir)
     {
     }
@@ -77,16 +79,15 @@ public:
         dsb::util::SpawnProcess(m_slaveExe, args);
 
         std::clog << "Waiting for verification..." << std::flush;
-        const int feedbackTimeoutSecs = 5;
         std::deque<zmq::message_t> slaveStatus;
         const auto feedbackTimedOut = !dsb::comm::Receive(
             slaveStatusSocket,
             slaveStatus,
-            boost::chrono::seconds(feedbackTimeoutSecs));
+            m_instantiationTimeout);
         if (feedbackTimedOut) {
             throw std::runtime_error(
                 "Slave took more than "
-                + boost::lexical_cast<std::string>(feedbackTimeoutSecs)
+                + boost::lexical_cast<std::string>(m_instantiationTimeout.count())
                 + " seconds to start; presumably it has failed altogether");
         } else if (slaveStatus.size() != 2) {
             throw std::runtime_error("Invalid data received from slave executable");
@@ -115,6 +116,7 @@ private:
     std::string m_proxyEndpoint;
     std::string m_slaveExe;
     boost::chrono::seconds m_commTimeout;
+    boost::chrono::seconds m_instantiationTimeout;
     std::string m_outputDir;
 };
 
@@ -147,7 +149,9 @@ try {
         ("output-dir,o", po::value<std::string>()->default_value(""),
             "The directory where output files should be written")
         ("timeout", po::value<unsigned int>()->default_value(3600),
-            "The number of seconds of inactivity before a slave shuts itself down");
+            "The number of seconds of inactivity before a slave shuts itself down")
+        ("instantiation-timeout", po::value<unsigned int>()->default_value(10),
+            "The number of seconds to wait while a slave starts up before assuming it has crashed");
     po::options_description argDesc;
     argDesc.add(optDesc);
     argDesc.add_options()
@@ -186,6 +190,8 @@ try {
     const auto domainAddress = optMap["domain"].as<std::string>();
     const auto outputDir = optMap["output-dir"].as<std::string>();
     const auto timeout = boost::chrono::seconds(optMap["timeout"].as<unsigned int>());
+    const auto instantiationTimeout =
+        boost::chrono::seconds(optMap["instantiation-timeout"].as<unsigned int>());
 
     std::string slaveExe;
     if (optMap.count("slave-exe")) {
@@ -221,7 +227,7 @@ try {
     std::vector<dsb::domain::ISlaveType*> fmuPtrs;
     for (auto it = fmuPaths.begin(); it != fmuPaths.end(); ++it) {
         fmus.push_back(dsb::fmi::MakeSlaveType(*it,
-            StartSlave(domainLoc.InfoSlavePEndpoint(), slaveExe, timeout, outputDir)));
+            StartSlave(domainLoc.InfoSlavePEndpoint(), slaveExe, timeout, instantiationTimeout, outputDir)));
         fmuPtrs.push_back(fmus.back().get());
         std::cout << "FMU loaded: " << *it << std::endl;
     }
