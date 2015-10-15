@@ -325,6 +325,10 @@ public:
     This function has the same effect as Close(), except that it instructs
     the slave to terminate first.
 
+    This function may be called while another operation is ongoing (i.e.,
+    `State() == SLAVE_BUSY`).  This will cause the callback of the original
+    operation to be called with error code `std::errc::operation_canceled`.
+
     \pre  `State() != SLAVE_NOT_CONNECTED`
     \post `State() == SLAVE_NOT_CONNECTED`
     */
