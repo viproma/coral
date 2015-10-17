@@ -299,6 +299,7 @@ void ParseSystemConfig(
     const dsb::net::ExecutionLocator& executionLocator,
     std::vector<SimulationEvent>& scenarioOut,
     boost::chrono::milliseconds commTimeout,
+    boost::chrono::milliseconds instantiationTimeout,
     std::ostream* warningLog)
 {
     const auto ptree = ReadPtreeInfoFile(path);
@@ -319,7 +320,7 @@ void ParseSystemConfig(
     // numeric IDs.
     std::map<std::string, std::shared_future<dsb::model::SlaveID>> slaveIDs;
     BOOST_FOREACH (const auto& slave, slaves) {
-        auto slaveLoc = domain.InstantiateSlave(slave.second->uuid);
+        auto slaveLoc = domain.InstantiateSlave(slave.second->uuid, instantiationTimeout);
         slaveIDs[slave.first] = execution.AddSlave(slaveLoc, commTimeout).share();
     }
 
@@ -403,7 +404,8 @@ ExecutionConfig::ExecutionConfig()
       stepSize(1.0),
       commTimeout(boost::chrono::seconds(1)),
       stepTimeoutMultiplier(100.0),
-      slaveTimeout(boost::chrono::hours(1))
+      slaveTimeout(boost::chrono::hours(1)),
+      instantiationTimeout(boost::chrono::seconds(30))
 {
 }
 
@@ -442,7 +444,13 @@ ExecutionConfig ParseExecutionConfig(const std::string& path)
     if (auto slaveTimeoutNode = ptree.get_child_optional("slave_timeout_s")) {
         ec.slaveTimeout = boost::chrono::seconds(
             slaveTimeoutNode->get_value<typename boost::chrono::seconds::rep>());
-        if (ec.slaveTimeout <= boost::chrono::seconds(0)) Error("Nonpositive slave_timeout_ms");
+        if (ec.slaveTimeout <= boost::chrono::seconds(0)) Error("Nonpositive slave_timeout_s");
+    }
+
+    if (auto instTimeoutNode = ptree.get_child_optional("instantiation_timeout_ms")) {
+        ec.instantiationTimeout = boost::chrono::milliseconds(
+            instTimeoutNode->get_value<typename boost::chrono::milliseconds::rep>());
+        if (ec.commTimeout <= boost::chrono::milliseconds(0)) Error("Nonpositive instantiation_timeout_ms");
     }
     return ec;
 }

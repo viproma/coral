@@ -142,7 +142,17 @@ int Run(int argc, const char** argv)
                 "      ; generally be a long duration, as the execution master could for\n"
                 "      ; instance be waiting for some user input before starting/continuing\n"
                 "      ; the simulation.\n"
-                "      slave_timeout_s 1000\n";
+                "      slave_timeout_s 1000\n"
+                "\n"
+                "      ; Slave instantiation timeout, in milliseconds (optional, defaults\n"
+                "      ; to 30,000 ms = 30 s)\n"
+                "      ;\n"
+                "      ; This is the maximum amount of time that may pass from the moment the\n"
+                "      ; instantiation command is issued to when the slave is ready for\n"
+                "      ; simulation.  Some slaves may take a long time to instantiate, either\n"
+                "      ; because the FMU is very large and thus takes a long time to unpack\n"
+                "      ; or because its instantiation routine is very demanding.\n"
+                "      instantiation_timeout_ms 10000\n";
             return 0;
         }
         if (!optMap.count("domain")) throw std::runtime_error("Domain address not specified");
@@ -172,7 +182,8 @@ int Run(int argc, const char** argv)
         exec.SetSimulationTime(execConfig.startTime, execConfig.stopTime);
         std::vector<SimulationEvent> unsortedScenario;
         ParseSystemConfig(sysConfigFile, domain, exec, execLoc, unsortedScenario,
-                          execConfig.commTimeout, &std::clog);
+                          execConfig.commTimeout, execConfig.instantiationTimeout,
+                          &std::clog);
 
         // Put the scenario events into a priority queue, in order of ascending
         // event time.

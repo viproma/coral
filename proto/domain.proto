@@ -23,6 +23,7 @@ message SlaveTypeList
 message InstantiateSlaveData
 {
     required string slave_type_uuid = 1;
+    required int32 timeout_ms = 2;
 }
 
 

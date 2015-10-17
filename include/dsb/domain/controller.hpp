@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "boost/chrono/duration.hpp"
 #include "boost/thread.hpp"
 #include "zmq.hpp"
 
@@ -74,9 +75,17 @@ public:
 
     If no slave provider is specified, and the specified slave type is offered
     by more than one slave provider, an arbitrary one of them will be used.
+
+    `timeout` specifies both how long the slave provider should wait for the
+    slave to start up before assuming it has crashed or frozen, as well as how
+    long the master should wait for the slave provider to report that the slave
+    has been successfully instantiated before it assumes the slave provider
+    itself has crashed or the connection has been lost.  In any case, an
+    exception is thrown if this timeout is reached.
     */
     dsb::net::SlaveLocator InstantiateSlave(
         const std::string& slaveTypeUUID,
+        boost::chrono::milliseconds timeout,
         const std::string& provider = std::string());
 
 private:

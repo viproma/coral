@@ -71,11 +71,13 @@ dsb::model::VariableDescription FmiSlaveType::Variable(size_t index) const
     return ToVariable(fmi1_import_get_variable(m_varList, index), index);
 }
 
-bool FmiSlaveType::Instantiate(dsb::net::SlaveLocator& slaveLocator)
+bool FmiSlaveType::Instantiate(
+    boost::chrono::milliseconds timeout,
+    dsb::net::SlaveLocator& slaveLocator)
 {
     m_instantiationFailureDescription.clear();
     try {
-        slaveLocator = m_slaveStarterFunction(m_fmuPath);
+        slaveLocator = m_slaveStarterFunction(m_fmuPath, timeout);
     } catch (const std::runtime_error& e) {
         m_instantiationFailureDescription = e.what();
         return false;

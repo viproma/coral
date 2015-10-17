@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include "boost/chrono/duration.hpp"
 #include "boost/noncopyable.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
@@ -74,13 +75,19 @@ public:
     return a textual description of the reasons for this.  `slaveLocator` must
     then be left untouched.
 
+    \param [in] timeout
+        How long the master will wait for the slave to start up.  If possible,
+        instantiation should be aborted and considered "failed" after this
+        time has passed.
     \param [out] slaveLocator
         An object that describes how to connect to the slave.  See the list
         above for different endpoint formats.
 
     \returns `true` if a slave was successfully instantiated, `false` otherwise.
     */
-    virtual bool Instantiate(dsb::net::SlaveLocator& slaveLocator) = 0;
+    virtual bool Instantiate(
+        boost::chrono::milliseconds timeout,
+        dsb::net::SlaveLocator& slaveLocator) = 0;
 
     /**
     \brief  A textual description of why a previous Instantiate() call failed.
