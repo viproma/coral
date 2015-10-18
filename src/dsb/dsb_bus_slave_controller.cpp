@@ -25,7 +25,7 @@ SlaveController::SlaveController(
         reactor,
         slaveLocator,
         maxConnectionAttempts,
-        timeout, 
+        timeout,
         [=] (const std::error_code& ec, SlaveControlConnection scc) {
             if (!ec) {
                 m_messenger = MakeSlaveControlMessenger(
@@ -51,7 +51,7 @@ SlaveController::~SlaveController()
 void SlaveController::Close()
 {
     m_pendingConnection.Close();
-    m_messenger->Close();
+    if (m_messenger) m_messenger->Close();
 }
 
 
@@ -105,6 +105,7 @@ void SlaveController::AcceptStep(
 
 void SlaveController::Terminate()
 {
+    m_pendingConnection.Close();
     if (m_messenger) {
         m_messenger->Terminate();
     }

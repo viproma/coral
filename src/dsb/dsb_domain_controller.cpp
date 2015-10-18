@@ -83,8 +83,9 @@ namespace
         const dsb::bus::DomainData& domainData)
     {
         std::string slaveTypeUUID;
+        boost::chrono::milliseconds timeout;
         std::string provider;
-        dsb::inproc_rpc::UnmarshalInstantiateSlave(msg, slaveTypeUUID, provider);
+        dsb::inproc_rpc::UnmarshalInstantiateSlave(msg, slaveTypeUUID, timeout, provider);
 
         if (provider.empty()) {
             // Search through all slave types for all providers, and use the
@@ -133,6 +134,7 @@ namespace
         std::deque<zmq::message_t> reqMsg;
         dsbproto::domain::InstantiateSlaveData data;
         data.set_slave_type_uuid(slaveTypeUUID);
+        data.set_timeout_ms(boost::numeric_cast<std::int32_t>(timeout.count()));
         dsb::protocol::domain::CreateAddressedMessage(
             reqMsg,
             provider,
@@ -142,9 +144,13 @@ namespace
         dsb::comm::Send(infoSocket, reqMsg);
 
         std::deque<zmq::message_t> repMsg;
-        if (!dsb::comm::Receive(infoSocket, repMsg, boost::chrono::seconds(10))) {
-            // TODO: Shouldn't use hardcoded timeout, and must handle the failure better.
-            assert(!"Timeout waiting for reply from slave provider, SP possibly dead.");
+        if (!dsb::comm::Receive(infoSocket, repMsg, 2*timeout)) {
+            // We double the timeout here, since the same timeout is used
+            // at the other end, and we don't want to cancel the operation
+            // prematurely at this end.
+            dsb::inproc_rpc::ThrowRuntimeError(
+                rpcSocket,
+                "Instantiation failed: No reply from slave provider");
             return;
         }
         if (repMsg.size() != 4 || repMsg[1].size() != 0) {
@@ -392,11 +398,13 @@ std::vector<Controller::SlaveType> Controller::GetSlaveTypes()
 
 dsb::net::SlaveLocator Controller::InstantiateSlave(
     const std::string& slaveTypeUUID,
+    boost::chrono::milliseconds timeout,
     const std::string& provider)
 {
     return dsb::inproc_rpc::CallInstantiateSlave(
         m_rpcSocket,
         slaveTypeUUID,
+        timeout,
         provider);
 }
 

@@ -84,8 +84,11 @@ void dsb::domain::SlaveProvider(
                         [&](const dsb::domain::ISlaveType* s)
                             { return s->Uuid() == data.slave_type_uuid(); });
 
+                    const auto instantiationTimeout = boost::chrono::milliseconds(data.timeout_ms());
                     dsb::net::SlaveLocator slaveLocator;
-                    if (stIt != slaveTypes.end() && (*stIt)->Instantiate(slaveLocator)) {
+                    if (stIt != slaveTypes.end()
+                        && (*stIt)->Instantiate(instantiationTimeout, slaveLocator))
+                    {
                         msg[3] = dp::CreateHeader(
                             dp::MSG_INSTANTIATE_SLAVE_OK, header.protocol);
                         dsbproto::net::SlaveLocator slaveLocPb;

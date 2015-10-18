@@ -149,6 +149,7 @@ void SlaveControlMessengerV0::Terminate()
     DSB_PRECONDITION_CHECK(m_state != SLAVE_NOT_CONNECTED);
     CheckInvariant();
 
+    const auto onComplete = std::move(m_onComplete);
     std::deque<zmq::message_t> msg;
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_TERMINATE);
     m_socket.Send(msg, dsb::comm::SEND_OUT_OF_ORDER);
@@ -158,6 +159,10 @@ void SlaveControlMessengerV0::Terminate()
     m_socket.Socket().recv(&temp, 1, ZMQ_DONTWAIT);
     // ---
     Close();
+    if (onComplete) {
+        // This is only if m_state was SLAVE_BUSY when we entered the function.
+        onComplete(make_error_code(std::errc::operation_canceled));
+    }
 }
 
 

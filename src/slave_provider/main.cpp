@@ -41,17 +41,17 @@ public:
         const std::string& proxyEndpoint,
         const std::string& slaveExe,
         boost::chrono::seconds commTimeout,
-        boost::chrono::seconds instantiationTimeout,
         const std::string& outputDir)
         : m_proxyEndpoint(proxyEndpoint),
           m_slaveExe(slaveExe),
           m_commTimeout(commTimeout),
-          m_instantiationTimeout(instantiationTimeout),
           m_outputDir(outputDir.empty() ? "." : outputDir)
     {
     }
 
-    dsb::net::SlaveLocator operator()(const std::string& fmuPath)
+    dsb::net::SlaveLocator operator()(
+        const std::string& fmuPath,
+        boost::chrono::milliseconds instantiationTimeout)
     {
         const auto fmuBaseName = boost::filesystem::path(fmuPath).stem().string();
         const auto outputFile = m_outputDir + '/'
@@ -83,12 +83,12 @@ public:
         const auto feedbackTimedOut = !dsb::comm::Receive(
             slaveStatusSocket,
             slaveStatus,
-            m_instantiationTimeout);
+            instantiationTimeout);
         if (feedbackTimedOut) {
             throw std::runtime_error(
                 "Slave took more than "
-                + boost::lexical_cast<std::string>(m_instantiationTimeout.count())
-                + " seconds to start; presumably it has failed altogether");
+                + boost::lexical_cast<std::string>(instantiationTimeout.count())
+                + " milliseconds to start; presumably it has failed altogether");
         } else if (slaveStatus.size() != 2) {
             throw std::runtime_error("Invalid data received from slave executable");
         } else if (dsb::comm::ToString(slaveStatus[0]) == "ERROR") {
@@ -116,7 +116,6 @@ private:
     std::string m_proxyEndpoint;
     std::string m_slaveExe;
     boost::chrono::seconds m_commTimeout;
-    boost::chrono::seconds m_instantiationTimeout;
     std::string m_outputDir;
 };
 
@@ -149,9 +148,7 @@ try {
         ("output-dir,o", po::value<std::string>()->default_value(""),
             "The directory where output files should be written")
         ("timeout", po::value<unsigned int>()->default_value(3600),
-            "The number of seconds of inactivity before a slave shuts itself down")
-        ("instantiation-timeout", po::value<unsigned int>()->default_value(10),
-            "The number of seconds to wait while a slave starts up before assuming it has crashed");
+            "The number of seconds of inactivity before a slave shuts itself down");
     po::options_description argDesc;
     argDesc.add(optDesc);
     argDesc.add_options()
@@ -190,8 +187,6 @@ try {
     const auto domainAddress = optMap["domain"].as<std::string>();
     const auto outputDir = optMap["output-dir"].as<std::string>();
     const auto timeout = boost::chrono::seconds(optMap["timeout"].as<unsigned int>());
-    const auto instantiationTimeout =
-        boost::chrono::seconds(optMap["instantiation-timeout"].as<unsigned int>());
 
     std::string slaveExe;
     if (optMap.count("slave-exe")) {
@@ -227,7 +222,7 @@ try {
     std::vector<dsb::domain::ISlaveType*> fmuPtrs;
     for (auto it = fmuPaths.begin(); it != fmuPaths.end(); ++it) {
         fmus.push_back(dsb::fmi::MakeSlaveType(*it,
-            StartSlave(domainLoc.InfoSlavePEndpoint(), slaveExe, timeout, instantiationTimeout, outputDir)));
+            StartSlave(domainLoc.InfoSlavePEndpoint(), slaveExe, timeout, outputDir)));
         fmuPtrs.push_back(fmus.back().get());
         std::cout << "FMU loaded: " << *it << std::endl;
     }

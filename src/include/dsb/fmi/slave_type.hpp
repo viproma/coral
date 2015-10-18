@@ -8,6 +8,8 @@
 #include <functional>
 #include <string>
 
+#include "boost/chrono/duration.hpp"
+
 #include "fmilib.h"
 #include "dsb/fmilib/fmu1.hpp"
 
@@ -58,7 +60,9 @@ public:
     std::string Version() const override;
     size_t VariableCount() const override;
     virtual dsb::model::VariableDescription Variable(size_t index) const override;
-    virtual bool Instantiate(dsb::net::SlaveLocator& slaveLocator) override;
+    virtual bool Instantiate(
+        boost::chrono::milliseconds timeout,
+        dsb::net::SlaveLocator& slaveLocator) override;
     virtual std::string InstantiationFailureDescription() const override;
 
 private:

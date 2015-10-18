@@ -45,6 +45,7 @@ void ParseSystemConfig(
     const dsb::net::ExecutionLocator& executionLocator,
     std::vector<SimulationEvent>& scenario,
     boost::chrono::milliseconds commTimeout,
+    boost::chrono::milliseconds instantiationTimeout,
     std::ostream* warningLog);
 
 
@@ -106,6 +107,15 @@ struct ExecutionConfig
     The default value is 1 hour.
     */
     boost::chrono::seconds slaveTimeout;
+
+    /**
+    \brief  Slave instantiation timeout, in milliseconds.
+
+    This controls how long each slave gets from the moment the instantiation
+    command is issued to the moment it is ready for a command from the master
+    node.
+    */
+    boost::chrono::milliseconds instantiationTimeout;
 };
 
 
