@@ -173,13 +173,19 @@ int Run(int argc, const char** argv)
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
         boost::this_thread::sleep_for(boost::chrono::seconds(2));
 
+        std::cout << "Parsing execution configuration file '" << execConfigFile
+                  << "'" << std::endl;
         const auto execConfig = ParseExecutionConfig(execConfigFile);
+
+        std::cout << "Spawning new execution broker" << std::endl;
         const auto execLoc = dsb::execution::SpawnExecution(
             domainLoc, execName, execConfig.slaveTimeout);
         const auto execSpawnTime = boost::chrono::high_resolution_clock::now();
         auto exec = dsb::execution::Controller(execLoc);
-
         exec.SetSimulationTime(execConfig.startTime, execConfig.stopTime);
+
+        std::cout << "Parsing model configuration file '" << sysConfigFile
+                  << "'" << std::endl;
         std::vector<SimulationEvent> unsortedScenario;
         ParseSystemConfig(sysConfigFile, domain, exec, execLoc, unsortedScenario,
                           execConfig.commTimeout, execConfig.instantiationTimeout,
