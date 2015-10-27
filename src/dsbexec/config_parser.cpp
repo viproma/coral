@@ -51,10 +51,15 @@ namespace
     }
 
 
-    std::multimap<std::string, dsb::domain::Controller::SlaveType> SlaveTypesByName(
-        dsb::domain::Controller& domain)
+    typedef std::multimap<std::string, dsb::domain::Controller::SlaveType>
+        SlaveTypeMap;
+
+    // Obtains the list of available slave types on the domain and returns it
+    // in the form of a map where the keys are slave type names and the values
+    // are slave type descriptions.
+    SlaveTypeMap SlaveTypesByName(dsb::domain::Controller& domain)
     {
-        std::multimap<std::string, dsb::domain::Controller::SlaveType> types;
+        SlaveTypeMap types;
         BOOST_FOREACH (const auto& st, domain.GetSlaveTypes()) {
             types.insert(std::make_pair(st.name, st));
         }
@@ -88,7 +93,7 @@ namespace
         }
     }
 
-    const dsb::domain::Controller::SlaveType& GetSlaveType(
+    const dsb::domain::Controller::SlaveType* GetSlaveType(
         const std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
         const std::string& slaveName)
     {
@@ -96,24 +101,7 @@ namespace
         if (slaveIt == slaves.end()) {
             throw std::runtime_error("Unknown slave: " + slaveName);
         }
-        return *slaveIt->second;
-    }
-
-
-    const dsb::model::VariableDescription& FindVariable(
-        const dsb::domain::Controller::SlaveType& slaveType,
-        const std::string& varName)
-    {
-        const auto& variables = slaveType.variables;
-        const auto varIt = std::find_if(
-            variables.begin(),
-            variables.end(),
-            [&](const dsb::model::VariableDescription& varDef) { return varDef.Name() == varName; });
-        if (varIt == variables.end()) {
-            throw std::runtime_error(
-                "Variable not found: " + varName);
-        }
-        return *varIt;
+        return slaveIt->second;
     }
 
     struct VariableValue
@@ -128,6 +116,45 @@ namespace
         std::string otherSlaveName;
         dsb::model::VariableID otherOutputId;
     };
+
+    // Variable name lookup could take a long time for slave types with a
+    // large number of variables, because dsb::domain::Controller::SlaveType
+    // stores the variable descriptions in a vector.  Therefore, we cache the
+    // ones we use in a hash map.
+    typedef std::map<std::string, const dsb::model::VariableDescription*>
+        VarDescriptionCacheEntry;
+    typedef std::map<const dsb::domain::Controller::SlaveType*, VarDescriptionCacheEntry>
+        VarDescriptionCache;
+
+    // Given a slave type description and a variable name, this function will
+    // first look for the slave type in the cache and, if it is found, do a
+    // fast lookup of the variable description.  If the slave type is not found
+    // in the cache, it will be added.
+    const dsb::model::VariableDescription* GetCachedVarDescription(
+        const dsb::domain::Controller::SlaveType* slaveType,
+        const std::string& variableName,
+        VarDescriptionCache& cache)
+    {
+        // Look for the slave type in the cache first
+        auto cachedSlaveTypeIt = cache.find(slaveType);
+        if (cachedSlaveTypeIt == cache.end()) {
+            // Slave type not found in cache, so add it.
+            VarDescriptionCacheEntry vars;
+            BOOST_FOREACH(const auto& v, slaveType->variables) {
+                vars[v.Name()] = &v;
+            }
+            cachedSlaveTypeIt = cache.insert(
+                std::make_pair(slaveType, std::move(vars))).first;
+        }
+        const auto& cachedSlaveType = cachedSlaveTypeIt->second;
+
+        auto cachedVarIt = cachedSlaveType.find(variableName);
+        if (cachedVarIt == cachedSlaveType.end()) {
+            throw std::runtime_error("Slave type '" + slaveType->name
+                + "' has no variable named '" + variableName + "'");
+        }
+        return cachedVarIt->second;
+    }
 }
 
 
@@ -141,7 +168,8 @@ namespace
         const boost::property_tree::ptree& ptree,
         const std::multimap<std::string, dsb::domain::Controller::SlaveType>& slaveTypes,
         std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
-        std::map<std::string, std::vector<VariableValue>>& variables)
+        std::map<std::string, std::vector<VariableValue>>& variables,
+        VarDescriptionCache& varDescriptionCache)
     {
         assert(slaves.empty());
         assert(variables.empty());
@@ -172,18 +200,10 @@ namespace
             const auto initTree = slaveData.get_child("init", boost::property_tree::ptree());
             BOOST_FOREACH (const auto& initNode, initTree) {
                 const auto varName = initNode.first;
-                const auto varDefIt = std::find_if(
-                    slaveType.variables.begin(),
-                    slaveType.variables.end(),
-                    [&](const dsb::model::VariableDescription& varDef) { return varDef.Name() == varName; });
-                if (varDefIt == slaveType.variables.end()) {
-                    throw std::runtime_error(
-                        "Variable '" + varName + "' not found in slave type '"
-                        + slaveTypeName + "'");
-                }
+                const auto varDesc = GetCachedVarDescription(&slaveType, varName, varDescriptionCache);
                 VariableValue v;
-                v.id = varDefIt->ID();
-                v.value = ParseVariableValue(*varDefIt, initNode.second);
+                v.id = varDesc->ID();
+                v.value = ParseVariableValue(*varDesc, initNode.second);
                 variables[slaveName].push_back(v);
             }
         }
@@ -194,7 +214,8 @@ namespace
     void ParseConnectionsNode(
         const boost::property_tree::ptree& ptree,
         const std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
-        std::map<std::string, std::vector<VariableConnection>>& connections)
+        std::map<std::string, std::vector<VariableConnection>>& connections,
+        VarDescriptionCache& varDescriptionCache)
     {
         assert(connections.empty());
         const auto connTree = ptree.get_child("connections", boost::property_tree::ptree());
@@ -202,23 +223,25 @@ namespace
             const auto inputSpec = SplitVarSpec(connNode.first);
             const auto outputSpec = SplitVarSpec(connNode.second.data());
             try {
-                const auto& inputSlaveType = GetSlaveType(slaves, inputSpec.first);
-                const auto& outputSlaveType = GetSlaveType(slaves, outputSpec.first);
-                const auto& inputVar = FindVariable(inputSlaveType, inputSpec.second);
-                const auto& outputVar = FindVariable(outputSlaveType, outputSpec.second);
-                if (inputVar.DataType() != outputVar.DataType()) {
+                const auto inputSlaveType = GetSlaveType(slaves, inputSpec.first);
+                const auto outputSlaveType = GetSlaveType(slaves, outputSpec.first);
+                const auto inputVarDesc = GetCachedVarDescription(
+                    inputSlaveType, inputSpec.second, varDescriptionCache);
+                const auto outputVarDesc = GetCachedVarDescription(
+                    outputSlaveType, outputSpec.second, varDescriptionCache);
+                if (inputVarDesc->DataType() != outputVarDesc->DataType()) {
                     throw std::runtime_error("Incompatible data types");
                 }
-                if (inputVar.Causality() != dsb::model::INPUT_CAUSALITY) {
-                    throw std::runtime_error("Not an input variable: " + inputVar.Name());
+                if (inputVarDesc->Causality() != dsb::model::INPUT_CAUSALITY) {
+                    throw std::runtime_error("Not an input variable: " + inputVarDesc->Name());
                 }
-                if (outputVar.Causality() != dsb::model::OUTPUT_CAUSALITY) {
-                    throw std::runtime_error("Not an output variable: " + outputVar.Name());
+                if (outputVarDesc->Causality() != dsb::model::OUTPUT_CAUSALITY) {
+                    throw std::runtime_error("Not an output variable: " + outputVarDesc->Name());
                 }
                 VariableConnection vc;
-                vc.inputId = inputVar.ID();
+                vc.inputId = inputVarDesc->ID();
                 vc.otherSlaveName = outputSpec.first;
-                vc.otherOutputId = outputVar.ID();
+                vc.otherOutputId = outputVarDesc->ID();
                 connections[inputSpec.first].push_back(vc);
             } catch (const std::runtime_error& e) {
                 throw std::runtime_error("In connection between "
@@ -239,7 +262,8 @@ namespace
         const std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
         std::ostream* warningLog,
         std::vector<SimulationEvent>& scenario,
-        std::vector<std::string>& scenarioEventSlaveName)
+        std::vector<std::string>& scenarioEventSlaveName,
+        VarDescriptionCache& varDescriptionCache)
     {
         assert(scenario.empty());
         assert(scenarioEventSlaveName.empty());
@@ -254,20 +278,23 @@ namespace
                     const auto& affectedSlaveName = varSpec.first;
                     const auto& affectedVarName = varSpec.second;
                     try {
-                        const auto& var = FindVariable(*slaves.at(affectedSlaveName), affectedVarName);
+                        const auto varDesc = GetCachedVarDescription(
+                            slaves.at(affectedSlaveName),
+                            affectedVarName,
+                            varDescriptionCache);
                         if (warningLog) {
-                            if (var.Causality() == dsb::model::INPUT_CAUSALITY) {
+                            if (varDesc->Causality() == dsb::model::INPUT_CAUSALITY) {
                                 *warningLog << "Warning: " << varChangeNode.first
                                     << " is an input variable.  If it is connected to"
                                        " an output, the scenario event may not have the"
                                        " intended effect." << std::endl;
-                            } else if (var.Causality() != dsb::model::PARAMETER_CAUSALITY) {
+                            } else if (varDesc->Causality() != dsb::model::PARAMETER_CAUSALITY) {
                                 *warningLog << "Warning: " << varChangeNode.first
                                     << " is not a parameter, and should therefore"
                                        " normally not be changed manually." << std::endl;
                             }
-                            if (var.Variability() == dsb::model::CONSTANT_VARIABILITY
-                                || var.Variability() == dsb::model::FIXED_VARIABILITY) {
+                            if (varDesc->Variability() == dsb::model::CONSTANT_VARIABILITY
+                                || varDesc->Variability() == dsb::model::FIXED_VARIABILITY) {
                                 *warningLog << "Warning: " << varChangeNode.first
                                     << " is not a modifiable variable." << std::endl;
                             }
@@ -275,8 +302,8 @@ namespace
                         scenario.push_back(SimulationEvent(
                             timePoint,
                             dsb::model::INVALID_SLAVE_ID,
-                            var.ID(),
-                            ParseVariableValue(var, varChangeNode.second)));
+                            varDesc->ID(),
+                            ParseVariableValue(*varDesc, varChangeNode.second)));
                         scenarioEventSlaveName.push_back(affectedSlaveName);
                     } catch (const std::exception& e) {
                         throw std::runtime_error("For variable " + varChangeNode.first
@@ -307,14 +334,15 @@ void ParseSystemConfig(
 
     std::map<std::string, const dsb::domain::Controller::SlaveType*> slaves;
     std::map<std::string, std::vector<VariableValue>> variables;
-    ParseSlavesNode(ptree, slaveTypes, slaves, variables);
+    VarDescriptionCache varDescriptionCache;
+    ParseSlavesNode(ptree, slaveTypes, slaves, variables, varDescriptionCache);
 
     std::map<std::string, std::vector<VariableConnection>> connections;
-    ParseConnectionsNode(ptree, slaves, connections);
+    ParseConnectionsNode(ptree, slaves, connections, varDescriptionCache);
 
     std::vector<SimulationEvent> scenario;
     std::vector<std::string> scenarioEventSlaveName; // We don't know IDs yet, so we keep a parallel list of names
-    ParseScenarioNode(ptree, slaves, warningLog, scenario, scenarioEventSlaveName);
+    ParseScenarioNode(ptree, slaves, warningLog, scenario, scenarioEventSlaveName, varDescriptionCache);
 
     // Add all the slaves to the execution and map their names to their
     // numeric IDs.
