@@ -240,18 +240,15 @@ void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
         throw dsb::error::ProtocolViolationException(
             "Wrong number of frames in SET_VARS message");
     }
+    std::clog << "Setting/connecting variables... " << std::flush;
     dsbproto::execution::SetVarsData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
     BOOST_FOREACH (const auto& var, data.variable()) {
         // TODO: Remove debug output
         if (var.has_value()) {
-            std::clog << "Setting value of var " << var.variable_id() << std::endl;
             SetVariable(m_slaveInstance, var.variable_id(), var.value());
         }
         if (var.has_connected_output()) {
-            std::clog << "Connecting var " << var.variable_id() << " to slave "
-                << var.connected_output().slave_id() << ", var "
-                << var.connected_output().variable_id() << std::endl;
             // Look for any existing connection to the input variable, and
             // unsubscribe and remove it.
             for (auto it = m_connections.begin(); it != m_connections.end(); ++it) {
@@ -277,6 +274,7 @@ void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
         }
     }
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
+    std::clog << "done" << std::endl;
 }
 
 
