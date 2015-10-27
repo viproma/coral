@@ -173,13 +173,19 @@ int Run(int argc, const char** argv)
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
         boost::this_thread::sleep_for(boost::chrono::seconds(2));
 
+        std::cout << "Parsing execution configuration file '" << execConfigFile
+                  << "'" << std::endl;
         const auto execConfig = ParseExecutionConfig(execConfigFile);
+
+        std::cout << "Spawning new execution broker" << std::endl;
         const auto execLoc = dsb::execution::SpawnExecution(
             domainLoc, execName, execConfig.slaveTimeout);
         const auto execSpawnTime = boost::chrono::high_resolution_clock::now();
         auto exec = dsb::execution::Controller(execLoc);
-
         exec.SetSimulationTime(execConfig.startTime, execConfig.stopTime);
+
+        std::cout << "Parsing model configuration file '" << sysConfigFile
+                  << "' and spawning slaves" << std::endl;
         std::vector<SimulationEvent> unsortedScenario;
         ParseSystemConfig(sysConfigFile, domain, exec, execLoc, unsortedScenario,
                           execConfig.commTimeout, execConfig.instantiationTimeout,
@@ -206,12 +212,18 @@ int Run(int argc, const char** argv)
         }
 
         // Super advanced master algorithm.
-        std::cout << "+-------------------+\n|" << std::flush;
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
         double nextPerc = 0.05;
         const auto stepTimeout = boost::chrono::seconds(
             boost::numeric_cast<typename boost::chrono::seconds::rep>(
                 execConfig.stepSize * execConfig.stepTimeoutMultiplier));
+
+        const double clockRes = // the resolution of the clock, in ticks/sec
+            static_cast<double>(boost::chrono::high_resolution_clock::duration::period::num)
+            / boost::chrono::high_resolution_clock::duration::period::den;
+        auto prevRealTime = boost::chrono::high_resolution_clock::now();
+        auto prevSimTime = execConfig.startTime;
+
         for (double time = execConfig.startTime;
              time < maxTime;
              time += execConfig.stepSize)
@@ -236,13 +248,19 @@ int Run(int argc, const char** argv)
                 throw std::runtime_error("One or more slaves failed to perform the time step");
             }
             exec.AcceptStep(execConfig.commTimeout);
+
+            // Print how far we've gotten in the simulation and how fast it's
+            // going.
             if ((time-execConfig.startTime)/(execConfig.stopTime-execConfig.startTime) >= nextPerc) {
-                //std::cout << (nextPerc * 100.0) << "%" << std::endl;
-                std::cout << '#' << std::flush;
+                const auto realTime = boost::chrono::high_resolution_clock::now();
+                const auto rti = (time - prevSimTime)
+                    / ((realTime - prevRealTime).count() * clockRes);
+                std::cout << (nextPerc * 100.0) << "%  RTI=" << rti << std::endl;
                 nextPerc += 0.05;
+                prevRealTime = realTime;
+                prevSimTime = time;
             }
         }
-        std::cout << "|\n+-------------------+\n" << std::endl;
 
         // Termination
         const auto t1 = boost::chrono::high_resolution_clock::now();
