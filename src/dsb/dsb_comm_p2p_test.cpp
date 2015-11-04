@@ -215,8 +215,8 @@ TEST(dsb_comm, P2PReqRepSocketDirect)
     svr.Close();
     cli.Close();
     // ...and do it again
-    svr.Bind(P2PEndpoint("tcp://*:12345"));
-    cli.Connect(P2PEndpoint("tcp://localhost:12345"));
+    svr.Bind(P2PEndpoint("tcp://*:12346"));
+    cli.Connect(P2PEndpoint("tcp://localhost:12346"));
     boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
@@ -235,8 +235,8 @@ TEST(dsb_comm, P2PReqRepSocketDirectReverse)
     svr.Close();
     cli.Close();
     // ...and do it again
-    cli.Bind("tcp://*:12345");
-    svr.Connect("tcp://localhost:12345");
+    cli.Bind("tcp://*:12346");
+    svr.Connect("tcp://localhost:12346");
     boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
