@@ -3,18 +3,14 @@
 #include <cassert>
 #include <iostream> // TEMPORARY
 #include <limits>
-#include <set>
 #include <utility>
-
-#include "boost/foreach.hpp"
-#include "boost/numeric/conversion/cast.hpp"
 
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"
-#include "dsb/execution/slave.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/execution.hpp"
+#include "dsb/protocol/glue.hpp"
 #include "dsb/util.hpp"
 
 
@@ -57,13 +53,8 @@ SlaveAgent::SlaveAgent(
     : m_stateHandler(&SlaveAgent::NotConnectedHandler),
       m_slaveInstance(slaveInstance),
       m_commTimeout(commTimeout),
-      m_control(),
-      m_dataSub(),
-      m_dataPub(),
       m_id(dsb::model::INVALID_SLAVE_ID),
-      m_currentStepID(dsb::model::INVALID_STEP_ID),
-      m_currentTime(std::numeric_limits<double>::signaling_NaN()),
-      m_lastStepSize(std::numeric_limits<double>::signaling_NaN())
+      m_currentStepID(dsb::model::INVALID_STEP_ID)
 {
     m_control.Bind(bindpoint);
     reactor.AddSocket(
@@ -119,10 +110,8 @@ void SlaveAgent::ConnectedHandler(std::deque<zmq::message_t>& msg)
     m_slaveInstance.Setup(
         data.start_time(),
         data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity());
-    m_dataPub = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PUB);
-    m_dataPub->connect(data.variable_pub_endpoint().c_str());
-    m_dataSub = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_SUB);
-    m_dataSub->connect(data.variable_sub_endpoint().c_str());
+    m_publisher.Connect(data.variable_pub_endpoint(), m_id);
+    m_connections.Connect(data.variable_sub_endpoint());
     std::clog << "Simulating from t = " << data.start_time()
               << " to " << (data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity())
               << std::endl;
@@ -158,64 +147,11 @@ void SlaveAgent::ReadyHandler(std::deque<zmq::message_t>& msg)
 }
 
 
-namespace
-{
-    void SetVariable(
-        dsb::execution::ISlaveInstance& slaveInstance,
-        uint16_t varRef,
-        const dsbproto::model::ScalarValue& value)
-    {
-        if (value.has_real_value()) {
-            slaveInstance.SetRealVariable(varRef, value.real_value());
-        } else if (value.has_integer_value()) {
-            slaveInstance.SetIntegerVariable(varRef, value.integer_value());
-        } else if (value.has_boolean_value()) {
-            slaveInstance.SetBooleanVariable(varRef, value.boolean_value());
-        } else if (value.has_string_value()) {
-            slaveInstance.SetStringVariable(varRef, value.string_value());
-        } else {
-            assert (!"Corrupt or empty variable value received");
-        }
-    }
-}
-
-
 void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
 {
     EnforceMessageType(msg, dsbproto::execution::MSG_ACCEPT_STEP);
-
-    // Receive messages until all input variables have been set.
-    std::set<uint16_t> receivedVars;
-    while (receivedVars.size() < m_connections.size()) {
-        // Receive message from other and store the body in inVar.
-        std::deque<zmq::message_t> dataMsg;
-        dsb::comm::Receive(*m_dataSub, dataMsg);
-        assert (dataMsg.size() == 2
-                && "Wrong number of frames in data message");
-
-        dsbproto::execution::TimestampedValue inVar;
-        dsb::protobuf::ParseFromFrame(dataMsg.back(), inVar);
-        assert(inVar.timestep_id() <= m_currentStepID
-               && "Data received from the future");
-
-        // If the message has been queued up from a previous time
-        // step, which could happen if we have joined the simulation
-        // while it's in progress, discard it and retry.
-        if (inVar.timestep_id() < m_currentStepID) continue;
-
-        // Decode header.
-        RemoteVariable rv = {
-            dsb::util::DecodeUint16(static_cast<const char*>(dataMsg[0].data())),
-            dsb::util::DecodeUint16(static_cast<const char*>(dataMsg[0].data())+2)
-        };
-        const auto inVarRef = m_connections.at(rv);
-
-        // Set our input variable.
-        SetVariable(m_slaveInstance, inVarRef, inVar.value());
-        receivedVars.insert(inVarRef);
-    }
-
-    // Send READY message and change state again.
+    // TODO: Use a different timeout here?
+    m_connections.Update(m_slaveInstance, m_currentStepID, m_commTimeout);
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }
@@ -230,6 +166,38 @@ void SlaveAgent::StepFailedHandler(std::deque<zmq::message_t>& msg)
 }
 
 
+namespace
+{
+    class SetVariable : public boost::static_visitor<>
+    {
+    public:
+        SetVariable(
+            dsb::execution::ISlaveInstance& slaveInstance,
+            uint16_t varRef)
+            : m_slaveInstance(slaveInstance), m_varRef(varRef) { }
+        void operator()(double value) const
+        {
+            m_slaveInstance.SetRealVariable(m_varRef, value);
+        }
+        void operator()(int value) const
+        {
+            m_slaveInstance.SetIntegerVariable(m_varRef, value);
+        }
+        void operator()(bool value) const
+        {
+            m_slaveInstance.SetBooleanVariable(m_varRef, value);
+        }
+        void operator()(const std::string& value) const
+        {
+            m_slaveInstance.SetStringVariable(m_varRef, value);
+        }
+    private:
+        dsb::execution::ISlaveInstance& m_slaveInstance;
+        uint16_t m_varRef;
+    };
+}
+
+
 // TODO: Make this function signature more consistent with Step() (or the other
 // way around).
 void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
@@ -241,34 +209,18 @@ void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
     std::clog << "Setting/connecting variables... " << std::flush;
     dsbproto::execution::SetVarsData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
-    BOOST_FOREACH (const auto& var, data.variable()) {
-        // TODO: Remove debug output
-        if (var.has_value()) {
-            SetVariable(m_slaveInstance, var.variable_id(), var.value());
+    for (const auto& varSetting : data.variable()) {
+        // TODO: Catch and report errors
+        if (varSetting.has_value()) {
+            const auto val = dsb::protocol::FromProto(varSetting.value());
+            boost::apply_visitor(
+                SetVariable(m_slaveInstance, varSetting.variable_id()),
+                val);
         }
-        if (var.has_connected_output()) {
-            // Look for any existing connection to the input variable, and
-            // unsubscribe and remove it.
-            for (auto it = m_connections.begin(); it != m_connections.end(); ++it) {
-                if (it->second == var.variable_id()) {
-                    char oldHeader[DATA_HEADER_SIZE];
-                    dsb::util::EncodeUint16(it->first.slave, oldHeader);
-                    dsb::util::EncodeUint16(it->first.var,   oldHeader + 2);
-                    m_dataSub->setsockopt(ZMQ_UNSUBSCRIBE, oldHeader, DATA_HEADER_SIZE);
-                    m_connections.erase(it);
-                    break;
-                }
-            }
-            // Make the new connection and subscription.
-            RemoteVariable rv = {
-                boost::numeric_cast<uint16_t>(var.connected_output().slave_id()),
-                boost::numeric_cast<uint16_t>(var.connected_output().variable_id())
-            };
-            char newHeader[DATA_HEADER_SIZE];
-            dsb::util::EncodeUint16(rv.slave, newHeader);
-            dsb::util::EncodeUint16(rv.var,   newHeader + 2);
-            m_dataSub->setsockopt(ZMQ_SUBSCRIBE, newHeader, DATA_HEADER_SIZE);
-            m_connections.insert(std::make_pair(rv, var.variable_id()));
+        if (varSetting.has_connected_output()) {
+            m_connections.Couple(
+                dsb::protocol::FromProto(varSetting.connected_output()),
+                varSetting.variable_id());
         }
     }
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
@@ -276,57 +228,93 @@ void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
 }
 
 
+namespace
+{
+    dsb::model::ScalarValue GetVariable(
+        const dsb::execution::ISlaveInstance& slave,
+        const dsb::model::VariableDescription& variable)
+    {
+        switch (variable.DataType()) {
+            case dsb::model::REAL_DATATYPE:
+                return slave.GetRealVariable(variable.ID());
+            case dsb::model::INTEGER_DATATYPE:
+                return slave.GetIntegerVariable(variable.ID());
+            case dsb::model::BOOLEAN_DATATYPE:
+                return slave.GetBooleanVariable(variable.ID());
+            case dsb::model::STRING_DATATYPE:
+                return slave.GetStringVariable(variable.ID());
+            default:
+                assert (!"Variable has unknown data type");
+                return dsb::model::ScalarValue();
+        }
+    }
+}
+
+
 bool SlaveAgent::Step(const dsbproto::execution::StepData& stepInfo)
 {
-    // Perform time step
+    m_currentStepID = stepInfo.step_id();
     if (!m_slaveInstance.DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
         return false;
     }
-    m_currentStepID = stepInfo.step_id();
-    m_currentTime = stepInfo.timepoint() + stepInfo.stepsize();
-    m_lastStepSize = stepInfo.stepsize();
-
     for (size_t i = 0; i < m_slaveInstance.VariableCount(); ++i) {
         const auto varInfo = m_slaveInstance.Variable(i);
         if (varInfo.Causality() != dsb::model::OUTPUT_CAUSALITY) continue;
-
-        // Get value of output variable
-        dsbproto::execution::TimestampedValue outVar;
-        outVar.set_timestep_id(m_currentStepID);
-        switch (varInfo.DataType()) {
-            case dsb::model::REAL_DATATYPE:
-                outVar.mutable_value()->set_real_value(
-                    m_slaveInstance.GetRealVariable(varInfo.ID()));
-                break;
-            case dsb::model::INTEGER_DATATYPE:
-                outVar.mutable_value()->set_integer_value(
-                    m_slaveInstance.GetIntegerVariable(varInfo.ID()));
-                break;
-            case dsb::model::BOOLEAN_DATATYPE:
-                outVar.mutable_value()->set_boolean_value(
-                    m_slaveInstance.GetBooleanVariable(varInfo.ID()));
-                break;
-            case dsb::model::STRING_DATATYPE:
-                outVar.mutable_value()->set_string_value(
-                    m_slaveInstance.GetStringVariable(varInfo.ID()));
-                break;
-            default:
-                assert (false);
-        }
-
-        // Build data message to be published
-        std::deque<zmq::message_t> dataMsg;
-        // Header
-        dataMsg.push_back(zmq::message_t(DATA_HEADER_SIZE));
-        dsb::util::EncodeUint16(m_id, static_cast<char*>(dataMsg.front().data()));
-        dsb::util::EncodeUint16(varInfo.ID(), static_cast<char*>(dataMsg.front().data()) + 2);
-        // Body
-        dataMsg.push_back(zmq::message_t());
-        dsb::protobuf::SerializeToFrame(outVar, dataMsg.back());
-        // Send it
-        dsb::comm::Send(*m_dataPub, dataMsg);
+        m_publisher.Publish(
+            m_currentStepID,
+            varInfo.ID(),
+            GetVariable(m_slaveInstance, varInfo));
     }
     return true;
+}
+
+
+// =============================================================================
+// class SlaveAgent::Connections
+// =============================================================================
+
+void SlaveAgent::Connections::Connect(const std::string& endpoint)
+{
+    m_subscriber.Connect(endpoint);
+}
+
+
+void SlaveAgent::Connections::Couple(
+    dsb::model::Variable remoteOutput,
+    dsb::model::VariableID localInput)
+{
+    Decouple(localInput);
+    if (!remoteOutput.Empty()) {
+        m_subscriber.Subscribe(remoteOutput);
+        m_connections.insert(ConnectionBimap::value_type(remoteOutput, localInput));
+    }
+}
+
+
+void SlaveAgent::Connections::Update(
+    dsb::execution::ISlaveInstance& slaveInstance,
+    dsb::model::StepID stepID,
+    boost::chrono::milliseconds timeout)
+{
+    m_subscriber.Update(stepID, timeout);
+    for (const auto& conn : m_connections.left) {
+        boost::apply_visitor(
+            SetVariable(slaveInstance, conn.second),
+            m_subscriber.Value(conn.first));
+    }
+}
+
+
+void SlaveAgent::Connections::Decouple(dsb::model::VariableID localInput)
+{
+    const auto conn = m_connections.right.find(localInput);
+    if (conn == m_connections.right.end()) return;
+    const auto remoteOutput = conn->second;
+    m_connections.right.erase(conn);
+    if (m_connections.left.count(remoteOutput) == 0) {
+        m_subscriber.Unsubscribe(remoteOutput);
+    }
+    assert(m_connections.right.count(localInput) == 0);
 }
 
 

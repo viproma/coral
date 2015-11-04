@@ -158,6 +158,18 @@ private:
 
 
 /**
+\brief  Equality comparison for Variable objects.
+
+Returns true if a and b have the same slave and variable ID numbers, or if
+both are invalid/empty.
+*/
+bool operator==(const Variable& a, const Variable& b);
+
+/// Inequality comparison for Variable objects, defined as `!(a==b)`.
+bool operator!=(const Variable& a, const Variable& b);
+
+
+/**
 \brief  An object which represents the action of assigning an initial value to
         a variable, or to connect it to another variable.
 */
