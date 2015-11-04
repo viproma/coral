@@ -3,7 +3,6 @@
 #include <cassert>
 #include <utility>
 
-#include "dsb/compat_helpers.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protocol/execution.hpp"
 #include "dsb/protocol/glue.hpp"

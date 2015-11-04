@@ -11,7 +11,6 @@
 
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"
-#include "dsb/compat_helpers.hpp"
 #include "dsb/execution/slave.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"

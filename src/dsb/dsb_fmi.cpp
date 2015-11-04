@@ -1,6 +1,5 @@
 #include "dsb/fmi.hpp"
 
-#include "dsb/compat_helpers.hpp"
 #include "dsb/fmi/slave.hpp"
 #include "dsb/fmi/slave_type.hpp"
 

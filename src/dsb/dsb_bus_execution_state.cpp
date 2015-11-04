@@ -9,7 +9,6 @@
 #include "dsb/bus/execution_manager_private.hpp"
 #include "dsb/bus/slave_control_messenger.hpp"
 #include "dsb/bus/slave_controller.hpp"
-#include "dsb/compat_helpers.hpp"
 #include "dsb/util.hpp"
 
 

@@ -14,7 +14,6 @@
 #include "dsb/comm/p2p.hpp"
 #include "dsb/comm/proxy.hpp"
 #include "dsb/comm/util.hpp"
-#include "dsb/compat_helpers.hpp"
 #include "dsb/net.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/util.hpp"

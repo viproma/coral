@@ -12,7 +12,6 @@
 #include "boost/thread/lock_guard.hpp"
 #include "boost/thread/mutex.hpp"
 
-#include "dsb/compat_helpers.hpp"
 #include "dsb/fmilib/fmu.hpp"
 #include "dsb/fmilib/importcontext.hpp"
 #include "dsb/util.hpp"

@@ -6,7 +6,6 @@
 #include "boost/numeric/conversion/cast.hpp"
 
 #include "dsb/bus/execution_state.hpp"
-#include "dsb/compat_helpers.hpp"
 #include "dsb/util.hpp"
 
 

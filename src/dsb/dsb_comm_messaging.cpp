@@ -55,11 +55,7 @@ void dsb::comm::Receive(
 {
     message.clear();
     do {
-#if DSB_USE_MSVC_EMPLACE_WORKAROUND
-        message.emplace_back(zmq::message_t());
-#else
         message.emplace_back();
-#endif
         socket.recv(&message.back());
     } while (message.back().more());
 }

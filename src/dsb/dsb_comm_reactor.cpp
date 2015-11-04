@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <stdexcept>
-#include "dsb/compat_helpers.hpp"
 #include "dsb/util.hpp"
 
 

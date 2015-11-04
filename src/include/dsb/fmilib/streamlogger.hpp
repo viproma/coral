@@ -62,7 +62,7 @@ public:
     /// Implements dsb::fmilib::ILogger::Log()
     void Log(jm_string module,
              jm_log_level_enu_t logLevel,
-             jm_string message) DSB_FINAL override;
+             jm_string message) final override;
 
 private:
     std::shared_ptr<std::ostream> m_stream;
