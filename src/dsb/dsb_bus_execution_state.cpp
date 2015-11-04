@@ -191,10 +191,12 @@ SteppingExecutionState::SteppingExecutionState(
 
 void SteppingExecutionState::StateEntered(ExecutionManagerPrivate& self)
 {
+    const auto stepID = self.NextStepID();
     const auto selfPtr = &self; // Because we can't capture references in lambdas
     for (auto it = begin(self.slaves); it != end(self.slaves); ++it) {
         const auto slaveID = it->first;
         it->second->Step(
+            stepID,
             self.CurrentSimTime(),
             m_stepSize,
             m_timeout,

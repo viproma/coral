@@ -95,7 +95,8 @@ public:
     // member variables afterwords.
     void DoTerminate();
 
-    // Functions for retrieving and updating the current simulation time.
+    // Functions for retrieving and updating the current simulation time and ID.
+    dsb::model::StepID NextStepID();
     dsb::model::TimePoint CurrentSimTime() const;
     void AdvanceSimTime(dsb::model::TimeDuration delta);
 
@@ -154,6 +155,9 @@ private:
     // An action to take when all per-slave operations complete.
     // This is reset on every state change.
     AllSlaveOpsCompleteHandler m_allSlaveOpsCompleteHandler;
+
+    // The ID of the time step currently in progress or just completed.
+    dsb::model::StepID m_currentStepID;
 };
 
 

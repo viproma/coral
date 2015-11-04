@@ -135,6 +135,8 @@ public:
     /**
     \brief  Makes the slave perform a time step.
 
+    \param [in] stepID
+        The ID number of the time step to be performed
     \param [in] currentT
         The current time point.
     \param [in] deltaT
@@ -145,6 +147,7 @@ public:
         Completion handler.
     */
     void Step(
+        dsb::model::StepID stepID,
         dsb::model::TimePoint currentT,
         dsb::model::TimeDuration deltaT,
         boost::chrono::milliseconds timeout,

@@ -19,6 +19,14 @@ namespace model
 {
 
 
+/// A number that uniquely identifies a time step in an execution.
+typedef std::int32_t StepID;
+
+
+/// A number which will never be used for an actual time step ID.
+const StepID INVALID_STEP_ID = -1;
+
+
 /// The type used to specify (simulation) time points.
 typedef double TimePoint;
 

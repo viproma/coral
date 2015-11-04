@@ -62,6 +62,7 @@ SlaveAgent::SlaveAgent(
       m_dataSub(),
       m_dataPub(),
       m_id(dsb::model::INVALID_SLAVE_ID),
+      m_currentStepID(dsb::model::INVALID_STEP_ID),
       m_currentTime(std::numeric_limits<double>::signaling_NaN()),
       m_lastStepSize(std::numeric_limits<double>::signaling_NaN())
 {
@@ -184,8 +185,6 @@ void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
 {
     EnforceMessageType(msg, dsbproto::execution::MSG_ACCEPT_STEP);
 
-    const auto allowedTimeError = m_lastStepSize * 1e-6;
-
     // Receive messages until all input variables have been set.
     std::set<uint16_t> receivedVars;
     while (receivedVars.size() < m_connections.size()) {
@@ -197,13 +196,13 @@ void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
 
         dsbproto::execution::TimestampedValue inVar;
         dsb::protobuf::ParseFromFrame(dataMsg.back(), inVar);
-        assert (inVar.timestamp() < m_currentTime + allowedTimeError
-                && "Data received from the future");
+        assert(inVar.timestep_id() <= m_currentStepID
+               && "Data received from the future");
 
         // If the message has been queued up from a previous time
         // step, which could happen if we have joined the simulation
         // while it's in progress, discard it and retry.
-        if (inVar.timestamp() < m_currentTime - allowedTimeError) continue;
+        if (inVar.timestep_id() < m_currentStepID) continue;
 
         // Decode header.
         RemoteVariable rv = {
@@ -284,6 +283,7 @@ bool SlaveAgent::Step(const dsbproto::execution::StepData& stepInfo)
     if (!m_slaveInstance.DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
         return false;
     }
+    m_currentStepID = stepInfo.step_id();
     m_currentTime = stepInfo.timepoint() + stepInfo.stepsize();
     m_lastStepSize = stepInfo.stepsize();
 
@@ -293,7 +293,7 @@ bool SlaveAgent::Step(const dsbproto::execution::StepData& stepInfo)
 
         // Get value of output variable
         dsbproto::execution::TimestampedValue outVar;
-        outVar.set_timestamp(m_currentTime);
+        outVar.set_timestep_id(m_currentStepID);
         switch (varInfo.DataType()) {
             case dsb::model::REAL_DATATYPE:
                 outVar.mutable_value()->set_real_value(

@@ -254,6 +254,7 @@ public:
 
     All error conditions are fatal unless otherwise specified.
 
+    \param [in] stepID          The ID of the time step to be performed
     \param [in] currentT        The current time point
     \param [in] deltaT          The step size
     \param [in] timeout         Max. allowed time for the operation to complete
@@ -266,6 +267,7 @@ public:
     \post `State() == SLAVE_BUSY`.
     */
     virtual void Step(
+        dsb::model::StepID stepID,
         dsb::model::TimePoint currentT,
         dsb::model::TimeDuration deltaT,
         boost::chrono::milliseconds timeout,

@@ -23,7 +23,8 @@ ExecutionManagerPrivate::ExecutionManagerPrivate(
       slaves(),
       m_state(), // created below
       m_operationCount(0),
-      m_allSlaveOpsCompleteHandler()
+      m_allSlaveOpsCompleteHandler(),
+      m_currentStepID(-1)
 {
     SwapState(std::make_unique<ConfigExecutionState>());
 }
@@ -123,6 +124,12 @@ void ExecutionManagerPrivate::DoTerminate()
     SwapState(std::make_unique<TerminatedExecutionState>());
     assert(m_operationCount == 0);
     assert(!m_allSlaveOpsCompleteHandler);
+}
+
+
+dsb::model::StepID ExecutionManagerPrivate::NextStepID()
+{
+    return ++m_currentStepID;
 }
 
 

@@ -111,6 +111,7 @@ void SlaveControlMessengerV0::SetVariables(
 
 
 void SlaveControlMessengerV0::Step(
+    dsb::model::StepID stepID,
     dsb::model::TimePoint currentT,
     dsb::model::TimeDuration deltaT,
     boost::chrono::milliseconds timeout,
@@ -122,6 +123,7 @@ void SlaveControlMessengerV0::Step(
     CheckInvariant();
 
     dsbproto::execution::StepData data;
+    data.set_step_id(stepID);
     data.set_timepoint(currentT);
     data.set_stepsize(deltaT);
 
