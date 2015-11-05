@@ -9,7 +9,6 @@
 #include "dsb/bus/execution_manager_private.hpp"
 #include "dsb/bus/slave_control_messenger.hpp"
 #include "dsb/bus/slave_controller.hpp"
-#include "dsb/compat_helpers.hpp"
 #include "dsb/util.hpp"
 
 
@@ -191,10 +190,12 @@ SteppingExecutionState::SteppingExecutionState(
 
 void SteppingExecutionState::StateEntered(ExecutionManagerPrivate& self)
 {
+    const auto stepID = self.NextStepID();
     const auto selfPtr = &self; // Because we can't capture references in lambdas
     for (auto it = begin(self.slaves); it != end(self.slaves); ++it) {
         const auto slaveID = it->first;
         it->second->Step(
+            stepID,
             self.CurrentSimTime(),
             m_stepSize,
             m_timeout,

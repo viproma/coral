@@ -3,7 +3,6 @@
 #include <typeinfo> // std::bad_cast
 
 #include "gtest/gtest.h"
-#include "dsb/compat_helpers.hpp"
 #include "dsb/comm/util.hpp"
 
 using namespace dsb::comm;

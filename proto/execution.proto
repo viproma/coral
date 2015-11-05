@@ -85,13 +85,14 @@ message SetVarsData
 // The body of a STEP message
 message StepData
 {
-    required double timepoint = 1;
-    required double stepsize = 2;
+    required int32 step_id = 1;
+    required double timepoint = 2;
+    required double stepsize = 3;
 }
 
 // A timestamped variable value
 message TimestampedValue
 {
-    required double timestamp = 1;
+    required int32 timestep_id = 1;
     required model.ScalarValue value = 2;
 }

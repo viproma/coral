@@ -211,13 +211,6 @@ public:
     \param [in] timeout         Max. allowed time for the operation to complete
     \param [in] onComplete      Completion handler
 
-    \returns a move-only opaque handle for the pending connection.
-        If this object is destroyed before the connection has been made, the
-        connection attempt will be aborted and the completion handler will
-        never be called.  After the connection has been made and the completion
-        handler has been called, the handle serves no furhter purpose and may
-        safely be disposed of (or simply ignored).
-
     \throws std::invalid_argument if `timeout` is less than 1 ms or
         if `onComplete` is empty.
 
@@ -261,6 +254,7 @@ public:
 
     All error conditions are fatal unless otherwise specified.
 
+    \param [in] stepID          The ID of the time step to be performed
     \param [in] currentT        The current time point
     \param [in] deltaT          The step size
     \param [in] timeout         Max. allowed time for the operation to complete
@@ -273,6 +267,7 @@ public:
     \post `State() == SLAVE_BUSY`.
     */
     virtual void Step(
+        dsb::model::StepID stepID,
         dsb::model::TimePoint currentT,
         dsb::model::TimeDuration deltaT,
         boost::chrono::milliseconds timeout,

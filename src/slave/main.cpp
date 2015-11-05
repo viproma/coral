@@ -8,7 +8,6 @@
 #include "boost/lexical_cast.hpp"
 #include "zmq.hpp"
 
-#include "dsb/compat_helpers.hpp"
 #include "dsb/execution/slave.hpp"
 #include "dsb/fmi.hpp"
 

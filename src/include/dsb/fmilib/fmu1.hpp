@@ -37,25 +37,25 @@ public:
     ~Fmu1();
 
     /// Implements dsb::fmilib::Fmu::FmiVersion()
-    dsb::fmilib::FmiVersion FmiVersion() const DSB_FINAL override;
+    dsb::fmilib::FmiVersion FmiVersion() const final override;
 
     /// Implements dsb::fmilib::Fmu::ModelName()
-    std::string ModelName() const DSB_FINAL override;
+    std::string ModelName() const final override;
 
     /// Implements dsb::fmilib::Fmu::GUID()
-    std::string GUID() const DSB_FINAL override;
+    std::string GUID() const final override;
 
     /// Implements dsb::fmilib::Fmu::Description()
-    std::string Description() const DSB_FINAL override;
+    std::string Description() const final override;
 
     /// Implements dsb::fmilib::Fmu::Author()
-    std::string Author() const DSB_FINAL override;
+    std::string Author() const final override;
 
     /// Implements dsb::fmilib::Fmu::ModelVersion()
-    std::string ModelVersion() const DSB_FINAL override;
+    std::string ModelVersion() const final override;
 
     /// Implements dsb::fmilib::Fmu::GenerationTool()
-    std::string GenerationTool() const DSB_FINAL override;
+    std::string GenerationTool() const final override;
 
     /// Returns the C API handle for this FMU.
     fmi1_import_t* Handle() const;

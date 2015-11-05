@@ -39,11 +39,7 @@ TEST(dsb_proxy, bidirectional_multiclient)
     const int CLIENT_COUNT = 10;
     std::vector<zmq::socket_t> clients;
     for (int k = 0; k < CLIENT_COUNT; ++k) {
-#if DSB_USE_MSVC_EMPLACE_WORKAROUND
-        clients.emplace_back(zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ));
-#else
         clients.emplace_back(dsb::comm::GlobalContext(), ZMQ_REQ);
-#endif
         clients.back().connect("inproc://dsb_proxy_test_frontend");
     }
     auto server = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REP);

@@ -5,7 +5,6 @@
 
 #include "dsb/bus/slave_control_messenger_v0.hpp"
 #include "dsb/comm/p2p.hpp"
-#include "dsb/compat_helpers.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protocol/execution.hpp"
 

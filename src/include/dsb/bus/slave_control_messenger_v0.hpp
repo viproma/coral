@@ -54,6 +54,7 @@ public:
         SetVariablesHandler onComplete) override;
 
     void Step(
+        dsb::model::StepID stepID,
         dsb::model::TimePoint currentT,
         dsb::model::TimeDuration deltaT,
         boost::chrono::milliseconds timeout,

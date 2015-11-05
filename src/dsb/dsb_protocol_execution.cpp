@@ -24,11 +24,7 @@ void dsb::protocol::execution::CreateHelloMessage(
     uint16_t protocolVersion)
 {
     message.clear();
-#if DSB_USE_MSVC_EMPLACE_WORKAROUND
-    message.emplace_back(zmq::message_t(helloPrefixSize + 2));
-#else
     message.emplace_back(helloPrefixSize + 2);
-#endif
     const auto headerBuf = static_cast<char*>(message.back().data());
     std::memcpy(headerBuf, helloPrefix, helloPrefixSize);
     dsb::util::EncodeUint16(protocolVersion, headerBuf + helloPrefixSize);
@@ -41,11 +37,7 @@ void dsb::protocol::execution::CreateHelloMessage(
     const google::protobuf::MessageLite& body)
 {
     CreateHelloMessage(message, protocolVersion);
-#if DSB_USE_MSVC_EMPLACE_WORKAROUND
-    message.emplace_back(zmq::message_t());
-#else
     message.emplace_back();
-#endif
     dsb::protobuf::SerializeToFrame(body, message.back());
 }
 
@@ -55,13 +47,8 @@ void dsb::protocol::execution::CreateDeniedMessage(
     const std::string& reason)
 {
     message.clear();
-#if DSB_USE_MSVC_EMPLACE_WORKAROUND
-    message.emplace_back(zmq::message_t(deniedHeaderSize));
-    message.emplace_back(zmq::message_t(reason.size()));
-#else
     message.emplace_back(deniedHeaderSize);
     message.emplace_back(reason.size());
-#endif
     std::memcpy(message[0].data(), deniedHeader, deniedHeaderSize);
     std::memcpy(message[1].data(), reason.data(), reason.size());
 }
@@ -72,11 +59,7 @@ void dsb::protocol::execution::CreateMessage(
     dsbproto::execution::MessageType type)
 {
     message.clear();
-#if DSB_USE_MSVC_EMPLACE_WORKAROUND
-    message.emplace_back(zmq::message_t(2));
-#else
     message.emplace_back(2);
-#endif
     dsb::util::EncodeUint16(type, static_cast<char*>(message.back().data()));
 }
 
@@ -87,11 +70,7 @@ void dsb::protocol::execution::CreateMessage(
     const google::protobuf::MessageLite& body)
 {
     CreateMessage(message, type);
-#if DSB_USE_MSVC_EMPLACE_WORKAROUND
-    message.emplace_back(zmq::message_t());
-#else
     message.emplace_back();
-#endif
     dsb::protobuf::SerializeToFrame(body, message.back());
 }
 

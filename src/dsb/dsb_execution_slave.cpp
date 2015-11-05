@@ -9,7 +9,6 @@
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/comm/p2p.hpp"
-#include "dsb/compat_helpers.hpp"
 #include "dsb/util.hpp"
 
 

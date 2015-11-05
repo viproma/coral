@@ -22,60 +22,37 @@ be a valid C header.  C++-specific code should therefore be placed in
 
 // Microsoft Visual C++ version macros
 #ifdef _MSC_VER
-#   define DSB_MSC10_VER 1600
-#   define DSB_MSC11_VER 1700
-#   define DSB_MSC12_VER 1800
+#   define DSB_MSC10_VER 1600 // VS 2010
+#   define DSB_MSC11_VER 1700 // VS 2012
+#   define DSB_MSC12_VER 1800 // VS 2013
+#   define DSB_MSC14_VER 1900 // VS 2015
 #endif
 
-// The 'final' keyword (C++11) was introduced in Visual Studio 2012.
-// Before that (since VS2005), 'sealed' was used for the same purpose.
+// Support for 'noexcept' (C++11) was introduced in Visual Studio 2015
 #ifdef __cplusplus
-#   if defined(_MSC_VER) && _MSC_VER < DSB_MSC11_VER
-#       define DSB_FINAL sealed
-#   else
-#       define DSB_FINAL final
-#   endif
-#endif
-
-// The 'noexcept' keyword (C++11) is not yet supported by Visual Studio.
-#ifdef __cplusplus
-#   ifdef _MSC_VER
+#   if defined(_MSC_VER) && (_MSC_VER < DSB_MSC14_VER)
 #       define DSB_NOEXCEPT throw()
 #   else
 #       define DSB_NOEXCEPT noexcept
 #   endif
 #endif
 
-// The 'noreturn' attribute: C++11, supported by GCC >= 4.8
+// Visual Studio does not support the 'noreturn' attribute
 #ifdef __cplusplus
-#   if (__cplusplus >= 201103L) || (defined(__GNUC__) && (DSB_GNUC_VERSION >= 40800))
-#       define DSB_NORETURN [[noreturn]]
-#   elif defined(__GNUC__)
-#       define DSB_NORETURN __attribute__ ((noreturn))
-#   elif defined(_MSC_VER)
+#   ifdef _MSC_VER
 #       define DSB_NORETURN __declspec(noreturn)
 #   else
-#       define DSB_NORETURN
+#       define DSB_NORETURN [[noreturn]]
 #   endif
 #endif
 
-// Visual Studio versions prior to 2012 have a different emplace_back()
-// signature than the standard one, due to lack of support for variadic
-// templates.
+// Visual Studio does not support the =default and =delete constructor
+// attributes properly.
 #ifdef __cplusplus
-#   if defined(_MSC_VER) && _MSC_VER < DSB_MSC11_VER
-#       define DSB_USE_MSVC_EMPLACE_WORKAROUND 1
-#   else
-#       define DSB_USE_MSVC_EMPLACE_WORKAROUND 0
-#   endif
-#endif
-
-// Visual Studio does not support the =default and =delete constructor attributes.
-#ifdef __cplusplus
-#   if (__cplusplus >= 201103L) || (defined(__GNUC__) && (DSB_GNUC_VERSION >= 40400))
-#       define DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS 1
-#   else
+#   ifdef _MSC_VER
 #       define DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS 0
+#   else
+#       define DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS 1
 #   endif
 #endif
 

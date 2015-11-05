@@ -14,9 +14,9 @@ namespace
     class generic_category_impl : public std::error_category
     {
     public:
-        const char* name() const DSB_NOEXCEPT DSB_FINAL override { return "dsb"; }
+        const char* name() const DSB_NOEXCEPT final override { return "dsb"; }
 
-        std::string message(int ev) const DSB_FINAL override
+        std::string message(int ev) const final override
         {
             switch (static_cast<generic_error>(ev)) {
                 case generic_error::aborted:
@@ -35,9 +35,9 @@ namespace
     class sim_category_impl : public std::error_category
     {
     public:
-        const char* name() const DSB_NOEXCEPT DSB_FINAL override { return "simulation"; }
+        const char* name() const DSB_NOEXCEPT final override { return "simulation"; }
 
-        std::string message(int ev) const DSB_FINAL override
+        std::string message(int ev) const final override
         {
             switch (static_cast<sim_error>(ev)) {
                 case sim_error::cannot_perform_timestep:

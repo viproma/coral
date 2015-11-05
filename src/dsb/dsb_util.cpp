@@ -180,7 +180,7 @@ void dsb::util::SpawnProcess(
 
 boost::filesystem::path dsb::util::ThisExePath()
 {
-#ifdef _WIN32
+#if defined(_WIN32)
     std::vector<wchar_t> buf(MAX_PATH);
     for (;;) {
         const auto len = GetModuleFileNameW(nullptr, buf.data(), buf.size());
@@ -192,6 +192,8 @@ boost::filesystem::path dsb::util::ThisExePath()
             return boost::filesystem::path(buf.begin(), buf.begin()+len);
         }
     }
+#elif defined(__linux__)
+    return boost::filesystem::read_symlink("/proc/self/exe");
 #else
     assert (!"ThisExePath() not implemented for POSIX platforms yet");
 #endif

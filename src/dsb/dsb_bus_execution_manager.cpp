@@ -1,7 +1,6 @@
 #include "dsb/bus/execution_manager.hpp"
 
 #include "dsb/bus/execution_manager_private.hpp"
-#include "dsb/compat_helpers.hpp"
 
 
 namespace dsb

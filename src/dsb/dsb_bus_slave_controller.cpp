@@ -78,6 +78,7 @@ void SlaveController::SetVariables(
 
 
 void SlaveController::Step(
+    dsb::model::StepID stepID,
     dsb::model::TimePoint currentT,
     dsb::model::TimeDuration deltaT,
     boost::chrono::milliseconds timeout,
@@ -85,7 +86,7 @@ void SlaveController::Step(
 {
     DSB_INPUT_CHECK(deltaT > 0.0);
     if (m_messenger) {
-        m_messenger->Step(currentT, deltaT, timeout, std::move(onComplete));
+        m_messenger->Step(stepID, currentT, deltaT, timeout, std::move(onComplete));
     } else {
         onComplete(std::make_error_code(std::errc::not_connected));
     }

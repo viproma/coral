@@ -105,6 +105,8 @@ private:
     std::unique_ptr<zmq::socket_t> m_dataSub;
     std::unique_ptr<zmq::socket_t> m_dataPub;
     dsb::model::SlaveID m_id; // The slave's ID number in the current execution
+
+    dsb::model::StepID m_currentStepID; // ID of ongoing or just completed step
     double m_currentTime;
     double m_lastStepSize;
 
