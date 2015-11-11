@@ -248,18 +248,18 @@ TEST(dsb_comm, P2PReqRepSocketProxied)
     P2PRepSocket svr;
     std::uint16_t port = 0;
     auto prx = SpawnTcpP2PProxy("*", port);
-    const auto endpoint = P2PEndpoint(
-        "tcp://localhost:" + std::to_string(port), "bobby");
-    svr.Bind(endpoint);
-    cli.Connect(endpoint);
+    const auto endpoint = "tcp://localhost:" + std::to_string(port);
+    svr.Bind(P2PEndpoint(endpoint, "bobby"));
+    cli.Connect(P2PEndpoint(endpoint, "bobby"));
     boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
     svr.Close();
     cli.Close();
-    // ...and do it again
-    svr.Bind(endpoint);
-    cli.Connect(endpoint);
+    // ...and do it again (but with a new identity, since the ROUTER socket
+    // may not have discovered that 'bobby' has disconnected yet)
+    svr.Bind(P2PEndpoint(endpoint, "johnny"));
+    cli.Connect(P2PEndpoint(endpoint, "johnny"));
     boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
