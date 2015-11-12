@@ -89,10 +89,3 @@ message StepData
     required double timepoint = 2;
     required double stepsize = 3;
 }
-
-// A timestamped variable value
-message TimestampedValue
-{
-    required int32 timestep_id = 1;
-    required model.ScalarValue value = 2;
-}

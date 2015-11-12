@@ -5,20 +5,20 @@
 #ifndef DSB_BUS_SLAVE_AGENT_HPP
 #define DSB_BUS_SLAVE_AGENT_HPP
 
-#include <cstdint>
 #include <deque>
 #include <exception>
-#include <map>
-#include <memory>
 #include <string>
-#include <vector>
 
+#include "boost/bimap.hpp"
+#include "boost/bimap/multiset_of.hpp"
 #include "boost/chrono/duration.hpp"
 #include "zmq.hpp"
+
 #include "dsb/comm/p2p.hpp"
 #include "dsb/comm/reactor.hpp"
 #include "dsb/config.h"
 #include "dsb/execution/slave.hpp"
+#include "dsb/execution/variable_io.hpp"
 #include "dsb/model.hpp"
 #include "execution.pb.h"
 
@@ -71,7 +71,7 @@ public:
 private:
     /*
     \brief  Responds to a message from the master.
-    
+
     On input, `msg` must be the message received from master, and on output,
     it will contain the slave's reply.  Internally, the function forwards to
     the handler function that corresponds to the slave's current state.
@@ -99,28 +99,61 @@ private:
     // A pointer to the handler function for the current state.
     void (SlaveAgent::* m_stateHandler)(std::deque<zmq::message_t>&);
 
+
+    // A less-than comparison functor for Variable objects, so we can put
+    // them in a std::map.
+    struct VariableLess
+    {
+        bool operator()(const dsb::model::Variable& a, const dsb::model::Variable& b) const
+        {
+            return ((a.Slave() << 16) + a.ID()) < ((b.Slave() << 16) + b.ID());
+        }
+    };
+
+    // A class which keeps track of connections to our input variables and the
+    // values we receive for them.
+    class Connections
+    {
+    public:
+        // Connects to the broker endpoint
+        void Connect(const std::string& endpoint);
+
+        // Establishes a connection between a remote output variable and one of
+        // our input variables, breaking any existing connections to that input.
+        void Couple(
+            dsb::model::Variable remoteOutput,
+            dsb::model::VariableID localInput);
+
+        // Waits until all data has been received for the time step specified
+        // by `stepID` and updates the slave instance with the new values.
+        void Update(
+            dsb::execution::ISlaveInstance& slaveInstance,
+            dsb::model::StepID stepID,
+            boost::chrono::milliseconds timeout);
+
+    private:
+        // Breaks a connection to a local input variable, if any.
+        void Decouple(dsb::model::VariableID localInput);
+
+        // A bidirectional mapping between output variables and input variables.
+        typedef boost::bimap<
+            boost::bimaps::multiset_of<dsb::model::Variable, VariableLess>,
+            dsb::model::VariableID>
+            ConnectionBimap;
+
+        ConnectionBimap m_connections;
+        dsb::execution::VariableSubscriber m_subscriber;
+    };
+
     dsb::execution::ISlaveInstance& m_slaveInstance;
     boost::chrono::milliseconds m_commTimeout;
+
     dsb::comm::P2PRepSocket m_control;
-    std::unique_ptr<zmq::socket_t> m_dataSub;
-    std::unique_ptr<zmq::socket_t> m_dataPub;
+    dsb::execution::VariablePublisher m_publisher;
+    Connections m_connections;
     dsb::model::SlaveID m_id; // The slave's ID number in the current execution
 
     dsb::model::StepID m_currentStepID; // ID of ongoing or just completed step
-    double m_currentTime;
-    double m_lastStepSize;
-
-    struct RemoteVariable
-    {
-        uint16_t slave;
-        uint16_t var;
-        bool operator<(const RemoteVariable& other) const {
-            if (slave < other.slave) return true;
-            else if (slave == other.slave) return var < other.var;
-            else return false;
-        }
-    };
-    std::map<RemoteVariable, uint16_t> m_connections;
 };
 
 

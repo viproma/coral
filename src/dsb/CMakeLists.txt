@@ -6,6 +6,7 @@ set (_publicHeaders
     "dsb/domain/slave_provider.hpp"
     "dsb/execution/controller.hpp"
     "dsb/execution/slave.hpp"
+    "dsb/execution/variable_io.hpp"
     "dsb/fmi.hpp"
     "dsb/model.hpp"
     "dsb/net.hpp"
@@ -38,6 +39,7 @@ set (_privateHeaders
     "dsb/inproc_rpc.hpp"
     "dsb/protobuf.hpp"
     "dsb/protocol/domain.hpp"
+    "dsb/protocol/exe_data.hpp"
     "dsb/protocol/execution.hpp"
     "dsb/protocol/glue.hpp"
     "dsb/util.hpp"
@@ -70,6 +72,7 @@ set (_sources
     "dsb_inproc_rpc.cpp"
     "dsb_protobuf.cpp"
     "dsb_protocol_domain.cpp"
+    "dsb_protocol_exe_data.cpp"
     "dsb_protocol_execution.cpp"
     "dsb_util.cpp"
 
@@ -77,11 +80,16 @@ set (_sources
     "dsb_domain_slave_provider.cpp"
     "dsb_execution_controller.cpp"
     "dsb_execution_slave.cpp"
+    "dsb_execution_variable_io.cpp"
     "dsb_fmi.cpp"
     "dsb_model.cpp"
     "dsb_net.cpp"
 )
 set (_testSources
+    "dsb_domain_controller_test.cpp"
+    "dsb_execution_controller_test.cpp"
+    "dsb_execution_variable_io_test.cpp"
+
     "dsb_comm_messaging_test.cpp"
     "dsb_comm_p2p_test.cpp"
     "dsb_comm_proxy_test.cpp"
@@ -93,9 +101,8 @@ set (_testSources
     "dsb_fmilib_streamlogger_test.cpp"
     "dsb_protobuf_test.cpp"
     "dsb_protocol_domain_test.cpp"
+    "dsb_protocol_exe_data_test.cpp"
     "dsb_protocol_execution_test.cpp"
-    "dsb_domain_controller_test.cpp"
-    "dsb_execution_controller_test.cpp"
     "dsb_inproc_rpc_test.cpp"
     "dsb_util_test.cpp"
 )

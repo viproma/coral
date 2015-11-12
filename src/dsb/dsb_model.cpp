@@ -54,6 +54,23 @@ dsb::model::Variability VariableDescription::Variability() const
 
 
 // =============================================================================
+// Variable
+// =============================================================================
+
+
+bool operator==(const Variable& a, const Variable& b)
+{
+    return a.Slave() == b.Slave() && a.ID() == b.ID();
+}
+
+
+bool operator!=(const Variable& a, const Variable& b)
+{
+    return !(a == b);
+}
+
+
+// =============================================================================
 // VariableSetting
 // =============================================================================
 
