@@ -47,6 +47,8 @@ void VariablePublisher::Connect(
     EnforceConnected(m_socket, false);
     m_socket = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PUB);
     try {
+        SetSocketOption(*m_socket, ZMQ_SNDHWM, 0);
+        SetSocketOption(*m_socket, ZMQ_RCVHWM, 0);
         SetSocketOption(*m_socket, ZMQ_LINGER, 0);
         m_socket->connect(endpoint.c_str());
     } catch (...) {
@@ -89,6 +91,8 @@ void VariableSubscriber::Connect(const std::string& endpoint)
     EnforceConnected(m_socket, false);
     m_socket = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_SUB);
     try {
+        SetSocketOption(*m_socket, ZMQ_SNDHWM, 0);
+        SetSocketOption(*m_socket, ZMQ_RCVHWM, 0);
         SetSocketOption(*m_socket, ZMQ_LINGER, 0);
         m_socket->connect(endpoint.c_str());
     } catch (...) {
