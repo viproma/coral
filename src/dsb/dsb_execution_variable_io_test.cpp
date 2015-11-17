@@ -1,3 +1,7 @@
+#ifdef _WIN32
+#   define NOMINMAX
+#endif
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -127,7 +131,7 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
     auto pubThread = boost::thread(
         [STEP_COUNT, proxyEndpoint1, publisherID, &vars, &primeLatch, &stepBarrier] ()
         {
-            auto pub = dsb::execution::VariablePublisher();
+            dsb::execution::VariablePublisher pub;
             pub.Connect(proxyEndpoint1, publisherID);
             do {
                 for (size_t i = 0; i < vars.size(); ++i) {
@@ -142,7 +146,7 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
             }
         });
 
-    auto sub = dsb::execution::VariableSubscriber();
+    dsb::execution::VariableSubscriber sub;
     sub.Connect(proxyEndpoint2);
 
     //const auto tSub = boost::chrono::steady_clock::now();
@@ -181,7 +185,7 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
     // Throughput = average number of variable values transferred per second
     const auto throughput = STEP_COUNT * VAR_COUNT
         * (1e9 / boost::chrono::duration_cast<boost::chrono::nanoseconds>(tStop-tSim).count());(STEP_COUNT*VAR_COUNT*1e9/boost::chrono::duration_cast<boost::chrono::nanoseconds>(tStop-tSim).count());
-    EXPECT_GT(throughput, 10000.0);
+    EXPECT_GT(throughput, 50000.0);
 /*
     std::cout
         << "\nSubscription time: " << boost::chrono::duration_cast<boost::chrono::milliseconds>(tPrime-tSub)
