@@ -1,7 +1,7 @@
 #ifndef DSB_PROTOCOL_EXE_DATA_HPP
 #define DSB_PROTOCOL_EXE_DATA_HPP
 
-#include <deque>
+#include <vector>
 #include "zmq.hpp"
 #include "dsb/model.hpp"
 
@@ -26,9 +26,9 @@ struct Message
     dsb::model::ScalarValue value;
 };
 
-Message ParseMessage(const std::deque<zmq::message_t>& rawMsg);
+Message ParseMessage(const std::vector<zmq::message_t>& rawMsg);
 
-void CreateMessage(const Message& message, std::deque<zmq::message_t>& rawOut);
+void CreateMessage(const Message& message, std::vector<zmq::message_t>& rawOut);
 
 void Subscribe(zmq::socket_t& socket, const dsb::model::Variable& variable);
 

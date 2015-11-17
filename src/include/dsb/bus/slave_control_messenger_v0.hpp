@@ -93,22 +93,22 @@ private:
 
     // Reply parsing/handling
     void SetupReplyReceived(
-        const std::deque<zmq::message_t>& msg,
+        const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
     void SetVarsReplyReceived(
-        const std::deque<zmq::message_t>& msg,
+        const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
     void StepReplyReceived(
-        const std::deque<zmq::message_t>& msg,
+        const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
     void AcceptStepReplyReceived(
-        const std::deque<zmq::message_t>& msg,
+        const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
 
     // These guys perform the work which is common to several of the above
     // XyxReplyReceived() functions.
     void HandleExpectedReadyReply(
-        const std::deque<zmq::message_t>& msg,
+        const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
     void HandleErrorReply(int reply, VoidHandler onComplete);
 

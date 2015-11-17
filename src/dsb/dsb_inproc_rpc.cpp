@@ -27,7 +27,7 @@ void dsb::inproc_rpc::Call(
     const google::protobuf::MessageLite* args,
     google::protobuf::MessageLite* returnValue)
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     msg.push_back(dsb::comm::EncodeRawDataFrame(call));
     if (args) {
         msg.push_back(zmq::message_t());
@@ -55,7 +55,7 @@ void dsb::inproc_rpc::Call(
 }
 
 
-int dsb::inproc_rpc::GetCallType(const std::deque<zmq::message_t>& msg)
+int dsb::inproc_rpc::GetCallType(const std::vector<zmq::message_t>& msg)
 {
     assert(msg.size() == 1 || msg.size() == 2);
     return dsb::comm::DecodeRawDataFrame<int>(msg[0]);
@@ -63,7 +63,7 @@ int dsb::inproc_rpc::GetCallType(const std::deque<zmq::message_t>& msg)
 
 
 void dsb::inproc_rpc::UnmarshalArgs(
-    const std::deque<zmq::message_t>& msg,
+    const std::vector<zmq::message_t>& msg,
     google::protobuf::MessageLite& args)
 {
     assert(msg.size() == 2);
@@ -75,7 +75,7 @@ void dsb::inproc_rpc::ReturnSuccess(
     zmq::socket_t& socket,
     const google::protobuf::MessageLite* returnValue)
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     msg.push_back(dsb::comm::EncodeRawDataFrame(SUCCESS_CALL_RESULT));
     if (returnValue) {
         msg.push_back(zmq::message_t());
@@ -112,7 +112,7 @@ void dsb::inproc_rpc::ThrowRuntimeError(
 
 void dsb::inproc_rpc::ReturnSuccess(
     zmq::socket_t& socket,
-    std::deque<zmq::message_t>& returnValues)
+    std::vector<zmq::message_t>& returnValues)
 {
     auto m = dsb::comm::EncodeRawDataFrame(SUCCESS_CALL_RESULT);
     socket.send(m, ZMQ_SNDMORE);
@@ -134,7 +134,7 @@ namespace
     void RpcCall(
         zmq::socket_t& socket,
         dsb::inproc_rpc::CallType call,
-        std::deque<zmq::message_t>& msg)
+        std::vector<zmq::message_t>& msg)
     {
         auto headerFrame = dsb::comm::EncodeRawDataFrame(call);
         if (msg.empty()) {
@@ -149,7 +149,7 @@ namespace
         const auto result = dsb::comm::DecodeRawDataFrame<CallResult>(msg[0]);
         switch (result) {
             case SUCCESS_CALL_RESULT:
-                msg.pop_front();
+                msg.erase(msg.begin());
                 return;
             case LOGIC_ERROR_CALL_RESULT:
                 assert (msg.size() == 2);
@@ -172,7 +172,7 @@ void dsb::inproc_rpc::CallGetSlaveTypes(
     zmq::socket_t& socket,
     std::vector<dsb::domain::Controller::SlaveType>& slaveTypes)
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     RpcCall(socket, GET_SLAVE_TYPES_CALL, msg);
     assert (!msg.empty());
     dsbproto::domain_controller::SlaveTypeList recvdSlaveTypes;
@@ -201,7 +201,7 @@ void dsb::inproc_rpc::ReturnGetSlaveTypes(
     zmq::socket_t& socket,
     dsbproto::domain_controller::SlaveTypeList& slaveTypes)
 {
-    auto msg = std::deque<zmq::message_t>(1);
+    auto msg = std::vector<zmq::message_t>(1);
     dsb::protobuf::SerializeToFrame(slaveTypes, msg[0]);
     ReturnSuccess(socket, msg);
 }
@@ -212,7 +212,7 @@ dsb::net::SlaveLocator dsb::inproc_rpc::CallInstantiateSlave(
     boost::chrono::milliseconds timeout,
     const std::string& provider)
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     msg.push_back(dsb::comm::ToFrame(slaveTypeUUID));
     msg.push_back(dsb::comm::EncodeRawDataFrame(timeout.count()));
     msg.push_back(dsb::comm::ToFrame(provider));
@@ -224,7 +224,7 @@ dsb::net::SlaveLocator dsb::inproc_rpc::CallInstantiateSlave(
 }
 
 void dsb::inproc_rpc::UnmarshalInstantiateSlave(
-    std::deque<zmq::message_t>& msg,
+    std::vector<zmq::message_t>& msg,
     std::string& slaveTypeUUID,
     boost::chrono::milliseconds& timeout,
     std::string& provider)
@@ -241,7 +241,7 @@ void dsb::inproc_rpc::ReturnInstantiateSlave(
     zmq::socket_t& socket,
     const dsb::net::SlaveLocator& slaveLocator)
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     msg.push_back(dsb::comm::ToFrame(slaveLocator.Endpoint()));
     msg.push_back(dsb::comm::ToFrame(slaveLocator.Identity()));
     ReturnSuccess(socket, msg);

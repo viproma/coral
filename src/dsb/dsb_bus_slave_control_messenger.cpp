@@ -131,7 +131,7 @@ void PendingSlaveControlConnectionPrivate::TryConnect(int remainingAttempts)
         m_slaveLocator.Endpoint(),
         m_slaveLocator.Identity()));
 
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     dsb::protocol::execution::CreateHelloMessage(msg, 0);
     m_socket.Send(msg);
 
@@ -161,7 +161,7 @@ void PendingSlaveControlConnectionPrivate::TryConnect(int remainingAttempts)
 
 void PendingSlaveControlConnectionPrivate::HandleHelloReply()
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     m_socket.Receive(msg);
     const auto reply = dsb::protocol::execution::ParseMessageType(msg.front());
 

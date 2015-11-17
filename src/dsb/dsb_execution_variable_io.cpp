@@ -70,7 +70,7 @@ void VariablePublisher::Publish(
         stepID,
         value
     };
-    std::deque<zmq::message_t> d;
+    std::vector<zmq::message_t> d;
     dsb::protocol::exe_data::CreateMessage(m, d);
     dsb::comm::Send(*m_socket, d);
 }
@@ -126,7 +126,7 @@ void VariableSubscriber::Update(
     DSB_PRECONDITION_CHECK(stepID >= m_currentStepID);
     m_currentStepID = stepID;
 
-    std::deque<zmq::message_t> rawMsg;
+    std::vector<zmq::message_t> rawMsg;
     for (auto& entry : m_values) {
         const auto& var = entry.first;
         auto& valQueue = entry.second;

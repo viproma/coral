@@ -3,7 +3,6 @@
 #include <algorithm> // for transform()
 #include <cassert>
 #include <cctype>
-#include <deque>
 #include <exception>
 #include <iostream>
 #include <iterator> // for back_inserter()
@@ -11,6 +10,7 @@
 #include <stdexcept>
 #include <typeinfo>
 #include <utility>
+#include <vector>
 
 #include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
@@ -94,15 +94,15 @@ namespace
             const std::string& rpcEndpoint);
 
     private:
-        void HandleRPC(const std::deque<zmq::message_t>& msg);
+        void HandleRPC(const std::vector<zmq::message_t>& msg);
 
-        void BeginConfig(const std::deque<zmq::message_t>& msg);
-        void EndConfig(const std::deque<zmq::message_t>& msg);
-        void SetSimulationTime(const std::deque<zmq::message_t>& msg);
-        void AddSlave(const std::deque<zmq::message_t>& msg);
-        void SetVariables(const std::deque<zmq::message_t>& msg);
-        void Step(const std::deque<zmq::message_t>& msg);
-        void AcceptStep(const std::deque<zmq::message_t>& msg);
+        void BeginConfig(const std::vector<zmq::message_t>& msg);
+        void EndConfig(const std::vector<zmq::message_t>& msg);
+        void SetSimulationTime(const std::vector<zmq::message_t>& msg);
+        void AddSlave(const std::vector<zmq::message_t>& msg);
+        void SetVariables(const std::vector<zmq::message_t>& msg);
+        void Step(const std::vector<zmq::message_t>& msg);
+        void AcceptStep(const std::vector<zmq::message_t>& msg);
 
         dsb::bus::ExecutionManager& m_execMgr;
         dsb::comm::Reactor& m_reactor;
@@ -121,13 +121,13 @@ namespace
         m_rpcSocket.connect(rpcEndpoint.c_str());
         reactor.AddSocket(m_rpcSocket, [this](dsb::comm::Reactor& r, zmq::socket_t& s) {
             assert(&s == &m_rpcSocket);
-            std::deque<zmq::message_t> msg;
+            std::vector<zmq::message_t> msg;
             dsb::comm::Receive(m_rpcSocket, msg);
             HandleRPC(msg);
         });
     }
 
-    void ControllerBackend::HandleRPC(const std::deque<zmq::message_t>& msg)
+    void ControllerBackend::HandleRPC(const std::vector<zmq::message_t>& msg)
     {
         try {
             switch (dsb::inproc_rpc::GetCallType(msg)) {
@@ -167,7 +167,7 @@ namespace
         }
     }
 
-    void ControllerBackend::BeginConfig(const std::deque<zmq::message_t>& msg)
+    void ControllerBackend::BeginConfig(const std::vector<zmq::message_t>& msg)
     {
         m_execMgr.BeginConfig(
             [this] (const std::error_code& ec) {
@@ -176,7 +176,7 @@ namespace
             });
     }
 
-    void ControllerBackend::EndConfig(const std::deque<zmq::message_t>& msg)
+    void ControllerBackend::EndConfig(const std::vector<zmq::message_t>& msg)
     {
         m_execMgr.EndConfig(
             [this] (const std::error_code& ec) {
@@ -185,7 +185,7 @@ namespace
             });
     }
 
-    void ControllerBackend::SetSimulationTime(const std::deque<zmq::message_t>& msg)
+    void ControllerBackend::SetSimulationTime(const std::vector<zmq::message_t>& msg)
     {
         dsbproto::execution_controller::SetSimulationTimeArgs args;
         dsb::inproc_rpc::UnmarshalArgs(msg, args);
@@ -193,7 +193,7 @@ namespace
         dsb::inproc_rpc::ReturnSuccess(m_rpcSocket);
     }
 
-    void ControllerBackend::AddSlave(const std::deque<zmq::message_t>& msg)
+    void ControllerBackend::AddSlave(const std::vector<zmq::message_t>& msg)
     {
         dsbproto::execution_controller::AddSlaveArgs args;
         dsb::inproc_rpc::UnmarshalArgs(msg, args);
@@ -219,7 +219,7 @@ namespace
         dsb::inproc_rpc::ReturnSuccess(m_rpcSocket, &ret);
     }
 
-    void ControllerBackend::SetVariables(const std::deque<zmq::message_t>& msg)
+    void ControllerBackend::SetVariables(const std::vector<zmq::message_t>& msg)
     {
         dsbproto::execution_controller::SetVariablesArgs args;
         dsb::inproc_rpc::UnmarshalArgs(msg, args);
@@ -253,7 +253,7 @@ namespace
         dsb::inproc_rpc::ReturnSuccess(m_rpcSocket, &ret);
     }
 
-    void ControllerBackend::Step(const std::deque<zmq::message_t>& msg)
+    void ControllerBackend::Step(const std::vector<zmq::message_t>& msg)
     {
         dsbproto::execution_controller::StepArgs args;
         dsb::inproc_rpc::UnmarshalArgs(msg, args);
@@ -285,7 +285,7 @@ namespace
             });
     }
 
-    void ControllerBackend::AcceptStep(const std::deque<zmq::message_t>& msg)
+    void ControllerBackend::AcceptStep(const std::vector<zmq::message_t>& msg)
     {
         // TODO: Report slave errors asynchronously.
         dsbproto::execution_controller::AcceptStepArgs args;
@@ -319,7 +319,7 @@ namespace
             // Terminate the execution broker
             auto execTerminationSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
             execTerminationSocket.connect(execLocator->ExecTerminationEndpoint().c_str());
-            std::deque<zmq::message_t> termMsg;
+            std::vector<zmq::message_t> termMsg;
             termMsg.push_back(dsb::comm::ToFrame("TERMINATE_EXECUTION"));
             termMsg.push_back(zmq::message_t());
             dsbproto::broker::TerminateExecutionData teData;
@@ -545,7 +545,7 @@ dsb::net::ExecutionLocator dsb::execution::SpawnExecution(
     auto sck = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
     sck.connect(domainLocator.ExecReqEndpoint().c_str());
 
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION"));
     msg.push_back(zmq::message_t());
     dsbproto::broker::SpawnExecutionData seData;

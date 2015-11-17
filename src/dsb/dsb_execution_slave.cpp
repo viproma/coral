@@ -1,7 +1,7 @@
 #include "dsb/execution/slave.hpp"
 
-#include <deque>
 #include <utility>
+#include <vector>
 
 #include "zmq.hpp"
 

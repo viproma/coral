@@ -8,7 +8,7 @@ namespace
 {
     void SendFrames(
         zmq::socket_t& socket,
-        std::deque<zmq::message_t>& message,
+        std::vector<zmq::message_t>& message,
         bool moreComing)
     {
         assert (!message.empty());
@@ -26,7 +26,7 @@ namespace
     }
 }
 
-void dsb::comm::Send(zmq::socket_t& socket, std::deque<zmq::message_t>& message)
+void dsb::comm::Send(zmq::socket_t& socket, std::vector<zmq::message_t>& message)
 {
     DSB_INPUT_CHECK(!message.empty());
     SendFrames(socket, message, false);
@@ -36,8 +36,8 @@ void dsb::comm::Send(zmq::socket_t& socket, std::deque<zmq::message_t>& message)
 
 void dsb::comm::AddressedSend(
     zmq::socket_t& socket,
-    std::deque<zmq::message_t>& envelope,
-    std::deque<zmq::message_t>& body)
+    std::vector<zmq::message_t>& envelope,
+    std::vector<zmq::message_t>& body)
 {
     DSB_INPUT_CHECK(!envelope.empty());
     DSB_INPUT_CHECK(!body.empty());
@@ -51,7 +51,7 @@ void dsb::comm::AddressedSend(
 
 void dsb::comm::Receive(
     zmq::socket_t& socket,
-    std::deque<zmq::message_t>& message)
+    std::vector<zmq::message_t>& message)
 {
     message.clear();
     do {
@@ -63,7 +63,7 @@ void dsb::comm::Receive(
 
 bool dsb::comm::Receive(
     zmq::socket_t& socket,
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     boost::chrono::milliseconds timeout)
 {
     zmq::pollitem_t pollItem = { socket, 0, ZMQ_POLLIN, 0 };
@@ -78,8 +78,8 @@ bool dsb::comm::Receive(
 
 
 size_t dsb::comm::PopMessageEnvelope(
-    std::deque<zmq::message_t>& message,
-    std::deque<zmq::message_t>* envelope)
+    std::vector<zmq::message_t>& message,
+    std::vector<zmq::message_t>* envelope)
 {
     auto delim = std::find_if(message.begin(), message.end(),
                               [](const zmq::message_t& m) { return m.size() == 0; });
@@ -98,8 +98,8 @@ size_t dsb::comm::PopMessageEnvelope(
 
 
 void dsb::comm::CopyMessage(
-    std::deque<zmq::message_t>& source,
-    std::deque<zmq::message_t>& target)
+    std::vector<zmq::message_t>& source,
+    std::vector<zmq::message_t>& target)
 {
     target.resize(source.size());
     for (size_t i = 0; i < source.size(); ++i) {
@@ -109,8 +109,8 @@ void dsb::comm::CopyMessage(
 
 
 void dsb::comm::CopyMessage(
-    const std::deque<zmq::message_t>& source,
-    std::deque<zmq::message_t>& target)
+    const std::vector<zmq::message_t>& source,
+    std::vector<zmq::message_t>& target)
 {
     target.clear();
     for (auto it = source.cbegin(); it != source.cend(); ++it) {

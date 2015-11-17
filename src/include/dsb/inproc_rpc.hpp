@@ -5,7 +5,7 @@
 #ifndef DSB_INPROC_RPC_HPP
 #define DSB_INPROC_RPC_HPP
 
-#include <deque>
+#include <vector>
 #include "zmq.hpp"
 #include "google/protobuf/message_lite.h"
 
@@ -28,10 +28,10 @@ void Call(
     const google::protobuf::MessageLite* args = nullptr,
     google::protobuf::MessageLite* returnValue = nullptr);
 
-int GetCallType(const std::deque<zmq::message_t>& msg);
+int GetCallType(const std::vector<zmq::message_t>& msg);
 
 void UnmarshalArgs(
-    const std::deque<zmq::message_t>& msg,
+    const std::vector<zmq::message_t>& msg,
     google::protobuf::MessageLite& args);
 
 void ReturnSuccess(
@@ -57,7 +57,7 @@ enum CallType
 
 void ReturnSuccess(
     zmq::socket_t& socket,
-    std::deque<zmq::message_t>& returnValues);
+    std::vector<zmq::message_t>& returnValues);
 
 void CallGetSlaveTypes(
     zmq::socket_t& socket,
@@ -74,7 +74,7 @@ dsb::net::SlaveLocator CallInstantiateSlave(
     const std::string& provider);
 
 void UnmarshalInstantiateSlave(
-    std::deque<zmq::message_t>& msg,
+    std::vector<zmq::message_t>& msg,
     std::string& slaveTypeUUID,
     boost::chrono::milliseconds& timeout,
     std::string& provider);

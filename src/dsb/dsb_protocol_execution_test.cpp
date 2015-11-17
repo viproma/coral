@@ -12,7 +12,7 @@ TEST(dsb_protocol_execution, CreateHelloMessage)
     dsbproto::testing::IntString pbSrc;
     pbSrc.set_i(314);
     pbSrc.set_s("Hello");
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     CreateHelloMessage(msg, 3, pbSrc);
 
     ASSERT_EQ(2U, msg.size());
@@ -26,7 +26,7 @@ TEST(dsb_protocol_execution, CreateHelloMessage)
 
 TEST(dsb_protocol_execution, CreateDeniedMessage)
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     CreateDeniedMessage(msg, "Hello World!");
     ASSERT_EQ(2U, msg.size());
     EXPECT_EQ(dsbproto::execution::MSG_DENIED, ParseMessageType(msg[0]));
@@ -46,7 +46,7 @@ TEST(dsb_protocol_execution, CreateMessage)
     dsbproto::testing::IntString pbSrc;
     pbSrc.set_i(314);
     pbSrc.set_s("Hello");
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     CreateMessage(msg, dsbproto::execution::MSG_READY, pbSrc);
 
     ASSERT_EQ(2U, msg.size());
@@ -59,14 +59,14 @@ TEST(dsb_protocol_execution, CreateMessage)
 
 TEST(dsb_protocol_execution, CreateMessage_NonErrorMessage)
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     CreateMessage(msg, dsbproto::execution::MSG_READY);
     EXPECT_EQ(dsbproto::execution::MSG_READY, NonErrorMessageType(msg));
 }
 
 TEST(dsb_protocol_execution, CreateErrorMessage_NonErrorMessage)
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     CreateErrorMessage(
         msg,
         dsbproto::execution::ErrorInfo::INVALID_REQUEST,
@@ -88,7 +88,7 @@ TEST(dsb_protocol_execution, ParseMessageType_error)
 
 TEST(dsb_protocol_execution, ParseHelloMessage_error)
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     msg.push_back(zmq::message_t(4));
     ASSERT_THROW(ParseHelloMessage(msg),
                  dsb::error::ProtocolViolationException);

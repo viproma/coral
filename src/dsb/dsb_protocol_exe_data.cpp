@@ -40,7 +40,7 @@ namespace {
 }
 
 
-ed::Message ed::ParseMessage(const std::deque<zmq::message_t>& rawMsg)
+ed::Message ed::ParseMessage(const std::vector<zmq::message_t>& rawMsg)
 {
     if (rawMsg.size() != 2) {
         throw dsb::error::ProtocolViolationException(
@@ -58,16 +58,15 @@ ed::Message ed::ParseMessage(const std::deque<zmq::message_t>& rawMsg)
 
 void ed::CreateMessage(
     const ed::Message& message,
-    std::deque<zmq::message_t>& rawOut)
+    std::vector<zmq::message_t>& rawOut)
 {
-    std::deque<zmq::message_t> m;
-    m.push_back(CreateHeader(message.variable));
+    rawOut.clear();
+    rawOut.push_back(CreateHeader(message.variable));
     dsbproto::exe_data::TimestampedValue timestampedValue;
     dsb::protocol::ConvertToProto(message.value, *timestampedValue.mutable_value());
     timestampedValue.set_timestep_id(message.timestepID);
-    m.push_back(zmq::message_t());
-    dsb::protobuf::SerializeToFrame(timestampedValue, m[1]);
-    rawOut.swap(m);
+    rawOut.emplace_back();
+    dsb::protobuf::SerializeToFrame(timestampedValue, rawOut[1]);
 }
 
 

@@ -10,7 +10,7 @@ TEST(dsb_protocol_exe_data, CreateAndParse)
     msg.value = 3.14;
     msg.timestepID = 100;
 
-    std::deque<zmq::message_t> raw;
+    std::vector<zmq::message_t> raw;
     ed::CreateMessage(msg, raw);
 
     const auto msg2 = ed::ParseMessage(raw);
