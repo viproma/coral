@@ -1,10 +1,10 @@
 #ifndef DSB_EXECUTION_VARIABLE_IO_HPP
 #define DSB_EXECUTION_VARIABLE_IO_HPP
 
-#include <map>
 #include <memory>
 #include <queue>
 #include <string>
+#include <unordered_map>
 
 #include "boost/chrono/duration.hpp"
 #include "zmq.hpp"
@@ -142,19 +142,19 @@ private:
     typedef std::queue<std::pair<dsb::model::StepID, dsb::model::ScalarValue>>
         ValueQueue;
 
-    // A less-than comparison operator for Variable objects, so we can put
-    // them in a std::map (below).
-    struct VariableLess
+    // A hash function for Variable objects, so we can put them in a
+    // std::unordered_map (below)
+    struct VariableHash
     {
-        bool operator()(const dsb::model::Variable& a, const dsb::model::Variable& b) const
+        std::size_t operator()(const dsb::model::Variable& v) const
         {
-            return ((a.Slave() << 16) + a.ID()) < ((b.Slave() << 16) + b.ID());
+            return static_cast<std::size_t>((v.Slave() << 16) + v.ID());
         }
     };
 
     dsb::model::StepID m_currentStepID;
     std::unique_ptr<zmq::socket_t> m_socket;
-    std::map<dsb::model::Variable, ValueQueue, VariableLess> m_values;
+    std::unordered_map<dsb::model::Variable, ValueQueue, VariableHash> m_values;
 };
 
 
