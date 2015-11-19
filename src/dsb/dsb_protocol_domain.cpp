@@ -35,7 +35,7 @@ zmq::message_t dp::CreateHeader(MessageType messageType, uint16_t protocolVersio
 
 
 void dp::CreateAddressedMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     const std::string& recipient,
     dp::MessageType messageType,
     uint16_t protocolVersion)
@@ -48,7 +48,7 @@ void dp::CreateAddressedMessage(
 
 
 void dp::CreateAddressedMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     const std::string& recipient,
     dp::MessageType messageType,
     uint16_t protocolVersion,

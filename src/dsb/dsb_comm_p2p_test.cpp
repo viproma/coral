@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
-#include <deque>
 #include <string>
+#include <vector>
 #include "boost/thread.hpp"
 #include "boost/chrono.hpp"
 #include "zmq.hpp"
@@ -59,21 +59,21 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
 
     // Send a request from client 1 to server 2
-    std::deque<zmq::message_t> req1Msg;
+    std::vector<zmq::message_t> req1Msg;
     req1Msg.push_back(dsb::comm::ToFrame(server2Id));
     req1Msg.push_back(dsb::comm::ToFrame(""));
     req1Msg.push_back(dsb::comm::ToFrame(body1));
     dsb::comm::Send(req1, req1Msg);
 
     // Send a request from client 2 to server 1
-    std::deque<zmq::message_t> req2Msg;
+    std::vector<zmq::message_t> req2Msg;
     req2Msg.push_back(dsb::comm::ToFrame(server1Id));
     req2Msg.push_back(dsb::comm::ToFrame(""));
     req2Msg.push_back(dsb::comm::ToFrame(body2));
     dsb::comm::Send(req2, req2Msg);
 
     // Server 1: Receive request from client 2
-    std::deque<zmq::message_t> rep1Msg;
+    std::vector<zmq::message_t> rep1Msg;
     dsb::comm::Receive(rep1, rep1Msg);
     ASSERT_EQ(4u, rep1Msg.size());
     EXPECT_TRUE(rep1Msg[0].size() == 0);
@@ -85,7 +85,7 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     dsb::comm::Send(rep1, rep1Msg);
 
     // Server 2: Receive request from client 1
-    std::deque<zmq::message_t> rep2Msg;
+    std::vector<zmq::message_t> rep2Msg;
     dsb::comm::Receive(rep2, rep2Msg);
     ASSERT_EQ(4u, rep2Msg.size());
     EXPECT_TRUE(rep2Msg[0].size() == 0);
@@ -97,7 +97,7 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     dsb::comm::Send(rep2, rep2Msg);
 
     // Client 1: Receive reply from server 2
-    std::deque<zmq::message_t> recvRep2Msg;
+    std::vector<zmq::message_t> recvRep2Msg;
     dsb::comm::Receive(req1, recvRep2Msg);
     ASSERT_EQ(3u, recvRep2Msg.size());
     EXPECT_EQ(server2Id, dsb::comm::ToString(recvRep2Msg[0]));
@@ -105,7 +105,7 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     EXPECT_EQ(body4, dsb::comm::ToString(recvRep2Msg[2]));
 
     // Client 2: Receive reply from server 1
-    std::deque<zmq::message_t> recvRep1Msg;
+    std::vector<zmq::message_t> recvRep1Msg;
     dsb::comm::Receive(req2, recvRep1Msg);
     ASSERT_EQ(3u, recvRep1Msg.size());
     EXPECT_EQ(server1Id, dsb::comm::ToString(recvRep1Msg[0]));
@@ -173,7 +173,7 @@ namespace
 {
     void RequestReplyTest(P2PReqSocket& cli, P2PRepSocket& svr)
     {
-        std::deque<zmq::message_t> m;
+        std::vector<zmq::message_t> m;
         m.push_back(zmq::message_t(5));
         m.push_back(zmq::message_t(5));
         std::memcpy(m[0].data(), "hello", 5);
@@ -274,7 +274,7 @@ TEST(dsb_comm, P2PReqRepSocketOutOfOrder)
     cli.Connect(P2PEndpoint("tcp://localhost:12345"));
     boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
 
-    std::deque<zmq::message_t> m;
+    std::vector<zmq::message_t> m;
     m.push_back(zmq::message_t(5));
     m.push_back(zmq::message_t(5));
     std::memcpy(m[0].data(), "hello", 5);

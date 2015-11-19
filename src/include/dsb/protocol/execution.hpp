@@ -6,7 +6,7 @@
 #define DSB_PROTOCOL_EXECUTION_HPP
 
 #include <cstdint>
-#include <deque>
+#include <vector>
 #include "google/protobuf/message_lite.h"
 #include "zmq.hpp"
 #include "execution.pb.h"
@@ -32,7 +32,7 @@ namespace execution
 Any pre-existing contents of `message` will be replaced.
 */
 void CreateHelloMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     uint16_t protocolVersion);
 
 
@@ -43,7 +43,7 @@ void CreateHelloMessage(
 Any pre-existing contents of `message` will be replaced.
 */
 void CreateHelloMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     uint16_t protocolVersion,
     const google::protobuf::MessageLite& body);
 
@@ -53,7 +53,7 @@ void CreateHelloMessage(
 Any pre-existing contents of `message` will be replaced.
 */
 void CreateDeniedMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     const std::string& reason = std::string());
 
 
@@ -63,7 +63,7 @@ void CreateDeniedMessage(
 Any pre-existing contents of `message` will be replaced.
 */
 void CreateMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     dsbproto::execution::MessageType type);
 
 
@@ -73,7 +73,7 @@ void CreateMessage(
 Any pre-existing contents of `message` will be replaced.
 */
 void CreateMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     dsbproto::execution::MessageType type,
     const google::protobuf::MessageLite& body);
 
@@ -84,7 +84,7 @@ void CreateMessage(
 Any pre-existing contents of `message` will be replaced.
 */
 void CreateErrorMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     dsbproto::execution::ErrorInfo::Code code,
     const std::string& details = std::string());
 
@@ -108,7 +108,7 @@ uint16_t ParseMessageType(const zmq::message_t& header);
 \throws RemoteErrorException if `message` is an ERROR message.
 \throws std::invalid_argument if `message` is empty.
 */
-uint16_t NonErrorMessageType(const std::deque<zmq::message_t>& message);
+uint16_t NonErrorMessageType(const std::vector<zmq::message_t>& message);
 
 
 /**
@@ -142,7 +142,7 @@ ProtocolViolationException will be thrown.
 \throws dsb::error::ProtocolViolationException if `message` is not a HELLO
         or DENIED message.
 */
-uint16_t ParseHelloMessage(const std::deque<zmq::message_t>& message);
+uint16_t ParseHelloMessage(const std::vector<zmq::message_t>& message);
 
 
 }}}     // namespace

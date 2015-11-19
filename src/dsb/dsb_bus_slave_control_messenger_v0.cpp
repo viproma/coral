@@ -151,7 +151,7 @@ void SlaveControlMessengerV0::Terminate()
     CheckInvariant();
 
     const auto onComplete = std::move(m_onComplete);
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_TERMINATE);
     m_socket.Send(msg, dsb::comm::SEND_OUT_OF_ORDER);
     // ---
@@ -209,7 +209,7 @@ void SlaveControlMessengerV0::SendCommand(
     boost::chrono::milliseconds timeout,
     VoidHandler onComplete)
 {
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     const auto msgType = static_cast<dsbproto::execution::MessageType>(command);
     if (data) dsb::protocol::execution::CreateMessage(msg, msgType, *data);
     else      dsb::protocol::execution::CreateMessage(msg, msgType);
@@ -275,7 +275,7 @@ void SlaveControlMessengerV0::OnReply()
     UnregisterTimeout();
 
     // Delegate different replies to different functions.
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     m_socket.Receive(msg);
     switch (currentCommand) {
         case dsbproto::execution::MSG_SETUP:        SetupReplyReceived(msg, std::move(onComplete)); break;
@@ -302,7 +302,7 @@ void SlaveControlMessengerV0::OnReplyTimeout()
 
 
 void SlaveControlMessengerV0::SetupReplyReceived(
-    const std::deque<zmq::message_t>& msg,
+    const std::vector<zmq::message_t>& msg,
     VoidHandler onComplete)
 {
     assert (m_state == SLAVE_BUSY);
@@ -311,7 +311,7 @@ void SlaveControlMessengerV0::SetupReplyReceived(
 
 
 void SlaveControlMessengerV0::SetVarsReplyReceived(
-    const std::deque<zmq::message_t>& msg,
+    const std::vector<zmq::message_t>& msg,
     VoidHandler onComplete)
 {
     assert (m_state == SLAVE_BUSY);
@@ -320,7 +320,7 @@ void SlaveControlMessengerV0::SetVarsReplyReceived(
 
 
 void SlaveControlMessengerV0::StepReplyReceived(
-    const std::deque<zmq::message_t>& msg,
+    const std::vector<zmq::message_t>& msg,
     VoidHandler onComplete)
 {
     assert (m_state = SLAVE_BUSY);
@@ -338,7 +338,7 @@ void SlaveControlMessengerV0::StepReplyReceived(
 
 
 void SlaveControlMessengerV0::AcceptStepReplyReceived(
-    const std::deque<zmq::message_t>& msg,
+    const std::vector<zmq::message_t>& msg,
     VoidHandler onComplete)
 {
     assert(m_state == SLAVE_BUSY);
@@ -347,7 +347,7 @@ void SlaveControlMessengerV0::AcceptStepReplyReceived(
 
 
 void SlaveControlMessengerV0::HandleExpectedReadyReply(
-    const std::deque<zmq::message_t>& msg,
+    const std::vector<zmq::message_t>& msg,
     VoidHandler onComplete)
 {
     assert (m_state == SLAVE_BUSY);

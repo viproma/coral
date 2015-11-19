@@ -16,7 +16,7 @@
 
 namespace
 {
-    uint16_t NormalMessageType(const std::deque<zmq::message_t>& msg)
+    uint16_t NormalMessageType(const std::vector<zmq::message_t>& msg)
     {
         const auto mt = dsb::protocol::execution::NonErrorMessageType(msg);
         if (mt == dsbproto::execution::MSG_TERMINATE) throw dsb::bus::Shutdown();
@@ -29,7 +29,7 @@ namespace
     }
 
     void EnforceMessageType(
-        const std::deque<zmq::message_t>& msg,
+        const std::vector<zmq::message_t>& msg,
         dsbproto::execution::MessageType expectedType)
     {
         if (NormalMessageType(msg) != expectedType) InvalidReplyFromMaster();
@@ -61,7 +61,7 @@ SlaveAgent::SlaveAgent(
         m_control.Socket(),
         [this](dsb::comm::Reactor& r, zmq::socket_t& s) {
             assert(&s == &m_control.Socket());
-            std::deque<zmq::message_t> msg;
+            std::vector<zmq::message_t> msg;
             if (!dsb::comm::Receive(m_control, msg, m_commTimeout)) {
                 throw dsb::execution::TimeoutException(
                     boost::chrono::duration_cast<boost::chrono::seconds>(m_commTimeout));
@@ -84,13 +84,13 @@ const dsb::comm::P2PEndpoint& SlaveAgent::BoundEndpoint() const
 }
 
 
-void SlaveAgent::RequestReply(std::deque<zmq::message_t>& msg)
+void SlaveAgent::RequestReply(std::vector<zmq::message_t>& msg)
 {
     (this->*m_stateHandler)(msg);
 }
 
 
-void SlaveAgent::NotConnectedHandler(std::deque<zmq::message_t>& msg)
+void SlaveAgent::NotConnectedHandler(std::vector<zmq::message_t>& msg)
 {
     if (dsb::protocol::execution::ParseHelloMessage(msg) != 0) {
         throw std::runtime_error("Master required unsupported protocol");
@@ -100,7 +100,7 @@ void SlaveAgent::NotConnectedHandler(std::deque<zmq::message_t>& msg)
 }
 
 
-void SlaveAgent::ConnectedHandler(std::deque<zmq::message_t>& msg)
+void SlaveAgent::ConnectedHandler(std::vector<zmq::message_t>& msg)
 {
     EnforceMessageType(msg, dsbproto::execution::MSG_SETUP);
     if (msg.size() != 2) InvalidReplyFromMaster();
@@ -120,7 +120,7 @@ void SlaveAgent::ConnectedHandler(std::deque<zmq::message_t>& msg)
 }
 
 
-void SlaveAgent::ReadyHandler(std::deque<zmq::message_t>& msg)
+void SlaveAgent::ReadyHandler(std::vector<zmq::message_t>& msg)
 {
     switch (NormalMessageType(msg)) {
         case dsbproto::execution::MSG_STEP: {
@@ -147,7 +147,7 @@ void SlaveAgent::ReadyHandler(std::deque<zmq::message_t>& msg)
 }
 
 
-void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
+void SlaveAgent::PublishedHandler(std::vector<zmq::message_t>& msg)
 {
     EnforceMessageType(msg, dsbproto::execution::MSG_ACCEPT_STEP);
     // TODO: Use a different timeout here?
@@ -157,7 +157,7 @@ void SlaveAgent::PublishedHandler(std::deque<zmq::message_t>& msg)
 }
 
 
-void SlaveAgent::StepFailedHandler(std::deque<zmq::message_t>& msg)
+void SlaveAgent::StepFailedHandler(std::vector<zmq::message_t>& msg)
 {
     EnforceMessageType(msg, dsbproto::execution::MSG_TERMINATE);
     // We never get here, because EnforceMessageType() always throws either
@@ -200,7 +200,7 @@ namespace
 
 // TODO: Make this function signature more consistent with Step() (or the other
 // way around).
-void SlaveAgent::HandleSetVars(std::deque<zmq::message_t>& msg)
+void SlaveAgent::HandleSetVars(std::vector<zmq::message_t>& msg)
 {
     if (msg.size() != 2) {
         throw dsb::error::ProtocolViolationException(

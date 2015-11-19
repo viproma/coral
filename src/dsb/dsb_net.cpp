@@ -67,7 +67,7 @@ DomainLocator GetDomainEndpoints(const std::string& domainBrokerAddress)
 
     auto sck = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
     sck.connect(fullAddress.c_str());
-    std::deque<zmq::message_t> msg;
+    std::vector<zmq::message_t> msg;
     msg.push_back(dsb::comm::ToFrame("GET_PROXY_PORTS"));
     dsb::comm::Send(sck, msg);
     dsb::comm::Receive(sck, msg);

@@ -5,9 +5,9 @@
 #ifndef DSB_BUS_SLAVE_AGENT_HPP
 #define DSB_BUS_SLAVE_AGENT_HPP
 
-#include <deque>
 #include <exception>
 #include <string>
+#include <vector>
 
 #include "boost/bimap.hpp"
 #include "boost/bimap/multiset_of.hpp"
@@ -76,28 +76,28 @@ private:
     it will contain the slave's reply.  Internally, the function forwards to
     the handler function that corresponds to the slave's current state.
     */
-    void RequestReply(std::deque<zmq::message_t>& msg);
+    void RequestReply(std::vector<zmq::message_t>& msg);
 
     // Each of these functions correspond to one of the slave's possible states.
     // On input, `msg` is a message from the master node, and when the function
     // returns, `msg` must contain the reply.  If the message triggers a state
     // change, the handler function must update m_stateHandler to point to the
     // function for the new state.
-    void NotConnectedHandler(std::deque<zmq::message_t>& msg);
-    void ConnectedHandler(std::deque<zmq::message_t>& msg);
-    void ReadyHandler(std::deque<zmq::message_t>& msg);
-    void PublishedHandler(std::deque<zmq::message_t>& msg);
-    void StepFailedHandler(std::deque<zmq::message_t>& msg);
+    void NotConnectedHandler(std::vector<zmq::message_t>& msg);
+    void ConnectedHandler(std::vector<zmq::message_t>& msg);
+    void ReadyHandler(std::vector<zmq::message_t>& msg);
+    void PublishedHandler(std::vector<zmq::message_t>& msg);
+    void StepFailedHandler(std::vector<zmq::message_t>& msg);
 
     // Performs the "set variables" operation for ReadyHandler(), including
     // filling `msg` with a reply message.
-    void HandleSetVars(std::deque<zmq::message_t>& msg);
+    void HandleSetVars(std::vector<zmq::message_t>& msg);
 
     // Performs the time step for ReadyHandler()
     bool Step(const dsbproto::execution::StepData& stepData);
 
     // A pointer to the handler function for the current state.
-    void (SlaveAgent::* m_stateHandler)(std::deque<zmq::message_t>&);
+    void (SlaveAgent::* m_stateHandler)(std::vector<zmq::message_t>&);
 
 
     // A less-than comparison functor for Variable objects, so we can put

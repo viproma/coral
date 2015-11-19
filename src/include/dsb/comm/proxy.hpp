@@ -56,8 +56,11 @@ public:
     stop before all frames are transferred.)
 
     Calling Stop() on a proxy which has already terminated has no effect.
+
+    \param [in] wait    Whether the function should block until the proxy
+                        thread has actually terminated.
     */
-    void Stop();
+    void Stop(bool wait = false);
 
     /**
     \brief  Returns a reference to the `boost::thread` that manages the proxy

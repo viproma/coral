@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <deque>
+#include <vector>
 
 #include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
@@ -46,7 +46,7 @@ void dsb::domain::SlaveProvider(
                              (nextHelloTime - bc::steady_clock::now());
         zmq::poll(&pollItem, 1, boost::numeric_cast<long>(timeout.count()));
         if (pollItem.revents & ZMQ_POLLIN) {
-            std::deque<zmq::message_t> msg;
+            std::vector<zmq::message_t> msg;
             dsb::comm::Receive(info, msg);
             if (msg.size() < 4 || msg[0].size() > 0 || msg[2].size() > 0) {
                 throw dsb::error::ProtocolViolationException("Wrong message format");
@@ -112,7 +112,7 @@ void dsb::domain::SlaveProvider(
         }
 
         if (bc::steady_clock::now() >= nextHelloTime) {
-            std::deque<zmq::message_t> msg;
+            std::vector<zmq::message_t> msg;
             msg.push_back(dp::CreateHeader(dp::MSG_SLAVEPROVIDER_HELLO,
                                            dp::MAX_PROTOCOL_VERSION));
             msg.push_back(dsb::comm::ToFrame(myId));

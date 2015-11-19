@@ -4,10 +4,10 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <deque>
 #include <limits>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 #include "boost/lexical_cast.hpp"
 #include "boost/thread.hpp"
@@ -42,7 +42,7 @@ namespace
         }
     }
 
-    void SwapEnvelopes(std::deque<zmq::message_t>& msg)
+    void SwapEnvelopes(std::vector<zmq::message_t>& msg)
     {
         // TODO: This is currently somewhat limited in that it can only deal
         // with single-identity envelopes.
@@ -53,7 +53,7 @@ namespace
 
     void SwapEnvelopesAndTransfer(zmq::socket_t& src, zmq::socket_t& tgt)
     {
-        std::deque<zmq::message_t> msg;
+        std::vector<zmq::message_t> msg;
         dsb::comm::Receive(src, msg);
         SwapEnvelopes(msg);
         dsb::comm::Send(tgt, msg);
@@ -441,7 +441,7 @@ void P2PReqSocket::Close()
 }
 
 
-void P2PReqSocket::Send(std::deque<zmq::message_t>& msg, int flags)
+void P2PReqSocket::Send(std::vector<zmq::message_t>& msg, int flags)
 {
     if (m_connectedState == DISCONNECTED) {
         throw std::logic_error("Socket not bound/connected");
@@ -469,7 +469,7 @@ void P2PReqSocket::Send(std::deque<zmq::message_t>& msg, int flags)
 }
 
 
-void P2PReqSocket::Receive(std::deque<zmq::message_t>& msg)
+void P2PReqSocket::Receive(std::vector<zmq::message_t>& msg)
 {
     if (m_connectedState == DISCONNECTED) {
         throw std::logic_error("Socket not bound/connected");
@@ -620,7 +620,7 @@ const P2PEndpoint& P2PRepSocket::BoundEndpoint() const
 }
 
 
-void P2PRepSocket::Receive(std::deque<zmq::message_t>& msg)
+void P2PRepSocket::Receive(std::vector<zmq::message_t>& msg)
 {
     EnforceConnected();
     if (m_processingReq) {
@@ -645,7 +645,7 @@ void P2PRepSocket::Receive(std::deque<zmq::message_t>& msg)
 }
 
 
-void P2PRepSocket::Send(std::deque<zmq::message_t>& msg)
+void P2PRepSocket::Send(std::vector<zmq::message_t>& msg)
 {
     EnforceConnected();
     if (!m_processingReq) {
@@ -703,7 +703,7 @@ const zmq::socket_t& P2PRepSocket::Socket() const
 
 bool Receive(
     P2PRepSocket& socket,
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     boost::chrono::milliseconds timeout)
 {
     zmq::pollitem_t pollItem = { socket.Socket(), 0, ZMQ_POLLIN, 0 };

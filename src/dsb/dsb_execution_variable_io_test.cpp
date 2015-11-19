@@ -1,8 +1,18 @@
-#include "boost/chrono/duration.hpp"
-#include "boost/thread/thread.hpp"
+#ifdef _WIN32
+#   define NOMINMAX
+#endif
+#include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "boost/chrono.hpp"
+#include "boost/thread.hpp"
+#include "boost/thread/latch.hpp"
 #include "gtest/gtest.h"
 
 #include "dsb/comm/proxy.hpp"
+#include "dsb/comm/util.hpp"
 #include "dsb/execution/variable_io.hpp"
 #include "dsb/util.hpp"
 
@@ -86,4 +96,104 @@ TEST(dsb_execution, VariablePublishSubscribe)
     sub.Update(t, boost::chrono::seconds(1));
     EXPECT_THROW(sub.Value(varX), std::logic_error);
     EXPECT_FALSE(boost::get<bool>(sub.Value(varY)));
+}
+
+
+TEST(dsb_execution, VariablePublishSubscribePerformance)
+{
+    const int VAR_COUNT = 5000;
+    const int STEP_COUNT = 50;
+
+    // Fire up the proxy
+    auto proxySocket1 = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_XSUB);
+    auto proxySocket2 = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_XPUB);
+    int zero = 0;
+    proxySocket1.setsockopt(ZMQ_SNDHWM, &zero, sizeof(zero));
+    proxySocket1.setsockopt(ZMQ_RCVHWM, &zero, sizeof(zero));
+    proxySocket2.setsockopt(ZMQ_SNDHWM, &zero, sizeof(zero));
+    proxySocket2.setsockopt(ZMQ_RCVHWM, &zero, sizeof(zero));
+    const auto proxyPort1 = dsb::comm::BindToEphemeralPort(proxySocket1);
+    const auto proxyPort2 = dsb::comm::BindToEphemeralPort(proxySocket2);
+    const auto proxyEndpoint1 = "tcp://localhost:" + std::to_string(proxyPort1);
+    const auto proxyEndpoint2 = "tcp://localhost:" + std::to_string(proxyPort2);
+    auto proxy = dsb::comm::SpawnProxy(std::move(proxySocket1), std::move(proxySocket2));
+
+    // Prepare the list of variables
+    const dsb::model::SlaveID publisherID = 1;
+    std::vector<dsb::model::Variable> vars;
+    for (int i = 1; i <= VAR_COUNT; ++i) {
+        vars.emplace_back(publisherID, i);
+    }
+
+    boost::latch primeLatch(1);
+    boost::barrier stepBarrier(2);
+
+    auto pubThread = boost::thread(
+        [STEP_COUNT, proxyEndpoint1, publisherID, &vars, &primeLatch, &stepBarrier] ()
+        {
+            dsb::execution::VariablePublisher pub;
+            pub.Connect(proxyEndpoint1, publisherID);
+            do {
+                for (size_t i = 0; i < vars.size(); ++i) {
+                    pub.Publish(0, vars[i].ID(), i*1.0);
+                }
+            } while (primeLatch.wait_for(boost::chrono::milliseconds(100)) == boost::cv_status::timeout);
+            for (int stepID = 1; stepID <= STEP_COUNT; ++stepID) {
+                for (size_t i = 0; i < vars.size(); ++i) {
+                    pub.Publish(stepID, vars[i].ID(), i*1.0*stepID);
+                }
+                stepBarrier.wait();
+            }
+        });
+
+    dsb::execution::VariableSubscriber sub;
+    sub.Connect(proxyEndpoint2);
+
+    //const auto tSub = boost::chrono::steady_clock::now();
+    for (const auto& var : vars) sub.Subscribe(var);
+
+    //const auto tPrime = boost::chrono::steady_clock::now();
+    for (;;) {
+        try {
+            sub.Update(0, boost::chrono::milliseconds(10000));
+            break;
+        } catch (const std::runtime_error&) { }
+    }
+    primeLatch.count_down();
+
+    const auto tSim = boost::chrono::steady_clock::now();
+    const auto stepTimeout = boost::chrono::milliseconds(std::max(100, VAR_COUNT*10));
+    for (int stepID = 1; stepID <= STEP_COUNT; ++stepID) {
+        // NOTE: If an exeption is thrown here (typically due to timeout),
+        // stepBarrier will be destroyed while the other thread is still waiting
+        // for it, triggering an assertion failure in the barrier destructor:
+        //
+        // boost::condition_variable::~condition_variable(): Assertion `!ret' failed.
+        //
+        // The solution is to increase the timeout -- or improve performance. ;)
+        sub.Update(stepID, stepTimeout);
+        for (size_t i = 0; i < vars.size(); ++i) {
+            ASSERT_EQ(i*1.0*stepID, boost::get<double>(sub.Value(vars[i])));
+        }
+        stepBarrier.wait();
+    }
+    const auto tStop = boost::chrono::steady_clock::now();
+
+    pubThread.join();
+    proxy.Stop(true);
+
+    // Throughput = average number of variable values transferred per second
+    const auto throughput = STEP_COUNT * VAR_COUNT
+        * (1e9 / boost::chrono::duration_cast<boost::chrono::nanoseconds>(tStop-tSim).count());(STEP_COUNT*VAR_COUNT*1e9/boost::chrono::duration_cast<boost::chrono::nanoseconds>(tStop-tSim).count());
+    EXPECT_GT(throughput, 50000.0);
+/*
+    std::cout
+        << "\nSubscription time: " << boost::chrono::duration_cast<boost::chrono::milliseconds>(tPrime-tSub)
+        << "\nPriming time     : " << boost::chrono::duration_cast<boost::chrono::milliseconds>(tSim-tPrime)
+        << "\nTotal sim time   : " << boost::chrono::duration_cast<boost::chrono::milliseconds>(tStop-tSim)
+        << "\nStep time        : " << (boost::chrono::duration_cast<boost::chrono::microseconds>(tStop-tSim)/STEP_COUNT) << " (" << STEP_COUNT << " steps)"
+        << "\nPer-var time     : " <<  (boost::chrono::duration_cast<boost::chrono::nanoseconds>(tStop-tSim)/(STEP_COUNT*VAR_COUNT)) << " (" << VAR_COUNT << " vars)"
+        << "\nThroughput       : " << throughput << " vars/second"
+        << std::endl;
+*/
 }

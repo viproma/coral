@@ -47,6 +47,8 @@ void VariablePublisher::Connect(
     EnforceConnected(m_socket, false);
     m_socket = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PUB);
     try {
+        SetSocketOption(*m_socket, ZMQ_SNDHWM, 0);
+        SetSocketOption(*m_socket, ZMQ_RCVHWM, 0);
         SetSocketOption(*m_socket, ZMQ_LINGER, 0);
         m_socket->connect(endpoint.c_str());
     } catch (...) {
@@ -68,7 +70,7 @@ void VariablePublisher::Publish(
         stepID,
         value
     };
-    std::deque<zmq::message_t> d;
+    std::vector<zmq::message_t> d;
     dsb::protocol::exe_data::CreateMessage(m, d);
     dsb::comm::Send(*m_socket, d);
 }
@@ -89,6 +91,8 @@ void VariableSubscriber::Connect(const std::string& endpoint)
     EnforceConnected(m_socket, false);
     m_socket = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_SUB);
     try {
+        SetSocketOption(*m_socket, ZMQ_SNDHWM, 0);
+        SetSocketOption(*m_socket, ZMQ_RCVHWM, 0);
         SetSocketOption(*m_socket, ZMQ_LINGER, 0);
         m_socket->connect(endpoint.c_str());
     } catch (...) {
@@ -122,7 +126,7 @@ void VariableSubscriber::Update(
     DSB_PRECONDITION_CHECK(stepID >= m_currentStepID);
     m_currentStepID = stepID;
 
-    std::deque<zmq::message_t> rawMsg;
+    std::vector<zmq::message_t> rawMsg;
     for (auto& entry : m_values) {
         const auto& var = entry.first;
         auto& valQueue = entry.second;

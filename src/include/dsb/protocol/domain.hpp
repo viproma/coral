@@ -5,8 +5,8 @@
 #ifndef DSB_PROTOCOL_DOMAIN_HPP
 #define DSB_PROTOCOL_DOMAIN_HPP
 
-#include <deque>
 #include <string>
+#include <vector>
 #include "zmq.hpp"
 #include "google/protobuf/message_lite.h"
 
@@ -57,7 +57,7 @@ given message type and protocol version.  Any previous contents of `message`
 will be replaced.
 */
 void CreateAddressedMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     const std::string& recipient,
     MessageType messageType,
     uint16_t protocolVersion);
@@ -67,7 +67,7 @@ void CreateAddressedMessage(
 \brief  Creates an addressed message.
 */
 void CreateAddressedMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     const std::string& recipient,
     MessageType messageType,
     uint16_t protocolVersion,

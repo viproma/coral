@@ -2,10 +2,10 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
-#include <deque>
 #include <iostream>
 #include <map>
 #include <utility>
+#include <vector>
 
 #include "zmq.hpp"
 
@@ -128,7 +128,7 @@ try
 
     std::map<std::string, ExecutionBroker> executionBrokers;
     for (;;) {
-        std::deque<zmq::message_t> msg;
+        std::vector<zmq::message_t> msg;
         dsb::comm::Receive(executionRequest, msg);
         const auto command = dsb::comm::ToString(msg.front());
         if (command == "GET_PROXY_PORTS") {

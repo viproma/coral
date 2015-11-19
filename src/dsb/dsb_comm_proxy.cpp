@@ -146,9 +146,10 @@ dsb::comm::Proxy& dsb::comm::Proxy::operator=(Proxy&& rhs) DSB_NOEXCEPT
 }
 
 
-void dsb::comm::Proxy::Stop()
+void dsb::comm::Proxy::Stop(bool wait)
 {
     m_controlSocket.send("", 0, ZMQ_DONTWAIT);
+    if (wait && m_thread.joinable()) m_thread.join();
 }
 
 

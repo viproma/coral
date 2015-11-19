@@ -7,9 +7,9 @@
 #define DSB_COMM_P2P_HPP
 
 #include <cstdint>
-#include <deque>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "boost/chrono/duration.hpp"
 #include "boost/thread.hpp"
@@ -322,7 +322,7 @@ public:
     The exception is if the following Send() is called with `flags` set to
     `SEND_OUT_OF_ORDER`, which disables this check.  Use this at your own risk.
     */
-    void Send(std::deque<zmq::message_t>& msg, int flags = 0);
+    void Send(std::vector<zmq::message_t>& msg, int flags = 0);
 
     /**
     \brief  Receives a reply.
@@ -330,7 +330,7 @@ public:
     This function may only be called if the socket is connected or bound, and
     then only after a request has been sent with Send()().
     */
-    void Receive(std::deque<zmq::message_t>& msg);
+    void Receive(std::vector<zmq::message_t>& msg);
 
     /**
     \brief  The underlying ZMQ socket.
@@ -432,7 +432,7 @@ public:
     This function may only be called if the socket is connected or bound, and
     may not be called again before a reply has been sent with Send().
     */
-    void Receive(std::deque<zmq::message_t>& msg);
+    void Receive(std::vector<zmq::message_t>& msg);
 
     /**
     \brief  Sends a reply.
@@ -440,7 +440,7 @@ public:
     This function may only be called if the socket is connected or bound, and
     then only after a request has been received with Receive().
     */
-    void Send(std::deque<zmq::message_t>& msg);
+    void Send(std::vector<zmq::message_t>& msg);
 
     /**
     \brief  The underlying ZMQ socket.
@@ -480,7 +480,7 @@ Existing message content will be overwritten.
 */
 bool Receive(
     P2PRepSocket& socket,
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     boost::chrono::milliseconds timeout);
 
 

@@ -79,7 +79,7 @@ public:
         dsb::util::SpawnProcess(m_slaveExe, args);
 
         std::clog << "Waiting for verification..." << std::flush;
-        std::deque<zmq::message_t> slaveStatus;
+        std::vector<zmq::message_t> slaveStatus;
         const auto feedbackTimedOut = !dsb::comm::Receive(
             slaveStatusSocket,
             slaveStatus,

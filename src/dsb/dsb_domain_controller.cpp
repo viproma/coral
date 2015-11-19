@@ -7,10 +7,10 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <deque>
 #include <iostream> // TODO: For debugging, remove later.
 #include <iterator>
 #include <map>
+#include <vector>
 
 #include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
@@ -78,7 +78,7 @@ namespace
     void HandleInstantiateSlave(
         zmq::socket_t& rpcSocket,
         zmq::socket_t& infoSocket,
-        std::deque<zmq::message_t>& msg,
+        std::vector<zmq::message_t>& msg,
         const std::string& p2pBrokerAddress,
         const dsb::bus::DomainData& domainData)
     {
@@ -131,7 +131,7 @@ namespace
 
         // Now we know both 'provider' and 'slaveTypeUUID' are valid.
         // Send the "instantiate slave" request on to the slave provider.
-        std::deque<zmq::message_t> reqMsg;
+        std::vector<zmq::message_t> reqMsg;
         dsbproto::domain::InstantiateSlaveData data;
         data.set_slave_type_uuid(slaveTypeUUID);
         data.set_timeout_ms(boost::numeric_cast<std::int32_t>(timeout.count()));
@@ -143,7 +143,7 @@ namespace
             data);
         dsb::comm::Send(infoSocket, reqMsg);
 
-        std::deque<zmq::message_t> repMsg;
+        std::vector<zmq::message_t> repMsg;
         if (!dsb::comm::Receive(infoSocket, repMsg, 2*timeout)) {
             // We double the timeout here, since the same timeout is used
             // at the other end, and we don't want to cancel the operation
@@ -196,7 +196,7 @@ namespace
         zmq::socket_t& rpcSocket,
         zmq::socket_t& infoSocket)
     {
-        std::deque<zmq::message_t> msg;
+        std::vector<zmq::message_t> msg;
         dsb::comm::Receive(rpcSocket, msg);
         switch (dsb::comm::DecodeRawDataFrame<dsb::inproc_rpc::CallType>(msg.front())) {
             case dsb::inproc_rpc::GET_SLAVE_TYPES_CALL:
@@ -223,7 +223,7 @@ namespace
         const auto providerId = dsb::comm::ToString(body);
         if (domainData.UpdateSlaveProvider(providerId, header.protocol, recvTime))
         {
-            std::deque<zmq::message_t> msg;
+            std::vector<zmq::message_t> msg;
             dp::CreateAddressedMessage(
                 msg, providerId, dp::MSG_GET_SLAVE_LIST, header.protocol);
             dsb::comm::Send(infoSocket, msg);
@@ -258,7 +258,7 @@ namespace
         zmq::socket_t& reportSocket,
         zmq::socket_t& infoSocket)
     {
-        std::deque<zmq::message_t> msg;
+        std::vector<zmq::message_t> msg;
         dsb::comm::Receive(reportSocket, msg);
         const auto header = dp::ParseHeader(msg.at(0));
         assert (header.protocol == dp::MAX_PROTOCOL_VERSION);

@@ -7,8 +7,8 @@
 #define DSB_COMM_MESSAGING_HPP
 
 #include <cstring>
-#include <deque>
 #include <string>
+#include <vector>
 
 #include "boost/chrono/duration.hpp"
 #include "zmq.hpp"
@@ -28,7 +28,7 @@ The message content will be cleared on return.
 \throws std::invalid_argument if `message` is empty.
 \throws zmq::error_t on failure to send a message frame.
 */
-void Send(zmq::socket_t& socket, std::deque<zmq::message_t>& message);
+void Send(zmq::socket_t& socket, std::vector<zmq::message_t>& message);
 
 
 /**
@@ -44,8 +44,8 @@ Both `envelope` and `body` will be cleared on return.
 */
 void AddressedSend(
     zmq::socket_t& socket,
-    std::deque<zmq::message_t>& envelope,
-    std::deque<zmq::message_t>& body);
+    std::vector<zmq::message_t>& envelope,
+    std::vector<zmq::message_t>& body);
 
 
 /**
@@ -57,7 +57,7 @@ Existing message content will be overwritten.
 */
 void Receive(
     zmq::socket_t& socket,
-    std::deque<zmq::message_t>& message);
+    std::vector<zmq::message_t>& message);
 
 
 /**
@@ -70,7 +70,7 @@ Existing message content will be overwritten.
 */
 bool Receive(
     zmq::socket_t& socket,
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     boost::chrono::milliseconds timeout);
 
 
@@ -90,8 +90,8 @@ Finally, all frames up to and including the delimiter are removed from
 \returns The number of frames removed from `message`, including the delimiter.
 */
 size_t PopMessageEnvelope(
-    std::deque<zmq::message_t>& message,
-    std::deque<zmq::message_t>* envelope = nullptr);
+    std::vector<zmq::message_t>& message,
+    std::vector<zmq::message_t>* envelope = nullptr);
 
 
 /**
@@ -105,8 +105,8 @@ be replaced.
 \throws zmq::error_t if `zmq::message_t::copy()` fails.
 */
 void CopyMessage(
-    std::deque<zmq::message_t>& source,
-    std::deque<zmq::message_t>& target);
+    std::vector<zmq::message_t>& source,
+    std::vector<zmq::message_t>& target);
 
 
 /**
@@ -118,8 +118,8 @@ using the `zmq::message_t::copy()` method.  (The latter can only be called on
 non-`const` frames.)  This may have a negative impact on performance.
 */
 void CopyMessage(
-    const std::deque<zmq::message_t>& source,
-    std::deque<zmq::message_t>& target);
+    const std::vector<zmq::message_t>& source,
+    std::vector<zmq::message_t>& target);
 
 
 

@@ -73,7 +73,7 @@ dsbproto::model::VariableDefinition dsb::protocol::ToProto(
 dsb::model::VariableDescription dsb::protocol::FromProto(
     const dsbproto::model::VariableDefinition& protoVariable)
 {
-    dsb::model::DataType dataType;
+    dsb::model::DataType dataType = dsb::model::REAL_DATATYPE;
     switch (protoVariable.data_type()) {
         case dsbproto::model::REAL:
             dataType = dsb::model::REAL_DATATYPE;
@@ -90,7 +90,7 @@ dsb::model::VariableDescription dsb::protocol::FromProto(
         default:
             assert (!"Unknown data type");
     }
-    dsb::model::Causality causality;
+    dsb::model::Causality causality = dsb::model::LOCAL_CAUSALITY;
     switch (protoVariable.causality()) {
         case dsbproto::model::PARAMETER:
             causality = dsb::model::PARAMETER_CAUSALITY;
@@ -110,7 +110,7 @@ dsb::model::VariableDescription dsb::protocol::FromProto(
         default:
             assert (!"Unknown causality");
     }
-    dsb::model::Variability variability;
+    dsb::model::Variability variability = dsb::model::CONTINUOUS_VARIABILITY;
     switch (protoVariable.variability()) {
         case dsbproto::model::CONSTANT:
             variability = dsb::model::CONSTANT_VARIABILITY;

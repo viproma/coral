@@ -20,7 +20,7 @@ namespace
 
 
 void dsb::protocol::execution::CreateHelloMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     uint16_t protocolVersion)
 {
     message.clear();
@@ -32,7 +32,7 @@ void dsb::protocol::execution::CreateHelloMessage(
 
 
 void dsb::protocol::execution::CreateHelloMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     uint16_t protocolVersion,
     const google::protobuf::MessageLite& body)
 {
@@ -43,7 +43,7 @@ void dsb::protocol::execution::CreateHelloMessage(
 
 
 void dsb::protocol::execution::CreateDeniedMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     const std::string& reason)
 {
     message.clear();
@@ -55,7 +55,7 @@ void dsb::protocol::execution::CreateDeniedMessage(
 
 
 void dsb::protocol::execution::CreateMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     dsbproto::execution::MessageType type)
 {
     message.clear();
@@ -65,7 +65,7 @@ void dsb::protocol::execution::CreateMessage(
 
 
 void dsb::protocol::execution::CreateMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     dsbproto::execution::MessageType type,
     const google::protobuf::MessageLite& body)
 {
@@ -76,7 +76,7 @@ void dsb::protocol::execution::CreateMessage(
 
 
 void dsb::protocol::execution::CreateErrorMessage(
-    std::deque<zmq::message_t>& message,
+    std::vector<zmq::message_t>& message,
     dsbproto::execution::ErrorInfo::Code code,
     const std::string& details)
 {
@@ -100,7 +100,7 @@ uint16_t dsb::protocol::execution::ParseMessageType(const zmq::message_t& header
 
 
 uint16_t dsb::protocol::execution::NonErrorMessageType(
-    const std::deque<zmq::message_t>& message)
+    const std::vector<zmq::message_t>& message)
 {
     DSB_INPUT_CHECK(!message.empty());
     const auto type = ParseMessageType(message.front());
@@ -154,7 +154,7 @@ dsb::protocol::execution::RemoteErrorException::RemoteErrorException(
 { }
 
 
-uint16_t dsb::protocol::execution::ParseHelloMessage(const std::deque<zmq::message_t>& message)
+uint16_t dsb::protocol::execution::ParseHelloMessage(const std::vector<zmq::message_t>& message)
 {
     DSB_INPUT_CHECK(!message.empty());
     if (message.front().size() == 8
