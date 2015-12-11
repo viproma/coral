@@ -18,6 +18,8 @@
 #include "boost/numeric/conversion/cast.hpp"
 #include "boost/range/algorithm/find_if.hpp"
 
+#include "zmq.hpp"
+
 #include "dsb/bus/domain_data.hpp"
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/reactor.hpp"
@@ -341,16 +343,16 @@ namespace domain
 
 
 Controller::Controller(const dsb::net::DomainLocator& locator)
-    : m_rpcSocket(dsb::comm::GlobalContext(), ZMQ_PAIR),
-      m_destroySocket(dsb::comm::GlobalContext(), ZMQ_PAIR),
+    : m_rpcSocket(std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PAIR)),
+      m_destroySocket(std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PAIR)),
       m_active(true)
 {
     const auto rpcEndpoint = std::make_shared<std::string>(
         "inproc://" + dsb::util::RandomUUID());
-    m_rpcSocket.bind(rpcEndpoint->c_str());
+    m_rpcSocket->bind(rpcEndpoint->c_str());
     const auto destroyEndpoint = std::make_shared<std::string>(
         "inproc://" + dsb::util::RandomUUID());
-    m_destroySocket.bind(destroyEndpoint->c_str());
+    m_destroySocket->bind(destroyEndpoint->c_str());
     m_thread = boost::thread(MessagingLoop,
         rpcEndpoint,
         destroyEndpoint,
@@ -382,7 +384,7 @@ Controller& Controller::operator=(Controller&& other) DSB_NOEXCEPT
 Controller::~Controller()
 {
     if (m_active) {
-        m_destroySocket.send("", 0);
+        m_destroySocket->send("", 0);
     }
     m_thread.join();
 }
@@ -391,7 +393,7 @@ Controller::~Controller()
 std::vector<Controller::SlaveType> Controller::GetSlaveTypes()
 {
     std::vector<Controller::SlaveType> ret;
-    dsb::inproc_rpc::CallGetSlaveTypes(m_rpcSocket, ret);
+    dsb::inproc_rpc::CallGetSlaveTypes(*m_rpcSocket, ret);
     return ret;
 }
 
@@ -402,7 +404,7 @@ dsb::net::SlaveLocator Controller::InstantiateSlave(
     const std::string& provider)
 {
     return dsb::inproc_rpc::CallInstantiateSlave(
-        m_rpcSocket,
+        *m_rpcSocket,
         slaveTypeUUID,
         timeout,
         provider);

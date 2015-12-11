@@ -11,11 +11,14 @@
 
 #include "boost/chrono/duration.hpp"
 #include "boost/thread.hpp"
-#include "zmq.hpp"
 
 #include "dsb/config.h"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
+
+
+// Forward declaration to avoid dependency on ZMQ headers
+namespace zmq { class socket_t; }
 
 
 namespace dsb
@@ -91,8 +94,8 @@ public:
 private:
     // NOTE: When adding members here, remember to update the move constructor
     // and the move assignment operator!
-    zmq::socket_t m_rpcSocket;
-    zmq::socket_t m_destroySocket; // for sending termination command from destructor.
+    std::unique_ptr<zmq::socket_t> m_rpcSocket;
+    std::unique_ptr<zmq::socket_t> m_destroySocket; // for sending termination command from destructor.
     bool m_active;
     boost::thread m_thread;
 };

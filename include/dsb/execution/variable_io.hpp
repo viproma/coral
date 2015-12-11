@@ -7,9 +7,12 @@
 #include <unordered_map>
 
 #include "boost/chrono/duration.hpp"
-#include "zmq.hpp"
 
 #include "dsb/model.hpp"
+
+
+// Forward declaration to avoid dependency on ZMQ headers
+namespace zmq { class socket_t; }
 
 
 namespace dsb

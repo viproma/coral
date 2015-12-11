@@ -16,6 +16,8 @@
 #include "boost/foreach.hpp"
 #include "boost/numeric/conversion/cast.hpp"
 
+#include "zmq.hpp"
+
 #include "dsb/bus/execution_manager.hpp"
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/reactor.hpp"
@@ -355,12 +357,12 @@ namespace
 // =============================================================================
 
 dsb::execution::Controller::Controller(const dsb::net::ExecutionLocator& locator)
-    : m_rpcSocket(dsb::comm::GlobalContext(), ZMQ_PAIR),
+    : m_rpcSocket(std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PAIR)),
       m_active(true)
 {
     auto rpcEndpoint =
         std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
-    m_rpcSocket.bind(rpcEndpoint->c_str());
+    m_rpcSocket->bind(rpcEndpoint->c_str());
     m_thread = boost::thread(ControllerLoop,
         rpcEndpoint,
         std::make_shared<dsb::net::ExecutionLocator>(locator));
@@ -399,20 +401,20 @@ dsb::execution::Controller::~Controller()
 void dsb::execution::Controller::Terminate()
 {
     assert (m_active);
-    dsb::inproc_rpc::Call(m_rpcSocket, TERMINATE_CALL);
+    dsb::inproc_rpc::Call(*m_rpcSocket, TERMINATE_CALL);
     m_active = false;
 }
 
 
 void dsb::execution::Controller::BeginConfig()
 {
-    dsb::inproc_rpc::Call(m_rpcSocket, BEGIN_CONFIG_CALL);
+    dsb::inproc_rpc::Call(*m_rpcSocket, BEGIN_CONFIG_CALL);
 }
 
 
 void dsb::execution::Controller::EndConfig()
 {
-    dsb::inproc_rpc::Call(m_rpcSocket, END_CONFIG_CALL);
+    dsb::inproc_rpc::Call(*m_rpcSocket, END_CONFIG_CALL);
 }
 
 
@@ -423,7 +425,7 @@ void dsb::execution::Controller::SetSimulationTime(
     dsbproto::execution_controller::SetSimulationTimeArgs args;
     args.set_start_time(startTime);
     args.set_stop_time(stopTime);
-    dsb::inproc_rpc::Call(m_rpcSocket, SET_SIMULATION_TIME_CALL, &args);
+    dsb::inproc_rpc::Call(*m_rpcSocket, SET_SIMULATION_TIME_CALL, &args);
 }
 
 
@@ -435,7 +437,7 @@ std::future<dsb::model::SlaveID> dsb::execution::Controller::AddSlave(
     dsb::protocol::ConvertToProto(slaveLocator, *args.mutable_slave_locator());
     args.set_timeout_ms(boost::numeric_cast<std::int32_t>(commTimeout.count()));
     dsbproto::execution_controller::AddSlaveReturn ret;
-    dsb::inproc_rpc::Call(m_rpcSocket, ADD_SLAVE_CALL, &args, &ret);
+    dsb::inproc_rpc::Call(*m_rpcSocket, ADD_SLAVE_CALL, &args, &ret);
 
     // Take ownership of the future whose pointer is now stored in `ret`,
     // knowing that the backend has relinquished it.
@@ -461,7 +463,7 @@ std::future<void> dsb::execution::Controller::SetVariables(
     }
     args.set_timeout_ms(boost::numeric_cast<std::int32_t>(timeout.count()));
     dsbproto::execution_controller::SetVariablesReturn ret;
-    dsb::inproc_rpc::Call(m_rpcSocket, SET_VARIABLES_CALL, &args, &ret);
+    dsb::inproc_rpc::Call(*m_rpcSocket, SET_VARIABLES_CALL, &args, &ret);
 
     // Take ownership of the future whose pointer is now stored in `ret`,
     // knowing that the backend has relinquished it.
@@ -503,7 +505,7 @@ dsb::execution::StepResult dsb::execution::Controller::Step(
     args.set_step_size(stepSize);
     args.set_timeout_ms(boost::numeric_cast<std::int32_t>(timeout.count()));
     dsbproto::execution_controller::StepReturn ret;
-    dsb::inproc_rpc::Call(m_rpcSocket, STEP_CALL, &args, &ret);
+    dsb::inproc_rpc::Call(*m_rpcSocket, STEP_CALL, &args, &ret);
 
     if (slaveResults) {
         slaveResults->clear();
@@ -521,7 +523,7 @@ void dsb::execution::Controller::AcceptStep(boost::chrono::milliseconds timeout)
 {
     dsbproto::execution_controller::AcceptStepArgs args;
     args.set_timeout_ms(boost::numeric_cast<std::int32_t>(timeout.count()));
-    dsb::inproc_rpc::Call(m_rpcSocket, ACCEPT_STEP_CALL, &args);
+    dsb::inproc_rpc::Call(*m_rpcSocket, ACCEPT_STEP_CALL, &args);
 }
 
 
