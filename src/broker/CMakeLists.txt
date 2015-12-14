@@ -1,4 +1,4 @@
-find_package (Boost REQUIRED COMPONENTS "filesystem" "thread" "chrono" "system") 
+find_package (BoostTarget REQUIRED COMPONENTS "filesystem" "thread" "chrono" "system") 
 find_package (CPPZMQ REQUIRED)
 find_package (Protobuf REQUIRED)
 
@@ -9,11 +9,10 @@ target_link_libraries (${_target}
     PRIVATE "dsb"
             ${CPPZMQ_LIBRARIES}
             ${PROTOBUF_LIBRARIES}
+            "boost"
 )
-target_link_libraries (${_target} LINK_PRIVATE ${Boost_LIBRARIES}) # FindBoost uses old style library specs
 target_include_directories (${_target}
     PRIVATE ${publicHeaderDir}
             ${privateHeaderDir}
             $<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>
-            ${Boost_INCLUDE_DIRS}
 )

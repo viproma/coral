@@ -135,7 +135,7 @@ CreateHeaderGroups("Public Header Files" ${_publicHeadersFull})
 CreateHeaderGroups("Private Header Files" ${_privateHeadersFull})
 
 # Dependencies
-find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono)
+find_package (BoostTarget REQUIRED COMPONENTS filesystem thread system chrono)
 find_package (CPPZMQ REQUIRED)
 find_package (Protobuf REQUIRED)
 find_package (FMILIB REQUIRED)
@@ -152,10 +152,8 @@ target_link_libraries (${_target}
     PUBLIC  ${FMILIB_LIBRARIES}
             ${CPPZMQ_LIBRARIES}
             ${PROTOBUF_LIBRARIES}
+            "boost"
 )
-# FindBoost uses old CMake conventions
-target_link_libraries (${_target} LINK_PRIVATE ${Boost_LIBRARIES})
-target_include_directories(${_target} PRIVATE ${Boost_INCLUDE_DIRS})
 
 install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
 
@@ -167,13 +165,12 @@ target_link_libraries (${_testTarget}
             "gtest_main"
             ${FMILIB_LIBRARIES}
             ${CPPZMQ_LIBRARIES}
+            "boost"
 )
 # FindBoost uses "old style" library references
-target_link_libraries (${_target} LINK_PRIVATE ${Boost_LIBRARIES})
 target_include_directories(${_testTarget}
     PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>"
             $<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>
-            ${Boost_INCLUDE_DIRS}
 )
 target_compile_definitions(${_testTarget} PRIVATE
     "DSB_TEST_FMU_DIRECTORY=${CMAKE_SOURCE_DIR}/external/fmus"
