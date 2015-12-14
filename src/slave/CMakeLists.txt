@@ -6,7 +6,6 @@ set (_target "slave")
 add_executable (${_target} "main.cpp")
 target_link_libraries (${_target}
     PRIVATE "dsb"
-            "dsbproto"
             ${FMILIB_LIBRARIES}
             ${CPPZMQ_LIBRARIES}
 )
