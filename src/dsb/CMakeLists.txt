@@ -137,7 +137,7 @@ CreateHeaderGroups("Private Header Files" ${_privateHeadersFull})
 # Dependencies
 find_package (BoostTarget REQUIRED COMPONENTS filesystem thread system chrono)
 find_package (CPPZMQ REQUIRED)
-find_package (Protobuf REQUIRED)
+find_package (ProtobufTarget REQUIRED)
 find_package (FMILIB REQUIRED)
 
 # Main library target
@@ -151,7 +151,7 @@ target_include_directories(${_target}
 target_link_libraries (${_target}
     PUBLIC  ${FMILIB_LIBRARIES}
             ${CPPZMQ_LIBRARIES}
-            ${PROTOBUF_LIBRARIES}
+            "protobuf"
             "boost"
 )
 

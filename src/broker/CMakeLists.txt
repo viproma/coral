@@ -1,6 +1,6 @@
 find_package (BoostTarget REQUIRED COMPONENTS "filesystem" "thread" "chrono" "system") 
 find_package (CPPZMQ REQUIRED)
-find_package (Protobuf REQUIRED)
+find_package (ProtobufTarget REQUIRED)
 
 # Main executable target
 set (_target "broker")
@@ -8,7 +8,7 @@ add_executable (${_target} "main.cpp" $<TARGET_OBJECTS:dsbproto>)
 target_link_libraries (${_target}
     PRIVATE "dsb"
             ${CPPZMQ_LIBRARIES}
-            ${PROTOBUF_LIBRARIES}
+            "protobuf"
             "boost"
 )
 target_include_directories (${_target}
