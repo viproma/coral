@@ -149,8 +149,9 @@ add_library (${_target} STATIC
 target_include_directories(${_target}
     PRIVATE $<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>)
 target_link_libraries (${_target}
-    PUBLIC  ${FMILIB_LIBRARIES}
-            ${CPPZMQ_LIBRARIES}
+    PRIVATE $<BUILD_INTERFACE:cppzmq>
+            $<INSTALL_INTERFACE:zmq>
+    PUBLIC  "fmilib"
             "protobuf"
             "boost"
 )
