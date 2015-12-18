@@ -155,6 +155,9 @@ target_link_libraries (${_target}
             "protobuf"
             "boost"
 )
+if (UNIX)
+    target_compile_options (${_target} PRIVATE "-fPIC")
+endif()
 
 install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
 

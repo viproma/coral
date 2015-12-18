@@ -24,3 +24,6 @@ add_library (${target} OBJECT ${sources} ${headers} ${protoFiles})
 target_include_directories (${target}
     INTERFACE ${CMAKE_CURRENT_BINARY_DIR}
     PUBLIC $<TARGET_PROPERTY:protobuf,INTERFACE_INCLUDE_DIRECTORIES>)
+if (UNIX)
+    target_compile_options (${target} PRIVATE "-fPIC")
+endif()
