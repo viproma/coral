@@ -1,14 +1,14 @@
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <iostream>
 #include <queue>
 #include <map>
 #include <string>
+#include <thread>
 
-#include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
 #include "boost/program_options.hpp"
-#include "boost/thread.hpp"
 
 #include "dsb/domain/controller.hpp"
 #include "dsb/execution/controller.hpp"
@@ -37,10 +37,10 @@ int Test(int argc, const char** argv)
     // slave types are available.  Also, the waiting time is related to the
     // slave provider heartbeat time.
     std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
-    boost::this_thread::sleep_for(boost::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     const auto execLoc = dsb::execution::SpawnExecution(
-        domainLoc, std::string(), boost::chrono::seconds(60));
+        domainLoc, std::string(), std::chrono::seconds(60));
     auto exec = dsb::execution::Controller(execLoc);
 
     try {
@@ -171,7 +171,7 @@ int Run(int argc, const char** argv)
         // slave types are available.  Also, the waiting time is related to the
         // slave provider heartbeat time.
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
-        boost::this_thread::sleep_for(boost::chrono::seconds(2));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
 
         std::cout << "Parsing execution configuration file '" << execConfigFile
                   << "'" << std::endl;
@@ -180,7 +180,7 @@ int Run(int argc, const char** argv)
         std::cout << "Spawning new execution broker" << std::endl;
         const auto execLoc = dsb::execution::SpawnExecution(
             domainLoc, execName, execConfig.slaveTimeout);
-        const auto execSpawnTime = boost::chrono::high_resolution_clock::now();
+        const auto execSpawnTime = std::chrono::high_resolution_clock::now();
         auto exec = dsb::execution::Controller(execLoc);
         exec.SetSimulationTime(execConfig.startTime, execConfig.stopTime);
 
@@ -206,7 +206,7 @@ int Run(int argc, const char** argv)
         exec.EndConfig();
         std::cout << "All slaves are present. Press ENTER to start simulation." << std::endl;
         std::cin.ignore();
-        const auto t0 = boost::chrono::high_resolution_clock::now();
+        const auto t0 = std::chrono::high_resolution_clock::now();
         if (t0 - execSpawnTime > execConfig.slaveTimeout) {
             throw std::runtime_error("Communications timeout reached");
         }
@@ -214,14 +214,14 @@ int Run(int argc, const char** argv)
         // Super advanced master algorithm.
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
         double nextPerc = 0.05;
-        const auto stepTimeout = boost::chrono::seconds(
-            boost::numeric_cast<typename boost::chrono::seconds::rep>(
+        const auto stepTimeout = std::chrono::seconds(
+            boost::numeric_cast<typename std::chrono::seconds::rep>(
                 execConfig.stepSize * execConfig.stepTimeoutMultiplier));
 
         const double clockRes = // the resolution of the clock, in ticks/sec
-            static_cast<double>(boost::chrono::high_resolution_clock::duration::period::num)
-            / boost::chrono::high_resolution_clock::duration::period::den;
-        auto prevRealTime = boost::chrono::high_resolution_clock::now();
+            static_cast<double>(std::chrono::high_resolution_clock::duration::period::num)
+            / std::chrono::high_resolution_clock::duration::period::den;
+        auto prevRealTime = std::chrono::high_resolution_clock::now();
         auto prevSimTime = execConfig.startTime;
 
         for (double time = execConfig.startTime;
@@ -252,7 +252,7 @@ int Run(int argc, const char** argv)
             // Print how far we've gotten in the simulation and how fast it's
             // going.
             if ((time-execConfig.startTime)/(execConfig.stopTime-execConfig.startTime) >= nextPerc) {
-                const auto realTime = boost::chrono::high_resolution_clock::now();
+                const auto realTime = std::chrono::high_resolution_clock::now();
                 const auto rti = (time - prevSimTime)
                     / ((realTime - prevRealTime).count() * clockRes);
                 std::cout << (nextPerc * 100.0) << "%  RTI=" << rti << std::endl;
@@ -263,9 +263,9 @@ int Run(int argc, const char** argv)
         }
 
         // Termination
-        const auto t1 = boost::chrono::high_resolution_clock::now();
-        const auto simTime = boost::chrono::round<boost::chrono::milliseconds>(t1 - t0);
-        std::cout << "Completed in " << simTime << '.' << std::endl;
+        const auto t1 = std::chrono::high_resolution_clock::now();
+        const auto simTime = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
+        std::cout << "Completed in " << simTime.count() << " ms." << std::endl;
 
         // Give ZMQ time to send all TERMINATE messages
         exec.Terminate();
@@ -303,7 +303,7 @@ int List(int argc, const char** argv)
         // slave types are available.  Also, the waiting time is related to the
         // slave provider heartbeat time.
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
-        boost::this_thread::sleep_for(boost::chrono::seconds(2));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
 
         auto slaveTypes = domain.GetSlaveTypes();
         BOOST_FOREACH (const auto& st, slaveTypes) {
@@ -397,7 +397,7 @@ int LsVars(int argc, const char** argv)
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
         // slave provider heartbeat time.
-        boost::this_thread::sleep_for(boost::chrono::seconds(2));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
 
         const auto slaveTypes = domain.GetSlaveTypes();
         const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
@@ -474,7 +474,7 @@ int Info(int argc, const char** argv)
         // slave types are available.  Also, the waiting time is related to the
         // slave provider heartbeat time.
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
-        boost::this_thread::sleep_for(boost::chrono::seconds(2));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
 
         const auto slaveTypes = domain.GetSlaveTypes();
         const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),

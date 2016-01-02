@@ -1,4 +1,4 @@
-find_package (BoostTarget REQUIRED COMPONENTS "filesystem" "thread" "chrono" "system") 
+find_package (BoostTarget REQUIRED COMPONENTS "filesystem" "system")
 find_package (CPPZMQ REQUIRED)
 find_package (ProtobufTarget REQUIRED)
 

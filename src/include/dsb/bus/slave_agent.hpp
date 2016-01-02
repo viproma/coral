@@ -5,13 +5,13 @@
 #ifndef DSB_BUS_SLAVE_AGENT_HPP
 #define DSB_BUS_SLAVE_AGENT_HPP
 
+#include <chrono>
 #include <exception>
 #include <string>
 #include <vector>
 
 #include "boost/bimap.hpp"
 #include "boost/bimap/multiset_of.hpp"
-#include "boost/chrono/duration.hpp"
 #include "zmq.hpp"
 
 #include "dsb/comm/p2p.hpp"
@@ -56,7 +56,7 @@ public:
         dsb::comm::Reactor& reactor,
         dsb::execution::ISlaveInstance& slaveInstance,
         const dsb::comm::P2PEndpoint& bindpoint,
-        boost::chrono::milliseconds commTimeout);
+        std::chrono::milliseconds commTimeout);
 
     /**
     \brief  The endpoint on which the slave is listening for incoming messages
@@ -129,7 +129,7 @@ private:
         void Update(
             dsb::execution::ISlaveInstance& slaveInstance,
             dsb::model::StepID stepID,
-            boost::chrono::milliseconds timeout);
+            std::chrono::milliseconds timeout);
 
     private:
         // Breaks a connection to a local input variable, if any.
@@ -146,7 +146,7 @@ private:
     };
 
     dsb::execution::ISlaveInstance& m_slaveInstance;
-    boost::chrono::milliseconds m_commTimeout;
+    std::chrono::milliseconds m_commTimeout;
 
     dsb::comm::P2PRepSocket m_control;
     dsb::execution::VariablePublisher m_publisher;

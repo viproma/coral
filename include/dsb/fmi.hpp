@@ -5,9 +5,9 @@
 #ifndef DSB_FMI_HPP
 #define DSB_FMI_HPP
 
+#include <chrono>
 #include <memory>
 #include <ostream> //TODO: Temporary; remove when we have proper observers.
-#include "boost/chrono/duration.hpp"
 #include "boost/filesystem/path.hpp"
 #include "dsb/domain/slave_provider.hpp"
 #include "dsb/execution/slave.hpp"
@@ -26,7 +26,7 @@ namespace fmi
 
 See MakeSlaveType() for details.
 */
-typedef std::function<dsb::net::SlaveLocator(const std::string&, boost::chrono::milliseconds)>
+typedef std::function<dsb::net::SlaveLocator(const std::string&, std::chrono::milliseconds)>
     SlaveStarter;
 
 

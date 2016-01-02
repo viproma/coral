@@ -64,7 +64,7 @@ void dsb::comm::Receive(
 bool dsb::comm::Receive(
     zmq::socket_t& socket,
     std::vector<zmq::message_t>& message,
-    boost::chrono::milliseconds timeout)
+    std::chrono::milliseconds timeout)
 {
     zmq::pollitem_t pollItem = { socket, 0, ZMQ_POLLIN, 0 };
     if (zmq::poll(&pollItem, 1, static_cast<long>(timeout.count())) == 0) {

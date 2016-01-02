@@ -27,7 +27,7 @@ public:
         dsb::comm::Reactor& reactor,
         const dsb::net::SlaveLocator& slaveLocator,
         int maxAttempts,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ConnectToSlaveHandler onComplete);
 
     ~PendingSlaveControlConnectionPrivate()
@@ -60,7 +60,7 @@ private:
 
     dsb::comm::Reactor& m_reactor;
     const dsb::net::SlaveLocator m_slaveLocator;
-    const boost::chrono::milliseconds m_timeout;
+    const std::chrono::milliseconds m_timeout;
 
     ConnectToSlaveHandler m_onComplete;
     int m_timeoutTimer;
@@ -72,7 +72,7 @@ struct SlaveControlConnectionPrivate
 {
     dsb::comm::Reactor* reactor;
     dsb::comm::P2PReqSocket socket;
-    boost::chrono::milliseconds timeout;
+    std::chrono::milliseconds timeout;
     int protocol;
 };
 
@@ -81,7 +81,7 @@ PendingSlaveControlConnectionPrivate::PendingSlaveControlConnectionPrivate(
     dsb::comm::Reactor& reactor,
     const dsb::net::SlaveLocator& slaveLocator,
     int maxAttempts,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ConnectToSlaveHandler onComplete)
     : m_reactor(reactor),
       m_slaveLocator(slaveLocator),
@@ -296,12 +296,12 @@ PendingSlaveControlConnection ConnectToSlave(
     dsb::comm::Reactor& reactor,
     const dsb::net::SlaveLocator& slaveLocator,
     int maxAttempts,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ConnectToSlaveHandler onComplete)
 {
     DSB_INPUT_CHECK(!slaveLocator.Empty());
     DSB_INPUT_CHECK(maxAttempts > 0);
-    DSB_INPUT_CHECK(timeout > boost::chrono::milliseconds(0));
+    DSB_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     DSB_INPUT_CHECK(onComplete);
 
     return PendingSlaveControlConnection(

@@ -5,12 +5,11 @@
 #ifndef DSB_BUS_SLAVE_CONTROLLER_HPP
 #define DSB_BUS_SLAVE_CONTROLLER_HPP
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <system_error>
 #include <vector>
-
-#include "boost/chrono/duration.hpp"
 
 #include "dsb/config.h"
 #include "dsb/bus/slave_control_messenger.hpp"
@@ -80,7 +79,7 @@ public:
         const dsb::net::SlaveLocator& slaveLocator,
         dsb::model::SlaveID slaveID,
         const SlaveSetup& setup,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ConnectHandler onComplete,
         int maxConnectionAttempts = 3);
 
@@ -126,7 +125,7 @@ public:
     */
     void SetVariables(
         const std::vector<dsb::model::VariableSetting>& settings,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         SetVariablesHandler onComplete);
 
     /// Completion handler type for Step()
@@ -150,7 +149,7 @@ public:
         dsb::model::StepID stepID,
         dsb::model::TimePoint currentT,
         dsb::model::TimeDuration deltaT,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         StepHandler onComplete);
 
     /// Completion handler type for AcceptStep()
@@ -166,7 +165,7 @@ public:
         Completion handler.
     */
     void AcceptStep(
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         AcceptStepHandler onComplete);
 
     /**

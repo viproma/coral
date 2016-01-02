@@ -1,4 +1,4 @@
-find_package (BoostTarget REQUIRED COMPONENTS program_options thread chrono filesystem system)
+find_package (BoostTarget REQUIRED COMPONENTS program_options filesystem system)
 find_package (CPPZMQ REQUIRED)
 find_package (FMILIB REQUIRED)
 

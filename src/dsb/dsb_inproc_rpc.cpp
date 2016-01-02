@@ -209,7 +209,7 @@ void dsb::inproc_rpc::ReturnGetSlaveTypes(
 dsb::net::SlaveLocator dsb::inproc_rpc::CallInstantiateSlave(
     zmq::socket_t& socket,
     const std::string& slaveTypeUUID,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     const std::string& provider)
 {
     std::vector<zmq::message_t> msg;
@@ -226,14 +226,14 @@ dsb::net::SlaveLocator dsb::inproc_rpc::CallInstantiateSlave(
 void dsb::inproc_rpc::UnmarshalInstantiateSlave(
     std::vector<zmq::message_t>& msg,
     std::string& slaveTypeUUID,
-    boost::chrono::milliseconds& timeout,
+    std::chrono::milliseconds& timeout,
     std::string& provider)
 {
     assert (msg.size() == 4);
     ASSERT_CALL_TYPE(msg, INSTANTIATE_SLAVE_CALL);
     slaveTypeUUID = dsb::comm::ToString(msg[1]);
-    timeout = boost::chrono::milliseconds(
-        dsb::comm::DecodeRawDataFrame<boost::chrono::milliseconds::rep>(msg[2])),
+    timeout = std::chrono::milliseconds(
+        dsb::comm::DecodeRawDataFrame<std::chrono::milliseconds::rep>(msg[2])),
     provider = dsb::comm::ToString(msg[3]);
 }
 

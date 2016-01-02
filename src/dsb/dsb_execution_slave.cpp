@@ -21,7 +21,7 @@ namespace execution
 SlaveRunner::SlaveRunner(
     std::shared_ptr<ISlaveInstance> slaveInstance,
     std::string bindURL,
-    boost::chrono::seconds commTimeout)
+    std::chrono::seconds commTimeout)
     : m_slaveInstance(slaveInstance),
       m_reactor(std::make_unique<dsb::comm::Reactor>()),
       m_slaveAgent(std::make_unique<dsb::bus::SlaveAgent>(

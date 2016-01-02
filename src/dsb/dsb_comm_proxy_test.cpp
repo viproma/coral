@@ -39,7 +39,7 @@ TEST(dsb_proxy, unidirectional)
         EXPECT_EQ(c, buf);
     }
     proxy.Stop();
-    EXPECT_TRUE(proxy.Thread__().try_join_for(boost::chrono::milliseconds(10)));
+    proxy.Thread__().join();
 }
 
 
@@ -75,14 +75,14 @@ TEST(dsb_proxy, bidirectional_multiclient)
         }
     }
     proxy.Stop();
-    EXPECT_TRUE(proxy.Thread__().try_join_for(boost::chrono::milliseconds(10)));
+    proxy.Thread__().join();
 }
 
 
 TEST(dsb_proxy, silence_timeout)
 {
-    using namespace boost::chrono;
-    using namespace boost::this_thread;
+    using namespace std::chrono;
+    using namespace std::this_thread;
 
     const auto ep = EndpointPair();
     auto proxy = SpawnProxy(
@@ -96,7 +96,9 @@ TEST(dsb_proxy, silence_timeout)
 
     sleep_for(milliseconds(100));
     push.send("", 0);
-    sleep_for(milliseconds(150));
-    ASSERT_FALSE(proxy.Thread__().try_join_for(milliseconds(0)));
-    ASSERT_TRUE(proxy.Thread__().try_join_for(milliseconds(70)));
+    const auto then = steady_clock::now();
+    proxy.Thread__().join();
+    const auto shutdownTime = steady_clock::now() - then;
+    EXPECT_GT(shutdownTime, milliseconds(180));
+    EXPECT_LT(shutdownTime, milliseconds(220));
 }

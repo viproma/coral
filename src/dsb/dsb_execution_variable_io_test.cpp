@@ -2,12 +2,14 @@
 #   define NOMINMAX
 #endif
 #include <algorithm>
+#include <chrono>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
-#include "boost/chrono.hpp"
-#include "boost/thread.hpp"
+#include "boost/chrono/duration.hpp"
+#include "boost/thread/barrier.hpp"
 #include "boost/thread/latch.hpp"
 #include "gtest/gtest.h"
 
@@ -48,14 +50,14 @@ TEST(dsb_execution, VariablePublishSubscribe)
     auto sub = dsb::execution::VariableSubscriber();
     sub.Connect(ep.second);
     sub.Subscribe(varX);
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     dsb::model::StepID t = 0;
     // Verify that Update() times out if it doesn't receive data
-    EXPECT_THROW(sub.Update(t, boost::chrono::milliseconds(1)), std::runtime_error);
+    EXPECT_THROW(sub.Update(t, std::chrono::milliseconds(1)), std::runtime_error);
     // Test transferring one variable
     pub.Publish(t, varXID, 123);
-    sub.Update(t, boost::chrono::seconds(1));
+    sub.Update(t, std::chrono::seconds(1));
     EXPECT_EQ(123, boost::get<int>(sub.Value(varX)));
     // Verify that Value() throws on a variable which is not subscribed to
     EXPECT_THROW(sub.Value(varY), std::logic_error);
@@ -66,25 +68,25 @@ TEST(dsb_execution, VariablePublishSubscribe)
     pub.Publish(t-1, varXID, 123);
     pub.Publish(t,   varXID, 456);
     pub.Publish(t+1, varXID, 789);
-    sub.Update(t, boost::chrono::seconds(1));
+    sub.Update(t, std::chrono::seconds(1));
     EXPECT_EQ(456, boost::get<int>(sub.Value(varX)));
 
     // Multiple variables
     sub.Subscribe(varY);
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     ++t;
     pub.Publish(t, varYID, std::string("Hello World"));
-    sub.Update(t, boost::chrono::seconds(1));
+    sub.Update(t, std::chrono::seconds(1));
     EXPECT_EQ(789, boost::get<int>(sub.Value(varX)));
     EXPECT_EQ("Hello World", boost::get<std::string>(sub.Value(varY)));
 
     pub.Publish(t, varXID, 1.0);
     ++t;
     pub.Publish(t, varYID, true);
-    EXPECT_THROW(sub.Update(t, boost::chrono::milliseconds(1)), std::runtime_error);
+    EXPECT_THROW(sub.Update(t, std::chrono::milliseconds(1)), std::runtime_error);
     pub.Publish(t, varXID, 2.0);
-    sub.Update(t, boost::chrono::seconds(1));
+    sub.Update(t, std::chrono::seconds(1));
     EXPECT_EQ(2.0, boost::get<double>(sub.Value(varX)));
     EXPECT_TRUE(boost::get<bool>(sub.Value(varY)));
 
@@ -93,7 +95,7 @@ TEST(dsb_execution, VariablePublishSubscribe)
     sub.Unsubscribe(varX);
     pub.Publish(t, varXID, 100);
     pub.Publish(t, varYID, false);
-    sub.Update(t, boost::chrono::seconds(1));
+    sub.Update(t, std::chrono::seconds(1));
     EXPECT_THROW(sub.Value(varX), std::logic_error);
     EXPECT_FALSE(boost::get<bool>(sub.Value(varY)));
 }
@@ -128,7 +130,7 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
     boost::latch primeLatch(1);
     boost::barrier stepBarrier(2);
 
-    auto pubThread = boost::thread(
+    auto pubThread = std::thread(
         [STEP_COUNT, proxyEndpoint1, publisherID, &vars, &primeLatch, &stepBarrier] ()
         {
             dsb::execution::VariablePublisher pub;
@@ -149,20 +151,20 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
     dsb::execution::VariableSubscriber sub;
     sub.Connect(proxyEndpoint2);
 
-    //const auto tSub = boost::chrono::steady_clock::now();
+    //const auto tSub = std::chrono::steady_clock::now();
     for (const auto& var : vars) sub.Subscribe(var);
 
-    //const auto tPrime = boost::chrono::steady_clock::now();
+    //const auto tPrime = std::chrono::steady_clock::now();
     for (;;) {
         try {
-            sub.Update(0, boost::chrono::milliseconds(10000));
+            sub.Update(0, std::chrono::milliseconds(10000));
             break;
         } catch (const std::runtime_error&) { }
     }
     primeLatch.count_down();
 
-    const auto tSim = boost::chrono::steady_clock::now();
-    const auto stepTimeout = boost::chrono::milliseconds(std::max(100, VAR_COUNT*10));
+    const auto tSim = std::chrono::steady_clock::now();
+    const auto stepTimeout = std::chrono::milliseconds(std::max(100, VAR_COUNT*10));
     for (int stepID = 1; stepID <= STEP_COUNT; ++stepID) {
         // NOTE: If an exeption is thrown here (typically due to timeout),
         // stepBarrier will be destroyed while the other thread is still waiting
@@ -177,22 +179,22 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
         }
         stepBarrier.wait();
     }
-    const auto tStop = boost::chrono::steady_clock::now();
+    const auto tStop = std::chrono::steady_clock::now();
 
     pubThread.join();
     proxy.Stop(true);
 
     // Throughput = average number of variable values transferred per second
     const auto throughput = STEP_COUNT * VAR_COUNT
-        * (1e9 / boost::chrono::duration_cast<boost::chrono::nanoseconds>(tStop-tSim).count());(STEP_COUNT*VAR_COUNT*1e9/boost::chrono::duration_cast<boost::chrono::nanoseconds>(tStop-tSim).count());
+        * (1e9 / std::chrono::duration_cast<std::chrono::nanoseconds>(tStop-tSim).count());(STEP_COUNT*VAR_COUNT*1e9/std::chrono::duration_cast<std::chrono::nanoseconds>(tStop-tSim).count());
     EXPECT_GT(throughput, 50000.0);
 /*
     std::cout
-        << "\nSubscription time: " << boost::chrono::duration_cast<boost::chrono::milliseconds>(tPrime-tSub)
-        << "\nPriming time     : " << boost::chrono::duration_cast<boost::chrono::milliseconds>(tSim-tPrime)
-        << "\nTotal sim time   : " << boost::chrono::duration_cast<boost::chrono::milliseconds>(tStop-tSim)
-        << "\nStep time        : " << (boost::chrono::duration_cast<boost::chrono::microseconds>(tStop-tSim)/STEP_COUNT) << " (" << STEP_COUNT << " steps)"
-        << "\nPer-var time     : " <<  (boost::chrono::duration_cast<boost::chrono::nanoseconds>(tStop-tSim)/(STEP_COUNT*VAR_COUNT)) << " (" << VAR_COUNT << " vars)"
+        << "\nSubscription time: " << std::chrono::duration_cast<std::chrono::milliseconds>(tPrime-tSub)
+        << "\nPriming time     : " << std::chrono::duration_cast<std::chrono::milliseconds>(tSim-tPrime)
+        << "\nTotal sim time   : " << std::chrono::duration_cast<std::chrono::milliseconds>(tStop-tSim)
+        << "\nStep time        : " << (std::chrono::duration_cast<std::chrono::microseconds>(tStop-tSim)/STEP_COUNT) << " (" << STEP_COUNT << " steps)"
+        << "\nPer-var time     : " <<  (std::chrono::duration_cast<std::chrono::nanoseconds>(tStop-tSim)/(STEP_COUNT*VAR_COUNT)) << " (" << VAR_COUNT << " vars)"
         << "\nThroughput       : " << throughput << " vars/second"
         << std::endl;
 */

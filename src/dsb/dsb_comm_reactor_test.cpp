@@ -1,4 +1,4 @@
-#include "boost/thread.hpp"
+#include <thread>
 #include "gtest/gtest.h"
 #include "dsb/comm/reactor.hpp"
 
@@ -14,22 +14,22 @@ TEST(dsb_comm, Reactor)
     zmq::socket_t svr2(ctx, ZMQ_PULL);
     svr2.bind("inproc://dsb_comm_Reactor_test_2");
 
-    boost::thread([&ctx]() {
+    std::thread([&ctx]() {
         zmq::socket_t cli1(ctx, ZMQ_PUSH);
         cli1.connect("inproc://dsb_comm_Reactor_test_1");
         cli1.send("hello", 5);
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(13));
+        std::this_thread::sleep_for(std::chrono::milliseconds(13));
         cli1.send("world", 5);
-    });
+    }).detach();
 
-    boost::thread([&ctx]() {
+    std::thread([&ctx]() {
         zmq::socket_t cli2(ctx, ZMQ_PUSH);
         cli2.connect("inproc://dsb_comm_Reactor_test_2");
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         cli2.send("foo", 3);
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         cli2.send("bar", 3);
-    });
+    }).detach();
 
     Reactor reactor;
 
@@ -60,23 +60,23 @@ TEST(dsb_comm, Reactor)
 
     // This timer has 5 events.
     int timer1Events = 0;
-    reactor.AddTimer(boost::chrono::milliseconds(12), 5, [&](Reactor&, int) {
+    reactor.AddTimer(std::chrono::milliseconds(12), 5, [&](Reactor&, int) {
         ++timer1Events;
     });
 
     // This timer runs until the reactor is stopped.
     int timer2Events = 0;
-    reactor.AddTimer(boost::chrono::milliseconds(10), -1, [&](Reactor&, int) {
+    reactor.AddTimer(std::chrono::milliseconds(10), -1, [&](Reactor&, int) {
         ++timer2Events;
     });
 
     // This timer is set up to run indefinitely, but is removed after 5 events
     // by another timer (which subsequently removes itself).
     int timer3Events = 0;
-    const auto timer3 = reactor.AddTimer(boost::chrono::milliseconds(9), 10, [&](Reactor&, int) {
+    const auto timer3 = reactor.AddTimer(std::chrono::milliseconds(9), 10, [&](Reactor&, int) {
         ++timer3Events;
     });
-    reactor.AddTimer(boost::chrono::milliseconds(4), -1, [&](Reactor& r, int id) {
+    reactor.AddTimer(std::chrono::milliseconds(4), -1, [&](Reactor& r, int id) {
         if (timer3Events == 5) {
             r.RemoveTimer(timer3);
             r.RemoveTimer(id);
@@ -85,7 +85,7 @@ TEST(dsb_comm, Reactor)
 
     // This timer stops the reactor.
     bool lifetimeExpired = false;
-    reactor.AddTimer(boost::chrono::milliseconds(100), 1, [&](Reactor& r, int) {
+    reactor.AddTimer(std::chrono::milliseconds(100), 1, [&](Reactor& r, int) {
         lifetimeExpired = true;
         r.Stop();
     });
@@ -119,16 +119,16 @@ TEST(dsb_comm, Reactor_bug39)
         }
         r.Stop();
     });
-    reactor.AddTimer(boost::chrono::milliseconds(10), 1, [canary](Reactor& r, int) {
+    reactor.AddTimer(std::chrono::milliseconds(10), 1, [canary](Reactor& r, int) {
         for (size_t i = 0; i < 1000; ++i) {
             const int backup = canary;
-            r.AddTimer(boost::chrono::milliseconds(10), 1, [](Reactor&,int){});
+            r.AddTimer(std::chrono::milliseconds(10), 1, [](Reactor&,int){});
             if (canary != backup) throw std::runtime_error("Memory error detected");
         }
         r.Stop();
     });
 
-    boost::thread([&ctx]() {
+    std::thread([&ctx]() {
         auto sck2 = zmq::socket_t(ctx, ZMQ_PAIR);
         sck2.connect("inproc://dsb_comm_Reactor_bug39");
         sck2.send("hello", 5);

@@ -5,9 +5,9 @@
 #ifndef DSB_EXECUTION_SLAVE_HPP
 #define DSB_EXECUTION_SLAVE_HPP
 
+#include <chrono>
 #include <memory>
 #include <stdexcept>
-#include "boost/chrono/duration.hpp"
 #include "boost/noncopyable.hpp"
 #include "dsb/config.h"
 #include "dsb/model.hpp"
@@ -138,7 +138,7 @@ public:
     SlaveRunner(
         std::shared_ptr<ISlaveInstance> slaveInstance,
         std::string bindURL,
-        boost::chrono::seconds commTimeout);
+        std::chrono::seconds commTimeout);
 
     SlaveRunner(SlaveRunner&&) DSB_NOEXCEPT;
 
@@ -160,16 +160,16 @@ private:
 class TimeoutException : public std::runtime_error
 {
 public:
-    explicit TimeoutException(boost::chrono::seconds timeoutDuration)
+    explicit TimeoutException(std::chrono::seconds timeoutDuration)
         : std::runtime_error("Slave timed out due to lack of communication"),
           m_timeoutDuration(timeoutDuration)
     {
     }
 
-    boost::chrono::seconds TimeoutDuration() const { return m_timeoutDuration; }
+    std::chrono::seconds TimeoutDuration() const { return m_timeoutDuration; }
 
 private:
-    boost::chrono::seconds m_timeoutDuration;
+    std::chrono::seconds m_timeoutDuration;
 };
 
 

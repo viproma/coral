@@ -5,13 +5,13 @@
 #ifndef DSB_BUS_EXECUTION_MANAGER_HPP
 #define DSB_BUS_EXECUTION_MANAGER_HPP
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <system_error>
 #include <utility>
 #include <vector>
 
-#include "boost/chrono/duration.hpp"
 #include "boost/noncopyable.hpp"
 
 #include "dsb/model.hpp"
@@ -85,7 +85,7 @@ public:
     dsb::model::SlaveID AddSlave(
         const dsb::net::SlaveLocator& slaveLocator,
         dsb::comm::Reactor& reactor,
-        boost::chrono::milliseconds commTimeout,
+        std::chrono::milliseconds commTimeout,
         AddSlaveHandler onComplete);
 
     /// Completion handler type for SetVariables().
@@ -98,7 +98,7 @@ public:
     void SetVariables(
         dsb::model::SlaveID slave,
         const std::vector<dsb::model::VariableSetting>& settings,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         SetVariablesHandler onComplete);
 
     /// Completion handler type for the Step() function.
@@ -111,7 +111,7 @@ public:
     /// Steps the simulation forward.
     void Step(
         dsb::model::TimeDuration stepSize,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         StepHandler onComplete,
         SlaveStepHandler onSlaveStepComplete = nullptr);
 
@@ -127,7 +127,7 @@ public:
 
     /// Informs the slaves that the step is accepted.
     void AcceptStep(
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         AcceptStepHandler onComplete,
         SlaveAcceptStepHandler onSlaveAcceptStepComplete = nullptr);
 

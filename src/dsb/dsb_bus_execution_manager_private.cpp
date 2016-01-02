@@ -68,7 +68,7 @@ void ExecutionManagerPrivate::SetSimulationTime(
 dsb::model::SlaveID ExecutionManagerPrivate::AddSlave(
     const dsb::net::SlaveLocator& slaveLocator,
     dsb::comm::Reactor& reactor,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ExecutionManager::AddSlaveHandler onComplete)
 {
     return m_state->AddSlave(*this, slaveLocator, reactor, timeout, std::move(onComplete));
@@ -78,7 +78,7 @@ dsb::model::SlaveID ExecutionManagerPrivate::AddSlave(
 void ExecutionManagerPrivate::SetVariables(
     dsb::model::SlaveID slave,
     const std::vector<dsb::model::VariableSetting>& settings,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ExecutionManager::SetVariablesHandler onComplete)
 {
     m_state->SetVariables(*this, slave, settings, timeout, std::move(onComplete));
@@ -87,7 +87,7 @@ void ExecutionManagerPrivate::SetVariables(
 
 void ExecutionManagerPrivate::Step(
     dsb::model::TimeDuration stepSize,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ExecutionManager::StepHandler onComplete,
     ExecutionManager::SlaveStepHandler onSlaveStepComplete)
 {
@@ -101,7 +101,7 @@ void ExecutionManagerPrivate::Step(
 
 
 void ExecutionManagerPrivate::AcceptStep(
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ExecutionManager::AcceptStepHandler onComplete,
     ExecutionManager::SlaveAcceptStepHandler onSlaveStepComplete)
 {

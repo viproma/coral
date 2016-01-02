@@ -6,11 +6,11 @@
 #ifndef DSB_COMM_MESSAGING_HPP
 #define DSB_COMM_MESSAGING_HPP
 
+#include <chrono>
 #include <cstring>
 #include <string>
 #include <vector>
 
-#include "boost/chrono/duration.hpp"
 #include "zmq.hpp"
 
 
@@ -71,7 +71,7 @@ Existing message content will be overwritten.
 bool Receive(
     zmq::socket_t& socket,
     std::vector<zmq::message_t>& message,
-    boost::chrono::milliseconds timeout);
+    std::chrono::milliseconds timeout);
 
 
 /**

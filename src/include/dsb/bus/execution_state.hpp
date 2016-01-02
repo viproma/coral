@@ -57,7 +57,7 @@ public:
         ExecutionManagerPrivate& self,
         const dsb::net::SlaveLocator& slaveLocator,
         dsb::comm::Reactor& reactor,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::AddSlaveHandler onComplete)
     { NotAllowed(__FUNCTION__); }
 
@@ -65,21 +65,21 @@ public:
         ExecutionManagerPrivate& self,
         dsb::model::SlaveID slave,
         const std::vector<dsb::model::VariableSetting>& settings,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::SetVariablesHandler onComplete)
     { NotAllowed(__FUNCTION__); }
 
     virtual void Step(
         ExecutionManagerPrivate& self,
         dsb::model::TimeDuration stepSize,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::StepHandler onComplete,
         ExecutionManager::SlaveStepHandler onSlaveStepComplete)
     { NotAllowed(__FUNCTION__); }
 
     virtual void AcceptStep(
         ExecutionManagerPrivate& self,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::AcceptStepHandler onComplete,
         ExecutionManager::SlaveAcceptStepHandler onSlaveAcceptStepComplete)
     { NotAllowed(__FUNCTION__); }
@@ -116,14 +116,14 @@ class ConfigExecutionState : public ExecutionState
         ExecutionManagerPrivate& self,
         const dsb::net::SlaveLocator& slaveLocator,
         dsb::comm::Reactor& reactor,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::AddSlaveHandler onComplete) override;
 
     void SetVariables(
         ExecutionManagerPrivate& self,
         dsb::model::SlaveID slave,
         const std::vector<dsb::model::VariableSetting>& settings,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::SetVariablesHandler onComplete) override;
 };
 
@@ -152,7 +152,7 @@ class ReadyExecutionState : public ExecutionState
     void Step(
         ExecutionManagerPrivate& self,
         dsb::model::TimeDuration stepSize,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::StepHandler onComplete,
         ExecutionManager::SlaveStepHandler onSlaveStepComplete) override;
 };
@@ -163,7 +163,7 @@ class SteppingExecutionState : public ExecutionState
 public:
     SteppingExecutionState(
         dsb::model::TimeDuration stepSize,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::StepHandler onComplete,
         ExecutionManager::SlaveStepHandler onSlaveStepComplete);
 
@@ -171,7 +171,7 @@ private:
     void StateEntered(ExecutionManagerPrivate& self) override;
 
     const dsb::model::TimeDuration m_stepSize;
-    boost::chrono::milliseconds m_timeout;
+    std::chrono::milliseconds m_timeout;
     ExecutionManager::StepHandler m_onComplete;
     ExecutionManager::SlaveStepHandler m_onSlaveStepComplete;
 };
@@ -187,7 +187,7 @@ private:
 
     void AcceptStep(
         ExecutionManagerPrivate& self,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::AcceptStepHandler onComplete,
         ExecutionManager::SlaveAcceptStepHandler onSlaveAcceptStepComplete)
             override;
@@ -200,14 +200,14 @@ class AcceptingExecutionState : public ExecutionState
 {
 public:
     AcceptingExecutionState(
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::AcceptStepHandler onComplete,
         ExecutionManager::SlaveAcceptStepHandler onSlaveAcceptStepComplete);
 
 private:
     void StateEntered(ExecutionManagerPrivate& self) override;
 
-    boost::chrono::milliseconds m_timeout;
+    std::chrono::milliseconds m_timeout;
     ExecutionManager::AcceptStepHandler m_onComplete;
     ExecutionManager::SlaveAcceptStepHandler m_onSlaveAcceptStepComplete;
 };

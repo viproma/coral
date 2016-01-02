@@ -6,11 +6,11 @@
 #include <cstring>
 #include <limits>
 #include <stdexcept>
+#include <thread>
 #include <utility>
 #include <vector>
 
 #include "boost/lexical_cast.hpp"
-#include "boost/thread.hpp"
 
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"
@@ -64,7 +64,7 @@ namespace
 void P2PProxy(
     zmq::socket_t& routerSocket,
     zmq::socket_t* controlSocket,
-    boost::chrono::milliseconds timeout)
+    std::chrono::milliseconds timeout)
 {
     EnforceRouter(routerSocket);
     DSB_INPUT_CHECK(timeout == NEVER_TIMEOUT
@@ -109,7 +109,7 @@ namespace
         ProxyFunctor(
             zmq::socket_t&& routerSocket,
             zmq::socket_t&& controlSocket,
-            boost::chrono::milliseconds timeout)
+            std::chrono::milliseconds timeout)
             : m_routerSocket(std::move(routerSocket)),
               m_controlSocket(std::move(controlSocket)),
               m_timeout(timeout)
@@ -131,14 +131,14 @@ namespace
     private:
         zmq::socket_t m_routerSocket;
         zmq::socket_t m_controlSocket;
-        boost::chrono::milliseconds m_timeout;
+        std::chrono::milliseconds m_timeout;
     };
 }
 
 
 BackgroundP2PProxy::BackgroundP2PProxy(
     zmq::socket_t&& routerSocket,
-    boost::chrono::milliseconds timeout)
+    std::chrono::milliseconds timeout)
     : m_controlSocket(GlobalContext(), ZMQ_PAIR)
 {
     Init(std::move(routerSocket), timeout);
@@ -148,7 +148,7 @@ BackgroundP2PProxy::BackgroundP2PProxy(
 // TODO: Write unittest for this.
 BackgroundP2PProxy::BackgroundP2PProxy(
     const std::string& endpoint,
-    boost::chrono::milliseconds timeout)
+    std::chrono::milliseconds timeout)
     : m_controlSocket(GlobalContext(), ZMQ_PAIR)
 {
     auto routerSocket = zmq::socket_t(GlobalContext(), ZMQ_ROUTER);
@@ -207,7 +207,7 @@ void BackgroundP2PProxy::Detach()
 }
 
 
-boost::thread& BackgroundP2PProxy::Thread__()
+std::thread& BackgroundP2PProxy::Thread__()
 {
     return m_thread;
 }
@@ -215,7 +215,7 @@ boost::thread& BackgroundP2PProxy::Thread__()
 
 void BackgroundP2PProxy::Init(
     zmq::socket_t&& routerSocket,
-    boost::chrono::milliseconds timeout)
+    std::chrono::milliseconds timeout)
 {
     EnforceRouter(routerSocket);
     DSB_INPUT_CHECK(timeout == NEVER_TIMEOUT
@@ -230,7 +230,7 @@ void BackgroundP2PProxy::Init(
     const auto controlEndpoint = "inproc://" + dsb::util::RandomUUID();
     m_controlSocket.bind(controlEndpoint.c_str());
     controlSocketRemote.connect(controlEndpoint.c_str());
-    m_thread = boost::thread(ProxyFunctor(
+    m_thread = std::thread(ProxyFunctor(
         std::move(routerSocket),
         std::move(controlSocketRemote),
         timeout));
@@ -239,7 +239,7 @@ void BackgroundP2PProxy::Init(
 
 BackgroundP2PProxy SpawnTcpP2PProxy(
     const std::string& networkInterface,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     std::uint16_t& ephemeralPort)
 {
     auto routerSocket = zmq::socket_t(GlobalContext(), ZMQ_ROUTER);
@@ -704,7 +704,7 @@ const zmq::socket_t& P2PRepSocket::Socket() const
 bool Receive(
     P2PRepSocket& socket,
     std::vector<zmq::message_t>& message,
-    boost::chrono::milliseconds timeout)
+    std::chrono::milliseconds timeout)
 {
     zmq::pollitem_t pollItem = { socket.Socket(), 0, ZMQ_POLLIN, 0 };
     if (zmq::poll(&pollItem, 1, static_cast<long>(timeout.count())) == 0) {

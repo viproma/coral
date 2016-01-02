@@ -7,10 +7,8 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <mutex>
 #include <stdexcept>
-
-#include "boost/thread/lock_guard.hpp"
-#include "boost/thread/mutex.hpp"
 
 #include "dsb/fmilib/fmu.hpp"
 #include "dsb/fmilib/importcontext.hpp"
@@ -64,7 +62,7 @@ class dsb::fmilib::Fmu1::AdditionalPath
 public:
     AdditionalPath(const boost::filesystem::path& p)
     {
-        auto lock = boost::make_lock_guard(m_pathEnvVarMutex);
+        std::lock_guard<std::mutex> lock(m_pathEnvVarMutex);
 
         WCHAR currentPathZ[MAX_ENV_VAR_SIZE];
         const auto currentPathLen =
@@ -84,7 +82,7 @@ public:
 
     ~AdditionalPath()
     {
-        auto lock = boost::make_lock_guard(m_pathEnvVarMutex);
+        std::lock_guard<std::mutex> lock(m_pathEnvVarMutex);
 
         WCHAR currentPathZ[MAX_ENV_VAR_SIZE];
         const auto currentPathLen =
@@ -102,11 +100,11 @@ public:
     }
 
 private:
-    static boost::mutex m_pathEnvVarMutex;
+    static std::mutex m_pathEnvVarMutex;
     std::wstring m_addedPath;
 };
 
-boost::mutex dsb::fmilib::Fmu1::AdditionalPath::m_pathEnvVarMutex = boost::mutex();
+std::mutex dsb::fmilib::Fmu1::AdditionalPath::m_pathEnvVarMutex = std::mutex();
 
 #endif // _WIN32
 

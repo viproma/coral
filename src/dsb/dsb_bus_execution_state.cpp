@@ -69,7 +69,7 @@ dsb::model::SlaveID ConfigExecutionState::AddSlave(
     ExecutionManagerPrivate& self,
     const dsb::net::SlaveLocator& slaveLocator,
     dsb::comm::Reactor& reactor,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ExecutionManager::AddSlaveHandler onComplete)
 {
     DSB_INPUT_CHECK(!!onComplete);
@@ -101,7 +101,7 @@ void ConfigExecutionState::SetVariables(
     ExecutionManagerPrivate& self,
     dsb::model::SlaveID slave,
     const std::vector<dsb::model::VariableSetting>& settings,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ExecutionManager::SetVariablesHandler onComplete)
 {
     const auto selfPtr = &self;
@@ -172,7 +172,7 @@ void ReadyExecutionState::BeginConfig(
 void ReadyExecutionState::Step(
     ExecutionManagerPrivate& self,
     dsb::model::TimeDuration stepSize,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ExecutionManager::StepHandler onComplete,
     ExecutionManager::SlaveStepHandler onSlaveStepComplete)
 {
@@ -186,7 +186,7 @@ void ReadyExecutionState::Step(
 
 SteppingExecutionState::SteppingExecutionState(
     dsb::model::TimeDuration stepSize,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ExecutionManager::StepHandler onComplete,
     ExecutionManager::SlaveStepHandler onSlaveStepComplete)
     : m_stepSize(stepSize),
@@ -268,7 +268,7 @@ void StepOkExecutionState::Terminate(ExecutionManagerPrivate& self)
 
 void StepOkExecutionState::AcceptStep(
     ExecutionManagerPrivate& self,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ExecutionManager::AcceptStepHandler onComplete,
     ExecutionManager::SlaveAcceptStepHandler onSlaveAcceptStepComplete)
 {
@@ -282,7 +282,7 @@ void StepOkExecutionState::AcceptStep(
 
 
 AcceptingExecutionState::AcceptingExecutionState(
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ExecutionManager::AcceptStepHandler onComplete,
     ExecutionManager::SlaveAcceptStepHandler onSlaveAcceptStepComplete)
     : m_timeout(timeout),

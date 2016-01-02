@@ -5,14 +5,13 @@
 #ifndef DSB_EXECUTION_CONTROLLER_HPP
 #define DSB_EXECUTION_CONTROLLER_HPP
 
+#include <chrono>
 #include <future>
 #include <iterator>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
-
-#include "boost/chrono.hpp"
-#include "boost/thread.hpp"
 
 #include "dsb/config.h"
 #include "dsb/model.hpp"
@@ -145,7 +144,7 @@ public:
     */
     std::future<dsb::model::SlaveID> AddSlave(
         dsb::net::SlaveLocator slaveLocator,
-        boost::chrono::milliseconds commTimeout);
+        std::chrono::milliseconds commTimeout);
 
     /**
     \brief  Sets the values of and/or connects one or more of a slave's
@@ -175,13 +174,13 @@ public:
     std::future<void> SetVariables(
         dsb::model::SlaveID slave,
         const VariableSettingRange& variableSettings,
-        boost::chrono::milliseconds timeout);
+        std::chrono::milliseconds timeout);
 
     // Specialisation of the above for std::vector.
     std::future<void> SetVariables(
         dsb::model::SlaveID slave,
         const std::vector<dsb::model::VariableSetting>& variableSettings,
-        boost::chrono::milliseconds timeout);
+        std::chrono::milliseconds timeout);
 
     /**
     \brief  Steps the simulation forward.
@@ -220,7 +219,7 @@ public:
     */
     StepResult Step(
         dsb::model::TimeDuration stepSize,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         std::vector<std::pair<dsb::model::SlaveID, StepResult>>* slaveResults = nullptr);
 
     /**
@@ -241,14 +240,14 @@ public:
         (Essentially, it is assumed that we have lost connection with the slave
         for some reason.)
     */
-    void AcceptStep(boost::chrono::milliseconds timeout);
+    void AcceptStep(std::chrono::milliseconds timeout);
 
 private:
     // NOTE: When adding members here, remember to update the move constructor
     // and the move assignment operator!
     std::unique_ptr<zmq::socket_t> m_rpcSocket;
     bool m_active;
-    boost::thread m_thread;
+    std::thread m_thread;
 };
 
 
@@ -269,7 +268,7 @@ be used to connect to it.
 dsb::net::ExecutionLocator SpawnExecution(
     const dsb::net::DomainLocator& domainLocator,
     const std::string& executionName = std::string(),
-    boost::chrono::seconds commTimeout = boost::chrono::seconds(3600));
+    std::chrono::seconds commTimeout = std::chrono::seconds(3600));
 
 
 // =============================================================================
@@ -280,7 +279,7 @@ template<typename VariableSettingRange>
 std::future<void> Controller::SetVariables(
     dsb::model::SlaveID slave,
     const VariableSettingRange& variableSettings,
-    boost::chrono::milliseconds timeout)
+    std::chrono::milliseconds timeout)
 {
     return SetVariables(
         slave,

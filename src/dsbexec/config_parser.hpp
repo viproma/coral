@@ -1,12 +1,12 @@
 #ifndef DSBEXEC_CONFIG_PARSER_HPP
 #define DSBEXEC_CONFIG_PARSER_HPP
 
+#include <chrono>
 #include <ostream>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
-#include "boost/chrono/duration.hpp"
 #include "dsb/config.h"
 #include "dsb/domain/controller.hpp"
 #include "dsb/execution/controller.hpp"
@@ -44,8 +44,8 @@ void ParseSystemConfig(
     dsb::execution::Controller& execution,
     const dsb::net::ExecutionLocator& executionLocator,
     std::vector<SimulationEvent>& scenario,
-    boost::chrono::milliseconds commTimeout,
-    boost::chrono::milliseconds instantiationTimeout,
+    std::chrono::milliseconds commTimeout,
+    std::chrono::milliseconds instantiationTimeout,
     std::ostream* warningLog);
 
 
@@ -82,7 +82,7 @@ struct ExecutionConfig
     be a short duration, as it is used for "cheap" operations (everything
     besides the "step" command).  The default value is 1 second.
     */
-    boost::chrono::milliseconds commTimeout;
+    std::chrono::milliseconds commTimeout;
 
     /**
     \brief  Time step timeout multiplier
@@ -106,7 +106,7 @@ struct ExecutionConfig
 
     The default value is 1 hour.
     */
-    boost::chrono::seconds slaveTimeout;
+    std::chrono::seconds slaveTimeout;
 
     /**
     \brief  Slave instantiation timeout, in milliseconds.
@@ -115,7 +115,7 @@ struct ExecutionConfig
     command is issued to the moment it is ready for a command from the master
     node.
     */
-    boost::chrono::milliseconds instantiationTimeout;
+    std::chrono::milliseconds instantiationTimeout;
 };
 
 

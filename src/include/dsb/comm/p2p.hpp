@@ -6,13 +6,13 @@
 #ifndef DSB_COMM_P2P_HPP
 #define DSB_COMM_P2P_HPP
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
-#include "boost/chrono/duration.hpp"
-#include "boost/thread.hpp"
 #include "zmq.hpp"
 
 #include "dsb/config.h"
@@ -82,7 +82,7 @@ receive any messages for a certain period of time, it will shut itself down.
 void P2PProxy(
     zmq::socket_t& routerSocket,
     zmq::socket_t* controlSocket = nullptr,
-    boost::chrono::milliseconds timeout = NEVER_TIMEOUT);
+    std::chrono::milliseconds timeout = NEVER_TIMEOUT);
 
 
 /**
@@ -123,7 +123,7 @@ public:
     */
     BackgroundP2PProxy(
         zmq::socket_t&& routerSocket,
-        boost::chrono::milliseconds timeout = NEVER_TIMEOUT);
+        std::chrono::milliseconds timeout = NEVER_TIMEOUT);
 
     /**
     \brief  Starts a proxy and binds it to the given endpoint.
@@ -139,7 +139,7 @@ public:
     */
     BackgroundP2PProxy(
         const std::string& endpoint,
-        boost::chrono::milliseconds timeout = NEVER_TIMEOUT);
+        std::chrono::milliseconds timeout = NEVER_TIMEOUT);
 
     /**
     \brief  Destructor which terminates the proxy if it hasn't been terminated
@@ -178,12 +178,12 @@ public:
     void Detach();
 
     // Only for testing/debugging purposes; may be removed without notice.
-    boost::thread& Thread__();
+    std::thread& Thread__();
 
 private:
-    void Init(zmq::socket_t&& routerSocket, boost::chrono::milliseconds timeout);
+    void Init(zmq::socket_t&& routerSocket, std::chrono::milliseconds timeout);
     zmq::socket_t m_controlSocket;
-    boost::thread m_thread;
+    std::thread m_thread;
 };
 
 
@@ -208,7 +208,7 @@ already bound to a TCP endpoint using an ephemeral port number.
 */
 BackgroundP2PProxy SpawnTcpP2PProxy(
     const std::string& networkInterface,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     std::uint16_t& ephemeralPort);
 
 /// An overload of SpawnTcpP2PProxy where `timeout = NEVER_TIMEOUT`.
@@ -481,7 +481,7 @@ Existing message content will be overwritten.
 bool Receive(
     P2PRepSocket& socket,
     std::vector<zmq::message_t>& message,
-    boost::chrono::milliseconds timeout);
+    std::chrono::milliseconds timeout);
 
 
 }} // namespace

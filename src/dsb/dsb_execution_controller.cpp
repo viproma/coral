@@ -3,6 +3,7 @@
 #include <algorithm> // for transform()
 #include <cassert>
 #include <cctype>
+#include <chrono>
 #include <exception>
 #include <iostream>
 #include <iterator> // for back_inserter()
@@ -12,7 +13,6 @@
 #include <utility>
 #include <vector>
 
-#include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
 #include "boost/numeric/conversion/cast.hpp"
 
@@ -203,7 +203,7 @@ namespace
         m_execMgr.AddSlave(
             dsb::protocol::FromProto(args.slave_locator()),
             m_reactor,
-            boost::chrono::milliseconds(args.timeout_ms()),
+            std::chrono::milliseconds(args.timeout_ms()),
             [promisedID, this] (const std::error_code& ec, dsb::model::SlaveID id) {
                 if (!ec) {
                     promisedID->set_value(id);
@@ -237,7 +237,7 @@ namespace
         m_execMgr.SetVariables(
             boost::numeric_cast<dsb::model::SlaveID>(args.slave_id()),
             settings,
-            boost::chrono::milliseconds(args.timeout_ms()),
+            std::chrono::milliseconds(args.timeout_ms()),
             [promise] (const std::error_code& ec) {
                 if (!ec) {
                     promise->set_value();
@@ -263,7 +263,7 @@ namespace
         auto ret = std::make_shared<dsbproto::execution_controller::StepReturn>();
         m_execMgr.Step(
             args.step_size(),
-            boost::chrono::milliseconds(args.timeout_ms()),
+            std::chrono::milliseconds(args.timeout_ms()),
             [ret, this] (const std::error_code& ec) {
                 if (!ec || ec == dsb::error::sim_error::cannot_perform_timestep) {
                     ret->set_result(ec == dsb::error::sim_error::cannot_perform_timestep
@@ -294,7 +294,7 @@ namespace
         dsb::inproc_rpc::UnmarshalArgs(msg, args);
 
         m_execMgr.AcceptStep(
-            boost::chrono::milliseconds(args.timeout_ms()),
+            std::chrono::milliseconds(args.timeout_ms()),
             [this] (const std::error_code& ec) {
                 if (!ec) dsb::inproc_rpc::ReturnSuccess(m_rpcSocket);
                 else dsb::inproc_rpc::ThrowRuntimeError(m_rpcSocket, ec.message());
@@ -363,7 +363,7 @@ dsb::execution::Controller::Controller(const dsb::net::ExecutionLocator& locator
     auto rpcEndpoint =
         std::make_shared<std::string>("inproc://" + dsb::util::RandomUUID());
     m_rpcSocket->bind(rpcEndpoint->c_str());
-    m_thread = boost::thread(ControllerLoop,
+    m_thread = std::thread(ControllerLoop,
         rpcEndpoint,
         std::make_shared<dsb::net::ExecutionLocator>(locator));
 }
@@ -431,7 +431,7 @@ void dsb::execution::Controller::SetSimulationTime(
 
 std::future<dsb::model::SlaveID> dsb::execution::Controller::AddSlave(
     dsb::net::SlaveLocator slaveLocator,
-    boost::chrono::milliseconds commTimeout)
+    std::chrono::milliseconds commTimeout)
 {
     dsbproto::execution_controller::AddSlaveArgs args;
     dsb::protocol::ConvertToProto(slaveLocator, *args.mutable_slave_locator());
@@ -451,7 +451,7 @@ std::future<dsb::model::SlaveID> dsb::execution::Controller::AddSlave(
 std::future<void> dsb::execution::Controller::SetVariables(
     dsb::model::SlaveID slave,
     const std::vector<dsb::model::VariableSetting>& variableSettings,
-    boost::chrono::milliseconds timeout)
+    std::chrono::milliseconds timeout)
 {
     dsbproto::execution_controller::SetVariablesArgs args;
     args.set_slave_id(slave);
@@ -498,7 +498,7 @@ namespace
 
 dsb::execution::StepResult dsb::execution::Controller::Step(
     dsb::model::TimeDuration stepSize,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     std::vector<std::pair<dsb::model::SlaveID, StepResult>>* slaveResults)
 {
     dsbproto::execution_controller::StepArgs args;
@@ -519,7 +519,7 @@ dsb::execution::StepResult dsb::execution::Controller::Step(
 }
 
 
-void dsb::execution::Controller::AcceptStep(boost::chrono::milliseconds timeout)
+void dsb::execution::Controller::AcceptStep(std::chrono::milliseconds timeout)
 {
     dsbproto::execution_controller::AcceptStepArgs args;
     args.set_timeout_ms(boost::numeric_cast<std::int32_t>(timeout.count()));
@@ -535,9 +535,9 @@ void dsb::execution::Controller::AcceptStep(boost::chrono::milliseconds timeout)
 dsb::net::ExecutionLocator dsb::execution::SpawnExecution(
     const dsb::net::DomainLocator& domainLocator,
     const std::string& executionName,
-    boost::chrono::seconds commTimeout)
+    std::chrono::seconds commTimeout)
 {
-    if (commTimeout <= boost::chrono::seconds(0)) {
+    if (commTimeout <= std::chrono::seconds(0)) {
         throw std::invalid_argument("Communications timeout interval is nonpositive");
     }
     const auto actualExecName = executionName.empty()
@@ -556,7 +556,7 @@ dsb::net::ExecutionLocator dsb::execution::SpawnExecution(
     dsb::protobuf::SerializeToFrame(seData, msg.back());
 
     dsb::comm::Send(sck, msg);
-    if (!dsb::comm::Receive(sck, msg, boost::chrono::seconds(10))) {
+    if (!dsb::comm::Receive(sck, msg, std::chrono::seconds(10))) {
         throw std::runtime_error("Failed to spawn execution (domain connection timed out)");
     }
     const auto reply = dsb::comm::ToString(msg.front());

@@ -1,12 +1,11 @@
 #ifndef DSB_EXECUTION_VARIABLE_IO_HPP
 #define DSB_EXECUTION_VARIABLE_IO_HPP
 
+#include <chrono>
 #include <memory>
 #include <queue>
 #include <string>
 #include <unordered_map>
-
-#include "boost/chrono/duration.hpp"
 
 #include "dsb/model.hpp"
 
@@ -122,7 +121,7 @@ public:
     */
     void Update(
         dsb::model::StepID stepID,
-        boost::chrono::milliseconds timeout);
+        std::chrono::milliseconds timeout);
 
     /**
     \brief  Returns the value of the given variable which was acquired with the

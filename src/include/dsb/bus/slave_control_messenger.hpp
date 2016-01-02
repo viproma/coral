@@ -9,12 +9,12 @@ stuff in this header.
 #ifndef DSB_BUS_SLAVE_CONTROL_MESSENGER_HPP
 #define DSB_BUS_SLAVE_CONTROL_MESSENGER_HPP
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <system_error>
 #include <vector>
 
-#include "boost/chrono/duration.hpp"
 #include "boost/noncopyable.hpp"
 
 #include "dsb/config.h"
@@ -219,7 +219,7 @@ public:
     */
     virtual void SetVariables(
         const std::vector<dsb::model::VariableSetting>& settings,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         SetVariablesHandler onComplete) = 0;
 
 
@@ -270,7 +270,7 @@ public:
         dsb::model::StepID stepID,
         dsb::model::TimePoint currentT,
         dsb::model::TimeDuration deltaT,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         StepHandler onComplete) = 0;
 
 
@@ -311,7 +311,7 @@ public:
     \post `State() == SLAVE_BUSY`.
     */
     virtual void AcceptStep(
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         AcceptStepHandler onComplete) = 0;
 
     /**
@@ -405,7 +405,7 @@ PendingSlaveControlConnection ConnectToSlave(
     dsb::comm::Reactor& reactor,
     const dsb::net::SlaveLocator& slaveLocator,
     int maxAttempts,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ConnectToSlaveHandler onComplete);
 
 
