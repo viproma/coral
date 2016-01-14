@@ -151,12 +151,13 @@ include (CMakePackageConfigHelpers)
 # Create and install package-config file
 set (configFile "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}-config.cmake")
 set (exportFileConfig "${cmakeFilesInstallDir}/${exportTarget}.cmake")
+set (extraModuleDirConfig "${cmakeFilesInstallDir}")
 set (includeDirsConfig "include")
 configure_package_config_file (
     "${CMAKE_SOURCE_DIR}/cmake/project-config.cmake.in"
     ${configFile}
     INSTALL_DESTINATION ${cmakeFilesInstallDir}
-    PATH_VARS exportFileConfig includeDirsConfig)
+    PATH_VARS exportFileConfig extraModuleDirConfig includeDirsConfig)
 install (FILES ${configFile} DESTINATION ${cmakeFilesInstallDir})
 
 # Create and install package-version file
@@ -182,6 +183,15 @@ set (readmeFile "${CMAKE_SOURCE_DIR}/README.md")
 install (FILES ${readmeFile} DESTINATION ${readmeInstallDir})
 set (licenceFile "${CMAKE_SOURCE_DIR}/LICENCE.txt")
 install (FILES ${licenceFile} DESTINATION ${readmeInstallDir})
+
+install (FILES
+        "cmake/FindBoostTarget.cmake"
+        "cmake/FindFMILIB.cmake"
+        "cmake/FindProtobufTarget.cmake"
+        "cmake/FindZMQ.cmake"
+    DESTINATION
+        "${cmakeFilesInstallDir}"
+)
 
 # ==============================================================================
 # Packaging

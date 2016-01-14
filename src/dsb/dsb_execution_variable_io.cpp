@@ -1,6 +1,7 @@
 #include "dsb/execution/variable_io.hpp"
 
 #include <utility>
+#include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"

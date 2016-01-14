@@ -135,23 +135,29 @@ CreateHeaderGroups("Public Header Files" ${_publicHeadersFull})
 CreateHeaderGroups("Private Header Files" ${_privateHeadersFull})
 
 # Dependencies
-find_package (Boost REQUIRED COMPONENTS filesystem thread system chrono)
+find_package (BoostTarget REQUIRED COMPONENTS filesystem thread system chrono)
 find_package (CPPZMQ REQUIRED)
+find_package (ProtobufTarget REQUIRED)
 find_package (FMILIB REQUIRED)
 
 # Main library target
 add_library (${_target} STATIC
     ${_publicHeadersFull}
     ${_privateHeadersFull}
-    ${_sources})
+    ${_sources}
+    $<TARGET_OBJECTS:dsbproto>)
+target_include_directories(${_target}
+    PRIVATE $<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>)
 target_link_libraries (${_target}
-    PRIVATE "dsbproto"
-            ${FMILIB_LIBRARIES}
-            ${CPPZMQ_LIBRARIES}
+    PRIVATE $<BUILD_INTERFACE:cppzmq>
+            $<INSTALL_INTERFACE:zmq>
+    PUBLIC  "fmilib"
+            "protobuf"
+            "boost"
 )
-# FindBoost uses old CMake conventions
-target_link_libraries (${_target} LINK_PRIVATE ${Boost_LIBRARIES})
-target_include_directories(${_target} PRIVATE ${Boost_INCLUDE_DIRS})
+if (UNIX)
+    target_compile_options (${_target} PRIVATE "-fPIC")
+endif()
 
 install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
 
@@ -161,15 +167,14 @@ add_executable (${_testTarget} ${_testSources})
 target_link_libraries (${_testTarget}
     PRIVATE ${_target}
             "gtest_main"
-            "dsbproto"
             ${FMILIB_LIBRARIES}
             ${CPPZMQ_LIBRARIES}
+            "boost"
 )
 # FindBoost uses "old style" library references
-target_link_libraries (${_target} LINK_PRIVATE ${Boost_LIBRARIES})
 target_include_directories(${_testTarget}
     PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>"
-            ${Boost_INCLUDE_DIRS}
+            $<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>
 )
 target_compile_definitions(${_testTarget} PRIVATE
     "DSB_TEST_FMU_DIRECTORY=${CMAKE_SOURCE_DIR}/external/fmus"
