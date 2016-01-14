@@ -88,8 +88,6 @@ dsb::model::SlaveID ConfigExecutionState::AddSlave(
             if (!ec) {
                 onComplete(std::error_code(), id);
             } else {
-                selfPtr->slaves[id]->Close();
-                selfPtr->slaves.erase(id);
                 onComplete(ec, dsb::model::INVALID_SLAVE_ID);
             }
             selfPtr->SlaveOpComplete();
@@ -135,6 +133,17 @@ void PrimingExecutionState::StateEntered(ExecutionManagerPrivate& self)
     const auto selfPtr = &self;
     self.WhenAllSlaveOpsComplete([selfPtr, this] (const std::error_code& ec) {
         assert(!ec);
+
+        // Garbage collection: Remove all slave controllers whose connection
+        // has failed or been canceled.
+        for (auto it = begin(selfPtr->slaves); it != end(selfPtr->slaves); ) {
+            if (it->second->State() == SLAVE_NOT_CONNECTED) {
+                it = selfPtr->slaves.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
         const auto keepMeAlive = selfPtr->SwapState(std::make_unique<ReadyExecutionState>());
         assert(keepMeAlive.get() == this);
         dsb::util::MoveAndCall(m_onComplete, std::error_code());
