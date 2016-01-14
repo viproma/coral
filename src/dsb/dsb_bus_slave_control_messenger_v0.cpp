@@ -28,7 +28,7 @@ SlaveControlMessengerV0::SlaveControlMessengerV0(
     dsb::comm::P2PReqSocket socket,
     dsb::model::SlaveID slaveID,
     const SlaveSetup& setup,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     MakeSlaveControlMessengerHandler onComplete)
     : m_reactor(reactor),
       m_socket(std::move(socket)),
@@ -85,11 +85,11 @@ void SlaveControlMessengerV0::Close()
 
 void SlaveControlMessengerV0::SetVariables(
     const std::vector<dsb::model::VariableSetting>& settings,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     SetVariablesHandler onComplete)
 {
     DSB_PRECONDITION_CHECK(State() == SLAVE_READY);
-    DSB_INPUT_CHECK(timeout > boost::chrono::milliseconds(0));
+    DSB_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     DSB_INPUT_CHECK(onComplete);
     CheckInvariant();
 
@@ -113,11 +113,11 @@ void SlaveControlMessengerV0::Step(
     dsb::model::StepID stepID,
     dsb::model::TimePoint currentT,
     dsb::model::TimeDuration deltaT,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     StepHandler onComplete)
 {
     DSB_PRECONDITION_CHECK(State() == SLAVE_READY);
-    DSB_INPUT_CHECK(timeout > boost::chrono::milliseconds(0));
+    DSB_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     DSB_INPUT_CHECK(onComplete);
     CheckInvariant();
 
@@ -132,11 +132,11 @@ void SlaveControlMessengerV0::Step(
 
 
 void SlaveControlMessengerV0::AcceptStep(
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     AcceptStepHandler onComplete)
 {
     DSB_PRECONDITION_CHECK(m_state == SLAVE_STEP_OK);
-    DSB_INPUT_CHECK(timeout > boost::chrono::milliseconds(0));
+    DSB_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     DSB_INPUT_CHECK(onComplete);
     CheckInvariant();
 
@@ -165,7 +165,7 @@ void SlaveControlMessengerV0::Terminate()
 void SlaveControlMessengerV0::Setup(
     dsb::model::SlaveID slaveID,
     const SlaveSetup& setup,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     VoidHandler onComplete)
 {
     assert(State() == SLAVE_CONNECTED);
@@ -201,7 +201,7 @@ void SlaveControlMessengerV0::Reset()
 void SlaveControlMessengerV0::SendCommand(
     int command,
     const google::protobuf::MessageLite* data,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     VoidHandler onComplete)
 {
     std::vector<zmq::message_t> msg;
@@ -215,7 +215,7 @@ void SlaveControlMessengerV0::SendCommand(
 
 void SlaveControlMessengerV0::PostSendCommand(
     int command,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     VoidHandler onComplete)
 {
     RegisterTimeout(timeout);
@@ -225,7 +225,7 @@ void SlaveControlMessengerV0::PostSendCommand(
 }
 
 
-void SlaveControlMessengerV0::RegisterTimeout(boost::chrono::milliseconds timeout)
+void SlaveControlMessengerV0::RegisterTimeout(std::chrono::milliseconds timeout)
 {
     assert (m_replyTimeoutTimerId == NO_TIMER_ACTIVE);
     m_replyTimeoutTimerId = m_reactor.AddTimer(timeout, 1,

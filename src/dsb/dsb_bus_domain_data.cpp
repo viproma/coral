@@ -13,7 +13,7 @@ namespace bus
 
 DomainData::DomainData(
     uint16_t maxProtocol,
-    boost::chrono::milliseconds slaveProviderTimeout)
+    std::chrono::milliseconds slaveProviderTimeout)
     : m_maxProtocol(maxProtocol), m_slaveProviderTimeout(slaveProviderTimeout)
 {
 }
@@ -28,7 +28,7 @@ size_t DomainData::SlaveProviderCount() const
 bool DomainData::UpdateSlaveProvider(
     const std::string& id,
     uint16_t protocol,
-    boost::chrono::steady_clock::time_point heartbeatTime)
+    std::chrono::steady_clock::time_point heartbeatTime)
 {
     auto it = m_slaveProviders.find(id);
     const bool newProvider = (it == m_slaveProviders.end());
@@ -44,7 +44,7 @@ bool DomainData::UpdateSlaveProvider(
 
 
 void DomainData::PurgeSlaveProviders(
-    boost::chrono::steady_clock::time_point referenceTime)
+    std::chrono::steady_clock::time_point referenceTime)
 {
     for (auto it = std::begin(m_slaveProviders);
             it != std::end(m_slaveProviders);

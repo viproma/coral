@@ -5,8 +5,8 @@
 #ifndef DSB_BUS_SLAVE_CONTROL_MESSENGER_V0_HPP
 #define DSB_BUS_SLAVE_CONTROL_MESSENGER_V0_HPP
 
+#include <chrono>
 #include <memory>
-#include "boost/chrono/duration.hpp"
 
 #include "dsb/config.h"
 #include "dsb/bus/slave_control_messenger.hpp"
@@ -39,7 +39,7 @@ public:
         dsb::comm::P2PReqSocket socket,
         dsb::model::SlaveID slaveID,
         const SlaveSetup& setup,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         MakeSlaveControlMessengerHandler onComplete);
 
     ~SlaveControlMessengerV0() DSB_NOEXCEPT;
@@ -50,18 +50,18 @@ public:
 
     void SetVariables(
         const std::vector<dsb::model::VariableSetting>& settings,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         SetVariablesHandler onComplete) override;
 
     void Step(
         dsb::model::StepID stepID,
         dsb::model::TimePoint currentT,
         dsb::model::TimeDuration deltaT,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         StepHandler onComplete) override;
 
     void AcceptStep(
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         AcceptStepHandler onComplete) override;
 
     void Terminate() override;
@@ -70,7 +70,7 @@ private:
     void Setup(
         dsb::model::SlaveID slaveID,
         const SlaveSetup& setup,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         VoidHandler onComplete);
 
     // Helper functions
@@ -78,13 +78,13 @@ private:
     void SendCommand(
         int command,
         const google::protobuf::MessageLite* data,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         VoidHandler onComplete);
     void PostSendCommand(
         int command,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         VoidHandler onComplete);
-    void RegisterTimeout(boost::chrono::milliseconds timeout);
+    void RegisterTimeout(std::chrono::milliseconds timeout);
     void UnregisterTimeout();
 
     // Event handlers

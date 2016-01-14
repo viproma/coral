@@ -70,13 +70,13 @@ void ReturnGetSlaveTypes(
 dsb::net::SlaveLocator CallInstantiateSlave(
     zmq::socket_t& socket,
     const std::string& slaveTypeUUID,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     const std::string& provider);
 
 void UnmarshalInstantiateSlave(
     std::vector<zmq::message_t>& msg,
     std::string& slaveTypeUUID,
-    boost::chrono::milliseconds& timeout,
+    std::chrono::milliseconds& timeout,
     std::string& provider);
 
 void ReturnInstantiateSlave(

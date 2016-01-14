@@ -16,7 +16,7 @@ SlaveController::SlaveController(
     const dsb::net::SlaveLocator& slaveLocator,
     dsb::model::SlaveID slaveID,
     const SlaveSetup& setup,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     ConnectHandler onComplete,
     int maxConnectionAttempts)
 {
@@ -65,7 +65,7 @@ SlaveState SlaveController::State() const DSB_NOEXCEPT
 
 void SlaveController::SetVariables(
     const std::vector<dsb::model::VariableSetting>& settings,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     SetVariablesHandler onComplete)
 {
     DSB_INPUT_CHECK(!settings.empty());
@@ -81,7 +81,7 @@ void SlaveController::Step(
     dsb::model::StepID stepID,
     dsb::model::TimePoint currentT,
     dsb::model::TimeDuration deltaT,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     StepHandler onComplete)
 {
     DSB_INPUT_CHECK(deltaT > 0.0);
@@ -93,7 +93,7 @@ void SlaveController::Step(
 }
 
 void SlaveController::AcceptStep(
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     AcceptStepHandler onComplete)
 {
     if (m_messenger) {

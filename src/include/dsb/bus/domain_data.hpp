@@ -5,11 +5,11 @@
 #ifndef DSB_BUS_DOMAIN_DATA_HPP
 #define DSB_BUS_DOMAIN_DATA_HPP
 
+#include <chrono>
 #include <cstdint>
 #include <map>
 #include <string>
 
-#include "boost/chrono.hpp"
 #include "boost/range/sub_range.hpp"
 
 #include "domain.pb.h"
@@ -50,7 +50,7 @@ public:
     */
     DomainData(
         uint16_t maxProtocol,
-        boost::chrono::milliseconds slaveProviderTimeout);
+        std::chrono::milliseconds slaveProviderTimeout);
 
     /// The number of known slave providers.
     size_t SlaveProviderCount() const;
@@ -73,7 +73,7 @@ public:
     bool UpdateSlaveProvider(
         const std::string& id,
         uint16_t protocol,
-        boost::chrono::steady_clock::time_point heartbeatTime);
+        std::chrono::steady_clock::time_point heartbeatTime);
 
     /**
     \brief  Removes information about "dead" slave providers from the cache.
@@ -85,7 +85,7 @@ public:
     UpdateSlaveProvider().
     */
     void PurgeSlaveProviders(
-        boost::chrono::steady_clock::time_point referenceTime);
+        std::chrono::steady_clock::time_point referenceTime);
 
     /**
     \brief  Returns a list of all slave providers and the information known
@@ -124,11 +124,11 @@ private:
     struct SlaveProvider
     {
         uint16_t protocol;
-        boost::chrono::steady_clock::time_point lastHeartbeat;
+        std::chrono::steady_clock::time_point lastHeartbeat;
     };
 
     uint16_t m_maxProtocol;
-    boost::chrono::milliseconds m_slaveProviderTimeout;
+    std::chrono::milliseconds m_slaveProviderTimeout;
 
     std::map<std::string, SlaveProvider> m_slaveProviders;
     // Slave types, mapped to slave provider IDs.

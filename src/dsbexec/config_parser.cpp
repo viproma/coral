@@ -325,8 +325,8 @@ void ParseSystemConfig(
     dsb::execution::Controller& execution,
     const dsb::net::ExecutionLocator& executionLocator,
     std::vector<SimulationEvent>& scenarioOut,
-    boost::chrono::milliseconds commTimeout,
-    boost::chrono::milliseconds instantiationTimeout,
+    std::chrono::milliseconds commTimeout,
+    std::chrono::milliseconds instantiationTimeout,
     std::ostream* warningLog)
 {
     const auto ptree = ReadPtreeInfoFile(path);
@@ -430,10 +430,10 @@ ExecutionConfig::ExecutionConfig()
     : startTime(0.0),
       stopTime(std::numeric_limits<double>::infinity()),
       stepSize(1.0),
-      commTimeout(boost::chrono::seconds(1)),
+      commTimeout(std::chrono::seconds(1)),
       stepTimeoutMultiplier(100.0),
-      slaveTimeout(boost::chrono::hours(1)),
-      instantiationTimeout(boost::chrono::seconds(30))
+      slaveTimeout(std::chrono::hours(1)),
+      instantiationTimeout(std::chrono::seconds(30))
 {
 }
 
@@ -459,9 +459,9 @@ ExecutionConfig ParseExecutionConfig(const std::string& path)
     if (ec.stepSize <= 0) Error("Nonpositive step size");
 
     if (auto commTimeoutNode = ptree.get_child_optional("comm_timeout_ms")) {
-        ec.commTimeout = boost::chrono::milliseconds(
-            commTimeoutNode->get_value<typename boost::chrono::milliseconds::rep>());
-        if (ec.commTimeout <= boost::chrono::milliseconds(0)) Error("Nonpositive comm_timeout_ms");
+        ec.commTimeout = std::chrono::milliseconds(
+            commTimeoutNode->get_value<typename std::chrono::milliseconds::rep>());
+        if (ec.commTimeout <= std::chrono::milliseconds(0)) Error("Nonpositive comm_timeout_ms");
     }
 
     if (auto stepTimeoutMultiplierNode = ptree.get_child_optional("step_timeout_multiplier")) {
@@ -470,15 +470,15 @@ ExecutionConfig ParseExecutionConfig(const std::string& path)
     }
 
     if (auto slaveTimeoutNode = ptree.get_child_optional("slave_timeout_s")) {
-        ec.slaveTimeout = boost::chrono::seconds(
-            slaveTimeoutNode->get_value<typename boost::chrono::seconds::rep>());
-        if (ec.slaveTimeout <= boost::chrono::seconds(0)) Error("Nonpositive slave_timeout_s");
+        ec.slaveTimeout = std::chrono::seconds(
+            slaveTimeoutNode->get_value<typename std::chrono::seconds::rep>());
+        if (ec.slaveTimeout <= std::chrono::seconds(0)) Error("Nonpositive slave_timeout_s");
     }
 
     if (auto instTimeoutNode = ptree.get_child_optional("instantiation_timeout_ms")) {
-        ec.instantiationTimeout = boost::chrono::milliseconds(
-            instTimeoutNode->get_value<typename boost::chrono::milliseconds::rep>());
-        if (ec.commTimeout <= boost::chrono::milliseconds(0)) Error("Nonpositive instantiation_timeout_ms");
+        ec.instantiationTimeout = std::chrono::milliseconds(
+            instTimeoutNode->get_value<typename std::chrono::milliseconds::rep>());
+        if (ec.commTimeout <= std::chrono::milliseconds(0)) Error("Nonpositive instantiation_timeout_ms");
     }
     return ec;
 }

@@ -1,4 +1,3 @@
-#define BOOST_CHRONO_DONT_PROVIDES_DEPRECATED_IO_SINCE_V2_0_0
 #include "dsb/util.hpp"
 
 #ifdef _WIN32
@@ -7,9 +6,11 @@
 #   include <unistd.h>
 #endif
 
+#include <chrono>
 #include <cstdio>
+#include <ctime>
+#include <iomanip>
 
-#include "boost/chrono.hpp"
 #include "boost/filesystem.hpp"
 #include "boost/foreach.hpp"
 #include "boost/uuid/random_generator.hpp"
@@ -36,13 +37,14 @@ std::string dsb::util::RandomUUID()
     return boost::uuids::to_string(gen());
 }
 
-
 std::string dsb::util::Timestamp()
 {
-    const auto t = boost::chrono::system_clock::now();
-    std::ostringstream ss;
-    ss << boost::chrono::time_fmt(boost::chrono::timezone::utc, "%Y%m%dT%H%M%SZ") << t;
-    return ss.str();
+    const auto t = std::chrono::system_clock::to_time_t(
+        std::chrono::system_clock::now());
+    const std::size_t len = 17;
+    char buf[len];
+    std::strftime(buf, len, "%Y%m%dT%H%M%SZ", std::gmtime(&t));
+    return std::string(buf);
 }
 
 

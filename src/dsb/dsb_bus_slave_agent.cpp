@@ -49,7 +49,7 @@ SlaveAgent::SlaveAgent(
     dsb::comm::Reactor& reactor,
     dsb::execution::ISlaveInstance& slaveInstance,
     const dsb::comm::P2PEndpoint& bindpoint,
-    boost::chrono::milliseconds commTimeout)
+    std::chrono::milliseconds commTimeout)
     : m_stateHandler(&SlaveAgent::NotConnectedHandler),
       m_slaveInstance(slaveInstance),
       m_commTimeout(commTimeout),
@@ -64,7 +64,7 @@ SlaveAgent::SlaveAgent(
             std::vector<zmq::message_t> msg;
             if (!dsb::comm::Receive(m_control, msg, m_commTimeout)) {
                 throw dsb::execution::TimeoutException(
-                    boost::chrono::duration_cast<boost::chrono::seconds>(m_commTimeout));
+                    std::chrono::duration_cast<std::chrono::seconds>(m_commTimeout));
             }
             try {
                 RequestReply(msg);
@@ -294,7 +294,7 @@ void SlaveAgent::Connections::Couple(
 void SlaveAgent::Connections::Update(
     dsb::execution::ISlaveInstance& slaveInstance,
     dsb::model::StepID stepID,
-    boost::chrono::milliseconds timeout)
+    std::chrono::milliseconds timeout)
 {
     m_subscriber.Update(stepID, timeout);
     for (const auto& conn : m_connections.left) {

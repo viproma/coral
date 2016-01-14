@@ -5,13 +5,12 @@
 #ifndef DSB_COMM_REACTOR_HPP
 #define DSB_COMM_REACTOR_HPP
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <vector>
 #include <utility>
 
-#include "boost/chrono/duration.hpp"
-#include "boost/chrono/system_clocks.hpp"
 #include "zmq.hpp"
 #include "dsb/config.h"
 
@@ -37,7 +36,7 @@ active when the messaging loop is running, i.e. between Run() and Stop().
 class Reactor
 {
 public:
-    typedef boost::chrono::system_clock::time_point TimePoint;
+    typedef std::chrono::system_clock::time_point TimePoint;
     typedef std::function<void(Reactor&, zmq::socket_t&)> SocketHandler;
     typedef std::function<void(Reactor&, int)> TimerHandler;
 
@@ -74,7 +73,7 @@ public:
     \throws std::invalid_argument if `count` is zero or `interval` is negative.
     */
     int AddTimer(
-        boost::chrono::milliseconds interval,
+        std::chrono::milliseconds interval,
         int count,
         TimerHandler handler);
 
@@ -107,7 +106,7 @@ public:
 
 private:
     void ResetTimers();
-    boost::chrono::milliseconds TimeToNextEvent() const;
+    std::chrono::milliseconds TimeToNextEvent() const;
     void PerformNextEvent();
 
     // Rebuilds the list of poll items.
@@ -124,7 +123,7 @@ private:
         Timer(
             int id,
             TimePoint nextEventTime,
-            boost::chrono::milliseconds interval,
+            std::chrono::milliseconds interval,
             int remaining,
             std::unique_ptr<TimerHandler> handler);
 
@@ -138,7 +137,7 @@ private:
 
         int id;
         TimePoint nextEventTime;
-        boost::chrono::milliseconds interval;
+        std::chrono::milliseconds interval;
         int remaining;
         std::unique_ptr<TimerHandler> handler;
     };

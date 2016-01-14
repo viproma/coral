@@ -1,10 +1,10 @@
 #include "dsb/comm/proxy.hpp"
 
 #include <exception>
+#include <thread>
 #include <utility>
 
 #include "boost/numeric/conversion/cast.hpp"
-#include "boost/thread.hpp"
 
 #include "dsb/comm/util.hpp"
 #include "dsb/util.hpp"
@@ -47,6 +47,9 @@ namespace
         /// Move constructor.
         Unique(Unique&& source) DSB_NOEXCEPT : m_payload(std::move(source.m_payload)) { }
 
+        /// Move assignment.
+        Unique& operator=(Unique&& other) DSB_NOEXCEPT { m_payload = std::move(other.m_payload); }
+
         /// Returns a reference to the payload value.
         T& Payload() { return m_payload; }
 
@@ -71,6 +74,21 @@ namespace
               m_silenceTimeoutMillis(silenceTimeoutMillis)
         {
         }
+
+        ProxyFunctor(const ProxyFunctor&) = delete;
+        ProxyFunctor& operator=(const ProxyFunctor&) = delete;
+
+        ProxyFunctor(ProxyFunctor&& other) DSB_NOEXCEPT
+          : m_socket1(std::move(other.m_socket1)),
+            m_socket2(std::move(other.m_socket2)),
+            m_controlEndpoint(std::move(other.m_controlEndpoint)),
+            m_silenceTimeoutMillis(other.m_silenceTimeoutMillis)
+        {
+        }
+
+        // This class only needs to be move _constructible_, and not move
+        // _assignable_, for std::thread to be able to use it.
+        ProxyFunctor& operator=(ProxyFunctor&& other) = delete;
 
         void operator()()
         {
@@ -111,16 +129,14 @@ namespace
 }
 
 
-dsb::comm::Proxy::Proxy(zmq::socket_t controlSocket, boost::thread thread)
+dsb::comm::Proxy::Proxy(zmq::socket_t controlSocket, std::thread thread)
     : m_controlSocket(std::move(controlSocket)),
       m_thread(std::move(thread))
 {
     assert (static_cast<void*>(m_controlSocket)
             && "Proxy::Proxy(): invalid socket");
-    assert (m_thread.get_id() != boost::thread::id()
+    assert (m_thread.get_id() != std::thread::id()
             && "Proxy::Proxy(): thread handle does not refer to a thread");
-    assert (!m_thread.try_join_for(boost::chrono::seconds(0))
-            && "Proxy::Proxy(): thread has already terminated");
 }
 
 
@@ -133,7 +149,7 @@ dsb::comm::Proxy::Proxy(Proxy&& other) DSB_NOEXCEPT
 
 dsb::comm::Proxy::~Proxy()
 {
-    m_thread.detach();
+    if (m_thread.joinable()) m_thread.detach();
 }
 
 
@@ -153,7 +169,7 @@ void dsb::comm::Proxy::Stop(bool wait)
 }
 
 
-boost::thread& dsb::comm::Proxy::Thread__()
+std::thread& dsb::comm::Proxy::Thread__()
 {
     return m_thread;
 }
@@ -162,7 +178,7 @@ boost::thread& dsb::comm::Proxy::Thread__()
 dsb::comm::Proxy dsb::comm::SpawnProxy(
     zmq::socket_t&& socket1,
     zmq::socket_t&& socket2,
-    boost::chrono::milliseconds silenceTimeout)
+    std::chrono::milliseconds silenceTimeout)
 {
     assert ((void*) socket1 && "socket1 not initialised");
     assert ((void*) socket2 && "socket2 not initialised");
@@ -176,7 +192,7 @@ dsb::comm::Proxy dsb::comm::SpawnProxy(
     controlSocket.setsockopt(ZMQ_LINGER, &lingerMillis, sizeof(lingerMillis));
     controlSocket.bind(controlEndpoint.c_str());
 
-    auto thread = boost::thread(ProxyFunctor(
+    auto thread = std::thread(ProxyFunctor(
             Unique<zmq::socket_t>(std::move(socket1)),
             Unique<zmq::socket_t>(std::move(socket2)),
             controlEndpoint,
@@ -191,7 +207,7 @@ dsb::comm::Proxy dsb::comm::SpawnProxy(
 dsb::comm::Proxy dsb::comm::SpawnProxy(
     int socketType1, const std::string& endpoint1,
     int socketType2, const std::string& endpoint2,
-    boost::chrono::milliseconds silenceTimeout)
+    std::chrono::milliseconds silenceTimeout)
 {
     auto socket1 = zmq::socket_t(GlobalContext(), socketType1);
     socket1.bind(endpoint1.c_str());

@@ -6,13 +6,13 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <iostream> // TODO: For debugging, remove later.
 #include <iterator>
 #include <map>
 #include <vector>
 
-#include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
 #include "boost/lexical_cast.hpp"
 #include "boost/numeric/conversion/cast.hpp"
@@ -42,7 +42,7 @@ namespace dp = dsb::protocol::domain;
 
 namespace
 {
-    const auto SLAVEPROVIDER_TIMEOUT = boost::chrono::seconds(10);
+    const auto SLAVEPROVIDER_TIMEOUT = std::chrono::seconds(10);
 
 
     void HandleGetSlaveTypes(
@@ -85,7 +85,7 @@ namespace
         const dsb::bus::DomainData& domainData)
     {
         std::string slaveTypeUUID;
-        boost::chrono::milliseconds timeout;
+        std::chrono::milliseconds timeout;
         std::string provider;
         dsb::inproc_rpc::UnmarshalInstantiateSlave(msg, slaveTypeUUID, timeout, provider);
 
@@ -216,7 +216,7 @@ namespace
 
 
     void HandleSlaveProviderHello(
-        const boost::chrono::steady_clock::time_point recvTime,
+        const std::chrono::steady_clock::time_point recvTime,
         dsb::bus::DomainData& domainData,
         zmq::socket_t& infoSocket,
         const dp::Header& header,
@@ -230,7 +230,7 @@ namespace
                 msg, providerId, dp::MSG_GET_SLAVE_LIST, header.protocol);
             dsb::comm::Send(infoSocket, msg);
 
-            if (!dsb::comm::Receive(infoSocket, msg, boost::chrono::seconds(10))) {
+            if (!dsb::comm::Receive(infoSocket, msg, std::chrono::seconds(10))) {
                 // TODO: Shouldn't use hardcoded timeout, and must handle the failure better.
                 assert(!"Timeout waiting for reply from slave provider, SP possibly dead.");
                 return;
@@ -255,7 +255,7 @@ namespace
     }
 
     void HandleReportMsg(
-        const boost::chrono::steady_clock::time_point recvTime,
+        const std::chrono::steady_clock::time_point recvTime,
         dsb::bus::DomainData& domainData,
         zmq::socket_t& reportSocket,
         zmq::socket_t& infoSocket)
@@ -316,13 +316,13 @@ namespace
             HandleRPCCall(*infoEndpoint, domainData, rpcSocket, infoSocket);
         });
         reactor.AddSocket(reportSocket, [&](dsb::comm::Reactor& r, zmq::socket_t&) {
-            HandleReportMsg(boost::chrono::steady_clock::now(), domainData, reportSocket, infoSocket);
+            HandleReportMsg(std::chrono::steady_clock::now(), domainData, reportSocket, infoSocket);
         });
         reactor.AddTimer(
-            boost::chrono::milliseconds(SLAVEPROVIDER_TIMEOUT) / (domainData.SlaveProviderCount() + 1),
+            std::chrono::milliseconds(SLAVEPROVIDER_TIMEOUT) / (domainData.SlaveProviderCount() + 1),
             -1,
             [&](dsb::comm::Reactor& r, int) {
-                domainData.PurgeSlaveProviders(boost::chrono::steady_clock::now());
+                domainData.PurgeSlaveProviders(std::chrono::steady_clock::now());
             });
 
         for (;;) {
@@ -353,7 +353,7 @@ Controller::Controller(const dsb::net::DomainLocator& locator)
     const auto destroyEndpoint = std::make_shared<std::string>(
         "inproc://" + dsb::util::RandomUUID());
     m_destroySocket->bind(destroyEndpoint->c_str());
-    m_thread = boost::thread(MessagingLoop,
+    m_thread = std::thread(MessagingLoop,
         rpcEndpoint,
         destroyEndpoint,
         std::make_shared<std::string>(locator.ReportMasterEndpoint()),
@@ -400,7 +400,7 @@ std::vector<Controller::SlaveType> Controller::GetSlaveTypes()
 
 dsb::net::SlaveLocator Controller::InstantiateSlave(
     const std::string& slaveTypeUUID,
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     const std::string& provider)
 {
     return dsb::inproc_rpc::CallInstantiateSlave(

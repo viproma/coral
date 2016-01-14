@@ -5,12 +5,11 @@
 #ifndef DSB_DOMAIN_CONTROLLER_HPP
 #define DSB_DOMAIN_CONTROLLER_HPP
 
+#include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
-
-#include "boost/chrono/duration.hpp"
-#include "boost/thread.hpp"
 
 #include "dsb/config.h"
 #include "dsb/model.hpp"
@@ -88,7 +87,7 @@ public:
     */
     dsb::net::SlaveLocator InstantiateSlave(
         const std::string& slaveTypeUUID,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         const std::string& provider = std::string());
 
 private:
@@ -97,7 +96,7 @@ private:
     std::unique_ptr<zmq::socket_t> m_rpcSocket;
     std::unique_ptr<zmq::socket_t> m_destroySocket; // for sending termination command from destructor.
     bool m_active;
-    boost::thread m_thread;
+    std::thread m_thread;
 };
 
 

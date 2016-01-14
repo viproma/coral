@@ -5,9 +5,9 @@
 #ifndef DSB_DOMAIN_SLAVE_PROVIDER_HPP
 #define DSB_DOMAIN_SLAVE_PROVIDER_HPP
 
+#include <chrono>
 #include <string>
 #include <vector>
-#include "boost/chrono/duration.hpp"
 #include "boost/noncopyable.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
@@ -86,7 +86,7 @@ public:
     \returns `true` if a slave was successfully instantiated, `false` otherwise.
     */
     virtual bool Instantiate(
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         dsb::net::SlaveLocator& slaveLocator) = 0;
 
     /**

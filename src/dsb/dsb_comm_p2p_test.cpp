@@ -1,9 +1,9 @@
 #include "gtest/gtest.h"
 
+#include <chrono>
 #include <string>
+#include <thread>
 #include <vector>
-#include "boost/thread.hpp"
-#include "boost/chrono.hpp"
 #include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
@@ -12,16 +12,6 @@
 #include "dsb/comm/p2p.hpp"
 
 using namespace dsb::comm;
-
-
-namespace
-{
-    bool StillRunning(BackgroundP2PProxy& p)
-    {
-        auto& t = p.Thread__();
-        return t.joinable() && !t.try_join_for(boost::chrono::milliseconds(10));
-    }
-}
 
 
 TEST(dsb_comm, P2PProxy_bidirectional)
@@ -47,7 +37,6 @@ TEST(dsb_comm, P2PProxy_bidirectional)
 
     std::uint16_t port = 0;
     auto proxy = SpawnTcpP2PProxy("*", port);
-    ASSERT_TRUE(StillRunning(proxy));
     ASSERT_GT(port, 0);
 
     const auto endpoint = "tcp://localhost:" + std::to_string(port);
@@ -56,7 +45,7 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     req2.connect(endpoint.c_str());
     rep2.connect(endpoint.c_str());
     // Give ZeroMQ some time to establish the connections.
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Send a request from client 1 to server 2
     std::vector<zmq::message_t> req1Msg;
@@ -112,36 +101,34 @@ TEST(dsb_comm, P2PProxy_bidirectional)
     EXPECT_TRUE(recvRep1Msg[1].size() == 0);
     EXPECT_EQ(body3, dsb::comm::ToString(recvRep1Msg[2]));
 
-    ASSERT_TRUE(StillRunning(proxy));
     proxy.Terminate();
-    ASSERT_FALSE(StillRunning(proxy));
 }
 
 TEST(dsb_comm, P2PProxy_timeout)
 {
     auto proxy = BackgroundP2PProxy(
         zmq::socket_t(GlobalContext(), ZMQ_ROUTER),
-        boost::chrono::milliseconds(100));
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
-    EXPECT_TRUE(StillRunning(proxy));
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(50));
-    EXPECT_FALSE(StillRunning(proxy));
+        std::chrono::milliseconds(100));
+    const auto then = std::chrono::steady_clock::now();
+    proxy.Thread__().join();
+    const auto shutdownTime = std::chrono::steady_clock::now() - then;
+    EXPECT_GT(shutdownTime, std::chrono::milliseconds(80));
+    EXPECT_LT(shutdownTime, std::chrono::milliseconds(120));
 }
 
 TEST(dsb_comm, P2PProxy_misc)
 {
     auto proxy = BackgroundP2PProxy(
         zmq::socket_t(GlobalContext(), ZMQ_ROUTER),
-        boost::chrono::milliseconds(500));
-    EXPECT_TRUE(StillRunning(proxy));
+        std::chrono::milliseconds(500));
     auto proxy2 = std::move(proxy); // move construction
-    EXPECT_FALSE(StillRunning(proxy));
-    EXPECT_TRUE(StillRunning(proxy2));
+    EXPECT_FALSE(proxy.Thread__().joinable());
+    EXPECT_TRUE(proxy2.Thread__().joinable());
     proxy = std::move(proxy2); // move assignment
-    EXPECT_FALSE(StillRunning(proxy2));
-    EXPECT_TRUE(StillRunning(proxy));
+    EXPECT_FALSE(proxy2.Thread__().joinable());
+    EXPECT_TRUE(proxy.Thread__().joinable());
     proxy.Detach();
-    EXPECT_FALSE(StillRunning(proxy));
+    EXPECT_FALSE(proxy.Thread__().joinable());
 }
 
 
@@ -208,7 +195,7 @@ TEST(dsb_comm, P2PReqRepSocketDirect)
     P2PRepSocket svr;
     svr.Bind(P2PEndpoint("tcp://*:12345"));
     cli.Connect(P2PEndpoint("tcp://localhost:12345"));
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
     svr.Close();
@@ -216,7 +203,7 @@ TEST(dsb_comm, P2PReqRepSocketDirect)
     // ...and do it again
     svr.Bind(P2PEndpoint("tcp://*:12346"));
     cli.Connect(P2PEndpoint("tcp://localhost:12346"));
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
 }
@@ -228,7 +215,7 @@ TEST(dsb_comm, P2PReqRepSocketDirectReverse)
     P2PRepSocket svr;
     cli.Bind("tcp://*:12345");
     svr.Connect("tcp://localhost:12345");
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
     svr.Close();
@@ -236,7 +223,7 @@ TEST(dsb_comm, P2PReqRepSocketDirectReverse)
     // ...and do it again
     cli.Bind("tcp://*:12346");
     svr.Connect("tcp://localhost:12346");
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
 }
@@ -251,7 +238,7 @@ TEST(dsb_comm, P2PReqRepSocketProxied)
     const auto endpoint = "tcp://localhost:" + std::to_string(port);
     svr.Bind(P2PEndpoint(endpoint, "bobby"));
     cli.Connect(P2PEndpoint(endpoint, "bobby"));
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
     svr.Close();
@@ -260,7 +247,7 @@ TEST(dsb_comm, P2PReqRepSocketProxied)
     // may not have discovered that 'bobby' has disconnected yet)
     svr.Bind(P2PEndpoint(endpoint, "johnny"));
     cli.Connect(P2PEndpoint(endpoint, "johnny"));
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
 }
@@ -272,7 +259,7 @@ TEST(dsb_comm, P2PReqRepSocketOutOfOrder)
     P2PRepSocket svr;
     svr.Bind(P2PEndpoint("tcp://*:12345"));
     cli.Connect(P2PEndpoint("tcp://localhost:12345"));
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::vector<zmq::message_t> m;
     m.push_back(zmq::message_t(5));

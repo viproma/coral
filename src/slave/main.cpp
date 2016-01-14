@@ -45,7 +45,7 @@ try {
 
     const auto fmuPath = std::string(argv[2]);
     const auto bindpoint = std::string(argv[3]);
-    const auto commTimeout = boost::chrono::seconds(std::atoi(argv[4]));
+    const auto commTimeout = std::chrono::seconds(std::atoi(argv[4]));
 
     std::ofstream csvOutput;
     if (argc > 5)

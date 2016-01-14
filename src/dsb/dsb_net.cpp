@@ -94,7 +94,7 @@ ExecutionLocator::ExecutionLocator(
     const std::string& variableSubEndpoint,
     const std::string& execTerminationEndpoint,
     const std::string& execID,
-    boost::chrono::seconds commTimeout)
+    std::chrono::seconds commTimeout)
     : m_masterEndpoint(masterEndpoint),
       m_slaveEndpoint(slaveEndpoint),
       m_variablePubEndpoint(variablePubEndpoint),
@@ -135,7 +135,7 @@ const std::string& ExecutionLocator::ExecName() const
     return m_execName;
 }
 
-boost::chrono::seconds ExecutionLocator::CommTimeout() const
+std::chrono::seconds ExecutionLocator::CommTimeout() const
 {
     return m_commTimeout;
 }

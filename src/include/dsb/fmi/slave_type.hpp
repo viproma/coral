@@ -5,10 +5,9 @@
 #ifndef DSB_FMI_SLAVE_TYPE_HPP
 #define DSB_FMI_SLAVE_TYPE_HPP
 
+#include <chrono>
 #include <functional>
 #include <string>
-
-#include "boost/chrono/duration.hpp"
 
 #include "fmilib.h"
 #include "dsb/fmilib/fmu1.hpp"
@@ -61,7 +60,7 @@ public:
     size_t VariableCount() const override;
     virtual dsb::model::VariableDescription Variable(size_t index) const override;
     virtual bool Instantiate(
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         dsb::net::SlaveLocator& slaveLocator) override;
     virtual std::string InstantiationFailureDescription() const override;
 

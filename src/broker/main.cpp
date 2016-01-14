@@ -28,7 +28,7 @@ namespace
         int backendType,
         std::uint16_t& frontendPort,
         std::uint16_t& backendPort,
-        boost::chrono::milliseconds silenceTimeout)
+        std::chrono::milliseconds silenceTimeout)
     {
         auto fe = zmq::socket_t(dsb::comm::GlobalContext(), frontendType);
         auto be = zmq::socket_t(dsb::comm::GlobalContext(), backendType);
@@ -44,8 +44,7 @@ namespace
     class ExecutionBroker
     {
     public:
-        ExecutionBroker(
-            boost::chrono::seconds commTimeout)
+        ExecutionBroker(std::chrono::seconds commTimeout)
             : m_controlPort(0),
               m_dataPubPort(0), m_dataSubPort(0),
               m_control(dsb::comm::SpawnTcpP2PProxy("*", commTimeout, m_controlPort)),
@@ -57,13 +56,26 @@ namespace
             assert (m_dataSubPort > 0);
         }
 
+        ExecutionBroker(const ExecutionBroker&) = delete;
+        ExecutionBroker& operator=(const ExecutionBroker&) = delete;
+
         ExecutionBroker(ExecutionBroker&& other) DSB_NOEXCEPT
-            : m_controlPort(std::move(other.m_controlPort)),
-              m_dataPubPort(std::move(other.m_dataPubPort)),
-              m_dataSubPort(std::move(other.m_dataSubPort)),
+            : m_controlPort(other.m_controlPort),
+              m_dataPubPort(other.m_dataPubPort),
+              m_dataSubPort(other.m_dataSubPort),
               m_control(std::move(other.m_control)),
               m_data(std::move(other.m_data))
         {
+        }
+
+        ExecutionBroker& operator=(ExecutionBroker&& other) DSB_NOEXCEPT
+        {
+              m_controlPort = other.m_controlPort;
+              m_dataPubPort = other.m_dataPubPort;
+              m_dataSubPort = other.m_dataSubPort;
+              m_control = std::move(other.m_control);
+              m_data = std::move(other.m_data);
+              return *this;
         }
 
         // TODO: Return just one value here, if this all turns out to work.
@@ -144,13 +156,11 @@ try
                 dsbproto::broker::SpawnExecutionData seData;
                 dsb::protobuf::ParseFromFrame(msg[1], seData);
                 const auto execName = seData.execution_name();
-                const auto commTimeout = boost::chrono::seconds(seData.comm_timeout_seconds());
+                const auto commTimeout = std::chrono::seconds(seData.comm_timeout_seconds());
                 if (executionBrokers.count(execName)) {
                     throw std::runtime_error("Execution name already in use: " + execName);
                 }
-                auto b = executionBrokers.insert(
-                    std::make_pair(execName, ExecutionBroker(commTimeout))
-                    ).first;
+                auto b = executionBrokers.emplace(execName, ExecutionBroker(commTimeout)).first;
                 msg.clear();
                 msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION_OK"));
                 msg.push_back(zmq::message_t());

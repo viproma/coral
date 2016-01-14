@@ -5,9 +5,9 @@
 #ifndef DSB_NET_HPP
 #define DSB_NET_HPP
 
+#include <chrono>
 #include <cstdint>
 #include <string>
-#include "boost/chrono.hpp"
 
 
 namespace dsb
@@ -63,7 +63,7 @@ public:
         const std::string& variableSubEndpoint,
         const std::string& execTerminationEndpoint,
         const std::string& execID,
-        boost::chrono::seconds commTimeout);
+        std::chrono::seconds commTimeout);
 
     const std::string& MasterEndpoint() const;
     const std::string& SlaveEndpoint() const;
@@ -71,7 +71,7 @@ public:
     const std::string& VariableSubEndpoint() const;
     const std::string& ExecTerminationEndpoint() const;
     const std::string& ExecName() const;
-    boost::chrono::seconds CommTimeout() const;
+    std::chrono::seconds CommTimeout() const;
 
 private:
     std::string m_masterEndpoint;
@@ -86,7 +86,7 @@ private:
     // responsible for shutting down themselves.
     // TODO: Re-evaluate whether this should be in a Locator, as it doesn't
     //       strictly have anything to do with location.
-    boost::chrono::seconds m_commTimeout;
+    std::chrono::seconds m_commTimeout;
 };
 
 

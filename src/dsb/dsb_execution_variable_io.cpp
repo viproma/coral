@@ -122,7 +122,7 @@ void VariableSubscriber::Unsubscribe(const dsb::model::Variable& variable)
 
 void VariableSubscriber::Update(
     dsb::model::StepID stepID,
-    boost::chrono::milliseconds timeout)
+    std::chrono::milliseconds timeout)
 {
     DSB_PRECONDITION_CHECK(stepID >= m_currentStepID);
     m_currentStepID = stepID;

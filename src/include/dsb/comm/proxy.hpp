@@ -5,10 +5,10 @@
 #ifndef DSB_COMM_PROXY_HPP
 #define DSB_COMM_PROXY_HPP
 
+#include <chrono>
 #include <memory>
-#include "boost/chrono/duration.hpp"
+#include <thread>
 #include "boost/noncopyable.hpp"
-#include "boost/thread.hpp"
 #include "dsb/config.h"
 #include "zmq.hpp"
 
@@ -63,25 +63,25 @@ public:
     void Stop(bool wait = false);
 
     /**
-    \brief  Returns a reference to the `boost::thread` that manages the proxy
+    \brief  Returns a reference to the `std::thread` that manages the proxy
             thread.
 
     \warning
         This function is included mainly for debugging and testing purposes,
         and may be removed in the future.  Do not rely on its existence.
     */
-    boost::thread& Thread__();
+    std::thread& Thread__();
 
 private:
     // Only SpawnProxy() may construct this class.
     friend Proxy SpawnProxy(
         zmq::socket_t&& socket1,
         zmq::socket_t&& socket2,
-        boost::chrono::milliseconds silenceTimeout);
-    Proxy(zmq::socket_t controlSocket, boost::thread thread);
+        std::chrono::milliseconds silenceTimeout);
+    Proxy(zmq::socket_t controlSocket, std::thread thread);
 
     zmq::socket_t m_controlSocket;
-    boost::thread m_thread;
+    std::thread m_thread;
 };
 
 
@@ -89,7 +89,7 @@ private:
 \brief  A special value for the `silenceTimeout` parameter of SpawnProxy() which
         means the proxy should never terminate due to silence.
 */
-const auto NEVER_TIMEOUT = boost::chrono::milliseconds(-1);
+const auto NEVER_TIMEOUT = std::chrono::milliseconds(-1);
 
 
 /**
@@ -131,7 +131,7 @@ is running.
 Proxy SpawnProxy(
     zmq::socket_t&& socket1,
     zmq::socket_t&& socket2,
-    boost::chrono::milliseconds silenceTimeout = NEVER_TIMEOUT);
+    std::chrono::milliseconds silenceTimeout = NEVER_TIMEOUT);
 
 
 /**
@@ -163,7 +163,7 @@ It then forwards to SpawnProxy() to spawn the actual proxy.
 Proxy SpawnProxy(
     int socketType1, const std::string& endpoint1,
     int socketType2, const std::string& endpoint2,
-    boost::chrono::milliseconds silenceTimeout = NEVER_TIMEOUT);
+    std::chrono::milliseconds silenceTimeout = NEVER_TIMEOUT);
 
 
 }}      // namespace

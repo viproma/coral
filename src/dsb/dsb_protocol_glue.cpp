@@ -164,7 +164,7 @@ dsb::net::ExecutionLocator dsb::protocol::FromProto(
         executionLocator.variable_sub_endpoint(),
         "",
         executionLocator.execution_name(),
-        boost::chrono::seconds(executionLocator.comm_timeout_seconds()));
+        std::chrono::seconds(executionLocator.comm_timeout_seconds()));
 }
 
 

@@ -72,7 +72,7 @@ dsb::model::VariableDescription FmiSlaveType::Variable(size_t index) const
 }
 
 bool FmiSlaveType::Instantiate(
-    boost::chrono::milliseconds timeout,
+    std::chrono::milliseconds timeout,
     dsb::net::SlaveLocator& slaveLocator)
 {
     m_instantiationFailureDescription.clear();

@@ -64,23 +64,23 @@ public:
     dsb::model::SlaveID AddSlave(
         const dsb::net::SlaveLocator& slaveLocator,
         dsb::comm::Reactor& reactor,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::AddSlaveHandler onComplete);
 
     void SetVariables(
         dsb::model::SlaveID slave,
         const std::vector<dsb::model::VariableSetting>& settings,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::SetVariablesHandler onComplete);
 
     void Step(
         dsb::model::TimeDuration stepSize,
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::StepHandler onComplete,
         ExecutionManager::SlaveStepHandler onSlaveStepComplete);
 
     void AcceptStep(
-        boost::chrono::milliseconds timeout,
+        std::chrono::milliseconds timeout,
         ExecutionManager::AcceptStepHandler onComplete,
         ExecutionManager::SlaveAcceptStepHandler onSlaveAcceptStepComplete);
 

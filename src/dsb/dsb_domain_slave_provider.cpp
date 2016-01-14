@@ -2,12 +2,12 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
+#include <thread>
 #include <vector>
 
-#include "boost/chrono.hpp"
 #include "boost/foreach.hpp"
 #include "boost/numeric/conversion/cast.hpp"
-#include "boost/thread.hpp"
 #include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
@@ -38,7 +38,7 @@ void dsb::domain::SlaveProvider(
     namespace dp = dsb::protocol::domain;
     zmq::pollitem_t pollItem = { info, 0, ZMQ_POLLIN, 0 };
 
-    namespace bc = boost::chrono;
+    namespace bc = std::chrono;
     const auto HELLO_INTERVAL = bc::milliseconds(1000);
     auto nextHelloTime = bc::steady_clock::now() + HELLO_INTERVAL;
     for (;;) {
@@ -84,7 +84,7 @@ void dsb::domain::SlaveProvider(
                         [&](const dsb::domain::ISlaveType* s)
                             { return s->Uuid() == data.slave_type_uuid(); });
 
-                    const auto instantiationTimeout = boost::chrono::milliseconds(data.timeout_ms());
+                    const auto instantiationTimeout = std::chrono::milliseconds(data.timeout_ms());
                     dsb::net::SlaveLocator slaveLocator;
                     if (stIt != slaveTypes.end()
                         && (*stIt)->Instantiate(instantiationTimeout, slaveLocator))

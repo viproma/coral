@@ -72,11 +72,11 @@ namespace
 
 
 int Reactor::AddTimer(
-    boost::chrono::milliseconds interval,
+    std::chrono::milliseconds interval,
     int count,
     TimerHandler handler)
 {
-    if (interval < boost::chrono::milliseconds(0)) {
+    if (interval < std::chrono::milliseconds(0)) {
         throw std::invalid_argument("Negative interval");
     }
     if (count == 0) {
@@ -85,7 +85,7 @@ int Reactor::AddTimer(
     const auto id = ++m_nextTimerID;
     PushTimer(m_timers, Timer(
         id,
-        boost::chrono::system_clock::now() + interval,
+        std::chrono::system_clock::now() + interval,
         interval,
         count,
         std::make_unique<TimerHandler>(std::move(handler))));
@@ -119,7 +119,7 @@ void Reactor::Run()
             }
         }
         while (!m_timers.empty()
-               && boost::chrono::system_clock::now() >= m_timers.front().nextEventTime) {
+               && std::chrono::system_clock::now() >= m_timers.front().nextEventTime) {
             PerformNextEvent();
         }
     } while (m_continuePolling);
@@ -134,7 +134,7 @@ void Reactor::Stop()
 
 void Reactor::ResetTimers()
 {
-    const auto t0 = boost::chrono::system_clock::now();
+    const auto t0 = std::chrono::system_clock::now();
     for (auto it = std::begin(m_timers); it != std::end(m_timers); ++it) {
         it->nextEventTime = t0 + it->interval;
     }
@@ -142,18 +142,18 @@ void Reactor::ResetTimers()
 }
 
 
-boost::chrono::milliseconds Reactor::TimeToNextEvent() const
+std::chrono::milliseconds Reactor::TimeToNextEvent() const
 {
     return std::max(
-        boost::chrono::duration_cast<boost::chrono::milliseconds>(
-            m_timers.front().nextEventTime - boost::chrono::system_clock::now()),
-        boost::chrono::milliseconds(0));
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            m_timers.front().nextEventTime - std::chrono::system_clock::now()),
+        std::chrono::milliseconds(0));
 }
 
 
 void Reactor::PerformNextEvent()
 {
-    assert (m_timers.front().nextEventTime <= boost::chrono::system_clock::now());
+    assert (m_timers.front().nextEventTime <= std::chrono::system_clock::now());
     assert (m_timers.front().remaining != 0);
 
     // The handler may delete the timer, thus also deleting some information
@@ -202,7 +202,7 @@ void Reactor::Rebuild()
 Reactor::Timer::Timer(
     int id_,
     TimePoint nextEventTime_,
-    boost::chrono::milliseconds interval_,
+    std::chrono::milliseconds interval_,
     int remaining_,
     std::unique_ptr<TimerHandler> handler_)
     : id(id_),

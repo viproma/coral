@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
@@ -5,7 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "boost/chrono.hpp"
 #include "boost/filesystem.hpp"
 #include "boost/foreach.hpp"
 #include "boost/lexical_cast.hpp"
@@ -40,7 +40,7 @@ public:
     StartSlave(
         const std::string& proxyEndpoint,
         const std::string& slaveExe,
-        boost::chrono::seconds commTimeout,
+        std::chrono::seconds commTimeout,
         const std::string& outputDir)
         : m_proxyEndpoint(proxyEndpoint),
           m_slaveExe(slaveExe),
@@ -51,7 +51,7 @@ public:
 
     dsb::net::SlaveLocator operator()(
         const std::string& fmuPath,
-        boost::chrono::milliseconds instantiationTimeout)
+        std::chrono::milliseconds instantiationTimeout)
     {
         const auto fmuBaseName = boost::filesystem::path(fmuPath).stem().string();
         const auto outputFile = m_outputDir + '/'
@@ -115,7 +115,7 @@ public:
 private:
     std::string m_proxyEndpoint;
     std::string m_slaveExe;
-    boost::chrono::seconds m_commTimeout;
+    std::chrono::seconds m_commTimeout;
     std::string m_outputDir;
 };
 
@@ -186,7 +186,7 @@ try {
 
     const auto domainAddress = optMap["domain"].as<std::string>();
     const auto outputDir = optMap["output-dir"].as<std::string>();
-    const auto timeout = boost::chrono::seconds(optMap["timeout"].as<unsigned int>());
+    const auto timeout = std::chrono::seconds(optMap["timeout"].as<unsigned int>());
 
     std::string slaveExe;
     if (optMap.count("slave-exe")) {
