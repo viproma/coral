@@ -71,8 +71,8 @@ void P2PProxy(
         || (timeout.count() > 0 && timeout.count() < std::numeric_limits<long>::max()));
     const auto timeoutL = static_cast<long>(timeout.count());
     zmq::pollitem_t pollItems[2] = {
-        { routerSocket,   0, ZMQ_POLLIN, 0 },
-        { *controlSocket, 0, ZMQ_POLLIN, 0 }
+        { static_cast<void*>(routerSocket),   0, ZMQ_POLLIN, 0 },
+        { static_cast<void*>(*controlSocket), 0, ZMQ_POLLIN, 0 }
     };
     const size_t nSockets = controlSocket ? 2 : 1;
     zmq::message_t controlMsg;
@@ -706,7 +706,7 @@ bool Receive(
     std::vector<zmq::message_t>& message,
     std::chrono::milliseconds timeout)
 {
-    zmq::pollitem_t pollItem = { socket.Socket(), 0, ZMQ_POLLIN, 0 };
+    zmq::pollitem_t pollItem = { static_cast<void*>(socket.Socket()), 0, ZMQ_POLLIN, 0 };
     if (zmq::poll(&pollItem, 1, static_cast<long>(timeout.count())) == 0) {
         return false;
     } else {

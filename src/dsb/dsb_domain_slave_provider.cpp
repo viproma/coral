@@ -36,7 +36,7 @@ void dsb::domain::SlaveProvider(
     info.connect(domainLocator.InfoSlavePEndpoint().c_str());
 
     namespace dp = dsb::protocol::domain;
-    zmq::pollitem_t pollItem = { info, 0, ZMQ_POLLIN, 0 };
+    zmq::pollitem_t pollItem = { static_cast<void*>(info), 0, ZMQ_POLLIN, 0 };
 
     namespace bc = std::chrono;
     const auto HELLO_INTERVAL = bc::milliseconds(1000);
