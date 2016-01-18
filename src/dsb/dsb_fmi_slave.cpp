@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "boost/foreach.hpp"
+#include "boost/numeric/conversion/cast.hpp"
 #include "fmilib.h"
 #include "dsb/fmilib/importcontext.hpp"
 #include "dsb/fmi/glue.hpp"
@@ -55,10 +56,11 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
 
     if (m_outputStream) *m_outputStream << "Time";
     const auto nVars = fmi1_import_get_variable_list_size(fmiVars);
-    for (size_t i = 0; i < nVars; ++i) {
+    for (unsigned int i = 0; i < nVars; ++i) {
         const auto var = fmi1_import_get_variable(fmiVars, i);
         m_fmiValueRefs.push_back(fmi1_import_get_variable_vr(var));
-        m_variables.push_back(ToVariable(var, i));
+        m_variables.push_back(
+			ToVariable(var, boost::numeric_cast<dsb::model::VariableID>(i)));
         if (m_outputStream) *m_outputStream << "," << fmi1_import_get_variable_name(var);
     }
     if (m_outputStream) *m_outputStream << std::endl;

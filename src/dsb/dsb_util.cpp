@@ -13,6 +13,7 @@
 
 #include "boost/filesystem.hpp"
 #include "boost/foreach.hpp"
+#include "boost/numeric/conversion/cast.hpp"
 #include "boost/uuid/random_generator.hpp"
 #include "boost/uuid/uuid_io.hpp"
 
@@ -79,7 +80,7 @@ namespace
             CP_UTF8,
             MB_ERR_INVALID_CHARS,
             utf8.data(),
-            utf8.size(),
+            boost::numeric_cast<int>(utf8.size()),
             nullptr,
             0);
         if (len == 0) {
@@ -94,9 +95,9 @@ namespace
             CP_UTF8,
             MB_ERR_INVALID_CHARS,
             utf8.data(),
-            utf8.size(),
-            buf.data(),
-            buf.size());
+			boost::numeric_cast<int>(utf8.size()),
+			buf.data(),
+			boost::numeric_cast<int>(buf.size()));
         return buf;
     }
 }
@@ -185,7 +186,8 @@ boost::filesystem::path dsb::util::ThisExePath()
 #if defined(_WIN32)
     std::vector<wchar_t> buf(MAX_PATH);
     for (;;) {
-        const auto len = GetModuleFileNameW(nullptr, buf.data(), buf.size());
+		const auto len = GetModuleFileNameW(
+			nullptr, buf.data(), boost::numeric_cast<DWORD>(buf.size()));
         if (len == 0) {
             throw std::runtime_error("Failed to determine executable path");
         } else if (len >= buf.size()) {

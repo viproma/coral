@@ -1,5 +1,7 @@
 #include "dsb/protobuf.hpp"
 
+#include "boost/numeric/conversion/cast.hpp"
+
 
 void dsb::protobuf::SerializeToFrame(
     const google::protobuf::MessageLite& source,
@@ -18,7 +20,9 @@ void dsb::protobuf::ParseFromFrame(
     const zmq::message_t& source,
     google::protobuf::MessageLite& target)
 {
-    if (!target.ParseFromArray(source.data(), source.size())) {
+    if (!target.ParseFromArray(
+			source.data(),
+			boost::numeric_cast<int>(source.size()))) {
         throw SerializationException("Failed to parse message");
     }
 }

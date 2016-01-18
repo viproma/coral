@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "boost/lexical_cast.hpp"
+#include "boost/numeric/conversion/cast.hpp"
 
 #include "dsb/fmilib/fmu.hpp"
 #include "dsb/fmilib/importcontext.hpp"
@@ -68,7 +69,10 @@ size_t FmiSlaveType::VariableCount() const
 
 dsb::model::VariableDescription FmiSlaveType::Variable(size_t index) const 
 {
-    return ToVariable(fmi1_import_get_variable(m_varList, index), index);
+    return ToVariable(
+		fmi1_import_get_variable(
+			m_varList, boost::numeric_cast<unsigned int>(index)),
+		boost::numeric_cast<dsb::model::VariableID>(index));
 }
 
 bool FmiSlaveType::Instantiate(
