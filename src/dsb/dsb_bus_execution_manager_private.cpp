@@ -67,11 +67,13 @@ void ExecutionManagerPrivate::SetSimulationTime(
 
 dsb::model::SlaveID ExecutionManagerPrivate::AddSlave(
     const dsb::net::SlaveLocator& slaveLocator,
+    const std::string& slaveName,
     dsb::comm::Reactor& reactor,
     std::chrono::milliseconds timeout,
     ExecutionManager::AddSlaveHandler onComplete)
 {
-    return m_state->AddSlave(*this, slaveLocator, reactor, timeout, std::move(onComplete));
+    return m_state->AddSlave(
+        *this, slaveLocator, slaveName, reactor, timeout, std::move(onComplete));
 }
 
 
@@ -116,8 +118,8 @@ void ExecutionManagerPrivate::AcceptStep(
 void ExecutionManagerPrivate::DoTerminate()
 {
     for (auto it = begin(slaves); it != end(slaves); ++it) {
-        if (it->second->State() != SLAVE_NOT_CONNECTED) {
-            it->second->Terminate();
+        if (it->second.slave->State() != SLAVE_NOT_CONNECTED) {
+            it->second.slave->Terminate();
         }
     }
     SwapState(std::make_unique<TerminatedExecutionState>());
@@ -192,6 +194,31 @@ void ExecutionManagerPrivate::AbortSlaveOpWaiting() DSB_NOEXCEPT
         dsb::util::MoveAndCall(m_allSlaveOpsCompleteHandler,
             make_error_code(dsb::error::generic_error::aborted));
     }
+}
+
+
+// =============================================================================
+// ExecutionManagerPrivate::Slave
+// =============================================================================
+
+ExecutionManagerPrivate::Slave::Slave(
+    std::unique_ptr<dsb::bus::SlaveController> slave_,
+    const std::string& name_)
+    : slave(std::move(slave_)),
+      name(name_)
+{ }
+
+ExecutionManagerPrivate::Slave::Slave(Slave&& other) DSB_NOEXCEPT
+    : slave(std::move(other.slave)),
+      name(other.name)
+{ }
+
+ExecutionManagerPrivate::Slave&
+    ExecutionManagerPrivate::Slave::operator=(Slave&& other) DSB_NOEXCEPT
+{
+    slave = std::move(other.slave);
+    name = std::move(other.name);
+    return *this;
 }
 
 

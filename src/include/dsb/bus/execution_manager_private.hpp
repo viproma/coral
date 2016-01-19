@@ -63,6 +63,7 @@ public:
 
     dsb::model::SlaveID AddSlave(
         const dsb::net::SlaveLocator& slaveLocator,
+        const std::string& slaveName,
         dsb::comm::Reactor& reactor,
         std::chrono::milliseconds timeout,
         ExecutionManager::AddSlaveHandler onComplete);
@@ -131,10 +132,24 @@ public:
     */
     std::unique_ptr<ExecutionState> SwapState(std::unique_ptr<ExecutionState> next);
 
+    struct Slave
+    {
+        Slave(
+            std::unique_ptr<dsb::bus::SlaveController> slave,
+            const std::string& name);
+        Slave(const Slave&) = delete;
+        Slave& operator=(const Slave&) = delete;
+        Slave(Slave&&) DSB_NOEXCEPT;
+        Slave& operator=(Slave&&) DSB_NOEXCEPT;
+
+        std::unique_ptr<dsb::bus::SlaveController> slave;
+        std::string name;
+    };
+
     // Data which is available to the state objects
     dsb::bus::SlaveSetup slaveSetup;
     dsb::model::SlaveID lastSlaveID;
-    std::map<dsb::model::SlaveID, std::unique_ptr<dsb::bus::SlaveController>> slaves;
+    std::map<dsb::model::SlaveID, Slave> slaves;
 
 private:
     // Make class nonmovable in addition to noncopyable, because we leak

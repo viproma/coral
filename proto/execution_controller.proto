@@ -21,7 +21,8 @@ message SetSimulationTimeArgs
 message AddSlaveArgs
 {
     required net.SlaveLocator slave_locator = 1;
-    required int32 timeout_ms = 2;
+    required string slave_name = 2;
+    required int32 timeout_ms = 3;
 }
 
 message AddSlaveReturn

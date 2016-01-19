@@ -2,6 +2,7 @@
 #include "dsb/bus/execution_state.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -57,6 +58,18 @@ void ConfigExecutionState::SetSimulationTime(
 }
 
 
+namespace
+{
+    // Checks that s matches the regex [a-zA-Z][0-9a-zA-Z_]*
+    bool IsValidSlaveName(const std::string& s)
+    {
+        if (s.empty()) return false;
+        if (!std::isalpha(s.front())) return false;
+        for (char c : s) if (!std::isalnum(c) && c != '_') return false;
+        return true;
+    }
+}
+
 // NOTE:
 // None of the per-slave operation completion handlers in the CONFIG state
 // should capture the 'this' pointer of the ConfigExecutionState object.
@@ -68,22 +81,27 @@ void ConfigExecutionState::SetSimulationTime(
 dsb::model::SlaveID ConfigExecutionState::AddSlave(
     ExecutionManagerPrivate& self,
     const dsb::net::SlaveLocator& slaveLocator,
+    const std::string& slaveName,
     dsb::comm::Reactor& reactor,
     std::chrono::milliseconds timeout,
     ExecutionManager::AddSlaveHandler onComplete)
 {
     DSB_INPUT_CHECK(!!onComplete);
+    if (!IsValidSlaveName(slaveName)) {
+        throw std::runtime_error('"' + slaveName + "\" is not a valid slave name");
+    }
     if (self.lastSlaveID == std::numeric_limits<dsb::model::SlaveID>::max()) {
         throw std::length_error("Maximum number of slaves reached");
     }
+    for (const auto& s : self.slaves) {
+        if (slaveName == s.second.name) {
+            throw std::runtime_error("Duplicate slave name: " + slaveName);
+        }
+    }
     const auto id = ++self.lastSlaveID;
     const auto selfPtr = &self;
-    self.slaves.insert(std::make_pair(id, std::make_unique<dsb::bus::SlaveController>(
-        reactor,
-        slaveLocator,
-        id,
-        self.slaveSetup,
-        timeout,
+    auto slave = std::make_unique<dsb::bus::SlaveController>(
+        reactor, slaveLocator, id, self.slaveSetup, timeout,
         [id, onComplete, selfPtr] (const std::error_code& ec) {
             if (!ec) {
                 onComplete(std::error_code(), id);
@@ -91,7 +109,9 @@ dsb::model::SlaveID ConfigExecutionState::AddSlave(
                 onComplete(ec, dsb::model::INVALID_SLAVE_ID);
             }
             selfPtr->SlaveOpComplete();
-        })));
+        });
+    self.slaves.insert(std::make_pair(
+        id, ExecutionManagerPrivate::Slave(std::move(slave), slaveName)));
     selfPtr->SlaveOpStarted();
     return id;
 }
@@ -105,7 +125,7 @@ void ConfigExecutionState::SetVariables(
     ExecutionManager::SetVariablesHandler onComplete)
 {
     const auto selfPtr = &self;
-    self.slaves.at(slave)->SetVariables(
+    self.slaves.at(slave).slave->SetVariables(
         settings,
         timeout,
         [onComplete, selfPtr](const std::error_code& ec) {
@@ -137,7 +157,7 @@ void PrimingExecutionState::StateEntered(ExecutionManagerPrivate& self)
         // Garbage collection: Remove all slave controllers whose connection
         // has failed or been canceled.
         for (auto it = begin(selfPtr->slaves); it != end(selfPtr->slaves); ) {
-            if (it->second->State() == SLAVE_NOT_CONNECTED) {
+            if (it->second.slave->State() == SLAVE_NOT_CONNECTED) {
                 it = selfPtr->slaves.erase(it);
             } else {
                 ++it;
@@ -203,7 +223,7 @@ void SteppingExecutionState::StateEntered(ExecutionManagerPrivate& self)
     const auto selfPtr = &self; // Because we can't capture references in lambdas
     for (auto it = begin(self.slaves); it != end(self.slaves); ++it) {
         const auto slaveID = it->first;
-        it->second->Step(
+        it->second.slave->Step(
             stepID,
             self.CurrentSimTime(),
             m_stepSize,
@@ -221,12 +241,12 @@ void SteppingExecutionState::StateEntered(ExecutionManagerPrivate& self)
         bool stepFailed = false;
         bool fatalError = false;
         for (auto it = begin(selfPtr->slaves); it != end(selfPtr->slaves); ++it) {
-            if (it->second->State() == SLAVE_STEP_OK) {
+            if (it->second.slave->State() == SLAVE_STEP_OK) {
                 // do nothing
-            } else if (it->second->State() == SLAVE_STEP_FAILED) {
+            } else if (it->second.slave->State() == SLAVE_STEP_FAILED) {
                 stepFailed = true;
             } else {
-                assert(it->second->State() == SLAVE_NOT_CONNECTED);
+                assert(it->second.slave->State() == SLAVE_NOT_CONNECTED);
                 fatalError = true;
                 break; // because there's no point in continuing
             }
@@ -297,7 +317,7 @@ void AcceptingExecutionState::StateEntered(ExecutionManagerPrivate& self)
     const auto selfPtr = &self; // Because we can't capture references in lambdas
     for (auto it = begin(self.slaves); it != end(self.slaves); ++it) {
         const auto slaveID = it->first;
-        it->second->AcceptStep(
+        it->second.slave->AcceptStep(
             m_timeout,
             [selfPtr, slaveID, this] (const std::error_code& ec) {
                 const auto onExit = dsb::util::OnScopeExit([=]() {
@@ -313,8 +333,8 @@ void AcceptingExecutionState::StateEntered(ExecutionManagerPrivate& self)
         assert(!ec);
         bool error = false;
         for (auto it = begin(selfPtr->slaves); it != end(selfPtr->slaves); ++it) {
-            if (it->second->State() != SLAVE_READY) {
-                assert(it->second->State() == SLAVE_NOT_CONNECTED);
+            if (it->second.slave->State() != SLAVE_READY) {
+                assert(it->second.slave->State() == SLAVE_NOT_CONNECTED);
                 error = true;
                 break;
             }
