@@ -8,14 +8,18 @@ namespace dsb
 namespace comm
 {
 
-namespace
-{
-    zmq::context_t globalContext;
-}
-
 zmq::context_t& GlobalContext()
 {
-    return globalContext;
+    // Note: The global zmq::context_t object is intentionally allocated on
+    // the heap and never destroyed.  It used to be stored in the data segment,
+    // and hence destroyed during the static tear-down sequence, but this caused
+    // crashes when DSB was used as a DLL.  See:
+    //      https://github.com/zeromq/libzmq/issues/1144 (fixed, but the
+    //          problem has just shifted elsewhere)
+    //      http://stackoverflow.com/q/19795245
+    //
+    static auto globalContext = new zmq::context_t();
+    return *globalContext;
 }
 
 

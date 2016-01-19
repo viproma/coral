@@ -192,7 +192,7 @@ void Reactor::Rebuild()
     // Rebuild m_pollItems
     m_pollItems.clear();
     for (auto it = m_sockets.begin(); it != m_sockets.end(); ++it) {
-        zmq::pollitem_t pi = { *it->first, 0, ZMQ_POLLIN, 0 };
+        zmq::pollitem_t pi = { static_cast<void*>(*it->first), 0, ZMQ_POLLIN, 0 };
         m_pollItems.push_back(pi);
     }
     m_needsRebuild = false;

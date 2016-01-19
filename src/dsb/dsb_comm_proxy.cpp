@@ -99,9 +99,9 @@ namespace
             auto controlSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PAIR);
             controlSocket.connect(m_controlEndpoint.c_str());
             zmq::pollitem_t pollItems[3] = {
-                { controlSocket,        0, ZMQ_POLLIN, 0 },
-                { m_socket1.Payload(),  0, ZMQ_POLLIN, 0 },
-                { m_socket2.Payload(),  0, ZMQ_POLLIN, 0 }
+                { static_cast<void*>(controlSocket),        0, ZMQ_POLLIN, 0 },
+                { static_cast<void*>(m_socket1.Payload()),  0, ZMQ_POLLIN, 0 },
+                { static_cast<void*>(m_socket2.Payload()),  0, ZMQ_POLLIN, 0 }
             };
             for (;;) {
                 if (zmq::poll(pollItems, 3, m_silenceTimeoutMillis) == 0) {
