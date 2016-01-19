@@ -84,6 +84,7 @@ public:
     */
     dsb::model::SlaveID AddSlave(
         const dsb::net::SlaveLocator& slaveLocator,
+        const std::string& slaveName,
         dsb::comm::Reactor& reactor,
         std::chrono::milliseconds commTimeout,
         AddSlaveHandler onComplete);

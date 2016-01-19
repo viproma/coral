@@ -51,11 +51,13 @@ void ExecutionManager::SetSimulationTime(
 
 dsb::model::SlaveID ExecutionManager::AddSlave(
     const dsb::net::SlaveLocator& slaveLocator,
+    const std::string& slaveName,
     dsb::comm::Reactor& reactor,
     std::chrono::milliseconds commTimeout,
     AddSlaveHandler onComplete)
 {
-    return m_private->AddSlave(slaveLocator, reactor, commTimeout, std::move(onComplete));
+    return m_private->AddSlave(
+        slaveLocator, slaveName, reactor, commTimeout, std::move(onComplete));
 }
 
 

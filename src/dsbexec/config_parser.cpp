@@ -349,7 +349,7 @@ void ParseSystemConfig(
     std::map<std::string, std::shared_future<dsb::model::SlaveID>> slaveIDs;
     BOOST_FOREACH (const auto& slave, slaves) {
         auto slaveLoc = domain.InstantiateSlave(slave.second->uuid, instantiationTimeout);
-        slaveIDs[slave.first] = execution.AddSlave(slaveLoc, commTimeout).share();
+        slaveIDs[slave.first] = execution.AddSlave(slaveLoc, slave.first, commTimeout).share();
     }
 
     // Using the name-ID mapping, build lists of variable settings from the

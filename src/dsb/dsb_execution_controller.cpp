@@ -202,6 +202,7 @@ namespace
         auto promisedID = std::make_shared<std::promise<dsb::model::SlaveID>>();
         m_execMgr.AddSlave(
             dsb::protocol::FromProto(args.slave_locator()),
+            args.slave_name(),
             m_reactor,
             std::chrono::milliseconds(args.timeout_ms()),
             [promisedID, this] (const std::error_code& ec, dsb::model::SlaveID id) {
@@ -431,10 +432,12 @@ void dsb::execution::Controller::SetSimulationTime(
 
 std::future<dsb::model::SlaveID> dsb::execution::Controller::AddSlave(
     dsb::net::SlaveLocator slaveLocator,
+    const std::string& slaveName,
     std::chrono::milliseconds commTimeout)
 {
     dsbproto::execution_controller::AddSlaveArgs args;
     dsb::protocol::ConvertToProto(slaveLocator, *args.mutable_slave_locator());
+    args.set_slave_name(slaveName);
     args.set_timeout_ms(boost::numeric_cast<std::int32_t>(commTimeout.count()));
     dsbproto::execution_controller::AddSlaveReturn ret;
     dsb::inproc_rpc::Call(*m_rpcSocket, ADD_SLAVE_CALL, &args, &ret);

@@ -56,6 +56,7 @@ public:
     virtual dsb::model::SlaveID AddSlave(
         ExecutionManagerPrivate& self,
         const dsb::net::SlaveLocator& slaveLocator,
+        const std::string& slaveName,
         dsb::comm::Reactor& reactor,
         std::chrono::milliseconds timeout,
         ExecutionManager::AddSlaveHandler onComplete)
@@ -115,6 +116,7 @@ class ConfigExecutionState : public ExecutionState
     dsb::model::SlaveID AddSlave(
         ExecutionManagerPrivate& self,
         const dsb::net::SlaveLocator& slaveLocator,
+        const std::string& slaveName,
         dsb::comm::Reactor& reactor,
         std::chrono::milliseconds timeout,
         ExecutionManager::AddSlaveHandler onComplete) override;

@@ -135,6 +135,10 @@ public:
 
     \param [in] slaveLocator
         Information by which the slave may be located.
+    \param [in] slaveName
+        A user-defined name for the slave, which must be unique in the context
+        of the present execution.  Valid names may only contain alphanumeric
+        characters and underscores, and must start with a letter.
     \param [in] commTimeout
         The maximum time to wait for replies for commands sent to the slave.
         If this time is exceeded, the operation is considered to have failed.
@@ -144,6 +148,7 @@ public:
     */
     std::future<dsb::model::SlaveID> AddSlave(
         dsb::net::SlaveLocator slaveLocator,
+        const std::string& slaveName,
         std::chrono::milliseconds commTimeout);
 
     /**
