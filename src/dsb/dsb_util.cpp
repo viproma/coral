@@ -186,8 +186,8 @@ boost::filesystem::path dsb::util::ThisExePath()
 #if defined(_WIN32)
     std::vector<wchar_t> buf(MAX_PATH);
     for (;;) {
-		const auto len = GetModuleFileNameW(
-			nullptr, buf.data(), boost::numeric_cast<DWORD>(buf.size()));
+        const auto len = GetModuleFileNameW(
+            nullptr, buf.data(), boost::numeric_cast<DWORD>(buf.size()));
         if (len == 0) {
             throw std::runtime_error("Failed to determine executable path");
         } else if (len >= buf.size()) {
