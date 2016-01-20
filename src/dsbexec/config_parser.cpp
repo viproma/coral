@@ -61,7 +61,7 @@ namespace
     {
         SlaveTypeMap types;
         BOOST_FOREACH (const auto& st, domain.GetSlaveTypes()) {
-            types.insert(std::make_pair(st.name, st));
+            types.insert(std::make_pair(st.description.Name(), st));
         }
         return types;
     }
@@ -140,7 +140,7 @@ namespace
         if (cachedSlaveTypeIt == cache.end()) {
             // Slave type not found in cache, so add it.
             VarDescriptionCacheEntry vars;
-            BOOST_FOREACH(const auto& v, slaveType->variables) {
+            BOOST_FOREACH(const auto& v, slaveType->description.Variables()) {
                 vars[v.Name()] = &v;
             }
             cachedSlaveTypeIt = cache.insert(
@@ -150,7 +150,8 @@ namespace
 
         auto cachedVarIt = cachedSlaveType.find(variableName);
         if (cachedVarIt == cachedSlaveType.end()) {
-            throw std::runtime_error("Slave type '" + slaveType->name
+            throw std::runtime_error(
+                "Slave type '" + slaveType->description.Name()
                 + "' has no variable named '" + variableName + "'");
         }
         return cachedVarIt->second;
@@ -348,7 +349,8 @@ void ParseSystemConfig(
     // numeric IDs.
     std::map<std::string, std::shared_future<dsb::model::SlaveID>> slaveIDs;
     BOOST_FOREACH (const auto& slave, slaves) {
-        auto slaveLoc = domain.InstantiateSlave(slave.second->uuid, instantiationTimeout);
+        auto slaveLoc = domain.InstantiateSlave(
+            slave.second->description.UUID(), instantiationTimeout);
         slaveIDs[slave.first] = execution.AddSlave(slaveLoc, slave.first, commTimeout).share();
     }
 

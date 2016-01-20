@@ -53,16 +53,14 @@ namespace
         // Each such object contains a list of the providers which offer this
         // slave type.
         std::map<std::string, dsbproto::domain_controller::SlaveTypeInfo> slaveTypesByUUID;
-        BOOST_FOREACH (const auto& providerSlaveTypesPair,
-                       domainData.SlaveTypesByProvider()) {
-            BOOST_FOREACH (const auto& slaveType,
-                           providerSlaveTypesPair.second.slave_type()) {
-                auto it = slaveTypesByUUID.find(slaveType.uuid());
+        for (const auto& providerSlaveTypesPair : domainData.SlaveTypesByProvider()) {
+            for (const auto& slaveTypeDesc : providerSlaveTypesPair.second) {
+                auto it = slaveTypesByUUID.find(slaveTypeDesc.uuid());
                 if (it == slaveTypesByUUID.end()) {
-                    it = slaveTypesByUUID.insert(
-                        std::make_pair(std::string(slaveType.uuid()),
-                                       dsbproto::domain_controller::SlaveTypeInfo())).first;
-                    *it->second.mutable_slave_type_info() = slaveType;
+                    it = slaveTypesByUUID.insert(std::make_pair(
+                        std::string(slaveTypeDesc.uuid()),
+                        dsbproto::domain_controller::SlaveTypeInfo())).first;
+                    *it->second.mutable_description() = slaveTypeDesc;
                 }
                 *it->second.add_provider() = providerSlaveTypesPair.first;
             }
@@ -93,8 +91,8 @@ namespace
             // Search through all slave types for all providers, and use the
             // first one that matches the UUID.
             BOOST_FOREACH (const auto& providerSlaves, domainData.SlaveTypesByProvider()) {
-                BOOST_FOREACH (const auto& slaveTypeInfo, providerSlaves.second.slave_type()) {
-                    if (slaveTypeInfo.uuid() == slaveTypeUUID) {
+                BOOST_FOREACH (const auto& slaveTypeDesc, providerSlaves.second) {
+                    if (slaveTypeDesc.uuid() == slaveTypeUUID) {
                         provider = providerSlaves.first;
                         break;
                     }
@@ -110,7 +108,9 @@ namespace
             // Look for the specified provider in the domain data provider list.
             auto providerRng = domainData.SlaveTypesByProvider();
             const auto providerIt = boost::range::find_if(providerRng,
-                [&](const std::pair<std::string, dsbproto::domain::SlaveTypeList>& a) { return a.first == provider; });
+                [&](const std::pair<std::string, std::vector<dsbproto::model::SlaveTypeDescription>>& a) {
+                    return a.first == provider;
+                });
 
             if (providerIt == providerRng.end()) {
                 dsb::inproc_rpc::ThrowRuntimeError(
@@ -120,9 +120,11 @@ namespace
 
             // Provider was found; now check whether it provides slaves with
             // the given UUID.
-            const auto slaveRng = providerIt->second.slave_type();
+            const auto& slaveRng = providerIt->second;
             const auto slaveIt = boost::range::find_if(slaveRng,
-                [&](const dsbproto::domain::SlaveTypeInfo& a) { return a.uuid() == slaveTypeUUID; });
+                [&](const dsbproto::model::SlaveTypeDescription& a) {
+                    return a.uuid() == slaveTypeUUID;
+                });
             if (slaveIt == slaveRng.end()) {
                 dsb::inproc_rpc::ThrowRuntimeError(
                     rpcSocket,
@@ -250,7 +252,11 @@ namespace
             }
             dsbproto::domain::SlaveTypeList slaveTypeList;
             dsb::protobuf::ParseFromFrame(msg[3], slaveTypeList);
-            domainData.UpdateSlaveTypes(providerId, slaveTypeList);
+            std::vector<dsbproto::model::SlaveTypeDescription> slaveTypeVector;
+            for (const auto& st : slaveTypeList.slave_type()) {
+                slaveTypeVector.push_back(st.description());
+            }
+            domainData.UpdateSlaveTypes(providerId, std::move(slaveTypeVector));
         }
     }
 

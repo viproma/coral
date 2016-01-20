@@ -46,12 +46,7 @@ public:
     /// Information about a slave type.
     struct SlaveType
     {
-        std::string name;
-        std::string uuid;
-        std::string description;
-        std::string author;
-        std::string version;
-        std::vector<dsb::model::VariableDescription> variables;
+        dsb::model::SlaveTypeDescription description;
         std::vector<std::string> providers;
     };
 

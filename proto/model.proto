@@ -30,13 +30,24 @@ enum Variability
 }
 
 // Information about a variable
-message VariableDefinition
+message VariableDescription
 {
     required uint32 id = 1;
     required string name = 2;
     required DataType data_type = 3;
     required Causality causality = 4;
     required Variability variability = 5;
+}
+
+// Information about a slave type
+message SlaveTypeDescription
+{
+   required string name = 1;
+   required string uuid = 2;
+   optional string description = 3;
+   optional string author = 4;
+   optional string version = 5;
+   repeated VariableDescription variable = 6;
 }
 
 // The value of a variable

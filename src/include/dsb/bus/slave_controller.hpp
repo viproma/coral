@@ -109,6 +109,22 @@ public:
     /// Returns the current state of the slave.
     SlaveState State() const DSB_NOEXCEPT;
 
+    /// Completion handler type for GetDescription()
+    typedef std::function<void(const std::error_code&, const dsb::model::SlaveDescription&)>
+        GetDescriptionHandler;
+
+    /**
+    \brief  Requests a description of the slave.
+
+    \param [in] timeout
+        Max. allowed time for the operation to complete. Must be at least 1 ms.
+    \param [in] onComplete
+        Completion handler. May not be empty.
+    */
+    void GetDescription(
+        std::chrono::milliseconds timeout,
+        GetDescriptionHandler onComplete);
+
     /// Completion handler type for SetVariables()
     typedef VoidHandler SetVariablesHandler;
 

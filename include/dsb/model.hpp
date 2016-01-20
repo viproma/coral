@@ -6,9 +6,15 @@
 #define DSB_MODEL_HPP
 
 #include <cstdint>
+#include <iterator>
 #include <limits>
+#include <map>
 #include <string>
+#include <vector>
+
+#include "boost/range/adaptor/map.hpp"
 #include "boost/variant.hpp"
+
 #include "dsb/config.h"
 
 
@@ -133,6 +139,118 @@ private:
 };
 
 
+/// A description of a slave type.
+class SlaveTypeDescription
+{
+    typedef std::map<VariableID, VariableDescription> VariablesMap;
+public:
+    /// The return type of the Variables() function.
+    typedef boost::select_second_const_range<VariablesMap>
+        ConstVariablesRange;
+
+    // Construction/destruction
+    SlaveTypeDescription() DSB_NOEXCEPT;
+
+    template<typename VariableDescriptionRange>
+    SlaveTypeDescription(
+        const std::string& name,
+        const std::string& uuid,
+        const std::string& description,
+        const std::string& author,
+        const std::string& version,
+        const VariableDescriptionRange& variables);
+
+    ~SlaveTypeDescription() = default;
+
+    // Copy
+    SlaveTypeDescription(const SlaveTypeDescription&) = default;
+    SlaveTypeDescription& operator=(const SlaveTypeDescription&) = default;
+
+    // Move
+    SlaveTypeDescription(SlaveTypeDescription&&) DSB_NOEXCEPT;
+    SlaveTypeDescription& operator=(SlaveTypeDescription&&) DSB_NOEXCEPT;
+
+    /// The slave type name.
+    const std::string& Name() const;
+
+    /// A universally unique identifier (UUID) for the slave type.
+    const std::string& UUID() const;
+
+    /// A human-readable description of the slave type.
+    const std::string& Description() const;
+
+    /// Author information.
+    const std::string& Author() const;
+
+    /// Version information.
+    const std::string& Version() const;
+
+    /// Information about all variables.
+    ConstVariablesRange Variables() const;
+
+    /**
+    \brief  Information about the variable with the given ID, O(log n) lookup.
+
+    \throws std::out_of_range
+        If there is no variable with the given ID.
+    */
+    const VariableDescription& Variable(VariableID id) const;
+
+private:
+    std::string m_name;
+    std::string m_uuid;
+    std::string m_description;
+    std::string m_author;
+    std::string m_version;
+    VariablesMap m_variables;
+};
+
+
+/// A description of a specific slave.
+class SlaveDescription
+{
+public:
+    // Construction/destruction
+    explicit SlaveDescription(
+        SlaveID id = INVALID_SLAVE_ID,
+        const std::string& name = std::string(),
+        const SlaveTypeDescription& typeDescription = SlaveTypeDescription());
+
+    ~SlaveDescription() = default;
+
+    // Copy
+    SlaveDescription(const SlaveDescription&) = default;
+    SlaveDescription& operator=(const SlaveDescription&) = default;
+
+    // Move
+    SlaveDescription(SlaveDescription&&) DSB_NOEXCEPT;
+    SlaveDescription& operator=(SlaveDescription&&) DSB_NOEXCEPT;
+
+    /// The slave's ID in the current execution.
+    SlaveID ID() const;
+
+    /// Sets the slave's ID in the current execution.
+    void SetID(SlaveID value);
+
+    /// The name given to the slave in the current execution.
+    const std::string& Name() const;
+
+    /// Sets the name given to the slave in the current execution.
+    void SetName(const std::string& value);
+
+    /// Information about the slave type.
+    const SlaveTypeDescription& TypeDescription() const;
+
+    /// Sets information about the slave type.
+    void SetTypeDescription(const SlaveTypeDescription& value);
+
+private:
+    SlaveID m_id;
+    std::string m_name;
+    SlaveTypeDescription m_typeDescription;
+};
+
+
 /// An algebraic type that can hold values of all supported data types.
 typedef boost::variant<double, int, bool, std::string> ScalarValue;
 
@@ -222,6 +340,30 @@ private:
     ScalarValue m_value;
     dsb::model::Variable m_connectedOutput;
 };
+
+
+// =============================================================================
+// Function template definitions
+// =============================================================================
+
+template<typename VariableDescriptionRange>
+SlaveTypeDescription::SlaveTypeDescription(
+    const std::string& name,
+    const std::string& uuid,
+    const std::string& description,
+    const std::string& author,
+    const std::string& version,
+    const VariableDescriptionRange& variables)
+    : m_name(name),
+      m_uuid(uuid),
+      m_description(description),
+      m_author(author),
+      m_version(version)
+{
+    for (const auto& v : variables) {
+        m_variables.insert(std::make_pair(v.ID(), v));
+    }
+}
 
 
 }}      // namespace

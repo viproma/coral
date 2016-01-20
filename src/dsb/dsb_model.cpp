@@ -1,6 +1,7 @@
 #include "dsb/model.hpp"
 
 #include "dsb/error.hpp"
+#include "dsb/util.hpp"
 
 
 namespace dsb
@@ -50,6 +51,151 @@ dsb::model::Causality VariableDescription::Causality() const
 dsb::model::Variability VariableDescription::Variability() const
 {
     return m_variability;
+}
+
+
+// =============================================================================
+// SlaveTypeDescription
+// =============================================================================
+
+SlaveTypeDescription::SlaveTypeDescription() DSB_NOEXCEPT
+{
+}
+
+
+SlaveTypeDescription::SlaveTypeDescription(SlaveTypeDescription&& other)
+    DSB_NOEXCEPT
+    : m_name(std::move(other.m_name)),
+      m_uuid(std::move(other.m_uuid)),
+      m_description(std::move(other.m_description)),
+      m_author(std::move(other.m_author)),
+      m_version(std::move(other.m_version)),
+      m_variables(std::move(other.m_variables))
+{
+}
+
+SlaveTypeDescription& SlaveTypeDescription::operator=(SlaveTypeDescription&& other)
+    DSB_NOEXCEPT
+{
+    m_name = std::move(other.m_name);
+    m_uuid = std::move(other.m_uuid);
+    m_description = std::move(other.m_description);
+    m_author = std::move(other.m_author);
+    m_version = std::move(other.m_version);
+    m_variables = std::move(other.m_variables);
+    return *this;
+}
+
+
+const std::string& SlaveTypeDescription::Name() const
+{
+    return m_name;
+}
+
+
+const std::string& SlaveTypeDescription::UUID() const
+{
+    return m_uuid;
+}
+
+
+const std::string& SlaveTypeDescription::Description() const
+{
+    return m_description;
+}
+
+
+const std::string& SlaveTypeDescription::Author() const
+{
+    return m_author;
+}
+
+
+const std::string& SlaveTypeDescription::Version() const
+{
+    return m_version;
+}
+
+
+SlaveTypeDescription::ConstVariablesRange SlaveTypeDescription::Variables() const
+{
+    return m_variables | boost::adaptors::map_values;
+}
+
+
+const VariableDescription& SlaveTypeDescription::Variable(VariableID id) const
+{
+    return m_variables.at(id);
+}
+
+
+// =============================================================================
+// SlaveDescription
+// =============================================================================
+
+SlaveDescription::SlaveDescription(
+    SlaveID id,
+    const std::string& name,
+    const SlaveTypeDescription& typeDescription)
+    : m_id(id),
+      m_name(name),
+      m_typeDescription(typeDescription)
+{
+}
+
+
+SlaveDescription::SlaveDescription(SlaveDescription&& other)
+    DSB_NOEXCEPT
+    : m_id(dsb::util::MoveAndReplace(other.m_id, INVALID_SLAVE_ID)),
+      m_name(std::move(other.m_name)),
+      m_typeDescription(std::move(other.m_typeDescription))
+{
+}
+
+
+SlaveDescription& SlaveDescription::operator=(SlaveDescription&& other)
+    DSB_NOEXCEPT
+{
+    m_id = dsb::util::MoveAndReplace(other.m_id, INVALID_SLAVE_ID);
+    m_name = std::move(other.m_name);
+    m_typeDescription = std::move(other.m_typeDescription);
+    return *this;
+}
+
+
+SlaveID SlaveDescription::ID() const
+{
+    return m_id;
+}
+
+
+void SlaveDescription::SetID(SlaveID value)
+{
+    m_id = value;
+}
+
+
+const std::string& SlaveDescription::Name() const
+{
+    return m_name;
+}
+
+
+void SlaveDescription::SetName(const std::string& value)
+{
+    m_name = value;
+}
+
+
+const SlaveTypeDescription& SlaveDescription::TypeDescription() const
+{
+    return m_typeDescription;
+}
+
+
+void SlaveDescription::SetTypeDescription(const SlaveTypeDescription& value)
+{
+    m_typeDescription = value;
 }
 
 

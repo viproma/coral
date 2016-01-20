@@ -136,15 +136,15 @@ public:
     {
         Slave(
             std::unique_ptr<dsb::bus::SlaveController> slave,
-            const std::string& name);
+            const dsb::model::SlaveDescription& description);
 
         Slave(const Slave&) = delete;
         Slave& operator=(const Slave&) = delete;
 
-        DSB_DEFINE_DEFAULT_MOVE(Slave, slave, name)
+        DSB_DEFINE_DEFAULT_MOVE(Slave, slave, description)
 
         std::unique_ptr<dsb::bus::SlaveController> slave;
-        std::string name;
+        dsb::model::SlaveDescription description;
     };
 
     // Data which is available to the state objects

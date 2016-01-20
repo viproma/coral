@@ -5,27 +5,19 @@ import "model.proto";
 
 message SlaveTypeInfo
 {
-   required string name = 1;
-   required string uuid = 2;
-   optional string description = 3;
-   optional string author = 4;
-   optional string version = 5;
-   repeated model.VariableDefinition variable = 6;
+    required model.SlaveTypeDescription description = 1;
 }
-
 
 message SlaveTypeList
 {
     repeated SlaveTypeInfo slave_type = 1;
 }
 
-
 message InstantiateSlaveData
 {
     required string slave_type_uuid = 1;
     required int32 timeout_ms = 2;
 }
-
 
 message Error
 {

@@ -5,11 +5,11 @@
 #include <limits>
 #include <stdexcept>
 
-#include "boost/foreach.hpp"
 #include "boost/numeric/conversion/cast.hpp"
 #include "fmilib.h"
 #include "dsb/fmilib/importcontext.hpp"
 #include "dsb/fmi/glue.hpp"
+#include "dsb/util.hpp"
 
 
 namespace dsb
@@ -51,19 +51,30 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
         false,
         false));
 
-    auto fmiVars = fmi1_import_get_variable_list(m_fmu->Handle());
+    const auto fmiVars = fmi1_import_get_variable_list(m_fmu->Handle());
     assert (fmiVars);
+    const auto freeFmiVars = dsb::util::OnScopeExit([&]() {
+        fmi1_import_free_variable_list(fmiVars);
+    });
 
     if (m_outputStream) *m_outputStream << "Time";
+    std::vector<dsb::model::VariableDescription> variables;
     const auto nVars = fmi1_import_get_variable_list_size(fmiVars);
     for (unsigned int i = 0; i < nVars; ++i) {
         const auto var = fmi1_import_get_variable(fmiVars, i);
         m_fmiValueRefs.push_back(fmi1_import_get_variable_vr(var));
-        m_variables.push_back(
+        variables.push_back(
             ToVariable(var, boost::numeric_cast<dsb::model::VariableID>(i)));
         if (m_outputStream) *m_outputStream << "," << fmi1_import_get_variable_name(var);
     }
     if (m_outputStream) *m_outputStream << std::endl;
+    m_typeDescription = std::make_unique<dsb::model::SlaveTypeDescription>(
+        m_fmu->ModelName(),
+        m_fmu->GUID(),
+        m_fmu->Description(),
+        m_fmu->Author(),
+        m_fmu->ModelVersion(),
+        variables);
 }
 
 
@@ -86,15 +97,9 @@ bool FmiSlaveInstance::Setup(
 }
 
 
-size_t FmiSlaveInstance::VariableCount() const
+const dsb::model::SlaveTypeDescription& FmiSlaveInstance::TypeDescription() const
 {
-    return m_variables.size();
-}
-
-
-dsb::model::VariableDescription FmiSlaveInstance::Variable(size_t index) const
-{
-    return m_variables.at(index);
+    return *m_typeDescription;
 }
 
 
@@ -202,7 +207,7 @@ bool FmiSlaveInstance::DoStep(
     // TODO: Temporary, to be removed when we have proper observers
     if (m_outputStream) {
         *m_outputStream << (currentT + deltaT);
-        BOOST_FOREACH (const auto& var, m_variables) {
+        for (const auto& var : m_typeDescription->Variables()) {
             PrintVariable(*m_outputStream, var, *this);
         }
         *m_outputStream << std::endl;

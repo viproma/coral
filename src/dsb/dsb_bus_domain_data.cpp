@@ -1,8 +1,7 @@
 #include "dsb/bus/domain_data.hpp"
 
-#include <iterator>
 #include <iostream> //TODO: For debugging purposes; remove later.
-#include "boost/foreach.hpp"
+#include <utility>
 
 
 namespace dsb
@@ -70,9 +69,9 @@ DomainData::SlaveTypesByProviderRange DomainData::SlaveTypesByProvider() const
 
 void DomainData::UpdateSlaveTypes(
     const std::string& slaveProviderId,
-    const dsbproto::domain::SlaveTypeList& slaveTypes)
+    std::vector<dsbproto::model::SlaveTypeDescription> slaveTypes)
 {
-    m_slaveTypes[slaveProviderId] = slaveTypes;
+    m_slaveTypes[slaveProviderId] = std::move(slaveTypes);
 }
 
 
@@ -86,16 +85,14 @@ uint16_t DomainData::SlaveProviderProtocol(const std::string& slaveProviderId) c
 void DomainData::Dump() const
 {
     std::clog << "Slave providers:" << std::endl;
-    BOOST_FOREACH (const auto sp, m_slaveProviders) {
+    for (const auto& sp : m_slaveProviders) {
         std::clog << "  " << sp.first << std::endl;
     }
     std::clog << "Slave types:" << std::endl;
-    BOOST_FOREACH (const auto st, m_slaveTypes) {
+    for (const auto& st : m_slaveTypes) {
         std::clog << "  " << st.first << std::endl;
-        for (int i = 0; i < st.second.slave_type_size(); ++i) {
-            std::clog << "    " << st.second.slave_type(i).name()
-                        << " (" << st.second.slave_type(i).uuid() << ')'
-                        << std::endl;
+        for (const auto& sd : st.second) {
+            std::clog << "    " << sd.name() << " (" << sd.uuid() << ')' << std::endl;
         }
     }
 }

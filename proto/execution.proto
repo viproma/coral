@@ -16,6 +16,7 @@ enum MessageType
     MSG_STEP         = 12;
     MSG_ACCEPT_STEP  = 13;
     MSG_TERMINATE    = 14;
+    MSG_DESCRIBE     = 15;
 
     // Responses
     MSG_ERROR        = 30;
@@ -23,7 +24,6 @@ enum MessageType
     MSG_STEP_OK      = 32;
     MSG_STEP_FAILED  = 33;
 }
-
 
 // The body of an ERROR message.
 message ErrorInfo
@@ -38,24 +38,10 @@ message ErrorInfo
     optional string details = 2;
 }
 
-
-// The information a slave needs to transfer to the master about one of
-// its variables.
-message VarInfo
-{
-    required int32 id = 1;
-    required string name = 2;
-    required model.DataType type = 3;
-    required model.Causality causality = 4;
-}
-
-
-// The information a slave needs to transfer to the master about itself.
+// Information sent by a slave about itself
 message SlaveDescription
 {
-    required int32 id = 1;
-    required string name = 2;
-    repeated VarInfo variable = 10;
+    required model.SlaveTypeDescription type_description = 1;
 }
 
 // The ID number and a value for one of a slave's variables.

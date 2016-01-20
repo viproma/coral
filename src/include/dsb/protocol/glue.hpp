@@ -19,13 +19,21 @@ namespace protocol
 {
 
 
-/// Converts a variable definition to a protocol buffer.
-dsbproto::model::VariableDefinition ToProto(
+/// Converts a variable description to a protocol buffer.
+dsbproto::model::VariableDescription ToProto(
     const dsb::model::VariableDescription& dsbVariable);
 
 /// Converts a protocol buffer to a variable definition.
 dsb::model::VariableDescription FromProto(
-    const dsbproto::model::VariableDefinition& protoVariable);
+    const dsbproto::model::VariableDescription& protoVariable);
+
+/// Converts a slave type description to a protocol buffer.
+dsbproto::model::SlaveTypeDescription ToProto(
+    const dsb::model::SlaveTypeDescription& src);
+
+/// Converts a protocol buffer to a slave type description.
+dsb::model::SlaveTypeDescription FromProto(
+    const dsbproto::model::SlaveTypeDescription& src);
 
 /// Converts an execution locator to a protocol buffer.
 dsbproto::net::ExecutionLocator ToProto(

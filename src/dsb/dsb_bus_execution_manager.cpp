@@ -99,7 +99,7 @@ void ExecutionManager::AcceptStep(
 
 const std::string& ExecutionManager::SlaveName(dsb::model::SlaveID id) const
 {
-    return m_private->slaves.at(id).name;
+    return m_private->slaves.at(id).description.Name();
 }
 
 

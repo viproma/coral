@@ -24,31 +24,8 @@ class ISlaveType : boost::noncopyable
 // TODO: Rename this to ISlaveFactory or similar?
 {
 public:
-    /// The name of this slave type.
-    virtual std::string Name() const = 0;
-
-    /// A UUID for this slave type.
-    virtual std::string Uuid() const = 0;
-
     /// A description of this slave type.
-    virtual std::string Description() const = 0;
-
-    /// The author.
-    virtual std::string Author() const = 0;
-
-    /// The version of this particular slave type.
-    virtual std::string Version() const = 0;
-
-    /// How many variables slaves of this type have.
-    virtual size_t VariableCount() const = 0;
-
-    /**
-    \brief  Information about the `index`-th variable.
-
-    Each variable must have a unique ID (which may, but is not required to, be
-    equal to `index`) and a unique name in the context of this slave type.
-    */
-    virtual dsb::model::VariableDescription Variable(size_t index) const = 0;
+    virtual const dsb::model::SlaveTypeDescription& Description() const = 0;
 
     /**
     \brief  Creates a new instance of this slave type.

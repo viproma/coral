@@ -203,9 +203,9 @@ void ExecutionManagerPrivate::AbortSlaveOpWaiting() DSB_NOEXCEPT
 
 ExecutionManagerPrivate::Slave::Slave(
     std::unique_ptr<dsb::bus::SlaveController> slave_,
-    const std::string& name_)
+    const dsb::model::SlaveDescription& description_)
     : slave(std::move(slave_)),
-      name(name_)
+      description(description_)
 { }
 
 

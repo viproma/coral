@@ -89,6 +89,10 @@ private:
     void PublishedHandler(std::vector<zmq::message_t>& msg);
     void StepFailedHandler(std::vector<zmq::message_t>& msg);
 
+    // Performs the "describe" operation, including filling `msg` with a
+    // reply message.
+    void HandleDescribe(std::vector<zmq::message_t>& msg);
+
     // Performs the "set variables" operation for ReadyHandler(), including
     // filling `msg` with a reply message.
     void HandleSetVars(std::vector<zmq::message_t>& msg);

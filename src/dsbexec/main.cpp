@@ -8,7 +8,6 @@
 #include <thread>
 #include <vector>
 
-#include "boost/foreach.hpp"
 #include "boost/program_options.hpp"
 
 #include "dsb/domain/controller.hpp"
@@ -261,8 +260,8 @@ int List(const std::vector<std::string>& args)
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         auto slaveTypes = domain.GetSlaveTypes();
-        BOOST_FOREACH (const auto& st, slaveTypes) {
-            std::cout << st.name << '\n';
+        for (const auto& st : slaveTypes) {
+            std::cout << st.description.Name() << '\n';
         }
     } catch (const std::runtime_error& e) {
         std::cerr << "Error: " << e.what() << std::endl;
@@ -335,7 +334,9 @@ int LsVars(const std::vector<std::string>& args)
 
         const auto slaveTypes = domain.GetSlaveTypes();
         const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
-            [&](const dsb::domain::Controller::SlaveType& s) { return s.name == slaveType; });
+            [&](const dsb::domain::Controller::SlaveType& s) {
+                return s.description.Name() == slaveType;
+            });
         if (it == slaveTypes.end()) {
             throw std::runtime_error("Unknown slave type: " + slaveType);
         }
@@ -361,7 +362,7 @@ int LsVars(const std::vector<std::string>& args)
         variabilityChar[dsb::model::CONTINUOUS_VARIABILITY] = 'u';
 
         // Finally, list the variables
-        BOOST_FOREACH (const auto& v, it->variables) {
+        for (const auto& v : it->description.Variables()) {
             const auto vt = typeChar.at(v.DataType());
             const auto vc = causalityChar.at(v.Causality());
             const auto vv = variabilityChar.at(v.Variability());
@@ -420,37 +421,36 @@ int Info(const std::vector<std::string>& args)
 
         const auto slaveTypes = domain.GetSlaveTypes();
         const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
-            [&](const dsb::domain::Controller::SlaveType& s) { return s.name == slaveType; });
+            [&](const dsb::domain::Controller::SlaveType& s) {
+                return s.description.Name() == slaveType; });
         if (it == slaveTypes.end()) {
             throw std::runtime_error("Unknown slave type: " + slaveType);
         }
-        const auto versionSpec = it->version.empty() ? std::string()
-                                                     : " v" + it->version;
-        std::cout << "\nname " << it->name << '\n'
-                  << "uuid " << it->uuid << '\n'
-                  << "description " << it->description << '\n'
-                  << "author " << it->author << '\n'
-                  << "version " << it->version << '\n'
+        std::cout << "\nname " << it->description.Name() << '\n'
+                  << "uuid " << it->description.UUID() << '\n'
+                  << "description " << it->description.Description() << '\n'
+                  << "author " << it->description.Author() << '\n'
+                  << "version " << it->description.Version() << '\n'
                   << "parameters {\n";
-        BOOST_FOREACH (const auto& v, it->variables) {
+        for (const auto& v : it->description.Variables()) {
             if (v.Causality() == dsb::model::PARAMETER_CAUSALITY) {
                 std::cout << "  " << v.Name() << "\n";
             }
         }
         std::cout << "}\ninputs {\n";
-        BOOST_FOREACH (const auto& v, it->variables) {
+        for (const auto& v : it->description.Variables()) {
             if (v.Causality() == dsb::model::INPUT_CAUSALITY) {
                 std::cout << "  " << v.Name() << "\n";
             }
         }
         std::cout << "}\noutputs {\n";
-        BOOST_FOREACH (const auto& v, it->variables) {
+        for (const auto& v : it->description.Variables()) {
             if (v.Causality() == dsb::model::OUTPUT_CAUSALITY) {
                 std::cout << "  " << v.Name() << "\n";
             }
         }
         std::cout << "}\nproviders {\n";
-        BOOST_FOREACH (const auto& p, it->providers) {
+        for (const auto& p : it->providers) {
             std::cout << "  " << p << "\n";
         }
         std::cout << "}" << std::endl;

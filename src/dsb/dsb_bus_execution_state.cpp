@@ -86,33 +86,65 @@ dsb::model::SlaveID ConfigExecutionState::AddSlave(
     std::chrono::milliseconds timeout,
     ExecutionManager::AddSlaveHandler onComplete)
 {
+    namespace dm = dsb::model;
     DSB_INPUT_CHECK(!!onComplete);
     if (!slaveName.empty() && !IsValidSlaveName(slaveName)) {
         throw std::runtime_error('"' + slaveName + "\" is not a valid slave name");
     }
-    if (self.lastSlaveID == std::numeric_limits<dsb::model::SlaveID>::max()) {
+    if (self.lastSlaveID == std::numeric_limits<dm::SlaveID>::max()) {
         throw std::length_error("Maximum number of slaves reached");
     }
     const auto id = ++self.lastSlaveID;
     const auto& realName = slaveName.empty() ? "_slave" + std::to_string(id) : slaveName;
     for (const auto& s : self.slaves) {
-        if (realName == s.second.name) {
+        if (realName == s.second.description.Name()) {
             throw std::runtime_error("Duplicate slave name: " + realName);
         }
     }
     const auto selfPtr = &self;
-    auto slave = std::make_unique<dsb::bus::SlaveController>(
-        reactor, slaveLocator, id, self.slaveSetup, timeout,
-        [id, onComplete, selfPtr] (const std::error_code& ec) {
-            if (!ec) {
-                onComplete(std::error_code(), id);
-            } else {
-                onComplete(ec, dsb::model::INVALID_SLAVE_ID);
-            }
+
+    // Once we have connected the slave, we want to immediately request some
+    // info from it.  We define the handler for that operation here, for
+    // readability's sake.
+    SlaveController::GetDescriptionHandler gotDescription =
+        [selfPtr, onComplete, id]
+        (const std::error_code& ec, const dm::SlaveDescription& sd)
+    {
+        if (!ec) {
+            selfPtr->slaves.at(id).description
+                .SetTypeDescription(sd.TypeDescription());
+            onComplete(ec, id);
+        } else {
+            selfPtr->slaves.at(id).slave->Close();
+            onComplete(ec, dm::INVALID_SLAVE_ID);
+        }
+        selfPtr->SlaveOpComplete();
+    };
+
+    // This is the handler for the connection operation. Note that we pass
+    // gotDescription into it.
+    SlaveController::ConnectHandler connected =
+        [selfPtr, timeout, onComplete, id, gotDescription]
+        (const std::error_code& ec)
+    {
+        if (!ec) {
+            // The slave is now connected. Next, we request some info
+            // from it.
+            selfPtr->slaves.at(id).slave->GetDescription(
+                timeout, std::move(gotDescription));
+        } else {
+            onComplete(ec, dsb::model::INVALID_SLAVE_ID);
             selfPtr->SlaveOpComplete();
-        });
+        }
+    };
+
+    auto slave = std::make_unique<dsb::bus::SlaveController>(
+        reactor, slaveLocator, id, self.slaveSetup, timeout, std::move(connected));
     self.slaves.insert(std::make_pair(
-        id, ExecutionManagerPrivate::Slave(std::move(slave), realName)));
+        id,
+        ExecutionManagerPrivate::Slave(
+            std::move(slave),
+            dsb::model::SlaveDescription(id, realName))));
     selfPtr->SlaveOpStarted();
     return id;
 }

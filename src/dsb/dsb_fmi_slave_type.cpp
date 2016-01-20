@@ -20,7 +20,7 @@ namespace fmi
 FmiSlaveType::FmiSlaveType(
     const std::string& fmuPath,
     SlaveStarter slaveStarterFunction)
-    : m_fmuPath(fmuPath), m_slaveStarterFunction(slaveStarterFunction), m_varList(nullptr)
+    : m_fmuPath(fmuPath), m_slaveStarterFunction(slaveStarterFunction)
 {
     auto ctx = dsb::fmilib::MakeImportContext(nullptr, jm_log_level_error);
     auto fmu = ctx->Import(fmuPath, m_unzipDir.Path().string());
@@ -28,51 +28,31 @@ FmiSlaveType::FmiSlaveType(
         throw std::runtime_error("Only FMI version 1.0 supported");
     }
     m_fmu = std::static_pointer_cast<dsb::fmilib::Fmu1>(fmu);
-    m_varList = fmi1_import_get_variable_list(m_fmu->Handle());
+
+    // Create the slave type description object
+    const auto varList = fmi1_import_get_variable_list(m_fmu->Handle());
+    const auto freeVarList = dsb::util::OnScopeExit([&]() {
+        fmi1_import_free_variable_list(varList);
+    });
+    std::vector<dsb::model::VariableDescription> varVector;
+    const auto varCount = fmi1_import_get_variable_list_size(varList);
+    for (std::size_t i = 0; i < varCount; ++i) {
+        varVector.push_back(ToVariable(
+            fmi1_import_get_variable(varList, boost::numeric_cast<unsigned int>(i)),
+            boost::numeric_cast<dsb::model::VariableID>(i)));
+    }
+    m_description = std::make_unique<dsb::model::SlaveTypeDescription>(
+        m_fmu->ModelName(),
+        m_fmu->GUID(),
+        m_fmu->Description(),
+        m_fmu->Author(),
+        m_fmu->ModelVersion(),
+        varVector);
 }
 
-FmiSlaveType::~FmiSlaveType()
+const dsb::model::SlaveTypeDescription& FmiSlaveType::Description() const
 {
-    assert (m_varList);
-    fmi1_import_free_variable_list(m_varList);
-}
-
-std::string FmiSlaveType::Name() const
-{
-    return m_fmu->ModelName();
-}
-
-std::string FmiSlaveType::Uuid() const
-{
-    return m_fmu->GUID();
-}
-
-std::string FmiSlaveType::Description() const
-{
-    return m_fmu->Description();
-}
-
-std::string FmiSlaveType::Author() const
-{
-    return m_fmu->Author();
-}
-
-std::string FmiSlaveType::Version() const
-{
-    return m_fmu->ModelVersion();
-}
-
-size_t FmiSlaveType::VariableCount() const
-{
-    return fmi1_import_get_variable_list_size(m_varList);
-}
-
-dsb::model::VariableDescription FmiSlaveType::Variable(size_t index) const
-{
-    return ToVariable(
-        fmi1_import_get_variable(
-            m_varList, boost::numeric_cast<unsigned int>(index)),
-        boost::numeric_cast<dsb::model::VariableID>(index));
+    return *m_description;
 }
 
 bool FmiSlaveType::Instantiate(
