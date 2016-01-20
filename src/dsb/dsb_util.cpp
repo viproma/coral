@@ -95,9 +95,9 @@ namespace
             CP_UTF8,
             MB_ERR_INVALID_CHARS,
             utf8.data(),
-			boost::numeric_cast<int>(utf8.size()),
-			buf.data(),
-			boost::numeric_cast<int>(buf.size()));
+            boost::numeric_cast<int>(utf8.size()),
+            buf.data(),
+            boost::numeric_cast<int>(buf.size()));
         return buf;
     }
 }

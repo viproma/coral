@@ -60,7 +60,7 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
         const auto var = fmi1_import_get_variable(fmiVars, i);
         m_fmiValueRefs.push_back(fmi1_import_get_variable_vr(var));
         m_variables.push_back(
-			ToVariable(var, boost::numeric_cast<dsb::model::VariableID>(i)));
+            ToVariable(var, boost::numeric_cast<dsb::model::VariableID>(i)));
         if (m_outputStream) *m_outputStream << "," << fmi1_import_get_variable_name(var);
     }
     if (m_outputStream) *m_outputStream << std::endl;
