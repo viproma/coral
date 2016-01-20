@@ -466,7 +466,9 @@ ExecutionConfig ParseExecutionConfig(const std::string& path)
 
     if (auto stepTimeoutMultiplierNode = ptree.get_child_optional("step_timeout_multiplier")) {
         ec.stepTimeoutMultiplier = stepTimeoutMultiplierNode->get_value<double>();
-        if (ec.stepTimeoutMultiplier <= 0.0) Error("Nonpositive slave_timeout_multiplier");
+        if (ec.stepTimeoutMultiplier * ec.stepSize * 1000 < 1.0) {
+            Error("step_timeout_multiplier is too small");
+        }
     }
 
     if (auto slaveTimeoutNode = ptree.get_child_optional("slave_timeout_s")) {

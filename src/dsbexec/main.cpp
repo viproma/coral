@@ -214,9 +214,9 @@ int Run(int argc, const char** argv)
         // Super advanced master algorithm.
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
         double nextPerc = 0.05;
-        const auto stepTimeout = std::chrono::seconds(
-            boost::numeric_cast<typename std::chrono::seconds::rep>(
-                execConfig.stepSize * execConfig.stepTimeoutMultiplier));
+        const auto stepTimeout = std::chrono::milliseconds(
+            boost::numeric_cast<typename std::chrono::milliseconds::rep>(
+                execConfig.stepSize * 1000 * execConfig.stepTimeoutMultiplier));
 
         const double clockRes = // the resolution of the clock, in ticks/sec
             static_cast<double>(std::chrono::high_resolution_clock::duration::period::num)
