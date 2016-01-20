@@ -132,6 +132,9 @@ public:
         AcceptStepHandler onComplete,
         SlaveAcceptStepHandler onSlaveAcceptStepComplete = nullptr);
 
+    /// Gets the name of the slave with the given ID.
+    const std::string& SlaveName(dsb::model::SlaveID id) const;
+
 private:
     std::unique_ptr<ExecutionManagerPrivate> m_private;
 };
