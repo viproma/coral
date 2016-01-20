@@ -21,8 +21,8 @@ void dsb::protobuf::ParseFromFrame(
     google::protobuf::MessageLite& target)
 {
     if (!target.ParseFromArray(
-			source.data(),
-			boost::numeric_cast<int>(source.size()))) {
+            source.data(),
+            boost::numeric_cast<int>(source.size()))) {
         throw SerializationException("Failed to parse message");
     }
 }

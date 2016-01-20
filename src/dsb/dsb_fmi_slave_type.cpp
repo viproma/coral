@@ -37,42 +37,42 @@ FmiSlaveType::~FmiSlaveType()
     fmi1_import_free_variable_list(m_varList);
 }
 
-std::string FmiSlaveType::Name() const 
+std::string FmiSlaveType::Name() const
 {
     return m_fmu->ModelName();
 }
 
-std::string FmiSlaveType::Uuid() const 
+std::string FmiSlaveType::Uuid() const
 {
     return m_fmu->GUID();
 }
 
-std::string FmiSlaveType::Description() const 
+std::string FmiSlaveType::Description() const
 {
     return m_fmu->Description();
 }
 
-std::string FmiSlaveType::Author() const 
+std::string FmiSlaveType::Author() const
 {
     return m_fmu->Author();
 }
 
-std::string FmiSlaveType::Version() const 
+std::string FmiSlaveType::Version() const
 {
     return m_fmu->ModelVersion();
 }
 
-size_t FmiSlaveType::VariableCount() const 
+size_t FmiSlaveType::VariableCount() const
 {
     return fmi1_import_get_variable_list_size(m_varList);
 }
 
-dsb::model::VariableDescription FmiSlaveType::Variable(size_t index) const 
+dsb::model::VariableDescription FmiSlaveType::Variable(size_t index) const
 {
     return ToVariable(
-		fmi1_import_get_variable(
-			m_varList, boost::numeric_cast<unsigned int>(index)),
-		boost::numeric_cast<dsb::model::VariableID>(index));
+        fmi1_import_get_variable(
+            m_varList, boost::numeric_cast<unsigned int>(index)),
+        boost::numeric_cast<dsb::model::VariableID>(index));
 }
 
 bool FmiSlaveType::Instantiate(
@@ -89,7 +89,7 @@ bool FmiSlaveType::Instantiate(
     return true;
 }
 
-std::string FmiSlaveType::InstantiationFailureDescription() const 
+std::string FmiSlaveType::InstantiationFailureDescription() const
 {
     return m_instantiationFailureDescription;
 }
