@@ -70,6 +70,11 @@ namespace
         }
     }
 
+    std::string ErrMsg(const std::string& message, std::error_code code)
+    {
+        return message + " (" + code.message() + ")";
+    }
+
 
     // =========================================================================
     // ControllerBackend
@@ -174,7 +179,11 @@ namespace
         m_execMgr.BeginConfig(
             [this] (const std::error_code& ec) {
                 if (!ec) dsb::inproc_rpc::ReturnSuccess(m_rpcSocket);
-                else dsb::inproc_rpc::ThrowRuntimeError(m_rpcSocket, ec.message());
+                else {
+                    dsb::inproc_rpc::ThrowRuntimeError(
+                        m_rpcSocket,
+                        ErrMsg("Failed to enter configuration mode", ec));
+                }
             });
     }
 
@@ -183,7 +192,11 @@ namespace
         m_execMgr.EndConfig(
             [this] (const std::error_code& ec) {
                 if (!ec) dsb::inproc_rpc::ReturnSuccess(m_rpcSocket);
-                else dsb::inproc_rpc::ThrowRuntimeError(m_rpcSocket, ec.message());
+                else {
+                    dsb::inproc_rpc::ThrowRuntimeError(
+                        m_rpcSocket,
+                        ErrMsg("Failed to leave configuration mode", ec));
+                }
             });
     }
 
@@ -200,17 +213,18 @@ namespace
         dsbproto::execution_controller::AddSlaveArgs args;
         dsb::inproc_rpc::UnmarshalArgs(msg, args);
         auto promisedID = std::make_shared<std::promise<dsb::model::SlaveID>>();
+        const auto slaveName = args.slave_name();
         m_execMgr.AddSlave(
             dsb::protocol::FromProto(args.slave_locator()),
-            args.slave_name(),
+            slaveName,
             m_reactor,
             std::chrono::milliseconds(args.timeout_ms()),
-            [promisedID, this] (const std::error_code& ec, dsb::model::SlaveID id) {
+            [promisedID, slaveName, this] (const std::error_code& ec, dsb::model::SlaveID id) {
                 if (!ec) {
                     promisedID->set_value(id);
                 } else {
-                    promisedID->set_exception(
-                        std::make_exception_ptr(std::runtime_error(ec.message())));
+                    promisedID->set_exception(std::make_exception_ptr(std::runtime_error(
+                        ErrMsg("Failed to add slave: " + slaveName, ec))));
                 }
             });
 
@@ -234,17 +248,19 @@ namespace
             std::back_inserter(settings),
             &FromProto);
 
+        const auto slaveID = boost::numeric_cast<dsb::model::SlaveID>(args.slave_id());
         auto promise = std::make_shared<std::promise<void>>();
         m_execMgr.SetVariables(
-            boost::numeric_cast<dsb::model::SlaveID>(args.slave_id()),
+            slaveID,
             settings,
             std::chrono::milliseconds(args.timeout_ms()),
-            [promise] (const std::error_code& ec) {
+            [slaveID, promise, this] (const std::error_code& ec) {
                 if (!ec) {
                     promise->set_value();
                 } else {
-                    promise->set_exception(std::make_exception_ptr(
-                        std::runtime_error(ec.message())));
+                    promise->set_exception(std::make_exception_ptr(std::runtime_error(ErrMsg(
+                        "Failed to set and/or connect variable(s) for slave: "
+                        + m_execMgr.SlaveName(slaveID), ec))));
                 }
             });
 
@@ -272,7 +288,9 @@ namespace
                         : dsbproto::execution_controller::StepReturn_StepResult_STEP_COMPLETE);
                     dsb::inproc_rpc::ReturnSuccess(m_rpcSocket, ret.get());
                 } else {
-                    dsb::inproc_rpc::ThrowRuntimeError(m_rpcSocket, ec.message());
+                    dsb::inproc_rpc::ThrowRuntimeError(
+                        m_rpcSocket,
+                        ErrMsg("Failed to perform time step", ec));
                 }
             },
             [ret] (const std::error_code& ec, dsb::model::SlaveID slaveID) {
@@ -298,7 +316,9 @@ namespace
             std::chrono::milliseconds(args.timeout_ms()),
             [this] (const std::error_code& ec) {
                 if (!ec) dsb::inproc_rpc::ReturnSuccess(m_rpcSocket);
-                else dsb::inproc_rpc::ThrowRuntimeError(m_rpcSocket, ec.message());
+                else dsb::inproc_rpc::ThrowRuntimeError(
+                    m_rpcSocket,
+                    ErrMsg("Failed to complete time step", ec));
             });
     }
 
