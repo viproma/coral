@@ -6,7 +6,6 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options("-Werror")              # Treat all warnings as errors.
 elseif (MSVC)
     add_compile_options("/W3")      # Enable warning level 3
-    add_compile_options("/wd4996")  # ...except for this stupid one.
     add_compile_options("/WX")      # Treat all warnings as errors.
 endif()
 
