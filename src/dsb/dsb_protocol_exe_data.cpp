@@ -20,7 +20,7 @@ namespace {
         }
         return dsb::model::Variable(
             dsb::util::DecodeUint16(static_cast<const char*>(msg.data())),
-            dsb::util::DecodeUint16(static_cast<const char*>(msg.data()) + 2));
+            dsb::util::DecodeUint32(static_cast<const char*>(msg.data()) + 2));
     }
 
     void CreateRawHeader(
@@ -28,7 +28,7 @@ namespace {
         char buf[ed::HEADER_SIZE])
     {
         dsb::util::EncodeUint16(var.Slave(), buf);
-        dsb::util::EncodeUint16(var.ID(), buf + 2);
+        dsb::util::EncodeUint32(var.ID(), buf + 2);
     }
 
     zmq::message_t CreateHeader(const dsb::model::Variable& var)

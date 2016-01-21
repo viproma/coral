@@ -17,7 +17,7 @@ namespace protocol
 */
 namespace exe_data
 {
-const size_t HEADER_SIZE = 4;
+const size_t HEADER_SIZE = 6;
 
 struct Message
 {
