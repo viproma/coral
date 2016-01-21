@@ -18,6 +18,9 @@ set (versionPatch "0")
 option (DSB_BUILD_PRIVATE_API_DOCS
         "Whether to generate API documentation for the non-public API"
         OFF)
+option (FMILIB_USE_SHARED_LIB
+        "Whether to link against the shared library version of FMI Library"
+        ON)
 
 # ==============================================================================
 # Common variables
@@ -72,6 +75,11 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     else ()
         add_compile_options("-std=c++1y")
     endif ()
+elseif (MSVC)
+    # This disables some instances of compiler warning C4996, which are not even
+    # disabled by compiler option /W0.
+    add_compile_options("/wd4996")
+    add_definitions("-D_SCL_SECURE_NO_WARNINGS")
 endif()
 set (CMAKE_DEBUG_POSTFIX "_d")
 
