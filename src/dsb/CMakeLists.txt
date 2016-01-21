@@ -151,7 +151,7 @@ target_include_directories(${_target}
 target_link_libraries (${_target}
     PRIVATE $<BUILD_INTERFACE:cppzmq>
             $<INSTALL_INTERFACE:zmq>
-    PUBLIC  "fmilib"
+    PUBLIC  ${FMILIB_LIBRARIES}
             "protobuf"
             "boost"
 )

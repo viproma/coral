@@ -18,6 +18,9 @@ set (versionPatch "0")
 option (DSB_BUILD_PRIVATE_API_DOCS
         "Whether to generate API documentation for the non-public API"
         OFF)
+option (FMILIB_USE_SHARED_LIB
+        "Whether to link against the shared library version of FMI Library"
+        ON)
 
 # ==============================================================================
 # Common variables
