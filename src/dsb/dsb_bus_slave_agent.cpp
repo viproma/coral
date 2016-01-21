@@ -173,7 +173,7 @@ namespace
     public:
         SetVariable(
             dsb::execution::ISlaveInstance& slaveInstance,
-            uint16_t varRef)
+            dsb::model::VariableID varRef)
             : m_slaveInstance(slaveInstance), m_varRef(varRef) { }
         void operator()(double value) const
         {
@@ -193,7 +193,7 @@ namespace
         }
     private:
         dsb::execution::ISlaveInstance& m_slaveInstance;
-        uint16_t m_varRef;
+        dsb::model::VariableID m_varRef;
     };
 }
 

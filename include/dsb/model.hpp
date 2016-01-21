@@ -54,7 +54,7 @@ const SlaveID INVALID_SLAVE_ID = 0;
 
 
 /// Unsigned integer type used for variable identifiers.
-typedef std::uint16_t VariableID;
+typedef std::uint32_t VariableID;
 
 
 /// Variable data types supported by the DSB.

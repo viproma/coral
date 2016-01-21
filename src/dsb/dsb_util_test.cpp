@@ -32,12 +32,47 @@ TEST(dsb_util, EncodeUint16) {
     EXPECT_EQ('\x3B', b[1]);
 }
 
+TEST(dsb_util, EncodeUint32) {
+    char b[4] = { '\xFF', '\xFF', '\xFF', '\xFF' };
+
+    EncodeUint32(0, b);
+    EXPECT_EQ('\x00', b[0]);
+    EXPECT_EQ('\x00', b[1]);
+    EXPECT_EQ('\x00', b[2]);
+    EXPECT_EQ('\x00', b[3]);
+
+    EncodeUint32(65535, b);
+    EXPECT_EQ('\xFF', b[0]);
+    EXPECT_EQ('\xFF', b[1]);
+    EXPECT_EQ('\x00', b[2]);
+    EXPECT_EQ('\x00', b[3]);
+
+    EncodeUint32(4294967295, b);
+    EXPECT_EQ('\xFF', b[0]);
+    EXPECT_EQ('\xFF', b[1]);
+    EXPECT_EQ('\xFF', b[2]);
+    EXPECT_EQ('\xFF', b[3]);
+
+    EncodeUint32(2018915346, b);
+    EXPECT_EQ('\x12', b[0]);
+    EXPECT_EQ('\x34', b[1]);
+    EXPECT_EQ('\x56', b[2]);
+    EXPECT_EQ('\x78', b[3]);
+}
+
 TEST(dsb_util, DecodeUint16) {
-    EXPECT_EQ(    0, DecodeUint16("\x00\x00"));
-    EXPECT_EQ(65535, DecodeUint16("\xFF\xFF"));
-    EXPECT_EQ( 4608, DecodeUint16("\x00\x12"));
-    EXPECT_EQ(   63, DecodeUint16("\x3F\x00"));
-    EXPECT_EQ(15238, DecodeUint16("\x86\x3B"));
+    EXPECT_EQ(    0u, DecodeUint16("\x00\x00"));
+    EXPECT_EQ(65535u, DecodeUint16("\xFF\xFF"));
+    EXPECT_EQ( 4608u, DecodeUint16("\x00\x12"));
+    EXPECT_EQ(   63u, DecodeUint16("\x3F\x00"));
+    EXPECT_EQ(15238u, DecodeUint16("\x86\x3B"));
+}
+
+TEST(dsb_util, DecodeUint32) {
+    EXPECT_EQ(         0u, DecodeUint32("\x00\x00\x00\x00"));
+    EXPECT_EQ(     65535u, DecodeUint32("\xFF\xFF\x00\x00"));
+    EXPECT_EQ(4294967295u, DecodeUint32("\xFF\xFF\xFF\xFF"));
+    EXPECT_EQ(2018915346u, DecodeUint32("\x12\x34\x56\x78"));
 }
 
 TEST(dsb_util, RandomUUID)
@@ -84,7 +119,7 @@ TEST(dsb_util, MoveAndReplace_class)
     EXPECT_EQ(dataPtr, c.data());
 }
 
-TEST(dsb_util_DecodeUint16_Test, MoveAndCall)
+TEST(dsb_util, MoveAndCall)
 {
     int i = -1;
 

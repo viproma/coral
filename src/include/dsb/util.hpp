@@ -26,8 +26,16 @@ namespace util
 void EncodeUint16(uint16_t source, char target[2]);
 
 
+/// Encodes a 32-bit unsigned integer using little-endian byte order.
+void EncodeUint32(uint32_t source, char target[4]);
+
+
 /// Decodes a 16-bit unsigned integer using little-endian byte order.
 uint16_t DecodeUint16(const char source[2]);
+
+
+/// Decodes a 32-bit unsigned integer using little-endian byte order.
+uint32_t DecodeUint32(const char source[4]);
 
 
 /// Returns a string that contains a random UUID.

@@ -25,10 +25,28 @@ void dsb::util::EncodeUint16(uint16_t source, char target[2])
 }
 
 
+void dsb::util::EncodeUint32(uint32_t source, char target[4])
+{
+    target[0] = source & 0xFF;
+    target[1] = (source >> 8) & 0xFF;
+    target[2] = (source >> 16) & 0xFF;
+    target[3] = (source >> 24) & 0xFF;
+}
+
+
 uint16_t dsb::util::DecodeUint16(const char source[2])
 {
     return static_cast<unsigned char>(source[0])
         | (static_cast<unsigned char>(source[1]) << 8);
+}
+
+
+uint32_t dsb::util::DecodeUint32(const char source[4])
+{
+    return static_cast<unsigned char>(source[0])
+        | (static_cast<unsigned char>(source[1]) << 8)
+        | (static_cast<unsigned char>(source[2]) << 16)
+        | (static_cast<unsigned char>(source[3]) << 24);
 }
 
 
