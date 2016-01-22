@@ -43,6 +43,7 @@ set (_privateHeaders
     "dsb/protocol/execution.hpp"
     "dsb/protocol/glue.hpp"
     "dsb/util.hpp"
+    "dsb/util/console.hpp"
 )
 set (_sources
     "dsb_fmi_glue.cpp"
@@ -75,6 +76,7 @@ set (_sources
     "dsb_protocol_exe_data.cpp"
     "dsb_protocol_execution.cpp"
     "dsb_util.cpp"
+    "dsb_util_console.cpp"
 
     "dsb_domain_controller.cpp"
     "dsb_domain_slave_provider.cpp"
@@ -105,6 +107,7 @@ set (_testSources
     "dsb_protocol_execution_test.cpp"
     "dsb_inproc_rpc_test.cpp"
     "dsb_util_test.cpp"
+    "dsb_util_console_test.cpp"
 )
 
 # Add full path to non-internal headers
@@ -135,7 +138,7 @@ CreateHeaderGroups("Public Header Files" ${_publicHeadersFull})
 CreateHeaderGroups("Private Header Files" ${_privateHeadersFull})
 
 # Dependencies
-find_package (BoostTarget REQUIRED COMPONENTS filesystem thread system chrono)
+find_package (BoostTarget REQUIRED COMPONENTS program_options filesystem thread system chrono)
 find_package (CPPZMQ REQUIRED)
 find_package (ProtobufTarget REQUIRED)
 find_package (FMILIB REQUIRED)
