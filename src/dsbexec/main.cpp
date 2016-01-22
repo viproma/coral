@@ -6,163 +6,115 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "boost/foreach.hpp"
 #include "boost/program_options.hpp"
 
 #include "dsb/domain/controller.hpp"
 #include "dsb/execution/controller.hpp"
+#include "dsb/util/console.hpp"
 #include "config_parser.hpp"
 
 
 namespace {
-    const char* self = "dsbexec";
+    const std::string self = "dsbexec";
 }
+
 
 dsb::net::DomainLocator MakeDomainLocator(const std::string& address)
 {
     return dsb::net::GetDomainEndpoints(address);
 }
 
-int Test(int argc, const char** argv)
+
+int Run(const std::vector<std::string>& args)
 {
-    assert (argc > 1 && std::string(argv[1]) == "test");
-    --argc; ++argv;
-
-    const auto address = "tcp://localhost";
-    const auto domainLoc = MakeDomainLocator(address);
-    auto domain = dsb::domain::Controller(domainLoc);
-
-    // TODO: Handle this waiting more elegantly, e.g. wait until all required
-    // slave types are available.  Also, the waiting time is related to the
-    // slave provider heartbeat time.
-    std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    const auto execLoc = dsb::execution::SpawnExecution(
-        domainLoc, std::string(), std::chrono::seconds(60));
-    auto exec = dsb::execution::Controller(execLoc);
-
-    try {
-        exec.BeginConfig();
-        exec.EndConfig();
-        exec.SetSimulationTime(0, 1);
-
-
-        exec.Terminate();
-    } catch (const std::logic_error& e) {
-        std::cerr << "logic_error: " << e.what() << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "exception: " << e.what() << std::endl;
-    }
-    std::cout << "Done. Press ENTER to quit" << std::endl;
-    std::cin.ignore();
-    return 0;
-}
-
-
-int Run(int argc, const char** argv)
-{
-    assert (argc > 1 && std::string(argv[1]) == "run");
-    // Drop the first element (program name) to use "run" as the "program name".
-    --argc; ++argv;
-
     try {
         namespace po = boost::program_options;
-        po::options_description optDesc("Options");
-        optDesc.add_options()
-            ("help",      "Display help message")
-            ("name,n", po::value<std::string>()->default_value(""), "The execution name (if left unspecified, a timestamp will be used)");
-        po::options_description argDesc;
-        argDesc.add(optDesc);
-        argDesc.add_options()
-            ("domain",      po::value<std::string>(), "The address of the domain")
-            ("exec-config", po::value<std::string>(), "Execution configuration file")
-            ("sys-config",  po::value<std::string>(), "System configuration file");
-        po::positional_options_description posArgDesc;
-        posArgDesc.add("domain", 1)
-                  .add("exec-config", 1)
-                  .add("sys-config", 1);
-        po::variables_map optMap;
-        po::store(po::command_line_parser(argc, argv).options(argDesc)
-                                                     .positional(posArgDesc)
-                                                     .run(),
-                  optMap);
+        po::options_description options("Options");
+        options.add_options()
+            ("domain,d", po::value<std::string>()->default_value("localhost"),
+                "The domain address, of the form \"hostname:port\". (\":port\" is "
+                "optional, and only required if a nonstandard port is used.)")
+            ("name,n", po::value<std::string>()->default_value(""),
+                "The execution name (if left unspecified, a timestamp will be used)");
+        po::options_description positionalOptions("Arguments");
+        positionalOptions.add_options()
+            ("exec-config", po::value<std::string>(),
+                "Configuration file which describes the simulation settings "
+                "(start time, step size, etc.)")
+            ("sys-config",  po::value<std::string>(),
+                "Configuration file which describes the system to simulate "
+                "(slaves, connections, etc.)\n");
+        po::positional_options_description positions;
+        positions.add("exec-config", 1)
+                 .add("sys-config", 1);
 
-        if (argc < 2 || optMap.count("help")) {
-            std::cerr <<
-                "Runs a simulation.\n\n"
-                "Usage:\n"
-                "  " << self << " run <domain> <exec.config> <sys.config> [options...]\n\n"
-                "Arguments:\n"
-                "  domain       = The domain address, of the form \"tcp://hostname:port\",\n"
-                "                 where the \":port\" part is only required if a nonstandard\n"
-                "                 port is used.\n"
-                "  exec. config = Configuration file which describes the simulation\n"
-                "                 settings (start time, step size, etc.)\n"
-                "  sys. config  = Configuration file which describes the system to\n"
-                "                 simulate (slaves, connections, etc.)\n\n"
-                      << optDesc << "\n"
-                "Execution configuration file:\n"
-                "  The execution configuration file is a simple text file consisting of keys\n"
-                "  and values, where each key is separated from its value by whitespace.\n"
-                "  (Specifically, it must be in the Boost INFO format; see here for more info:\n"
-                "  http://www.boost.org/doc/libs/release/libs/property_tree/ ).  The\n"
-                "  following example file contains all the settings currently available:\n"
-                "\n"
-                "      ; Time step size (mandatory)\n"
-                "      step_size 0.2\n"
-                "\n"
-                "      ; Simulation start time (optional, defaults to 0)\n"
-                "      start 0.0\n"
-                "\n"
-                "      ; Simulation end time (optional, defaults to \"indefinitely\")\n"
-                "      stop 100.0\n"
-                "\n"
-                "      ; General command/communications timeout, in milliseconds (optional,\n"
-                "      ; defaults to 1000 ms)\n"
-                "      ;\n"
-                "      ; This is how long the master will wait for replies to commands sent\n"
-                "      ; to a slave before it considers the connection to be broken.  It should\n"
-                "      ; generally be a short duration, as it is used for \"cheap\" operations\n"
-                "      ; (i.e., everything besides the \"perform time step\" command).\n"
-                "      comm_timeout_ms 5000\n"
-                "\n"
-                "      ; Time step timeout multiplier (optional, defaults to 100)\n"
-                "      ;\n"
-                "      ; This controls the amount of time the slaves get to carry out a time\n"
-                "      ; step.  The timeout is set equal to step_timeout_multiplier` times the\n"
-                "      ; step size, where the step size is assumed to be in seconds.\n"
-                "      step_timeout_multiplier 10\n"
-                "\n"
-                "      ; Slave timeout, in seconds (optional, defaults to 3600 s = 1 hour)\n"
-                "      ;\n"
-                "      ; This controls how long the slaves (and the execution broker, if this\n"
-                "      ; is used) will wait for commands from the master.  This should\n"
-                "      ; generally be a long duration, as the execution master could for\n"
-                "      ; instance be waiting for some user input before starting/continuing\n"
-                "      ; the simulation.\n"
-                "      slave_timeout_s 1000\n"
-                "\n"
-                "      ; Slave instantiation timeout, in milliseconds (optional, defaults\n"
-                "      ; to 30,000 ms = 30 s)\n"
-                "      ;\n"
-                "      ; This is the maximum amount of time that may pass from the moment the\n"
-                "      ; instantiation command is issued to when the slave is ready for\n"
-                "      ; simulation.  Some slaves may take a long time to instantiate, either\n"
-                "      ; because the FMU is very large and thus takes a long time to unpack\n"
-                "      ; or because its instantiation routine is very demanding.\n"
-                "      instantiation_timeout_ms 10000\n";
-            return 0;
-        }
-        if (!optMap.count("domain")) throw std::runtime_error("Domain address not specified");
-        if (!optMap.count("exec-config")) throw std::runtime_error("No execution configuration file specified");
-        if (!optMap.count("sys-config")) throw std::runtime_error("No system configuration file specified");
+        const auto argValues = dsb::util::ParseArguments(
+            args, options, positionalOptions, positions,
+            std::cerr,
+            self + " run",
+            "Runs a simulation.",
+            // Extra help:
+            "Execution configuration file:\n"
+            "  The execution configuration file is a simple text file consisting of keys\n"
+            "  and values, where each key is separated from its value by whitespace.\n"
+            "  (Specifically, it must be in the Boost INFO format; see here for more info:\n"
+            "  http://www.boost.org/doc/libs/release/libs/property_tree/ ).  The\n"
+            "  following example file contains all the settings currently available:\n"
+            "\n"
+            "      ; Time step size (mandatory)\n"
+            "      step_size 0.2\n"
+            "\n"
+            "      ; Simulation start time (optional, defaults to 0)\n"
+            "      start 0.0\n"
+            "\n"
+            "      ; Simulation end time (optional, defaults to \"indefinitely\")\n"
+            "      stop 100.0\n"
+            "\n"
+            "      ; General command/communications timeout, in milliseconds (optional,\n"
+            "      ; defaults to 1000 ms)\n"
+            "      ;\n"
+            "      ; This is how long the master will wait for replies to commands sent\n"
+            "      ; to a slave before it considers the connection to be broken.  It should\n"
+            "      ; generally be a short duration, as it is used for \"cheap\" operations\n"
+            "      ; (i.e., everything besides the \"perform time step\" command).\n"
+            "      comm_timeout_ms 5000\n"
+            "\n"
+            "      ; Time step timeout multiplier (optional, defaults to 100)\n"
+            "      ;\n"
+            "      ; This controls the amount of time the slaves get to carry out a time\n"
+            "      ; step.  The timeout is set equal to step_timeout_multiplier` times the\n"
+            "      ; step size, where the step size is assumed to be in seconds.\n"
+            "      step_timeout_multiplier 10\n"
+            "\n"
+            "      ; Slave timeout, in seconds (optional, defaults to 3600 s = 1 hour)\n"
+            "      ;\n"
+            "      ; This controls how long the slaves (and the execution broker, if this\n"
+            "      ; is used) will wait for commands from the master.  This should\n"
+            "      ; generally be a long duration, as the execution master could for\n"
+            "      ; instance be waiting for some user input before starting/continuing\n"
+            "      ; the simulation.\n"
+            "      slave_timeout_s 1000\n"
+            "\n"
+            "      ; Slave instantiation timeout, in milliseconds (optional, defaults\n"
+            "      ; to 30,000 ms = 30 s)\n"
+            "      ;\n"
+            "      ; This is the maximum amount of time that may pass from the moment the\n"
+            "      ; instantiation command is issued to when the slave is ready for\n"
+            "      ; simulation.  Some slaves may take a long time to instantiate, either\n"
+            "      ; because the FMU is very large and thus takes a long time to unpack\n"
+            "      ; or because its instantiation routine is very demanding.\n"
+            "      instantiation_timeout_ms 10000\n");
+        if (!argValues) return 0;
 
-        const auto address = optMap["domain"].as<std::string>();
-        const auto execConfigFile = optMap["exec-config"].as<std::string>();
-        const auto sysConfigFile = optMap["sys-config"].as<std::string>();
-        const auto execName = optMap["name"].as<std::string>();
+        if (!argValues->count("exec-config")) throw std::runtime_error("No execution configuration file specified");
+        if (!argValues->count("sys-config")) throw std::runtime_error("No system configuration file specified");
+        const auto execConfigFile = (*argValues)["exec-config"].as<std::string>();
+        const auto sysConfigFile = (*argValues)["sys-config"].as<std::string>();
+        const auto address = (*argValues)["domain"].as<std::string>();
+        const auto execName = (*argValues)["name"].as<std::string>();
 
         const auto domainLoc = MakeDomainLocator(address);
         auto domain = dsb::domain::Controller(domainLoc);
@@ -279,24 +231,27 @@ int Run(int argc, const char** argv)
 }
 
 
-int List(int argc, const char** argv)
+int List(const std::vector<std::string>& args)
 {
-    assert (argc > 1 && std::string(argv[1]) == "list");
-    if (argc < 3) {
-        std::cerr <<
-            "Lists the slave types that are available on a domain.\n\n"
-            "Usage:\n"
-            "  " << self << " list <domain>\n\n"
-            "Arguments:\n"
-            "  domain = The domain address, of the form \"tcp://hostname:port\",\n"
-            "           where the \":port\" part is only required if a nonstandard\n"
-            "           port is used.\n";
-        return 0;
-    }
     try {
-        const auto address = std::string(argv[2]);
-        const auto domainLoc = MakeDomainLocator(address);
+        namespace po = boost::program_options;
+        po::options_description options("Options");
+        options.add_options()
+            ("domain,d", po::value<std::string>()->default_value("localhost"),
+                "The domain address, of the form \"hostname:port\". (\":port\" is "
+                "optional, and only required if a nonstandard port is used.)");
+        const auto argValues = dsb::util::ParseArguments(
+            args,
+            options,
+            po::options_description("Arguments"),
+            po::positional_options_description(),
+            std::cerr,
+            self + " list",
+            "Lists the slave types that are available on a domain.");
+        if (!argValues) return 0;
+        const auto address = (*argValues)["domain"].as<std::string>();
 
+        const auto domainLoc = MakeDomainLocator(address);
         auto domain = dsb::domain::Controller(domainLoc);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
@@ -324,17 +279,15 @@ bool Contains(const std::string& s, char c)
 }
 
 
-int LsVars(int argc, const char** argv)
+int LsVars(const std::vector<std::string>& args)
 {
-    assert (argc > 1 && std::string(argv[1]) == "ls-vars");
-    // Drop the first element (program name) to use "ls-vars" as the "program name".
-    --argc; ++argv;
-
     try {
         namespace po = boost::program_options;
-        po::options_description optDesc("Options");
-        optDesc.add_options()
-            ("help", "Display help message")
+        po::options_description options("Options");
+        options.add_options()
+            ("domain,d", po::value<std::string>()->default_value("localhost"),
+                "The domain address, of the form \"hostname:port\". (\":port\" is "
+                "optional, and only required if a nonstandard port is used.)")
             ("type,t", po::value<std::string>()->default_value("birs"),
                 "The data type(s) to include.  May contain one or more of the "
                 "following characters: b=boolean, i=integer, r=real, s=string")
@@ -349,45 +302,26 @@ int LsVars(int argc, const char** argv)
             ("long,l",
                 "\"Long\" format.  Shows type, causality and variability as a "
                 "3-character string after the variable name.");
-        po::options_description argDesc;
-        argDesc.add(optDesc);
-        argDesc.add_options()
-            ("domain",      po::value<std::string>(), "The address of the domain")
-            ("slave-type",  po::value<std::string>(), "A slave type name");
-        po::positional_options_description posArgDesc;
-        posArgDesc.add("domain", 1)
-                  .add("slave-type", 1);
-        po::variables_map optMap;
-        po::store(po::command_line_parser(argc, argv).options(argDesc)
-                                                     .positional(posArgDesc)
-                                                     .run(),
-                  optMap);
+        po::options_description positionalOptions("Arguments");
+        positionalOptions.add_options()
+            ("slave-type",  po::value<std::string>(),
+                "The name of the slave type whose variables are to be listed.");
+        po::positional_options_description positions;
+        positions.add("slave-type", 1);
+        const auto argValues = dsb::util::ParseArguments(
+            args, options, positionalOptions, positions,
+            std::cerr,
+            self + " ls-vars",
+            "Prints a list of variables for one slave type.");
+        if (!argValues) return 0;
 
-        if (argc < 2 || optMap.count("help")) {
-            std::cerr <<
-                "Prints a list of variables for one slave type.\n\n"
-                "Usage:\n"
-                "  " << self << " ls-vars <domain> <slave type> [options...]\n\n"
-                "Arguments:\n"
-                "  domain       = The domain address, of the form \"tcp://hostname:port\",\n"
-                "                 where the \":port\" part is only required if a nonstandard\n"
-                "                 port is used.\n"
-                "  slave type   = The name of the slave type whose variables are to\n"
-                "                 be listed\n"
-                "\n"
-                << optDesc;
-            return 0;
-        }
-        if (!optMap.count("domain")) throw std::runtime_error("Domain address not specified");
-        if (!optMap.count("slave-type")) throw std::runtime_error("Slave type name not specified");
-
-        const auto address = optMap["domain"].as<std::string>();
-        const auto slaveType = optMap["slave-type"].as<std::string>();
-
-        const auto types = optMap["type"].as<std::string>();
-        const auto causalities = optMap["causality"].as<std::string>();
-        const auto variabilities = optMap["variability"].as<std::string>();
-        const bool longForm = optMap.count("long") > 0;
+        if (!argValues->count("slave-type")) throw std::runtime_error("Slave type name not specified");
+        const auto slaveType =     (*argValues)["slave-type"].as<std::string>();
+        const auto types =         (*argValues)["type"].as<std::string>();
+        const auto address =       (*argValues)["domain"].as<std::string>();
+        const auto causalities =   (*argValues)["causality"].as<std::string>();
+        const auto variabilities = (*argValues)["variability"].as<std::string>();
+        const bool longForm =      (*argValues).count("long") > 0;
 
         // Now we have read all the command-line arguments, connect to the
         // domain and find the slave type
@@ -448,25 +382,33 @@ int LsVars(int argc, const char** argv)
     return 0;
 }
 
-int Info(int argc, const char** argv)
-{
-    assert (argc > 1 && std::string(argv[1]) == "info");
-    if (argc < 4) {
-        std::cerr <<
-            "Shows detailed information about a slave type.\n\n"
-            "Usage:\n"
-            "  " << self << " info <domain> <slave type>\n\n"
-            "Arguments:\n"
-            "  domain     = The domain address, of the form \"tcp://hostname:port\",\n"
-            "               where the \":port\" part is only required if a nonstandard\n"
-            "               port is used.\n"
-            "  slave type = A slave type name\n";
-        return 0;
-    }
-    try {
-        const auto address = std::string(argv[2]);
-        const auto slaveType = std::string(argv[3]);
 
+int Info(const std::vector<std::string>& args)
+{
+    try {
+        namespace po = boost::program_options;
+        po::options_description options("Options");
+        options.add_options()
+            ("domain,d", po::value<std::string>()->default_value("localhost"),
+                "The domain address, of the form \"hostname:port\". (\":port\" is "
+                "optional, and only required if a nonstandard port is used.)");
+        po::options_description positionalOptions("Arguments");
+        positionalOptions.add_options()
+            ("slave-type",  po::value<std::string>(), "A slave type name");
+        po::positional_options_description positions;
+        positions.add("slave-type", 1);
+        const auto argValues = dsb::util::ParseArguments(
+            args, options, positionalOptions, positions,
+            std::cerr,
+            self + " info",
+            "Shows detailed information about a slave type.");
+        if (!argValues) return 0;
+
+        if (!argValues->count("slave-type")) throw std::runtime_error("Slave type name not specified");
+        const auto slaveType = (*argValues)["slave-type"].as<std::string>();
+        const auto address =   (*argValues)["domain"].as<std::string>();
+
+        // Connect to domain
         const auto domainLoc = MakeDomainLocator(address);
         auto domain = dsb::domain::Controller(domainLoc);
 
@@ -539,12 +481,12 @@ int main(int argc, const char** argv)
         return 0;
     }
     const auto command = std::string(argv[1]);
+    const auto args = dsb::util::CommandLine(argc-2, argv+2);
     try {
-        if (command == "run") return Run(argc, argv);
-        else if (command == "list") return List(argc, argv);
-        else if (command == "ls-vars") return LsVars(argc, argv);
-        else if (command == "info") return Info(argc, argv);
-        else if (command == "test") return Test(argc, argv);
+        if (command == "run") return Run(args);
+        else if (command == "list") return List(args);
+        else if (command == "ls-vars") return LsVars(args);
+        else if (command == "info") return Info(args);
         else {
             std::cerr << "Error: Invalid command: " << command;
             return 1;

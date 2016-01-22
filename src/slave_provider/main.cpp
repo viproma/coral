@@ -9,7 +9,6 @@
 #include "boost/filesystem.hpp"
 #include "boost/foreach.hpp"
 #include "boost/lexical_cast.hpp"
-#include "boost/program_options.hpp"
 
 #include "zmq.hpp"
 
@@ -19,6 +18,7 @@
 #include "dsb/domain/slave_provider.hpp"
 #include "dsb/fmi.hpp"
 #include "dsb/util.hpp"
+#include "dsb/util/console.hpp"
 
 
 // Note: Not threadsafe
@@ -140,57 +140,41 @@ int main(int argc, const char** argv)
 {
 try {
     namespace po = boost::program_options;
-    po::options_description optDesc("Options");
-    optDesc.add_options()
-        ("help",      "Display help message")
+    po::options_description options("Options");
+    options.add_options()
+        ("domain,d", po::value<std::string>()->default_value("localhost"),
+            "The domain address, of the form \"hostname:port\". (\":port\" is "
+            "optional, and only required if a nonstandard port is used.)")
         ("slave-exe", po::value<std::string>(),
             "The path to the DSB slave executable")
         ("output-dir,o", po::value<std::string>()->default_value(""),
             "The directory where output files should be written")
         ("timeout", po::value<unsigned int>()->default_value(3600),
             "The number of seconds of inactivity before a slave shuts itself down");
-    po::options_description argDesc;
-    argDesc.add(optDesc);
-    argDesc.add_options()
-        ("domain",    po::value<std::string>(),                    "The address of the domain")
-        ("fmu",       po::value<std::vector<std::string>>(),       "The FMU files and directories");
-    po::positional_options_description posArgDesc;
-    posArgDesc.add("domain", 1)
-              .add("fmu", -1);
-    po::variables_map optMap;
-    po::store(po::command_line_parser(argc, argv).options(argDesc)
-                                                 .positional(posArgDesc)
-                                                 .run(),
-              optMap);
+    po::options_description positionalOptions("Arguments");
+    positionalOptions.add_options()
+        ("fmu",       po::value<std::vector<std::string>>(), "The FMU files and directories");
+    po::positional_options_description positions;
+    positions.add("fmu", -1);
 
-    if (argc < 2 || optMap.count("help")) {
-        const auto self = boost::filesystem::path(argv[0]).stem().string();
-        std::cerr <<
-            "Slave provider demonstrator.\n"
-            "This program loads one or more FMUs and makes them available as\n"
-            "slaves on a domain.\n\n"
-            "Usage:\n"
-            "  " << self << " <domain> <fmus...> [options...]\n\n"
-            "Arguments:\n"
-            "  domain   The domain address, of the form \"tcp://hostname:port\",\n"
-            "           where the \":port\" part is only required if a nonstandard\n"
-            "           port is used.\n"
-            "  fmus     FMU files and directories. Directories will be scanned\n"
-            "           recursively for files with an \".fmu\" extension.\n\n"
-            << optDesc;
-        return 0;
-    }
+    const auto args = dsb::util::CommandLine(argc-1, argv+1);
+    const auto optionValues = dsb::util::ParseArguments(
+        args, options, positionalOptions, positions,
+        std::cerr,
+        "slave_provider",
+        "Slave provider demonstrator.\n"
+        "This program loads one or more FMUs and makes them available as\n"
+        "slaves on a domain.");
+    if (!optionValues) return 0;
+    if (!optionValues->count("fmu")) throw std::runtime_error("No FMUs specified");
 
-    if (!optMap.count("domain")) throw std::runtime_error("Domain address not specified");
-    if (!optMap.count("fmu")) throw std::runtime_error("No FMUs specified");
-
-    const auto domainAddress = optMap["domain"].as<std::string>();
-    const auto outputDir = optMap["output-dir"].as<std::string>();
-    const auto timeout = std::chrono::seconds(optMap["timeout"].as<unsigned int>());
+    const auto domainAddress = (*optionValues)["domain"].as<std::string>();
+    const auto outputDir = (*optionValues)["output-dir"].as<std::string>();
+    const auto timeout = std::chrono::seconds((*optionValues)["timeout"].as<unsigned int>());
 
     std::string slaveExe;
-    if (optMap.count("slave-exe")) {
-        slaveExe = optMap["slave-exe"].as<std::string>();
+    if (optionValues->count("slave-exe")) {
+        slaveExe = (*optionValues)["slave-exe"].as<std::string>();
     } else if (const auto slaveExeEnv = std::getenv("DSB_SLAVE_EXE")) {
         slaveExe = slaveExeEnv;
     } else {
@@ -211,7 +195,8 @@ try {
     const auto domainLoc = dsb::net::GetDomainEndpoints(domainAddress);
 
     std::vector<std::string> fmuPaths;
-    BOOST_FOREACH (const auto& fmuSpec, optMap["fmu"].as<std::vector<std::string>>()) {
+    for (const auto& fmuSpec :
+            (*optionValues)["fmu"].as<std::vector<std::string>>()) {
         if (boost::filesystem::is_directory(fmuSpec)) {
             ScanDirectoryForFMUs(fmuSpec, fmuPaths);
         } else {
