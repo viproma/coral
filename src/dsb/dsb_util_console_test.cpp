@@ -12,7 +12,7 @@ TEST(dsb_util, CommandLine)
     const char* argv2[2] = { "hello", "world" };
     const int argc2 = 2;
     const auto cmd2 = dsb::util::CommandLine(argc2, argv2);
-    EXPECT_EQ(argc2, cmd2.size());
+    EXPECT_EQ(argc2, static_cast<int>(cmd2.size()));
     EXPECT_EQ(argv2[0], cmd2[0]);
     EXPECT_EQ(argv2[1], cmd2[1]);
 }
