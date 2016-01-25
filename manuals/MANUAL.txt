@@ -47,12 +47,12 @@ NOTE:	slave.exe is a separate program that is called automatically and runs a pa
 		If slave.exe is stored in a different directory than slave_provider.exe, its path must be specified when calling slave_provider.exe.
 
 
-		
+
 broker.exe
 --------------------------------
 (*)	Is a central connection and routing point with a known address.
 
-NOTE:	The broker defines the domain address which should be "tcp://" followed by the IP address or host name of the host on which the broker is running. For local simulations, use the host name "localhost".
+NOTE:	The broker defines the domain address, which is the IP address or host name of the host on which the broker is running. For local simulations, use the host name "localhost" (the default).
 NOTE:	As a last resort to deal with crashes or freezes one can try to restart the broker to make sure that outdated processes and communications which may be stuck are terminated.
 
 
@@ -73,11 +73,13 @@ NOTE:	Simple demo configuration files and two simple demo FMUs are provided in t
 Running a simulation
 --------------------------------
 (1)	Run the broker.
-(2)	Run the slave provider(s), specifying the domain address and the paths to the FMU files and/or directories.
+(2)	Run the slave provider(s), specifying the paths to the FMU files and/or directories.
 		Optional:	Specify a directory to write the output files to by using the call argument "--output-dir".
 		Optional:	Specify the directory of the slave.exe program by using the call argument "--slave-exe".
+		Optional:	Specify an address for the domain with --domain if this is not localhost.
 (3)	Run the master in RUN mode by calling "dsbexec run <exec.config> <sys.config>", specifying the execution and system configuration files. The required slaves will be instantiated (in separate terminal windows) and added to the execution.
 		Optional:	Specify a name for the execution by using the call argument "--name". Otherwise, a time stamp is used by default.
+		Optional:	Specify an address for the domain with --domain if this is not localhost.
 		Note:		The name of the output files are shown in the slave provider terminal(s).
 (4)	In the master terminal window press 'ENTER' to start the simulation.
 		Note:		A progress bar will inform about the state of the simulation.
