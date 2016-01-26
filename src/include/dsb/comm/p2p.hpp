@@ -152,7 +152,7 @@ public:
 
     /**
     \brief  Move assignment
-    
+
     The effect of this is equivalent to a destruction of the original object
     and a move construction of a new one in its place.
     */
@@ -160,7 +160,7 @@ public:
 
     /**
     \brief  Terminates the proxy
-    
+
     This function sends a TERMINATE message to the proxy's control socket and
     waits for the background thread to end before returning.  If the proxy has
     already terminated, this function returns immediately and has no effect.
@@ -271,22 +271,12 @@ public:
     P2PReqSocket();
 
     /// Move constructor
-#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
-    P2PReqSocket(P2PReqSocket&&) = default;
-#else
     P2PReqSocket(P2PReqSocket&&) DSB_NOEXCEPT;
-#endif
 
     /// Move assignment
-#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
-    P2PReqSocket& operator=(P2PReqSocket&&) = default;
-#else
     P2PReqSocket& operator=(P2PReqSocket&&) DSB_NOEXCEPT;
-#endif
 
-#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
     ~P2PReqSocket() = default;
-#endif
 
     /**
     \brief  Connects to a server.
@@ -376,22 +366,12 @@ public:
     P2PRepSocket();
 
     /// Move constructor
-#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
-    P2PRepSocket(P2PRepSocket&&) = default;
-#else
     P2PRepSocket(P2PRepSocket&&) DSB_NOEXCEPT;
-#endif
 
     /// Move assignment
-#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
-    P2PRepSocket& operator=(P2PRepSocket&&) = default;
-#else
     P2PRepSocket& operator=(P2PRepSocket&&) DSB_NOEXCEPT;
-#endif
 
-#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
     ~P2PRepSocket() = default;
-#endif
 
     /**
     \brief  Binds to a local endpoint or connects to a proxy and waits for

@@ -46,13 +46,63 @@ be a valid C header.  C++-specific code should therefore be placed in
 #   endif
 #endif
 
-// Visual Studio does not support the =default and =delete constructor
-// attributes properly.
+// Visual Studio (2013 and 2015, at the time of writing) supports C++11's
+// explicitly defaulted and deleted functions, BUT with the exception that
+// it cannot generate default memberwise move constructors and move assignment
+// operators (cf. https://msdn.microsoft.com/en-us/library/dn457344.aspx).
+//
+// Therefore, we define a macro to generate memberwise move operations for
+// classes where such are appropriate.  For compilers that *do* have full
+// support for these, the macro will just expand to the C++11 "=default"
+// syntax.
+//
+// Usage is as follows:
+//
+//      class MyClass {
+//          int x;
+//          SomeNonCopyableType y;
+//          DSB_DEFINE_DEFAULT_MOVE(MyClass, x, y)
+//      }
+//
+// It is crucial that *all* members be included as arguments to the macro,
+// or they will simply not be moved.
 #ifdef __cplusplus
-#   ifdef _MSC_VER
-#       define DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS 0
+#   if defined(_MSC_VER)
+        // This is a slightly modified version of a trick which is explained
+        // in detail here: http://stackoverflow.com/a/16683147
+#       define DSB_EVALUATE_MACRO(code) code
+#       define DSB_CONCATENATE_MACROS(A, B) A ## B
+#       define DSB_BUILD_MACRO_NAME(PREFIX, SUFFIX) DSB_CONCATENATE_MACROS(PREFIX ## _, SUFFIX)
+#       define DSB_VA_SHIFT(_1, _2, _3, _4, _5, thats_the_one, ...) thats_the_one
+#       define DSB_VA_SIZE(...) DSB_EVALUATE_MACRO(DSB_VA_SHIFT(__VA_ARGS__, 5, 4, 3, 2, 1))
+#       define DSB_SELECT(PREFIX, ...) DSB_BUILD_MACRO_NAME(PREFIX, DSB_VA_SIZE(__VA_ARGS__))(__VA_ARGS__)
+
+#       define DSB_MOVE_CTOR_INITIALISER(...) DSB_SELECT(DSB_MOVE_CTOR_INITIALISER, __VA_ARGS__)
+#       define DSB_MOVE_CTOR_INITIALISER_1(m)                  m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_2(m1, m)              DSB_MOVE_CTOR_INITIALISER_1(m1), m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_3(m1, m2, m)          DSB_MOVE_CTOR_INITIALISER_2(m1, m2), m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_4(m1, m2, m3, m)      DSB_MOVE_CTOR_INITIALISER_3(m1, m2, m3), m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_5(m1, m2, m3, m4, m)  DSB_MOVE_CTOR_INITIALISER_4(m1, m2, m3, m4), m(std::move(other.m))
+
+#       define DSB_MOVE_OPER_ASSIGNMENT(...) DSB_SELECT(DSB_MOVE_OPER_ASSIGNMENT, __VA_ARGS__)
+#       define DSB_MOVE_OPER_ASSIGNMENT_1(m)                   m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_2(m1, m)               DSB_MOVE_OPER_ASSIGNMENT_1(m1) m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_3(m1, m2, m)           DSB_MOVE_OPER_ASSIGNMENT_2(m1, m2) m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_4(m1, m2, m3, m)       DSB_MOVE_OPER_ASSIGNMENT_3(m1, m2, m3) m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_5(m1, m2, m3, m4, m)   DSB_MOVE_OPER_ASSIGNMENT_4(m1, m2, m3, m4) m = std::move(other.m);
+
+#       define DSB_DEFINE_INLINE_MOVE_CTOR(ClassName, ...) \
+            ClassName(ClassName&& other) DSB_NOEXCEPT : DSB_MOVE_CTOR_INITIALISER(__VA_ARGS__) { }
+#       define DSB_DEFINE_INLINE_MOVE_OPER(ClassName, ...) \
+            ClassName& operator=(ClassName&& other) DSB_NOEXCEPT { DSB_MOVE_OPER_ASSIGNMENT(__VA_ARGS__) return *this; }
+
+#       define DSB_DEFINE_DEFAULT_MOVE(ClassName, /* all members: */ ...) \
+            DSB_DEFINE_INLINE_MOVE_CTOR(ClassName, __VA_ARGS__) \
+            DSB_DEFINE_INLINE_MOVE_OPER(ClassName, __VA_ARGS__)
 #   else
-#       define DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS 1
+#       define DSB_DEFINE_DEFAULT_MOVE(ClassName, /* all members: */ ...) \
+            ClassName(ClassName&&) = default; \
+            ClassName& operator=(ClassName&&) = default;
 #   endif
 #endif
 

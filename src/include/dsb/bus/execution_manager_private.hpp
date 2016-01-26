@@ -105,7 +105,7 @@ public:
     // respectively.
     void SlaveOpStarted() DSB_NOEXCEPT;
     void SlaveOpComplete();
-    
+
     typedef std::function<void(const std::error_code&)> AllSlaveOpsCompleteHandler;
 
     /*
@@ -137,10 +137,11 @@ public:
         Slave(
             std::unique_ptr<dsb::bus::SlaveController> slave,
             const std::string& name);
+
         Slave(const Slave&) = delete;
         Slave& operator=(const Slave&) = delete;
-        Slave(Slave&&) DSB_NOEXCEPT;
-        Slave& operator=(Slave&&) DSB_NOEXCEPT;
+
+        DSB_DEFINE_DEFAULT_MOVE(Slave, slave, name)
 
         std::unique_ptr<dsb::bus::SlaveController> slave;
         std::string name;

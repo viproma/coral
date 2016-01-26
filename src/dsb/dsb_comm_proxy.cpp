@@ -44,11 +44,7 @@ namespace
         */
         Unique(Unique& source) DSB_NOEXCEPT : m_payload(std::move(source.m_payload)) { }
 
-        /// Move constructor.
-        Unique(Unique&& source) DSB_NOEXCEPT : m_payload(std::move(source.m_payload)) { }
-
-        /// Move assignment.
-        Unique& operator=(Unique&& other) DSB_NOEXCEPT { m_payload = std::move(other.m_payload); }
+        DSB_DEFINE_DEFAULT_MOVE(Unique, m_payload)
 
         /// Returns a reference to the payload value.
         T& Payload() { return m_payload; }
@@ -78,17 +74,8 @@ namespace
         ProxyFunctor(const ProxyFunctor&) = delete;
         ProxyFunctor& operator=(const ProxyFunctor&) = delete;
 
-        ProxyFunctor(ProxyFunctor&& other) DSB_NOEXCEPT
-          : m_socket1(std::move(other.m_socket1)),
-            m_socket2(std::move(other.m_socket2)),
-            m_controlEndpoint(std::move(other.m_controlEndpoint)),
-            m_silenceTimeoutMillis(other.m_silenceTimeoutMillis)
-        {
-        }
-
-        // This class only needs to be move _constructible_, and not move
-        // _assignable_, for std::thread to be able to use it.
-        ProxyFunctor& operator=(ProxyFunctor&& other) = delete;
+        DSB_DEFINE_DEFAULT_MOVE(ProxyFunctor,
+            m_socket1, m_socket2, m_controlEndpoint, m_silenceTimeoutMillis)
 
         void operator()()
         {
@@ -122,7 +109,7 @@ namespace
     private:
         Unique<zmq::socket_t> m_socket1;
         Unique<zmq::socket_t> m_socket2;
-        const std::string m_controlEndpoint;
+        std::string m_controlEndpoint;
         long m_silenceTimeoutMillis;
     };
 
