@@ -9,6 +9,31 @@ namespace dsb
 namespace model
 {
 
+// =============================================================================
+// Free functions
+// =============================================================================
+
+namespace
+{
+    class DataTypeOfVisitor : public boost::static_visitor<DataType>
+    {
+    public:
+        DataType operator()(double)      const DSB_NOEXCEPT { return REAL_DATATYPE; }
+        DataType operator()(int)         const DSB_NOEXCEPT { return INTEGER_DATATYPE; }
+        DataType operator()(bool)        const DSB_NOEXCEPT { return BOOLEAN_DATATYPE; }
+        DataType operator()(std::string) const DSB_NOEXCEPT { return STRING_DATATYPE; }
+    };
+}
+
+DataType DataTypeOf(const ScalarValue& v)
+{
+    return boost::apply_visitor(DataTypeOfVisitor{}, v);
+}
+
+
+// =============================================================================
+// VariableDescription
+// =============================================================================
 
 VariableDescription::VariableDescription(
     dsb::model::VariableID id,

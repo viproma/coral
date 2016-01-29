@@ -255,6 +255,10 @@ private:
 typedef boost::variant<double, int, bool, std::string> ScalarValue;
 
 
+/// Returns the type of data stored in the given ScalarValue.
+DataType DataTypeOf(const ScalarValue& v);
+
+
 /**
 \brief  An object that identifies a variable in a simulation, and which consists
         of a slave ID and a variable ID.
