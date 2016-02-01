@@ -13,7 +13,6 @@
 #include <map>
 #include <vector>
 
-#include "boost/foreach.hpp"
 #include "boost/lexical_cast.hpp"
 #include "boost/numeric/conversion/cast.hpp"
 #include "boost/range/algorithm/find_if.hpp"
@@ -68,7 +67,7 @@ namespace
 
         // Put them all into a SlaveTypeList object.
         dsbproto::domain_controller::SlaveTypeList slaveTypeList;
-        BOOST_FOREACH (const auto& slaveType, slaveTypesByUUID) {
+        for (const auto& slaveType : slaveTypesByUUID) {
             *slaveTypeList.add_slave_type() = slaveType.second;
         }
 
@@ -90,8 +89,8 @@ namespace
         if (provider.empty()) {
             // Search through all slave types for all providers, and use the
             // first one that matches the UUID.
-            BOOST_FOREACH (const auto& providerSlaves, domainData.SlaveTypesByProvider()) {
-                BOOST_FOREACH (const auto& slaveTypeDesc, providerSlaves.second) {
+            for (const auto& providerSlaves : domainData.SlaveTypesByProvider()) {
+                for (const auto& slaveTypeDesc : providerSlaves.second) {
                     if (slaveTypeDesc.uuid() == slaveTypeUUID) {
                         provider = providerSlaves.first;
                         break;
