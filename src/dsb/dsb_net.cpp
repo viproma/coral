@@ -1,6 +1,7 @@
 #include "dsb/net.hpp"
 
 #include <stdexcept>
+#include <utility>
 #include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
@@ -50,19 +51,25 @@ const std::string& DomainLocator::ExecReqEndpoint() const { return m_execReqEndp
 
 DomainLocator GetDomainEndpoints(const std::string& domainBrokerAddress)
 {
-    if (domainBrokerAddress.substr(0, 6) != "tcp://") {
+    auto baseAddress = (domainBrokerAddress.find("://") == std::string::npos)
+        ? "tcp://" + domainBrokerAddress
+        : domainBrokerAddress;
+    if (baseAddress.substr(0, 6) != "tcp://") {
         throw std::runtime_error(
             "Invalid broker address: " + domainBrokerAddress
             + " (only TCP communication supported)");
     }
-    const auto colonPos = domainBrokerAddress.rfind(':');
-    std::string baseAddress, fullAddress;
+
+    // baseAddress := "tcp://hostname:"
+    // fullAddress := "tcp://hostname:port"
+    const auto colonPos = baseAddress.rfind(':');
+    std::string fullAddress;
     if (colonPos == 3) {
-        baseAddress = domainBrokerAddress + ':';
+        baseAddress += ':';
         fullAddress = baseAddress + std::to_string(DEFAULT_DOMAIN_BROKER_PORT);
     } else {
-        baseAddress = domainBrokerAddress.substr(0, colonPos+1);
-        fullAddress = domainBrokerAddress;
+        fullAddress = std::move(baseAddress);
+        baseAddress = fullAddress.substr(0, colonPos+1);
     }
 
     auto sck = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);

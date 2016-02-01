@@ -47,12 +47,12 @@ NOTE:	slave.exe is a separate program that is called automatically and runs a pa
 		If slave.exe is stored in a different directory than slave_provider.exe, its path must be specified when calling slave_provider.exe.
 
 
-		
+
 broker.exe
 --------------------------------
 (*)	Is a central connection and routing point with a known address.
 
-NOTE:	The broker defines the domain address which should be "tcp://" followed by the IP address or host name of the host on which the broker is running. For local simulations, use the host name "localhost".
+NOTE:	The broker defines the domain address, which is the IP address or host name of the host on which the broker is running. For local simulations, use the host name "localhost" (the default).
 NOTE:	As a last resort to deal with crashes or freezes one can try to restart the broker to make sure that outdated processes and communications which may be stuck are terminated.
 
 
@@ -60,10 +60,10 @@ NOTE:	As a last resort to deal with crashes or freezes one can try to restart th
 Setting up a simulation
 --------------------------------
 (1)	Run broker.exe by calling "broker".
-(2)	Run slave_provider.exe by calling "slave_provider <domain> <fmu...>", specifying the domain address (e.g. "tcp://localhost") and the paths to the FMU files and/or directories.
+(2)	Run slave_provider.exe by calling "slave_provider <fmu...>", specifying the paths to the FMU files and/or directories.
 		NOTE:		Multiple slave providers can be run using the same broker.
-(3)	Run dsbexec.exe in LIST mode by calling "dsbexec list <domain>", specifying the domain address (e.g. "tcp://localhost"). This retrieves a list of all slave types that are made available in the domain by the slave provider(s).
-(4)	Run dsbexec.exe in INFO mode to retrieve the properties and connections of the slave types that are needed for the simulation. To achieve this call "dsbexec info  <domain> <slave type>", specifying the domain address (e.g. "tcp://localhost") and a slave type as listed under (3).
+(3)	Run dsbexec.exe in LIST mode by calling "dsbexec list". This retrieves a list of all slave types that are made available in the domain by the slave provider(s).
+(4)	Run dsbexec.exe in INFO mode to retrieve the properties and connections of the slave types that are needed for the simulation. To achieve this call "dsbexec info <slave type>", specifying a slave type as listed under (3).
 (5)	Write a system configuration file with the retrieved information and define the simulation parameters (start time, end time, and step size) in an execution configuration file.
 
 NOTE:	Simple demo configuration files and two simple demo FMUs are provided in the "demo" folder. Also see the example below.
@@ -73,11 +73,13 @@ NOTE:	Simple demo configuration files and two simple demo FMUs are provided in t
 Running a simulation
 --------------------------------
 (1)	Run the broker.
-(2)	Run the slave provider(s), specifying the domain address and the paths to the FMU files and/or directories.
+(2)	Run the slave provider(s), specifying the paths to the FMU files and/or directories.
 		Optional:	Specify a directory to write the output files to by using the call argument "--output-dir".
 		Optional:	Specify the directory of the slave.exe program by using the call argument "--slave-exe".
-(3)	Run the master in RUN mode by calling "dsbexec run <domain> <exec.config> <sys.config>", specifying the domain address and the execution and system configuration files. The required slaves will be instantiated (in separate terminal windows) and added to the execution.
+		Optional:	Specify an address for the domain with --domain if this is not localhost.
+(3)	Run the master in RUN mode by calling "dsbexec run <exec.config> <sys.config>", specifying the execution and system configuration files. The required slaves will be instantiated (in separate terminal windows) and added to the execution.
 		Optional:	Specify a name for the execution by using the call argument "--name". Otherwise, a time stamp is used by default.
+		Optional:	Specify an address for the domain with --domain if this is not localhost.
 		Note:		The name of the output files are shown in the slave provider terminal(s).
 (4)	In the master terminal window press 'ENTER' to start the simulation.
 		Note:		A progress bar will inform about the state of the simulation.
@@ -92,12 +94,12 @@ Example: The double spring system
 The DSB comes with two simple demo FMUs and a set of corresponding execution and system configuration files that can be found in the "demo" folder. These simulate a one-dimensional double spring system, and the present section shall explain how to set up and run a co-simulation with the DSB using these demo files.
 
 (1)	Open a terminal window, navigate to the "dsb-0.1.0/bin" and call "broker".
-(2)	In another terminal window, call "slave_provider tcp://localhost ../demo" from the same directory. The FMUs in the "demo" directory are now loaded and available in the domain.
-(3)	Open a third terminal window and call "dsbexec list tcp://localhost". The master will connect to the domain and retrieve a list of all available slave types. These should now be "mass_1d" and "spring_1d".
-(4)	Let us get better acquainted with spring_1d by calling "dsbexec info tcp://localhost spring_1d". This will retrieve more detailed information on that particular FMU, such as a description, a version, and its parameters, input and outputs.
+(2)	In another terminal window, call "slave_provider ../demo" from the same directory. The FMUs in the "demo" directory are now loaded and available in the domain.
+(3)	Open a third terminal window and call "dsbexec list". The master will connect to the domain and retrieve a list of all available slave types. These should now be "mass_1d" and "spring_1d".
+(4)	Let us get better acquainted with spring_1d by calling "dsbexec info spring_1d". This will retrieve more detailed information on that particular FMU, such as a description, a version, and its parameters, input and outputs.
 (5)	Open the execution configuration file "10sec_run.execonf" in the "demo" folder and note how it defines the start time, the stop time, and the step size for the simulation run.
 (6)	Open the system configuration file "double_spring.sysconf" and note how it defines the slave types needed for the simulation, their initial values, and their connections.
-(7)	Start the simulation of the double spring system by calling "dsbexec run tcp://localhost ../demo/10sec_run.execonf ../demo/double_spring.sysconf". The configuration files will be parsed and the necessary FMUs will be loaded. Once finished, press 'ENTER' in the dsbexec terminal window to begin simulating. After completion, press 'ENTER' again to terminate dsbexec and return.
+(7)	Start the simulation of the double spring system by calling "dsbexec run ../demo/10sec_run.execonf ../demo/double_spring.sysconf". The configuration files will be parsed and the necessary FMUs will be loaded. Once finished, press 'ENTER' in the dsbexec terminal window to begin simulating. After completion, press 'ENTER' again to terminate dsbexec and return.
 (8)	Navigate to the "bin" folder (or the folder from which dsbexec was called) and have a look at the output files *.csv (for example by using MS Excel).
 NOTE:	The output file names will also be printed in the slave provider terminal window.
 
