@@ -73,23 +73,27 @@ be a valid C header.  C++-specific code should therefore be placed in
 #       define DSB_EVALUATE_MACRO(code) code
 #       define DSB_CONCATENATE_MACROS(A, B) A ## B
 #       define DSB_BUILD_MACRO_NAME(PREFIX, SUFFIX) DSB_CONCATENATE_MACROS(PREFIX ## _, SUFFIX)
-#       define DSB_VA_SHIFT(_1, _2, _3, _4, _5, thats_the_one, ...) thats_the_one
-#       define DSB_VA_SIZE(...) DSB_EVALUATE_MACRO(DSB_VA_SHIFT(__VA_ARGS__, 5, 4, 3, 2, 1))
+#       define DSB_VA_SHIFT(_1, _2, _3, _4, _5, _6, _7, thats_the_one, ...) thats_the_one
+#       define DSB_VA_SIZE(...) DSB_EVALUATE_MACRO(DSB_VA_SHIFT(__VA_ARGS__, 7, 6, 5, 4, 3, 2, 1))
 #       define DSB_SELECT(PREFIX, ...) DSB_BUILD_MACRO_NAME(PREFIX, DSB_VA_SIZE(__VA_ARGS__))(__VA_ARGS__)
 
 #       define DSB_MOVE_CTOR_INITIALISER(...) DSB_SELECT(DSB_MOVE_CTOR_INITIALISER, __VA_ARGS__)
-#       define DSB_MOVE_CTOR_INITIALISER_1(m)                  m(std::move(other.m))
-#       define DSB_MOVE_CTOR_INITIALISER_2(m1, m)              DSB_MOVE_CTOR_INITIALISER_1(m1), m(std::move(other.m))
-#       define DSB_MOVE_CTOR_INITIALISER_3(m1, m2, m)          DSB_MOVE_CTOR_INITIALISER_2(m1, m2), m(std::move(other.m))
-#       define DSB_MOVE_CTOR_INITIALISER_4(m1, m2, m3, m)      DSB_MOVE_CTOR_INITIALISER_3(m1, m2, m3), m(std::move(other.m))
-#       define DSB_MOVE_CTOR_INITIALISER_5(m1, m2, m3, m4, m)  DSB_MOVE_CTOR_INITIALISER_4(m1, m2, m3, m4), m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_1(m)                           m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_2(m1, m)                       DSB_MOVE_CTOR_INITIALISER_1(m1), m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_3(m1, m2, m)                   DSB_MOVE_CTOR_INITIALISER_2(m1, m2), m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_4(m1, m2, m3, m)               DSB_MOVE_CTOR_INITIALISER_3(m1, m2, m3), m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_5(m1, m2, m3, m4, m)           DSB_MOVE_CTOR_INITIALISER_4(m1, m2, m3, m4), m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_6(m1, m2, m3, m4, m5, m)       DSB_MOVE_CTOR_INITIALISER_5(m1, m2, m3, m4, m5), m(std::move(other.m))
+#       define DSB_MOVE_CTOR_INITIALISER_7(m1, m2, m3, m4, m5, m6, m)   DSB_MOVE_CTOR_INITIALISER_6(m1, m2, m3, m4, m5, m6), m(std::move(other.m))
 
 #       define DSB_MOVE_OPER_ASSIGNMENT(...) DSB_SELECT(DSB_MOVE_OPER_ASSIGNMENT, __VA_ARGS__)
-#       define DSB_MOVE_OPER_ASSIGNMENT_1(m)                   m = std::move(other.m);
-#       define DSB_MOVE_OPER_ASSIGNMENT_2(m1, m)               DSB_MOVE_OPER_ASSIGNMENT_1(m1) m = std::move(other.m);
-#       define DSB_MOVE_OPER_ASSIGNMENT_3(m1, m2, m)           DSB_MOVE_OPER_ASSIGNMENT_2(m1, m2) m = std::move(other.m);
-#       define DSB_MOVE_OPER_ASSIGNMENT_4(m1, m2, m3, m)       DSB_MOVE_OPER_ASSIGNMENT_3(m1, m2, m3) m = std::move(other.m);
-#       define DSB_MOVE_OPER_ASSIGNMENT_5(m1, m2, m3, m4, m)   DSB_MOVE_OPER_ASSIGNMENT_4(m1, m2, m3, m4) m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_1(m)                            m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_2(m1, m)                        DSB_MOVE_OPER_ASSIGNMENT_1(m1) m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_3(m1, m2, m)                    DSB_MOVE_OPER_ASSIGNMENT_2(m1, m2) m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_4(m1, m2, m3, m)                DSB_MOVE_OPER_ASSIGNMENT_3(m1, m2, m3) m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_5(m1, m2, m3, m4, m)            DSB_MOVE_OPER_ASSIGNMENT_4(m1, m2, m3, m4) m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_6(m1, m2, m3, m4, m5, m)        DSB_MOVE_OPER_ASSIGNMENT_5(m1, m2, m3, m4, m5) m = std::move(other.m);
+#       define DSB_MOVE_OPER_ASSIGNMENT_7(m1, m2, m3, m4, m5, m6, m)    DSB_MOVE_OPER_ASSIGNMENT_6(m1, m2, m3, m4, m5, m6) m = std::move(other.m);
 
 #       define DSB_DEFINE_INLINE_MOVE_CTOR(ClassName, ...) \
             ClassName(ClassName&& other) DSB_NOEXCEPT : DSB_MOVE_CTOR_INITIALISER(__VA_ARGS__) { }
