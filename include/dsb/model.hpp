@@ -167,8 +167,8 @@ public:
     SlaveTypeDescription& operator=(const SlaveTypeDescription&) = default;
 
     // Move
-    SlaveTypeDescription(SlaveTypeDescription&&) DSB_NOEXCEPT;
-    SlaveTypeDescription& operator=(SlaveTypeDescription&&) DSB_NOEXCEPT;
+    DSB_DEFINE_DEFAULT_MOVE(SlaveTypeDescription,
+        m_name, m_uuid, m_description, m_author, m_version, m_variables)
 
     /// The slave type name.
     const std::string& Name() const;
@@ -223,8 +223,7 @@ public:
     SlaveDescription& operator=(const SlaveDescription&) = default;
 
     // Move
-    SlaveDescription(SlaveDescription&&) DSB_NOEXCEPT;
-    SlaveDescription& operator=(SlaveDescription&&) DSB_NOEXCEPT;
+    DSB_DEFINE_DEFAULT_MOVE(SlaveDescription, m_id, m_name, m_typeDescription)
 
     /// The slave's ID in the current execution.
     SlaveID ID() const;
