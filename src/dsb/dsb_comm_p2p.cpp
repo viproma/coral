@@ -355,23 +355,22 @@ P2PReqSocket::P2PReqSocket()
 }
 
 
-#if !DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
-    P2PReqSocket::P2PReqSocket(P2PReqSocket&& other) DSB_NOEXCEPT
-        : m_connectedState(other.m_connectedState),
-          m_awaitingRep(other.m_awaitingRep),
-          m_socket(std::move(other.m_socket)),
-          m_serverIdentity(std::move(other.m_serverIdentity))
-    { }
-    
-    P2PReqSocket& P2PReqSocket::operator=(P2PReqSocket&& other) DSB_NOEXCEPT
-    {
-        m_connectedState = dsb::util::MoveAndReplace(other.m_connectedState, DISCONNECTED);
-        m_awaitingRep = dsb::util::MoveAndReplace(other.m_awaitingRep, false);
-        m_socket = std::move(other.m_socket);
-        m_serverIdentity = std::move(other.m_serverIdentity);
-        return *this;
-    }
-#endif
+P2PReqSocket::P2PReqSocket(P2PReqSocket&& other) DSB_NOEXCEPT
+    : m_connectedState(other.m_connectedState),
+      m_awaitingRep(other.m_awaitingRep),
+      m_socket(std::move(other.m_socket)),
+      m_serverIdentity(std::move(other.m_serverIdentity))
+{ }
+
+
+P2PReqSocket& P2PReqSocket::operator=(P2PReqSocket&& other) DSB_NOEXCEPT
+{
+    m_connectedState = dsb::util::MoveAndReplace(other.m_connectedState, DISCONNECTED);
+    m_awaitingRep = dsb::util::MoveAndReplace(other.m_awaitingRep, false);
+    m_socket = std::move(other.m_socket);
+    m_serverIdentity = std::move(other.m_serverIdentity);
+    return *this;
+}
 
 
 void P2PReqSocket::Connect(const P2PEndpoint& server)
@@ -532,25 +531,24 @@ P2PRepSocket::P2PRepSocket()
 }
 
 
-#if !DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
-    P2PRepSocket::P2PRepSocket(P2PRepSocket&& other) DSB_NOEXCEPT
-        : m_connectedState(other.m_connectedState),
-          m_processingReq(other.m_processingReq),
-          m_socket(std::move(other.m_socket)),
-          m_boundEndpoint(dsb::util::MoveAndReplace(other.m_boundEndpoint)),
-          m_clientIdentity(std::move(other.m_clientIdentity))
-    { }
-    
-    P2PRepSocket& P2PRepSocket::operator=(P2PRepSocket&& other) DSB_NOEXCEPT
-    {
-        m_connectedState = dsb::util::MoveAndReplace(other.m_connectedState, DISCONNECTED);
-        m_processingReq = dsb::util::MoveAndReplace(other.m_processingReq, false);
-        m_socket = std::move(other.m_socket);
-        m_boundEndpoint = dsb::util::MoveAndReplace(other.m_boundEndpoint);
-        m_clientIdentity = std::move(other.m_clientIdentity);
-        return *this;
-    }
-#endif
+P2PRepSocket::P2PRepSocket(P2PRepSocket&& other) DSB_NOEXCEPT
+    : m_connectedState(other.m_connectedState),
+      m_processingReq(other.m_processingReq),
+      m_socket(std::move(other.m_socket)),
+      m_boundEndpoint(dsb::util::MoveAndReplace(other.m_boundEndpoint)),
+      m_clientIdentity(std::move(other.m_clientIdentity))
+{ }
+
+
+P2PRepSocket& P2PRepSocket::operator=(P2PRepSocket&& other) DSB_NOEXCEPT
+{
+    m_connectedState = dsb::util::MoveAndReplace(other.m_connectedState, DISCONNECTED);
+    m_processingReq = dsb::util::MoveAndReplace(other.m_processingReq, false);
+    m_socket = std::move(other.m_socket);
+    m_boundEndpoint = dsb::util::MoveAndReplace(other.m_boundEndpoint);
+    m_clientIdentity = std::move(other.m_clientIdentity);
+    return *this;
+}
 
 
 void P2PRepSocket::Bind(const P2PEndpoint& bindpoint)

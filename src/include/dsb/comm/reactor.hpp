@@ -127,13 +127,7 @@ private:
             int remaining,
             std::unique_ptr<TimerHandler> handler);
 
-#if DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
-        Timer(Timer&&) = default;
-        Timer& operator=(Timer&&) = default;
-#else
-        Timer(Timer&&) DSB_NOEXCEPT;
-        Timer& operator=(Timer&&) DSB_NOEXCEPT;
-#endif
+        DSB_DEFINE_DEFAULT_MOVE(Timer, id, nextEventTime, interval, remaining, handler)
 
         int id;
         TimePoint nextEventTime;

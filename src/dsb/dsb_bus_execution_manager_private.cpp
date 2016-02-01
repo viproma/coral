@@ -208,18 +208,5 @@ ExecutionManagerPrivate::Slave::Slave(
       name(name_)
 { }
 
-ExecutionManagerPrivate::Slave::Slave(Slave&& other) DSB_NOEXCEPT
-    : slave(std::move(other.slave)),
-      name(other.name)
-{ }
-
-ExecutionManagerPrivate::Slave&
-    ExecutionManagerPrivate::Slave::operator=(Slave&& other) DSB_NOEXCEPT
-{
-    slave = std::move(other.slave);
-    name = std::move(other.name);
-    return *this;
-}
-
 
 }} // namespace

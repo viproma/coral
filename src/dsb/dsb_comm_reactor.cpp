@@ -214,28 +214,4 @@ Reactor::Timer::Timer(
 }
 
 
-#if !DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
-
-Reactor::Timer::Timer(Timer&& other) DSB_NOEXCEPT
-    : id(other.id),
-      nextEventTime(other.nextEventTime),
-      interval(other.interval),
-      remaining(other.remaining),
-      handler(std::move(other.handler))
-{
-}
-
-Reactor::Timer& Reactor::Timer::operator=(Timer&& other) DSB_NOEXCEPT
-{
-    id = other.id;
-    nextEventTime = other.nextEventTime;
-    interval = other.interval;
-    remaining = other.remaining;
-    handler = std::move(other.handler);
-    return *this;
-}
-
-#endif // DSB_HAS_EXPLICIT_DEFAULTED_DELETED_FUNCS
-
-
 }} // namespace
