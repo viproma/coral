@@ -87,18 +87,19 @@ dsb::model::SlaveID ConfigExecutionState::AddSlave(
     ExecutionManager::AddSlaveHandler onComplete)
 {
     DSB_INPUT_CHECK(!!onComplete);
-    if (!IsValidSlaveName(slaveName)) {
+    if (!slaveName.empty() && !IsValidSlaveName(slaveName)) {
         throw std::runtime_error('"' + slaveName + "\" is not a valid slave name");
     }
     if (self.lastSlaveID == std::numeric_limits<dsb::model::SlaveID>::max()) {
         throw std::length_error("Maximum number of slaves reached");
     }
+    const auto id = ++self.lastSlaveID;
+    const auto& realName = slaveName.empty() ? "_slave" + std::to_string(id) : slaveName;
     for (const auto& s : self.slaves) {
-        if (slaveName == s.second.name) {
-            throw std::runtime_error("Duplicate slave name: " + slaveName);
+        if (realName == s.second.name) {
+            throw std::runtime_error("Duplicate slave name: " + realName);
         }
     }
-    const auto id = ++self.lastSlaveID;
     const auto selfPtr = &self;
     auto slave = std::make_unique<dsb::bus::SlaveController>(
         reactor, slaveLocator, id, self.slaveSetup, timeout,
@@ -111,7 +112,7 @@ dsb::model::SlaveID ConfigExecutionState::AddSlave(
             selfPtr->SlaveOpComplete();
         });
     self.slaves.insert(std::make_pair(
-        id, ExecutionManagerPrivate::Slave(std::move(slave), slaveName)));
+        id, ExecutionManagerPrivate::Slave(std::move(slave), realName)));
     selfPtr->SlaveOpStarted();
     return id;
 }

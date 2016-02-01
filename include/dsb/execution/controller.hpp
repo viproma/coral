@@ -138,7 +138,8 @@ public:
     \param [in] slaveName
         A user-defined name for the slave, which must be unique in the context
         of the present execution.  Valid names may only contain alphanumeric
-        characters and underscores, and must start with a letter.
+        characters and underscores, and must start with a letter.  An empty
+        string may be given, in which case a default name will be chosen.
     \param [in] commTimeout
         The maximum time to wait for replies for commands sent to the slave.
         If this time is exceeded, the operation is considered to have failed.
