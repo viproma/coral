@@ -270,7 +270,7 @@ TEST(dsb_comm, P2PReqRepSocketOutOfOrder)
     EXPECT_TRUE(m.empty());
     m.push_back(zmq::message_t(12));
     std::memcpy(m[0].data(), "out of order", 12);
-    cli.Send(m, SEND_OUT_OF_ORDER);
+    cli.Send(m);
 
     svr.Receive(m);
     EXPECT_EQ(2U, m.size());

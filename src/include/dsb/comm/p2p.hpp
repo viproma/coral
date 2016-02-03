@@ -244,14 +244,6 @@ private:
 };
 
 
-/// Flags for P2PReqSocket::Send()
-enum P2PSendFlags
-{
-    /// Allows a message to be sent out of the strict request-reply order.
-    SEND_OUT_OF_ORDER = 1
-};
-
-
 /**
 \brief  A client socket for communication with a single server node in a
         request-reply pattern, either directly or via a P2P proxy.
@@ -270,13 +262,10 @@ public:
     /// Constructs a new, unconnected socket.
     P2PReqSocket();
 
-    /// Move constructor
-    P2PReqSocket(P2PReqSocket&&) DSB_NOEXCEPT;
+    DSB_DEFINE_DEFAULT_MOVE(P2PReqSocket,
+        m_connectedState, m_socket, m_serverIdentity)
 
-    /// Move assignment
-    P2PReqSocket& operator=(P2PReqSocket&&) DSB_NOEXCEPT;
-
-    ~P2PReqSocket() = default;
+    ~P2PReqSocket() DSB_NOEXCEPT;
 
     /**
     \brief  Connects to a server.
@@ -305,20 +294,14 @@ public:
     /**
     \brief  Sends a request.
 
-    This function may only be called if the socket is connected or bound, and
-    may normally not be called again before a reply has been received with
-    Receive().
-
-    The exception is if the following Send() is called with `flags` set to
-    `SEND_OUT_OF_ORDER`, which disables this check.  Use this at your own risk.
+    This function may only be called if the socket is connected or bound.
     */
-    void Send(std::vector<zmq::message_t>& msg, int flags = 0);
+    void Send(std::vector<zmq::message_t>& msg);
 
     /**
     \brief  Receives a reply.
 
-    This function may only be called if the socket is connected or bound, and
-    then only after a request has been sent with Send()().
+    This function may only be called if the socket is connected or bound.
     */
     void Receive(std::vector<zmq::message_t>& msg);
 
@@ -340,7 +323,6 @@ private:
         BOUND,
     };
     State m_connectedState;
-    bool m_awaitingRep;
     std::unique_ptr<zmq::socket_t> m_socket;
     zmq::message_t m_serverIdentity;
 };
@@ -365,13 +347,10 @@ public:
     /// Constructs a new, unconnected socket.
     P2PRepSocket();
 
-    /// Move constructor
-    P2PRepSocket(P2PRepSocket&&) DSB_NOEXCEPT;
+    DSB_DEFINE_DEFAULT_MOVE(P2PRepSocket,
+        m_connectedState, m_socket, m_boundEndpoint, m_clientEnvelope)
 
-    /// Move assignment
-    P2PRepSocket& operator=(P2PRepSocket&&) DSB_NOEXCEPT;
-
-    ~P2PRepSocket() = default;
+    ~P2PRepSocket() DSB_NOEXCEPT;
 
     /**
     \brief  Binds to a local endpoint or connects to a proxy and waits for
@@ -410,7 +389,8 @@ public:
     Send().
 
     This function may only be called if the socket is connected or bound, and
-    may not be called again before a reply has been sent with Send().
+    may not be called again before a reply has been sent with Send() or the
+    request has been ignored with Ignore().
     */
     void Receive(std::vector<zmq::message_t>& msg);
 
@@ -418,9 +398,22 @@ public:
     \brief  Sends a reply.
 
     This function may only be called if the socket is connected or bound, and
-    then only after a request has been received with Receive().
+    then only after a request has been received with Receive() and it has not
+    been ignored with Ignore().
     */
     void Send(std::vector<zmq::message_t>& msg);
+
+    /**
+    \brief  Ignores the last received request.
+
+    This enables calling Receive() to receive a new request without first
+    sending a reply to the last one.  After calling this function, it is an
+    error to attempt to call Send() before a new request has been received.
+
+    If the socket is not connected, or no request has been received, this
+    function has no effect.
+    */
+    void Ignore();
 
     /**
     \brief  The underlying ZMQ socket.
@@ -443,10 +436,9 @@ private:
         CONNECTED
     };
     State m_connectedState;
-    bool m_processingReq;
     std::unique_ptr<zmq::socket_t> m_socket;
     P2PEndpoint m_boundEndpoint;
-    zmq::message_t m_clientIdentity;
+    std::vector<zmq::message_t> m_clientEnvelope;
 };
 
 

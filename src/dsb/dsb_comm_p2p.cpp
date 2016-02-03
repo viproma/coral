@@ -347,29 +347,20 @@ namespace
 
 
 P2PReqSocket::P2PReqSocket()
-    : m_connectedState(DISCONNECTED),
-      m_awaitingRep(false),
-      m_socket(),
-      m_serverIdentity()
+    : m_connectedState{DISCONNECTED}
 {
 }
 
 
-P2PReqSocket::P2PReqSocket(P2PReqSocket&& other) DSB_NOEXCEPT
-    : m_connectedState(other.m_connectedState),
-      m_awaitingRep(other.m_awaitingRep),
-      m_socket(std::move(other.m_socket)),
-      m_serverIdentity(std::move(other.m_serverIdentity))
-{ }
-
-
-P2PReqSocket& P2PReqSocket::operator=(P2PReqSocket&& other) DSB_NOEXCEPT
+P2PReqSocket::~P2PReqSocket() DSB_NOEXCEPT
 {
-    m_connectedState = dsb::util::MoveAndReplace(other.m_connectedState, DISCONNECTED);
-    m_awaitingRep = dsb::util::MoveAndReplace(other.m_awaitingRep, false);
-    m_socket = std::move(other.m_socket);
-    m_serverIdentity = std::move(other.m_serverIdentity);
-    return *this;
+    if (m_socket) {
+        // ---
+        // Workaround for ZeroMQ issue 1264, https://github.com/zeromq/libzmq/issues/1264
+        char temp;
+        m_socket->recv(&temp, 1, ZMQ_DONTWAIT);
+        // ---
+    }
 }
 
 
@@ -378,7 +369,6 @@ void P2PReqSocket::Connect(const P2PEndpoint& server)
     if (m_connectedState != DISCONNECTED) {
         throw std::logic_error("Socket already bound/connected");
     }
-    assert(!m_awaitingRep);
     assert(!m_socket);
     assert(m_serverIdentity.size() == 0);
 
@@ -413,7 +403,6 @@ void P2PReqSocket::Bind(const std::string& localEndpoint)
     if (m_connectedState != DISCONNECTED) {
         throw std::logic_error("Socket already bound/connected");
     }
-    assert(!m_awaitingRep);
     assert(!m_socket);
     assert(m_serverIdentity.size() == 0);
 
@@ -432,21 +421,22 @@ void P2PReqSocket::Bind(const std::string& localEndpoint)
 void P2PReqSocket::Close()
 {
     if (m_connectedState != DISCONNECTED) {
+        // ---
+        // Workaround for ZeroMQ issue 1264, https://github.com/zeromq/libzmq/issues/1264
+        char temp;
+        m_socket->recv(&temp, 1, ZMQ_DONTWAIT);
+        // ---
         m_connectedState = DISCONNECTED;
-        m_awaitingRep = false;
         m_socket.reset();
         m_serverIdentity.rebuild();
     }
 }
 
 
-void P2PReqSocket::Send(std::vector<zmq::message_t>& msg, int flags)
+void P2PReqSocket::Send(std::vector<zmq::message_t>& msg)
 {
     if (m_connectedState == DISCONNECTED) {
         throw std::logic_error("Socket not bound/connected");
-    }
-    if (m_awaitingRep && !(flags & SEND_OUT_OF_ORDER)) {
-        throw std::logic_error("Send() called out of order");
     }
     if (msg.empty()) {
         throw std::invalid_argument("Message is empty");
@@ -458,13 +448,7 @@ void P2PReqSocket::Send(std::vector<zmq::message_t>& msg, int flags)
         m_socket->send(serverIdentity, ZMQ_SNDMORE);
         m_socket->send("", 0, ZMQ_SNDMORE);
     }
-    const auto nextToLast = --msg.end();
-    for (auto it = msg.begin(); it != nextToLast; ++it) {
-        m_socket->send(*it, ZMQ_SNDMORE);
-    }
-    m_socket->send(msg.back());
-    msg.clear();
-    m_awaitingRep = true;
+    dsb::comm::Send(*m_socket, msg);
 }
 
 
@@ -472,9 +456,6 @@ void P2PReqSocket::Receive(std::vector<zmq::message_t>& msg)
 {
     if (m_connectedState == DISCONNECTED) {
         throw std::logic_error("Socket not bound/connected");
-    }
-    if (!m_awaitingRep) {
-        throw std::logic_error("Receive() called out of order");
     }
     ConsumeDelimiterFrame(*m_socket);
     if (m_connectedState == PROXY_CONNECTED) {
@@ -490,12 +471,7 @@ void P2PReqSocket::Receive(std::vector<zmq::message_t>& msg)
             throw std::runtime_error("Invalid incoming message (wrong server identity)");
         }
     }
-    msg.clear();
-    do {
-        msg.push_back(zmq::message_t());
-        m_socket->recv(&msg.back());
-    } while (msg.back().more());
-    m_awaitingRep = false;
+    dsb::comm::Receive(*m_socket, msg);
 }
 
 
@@ -522,32 +498,20 @@ namespace
 
 
 P2PRepSocket::P2PRepSocket()
-    : m_connectedState(DISCONNECTED),
-      m_processingReq(false),
-      m_socket(),
-      m_boundEndpoint(),
-      m_clientIdentity()
+    : m_connectedState{DISCONNECTED}
 {
 }
 
 
-P2PRepSocket::P2PRepSocket(P2PRepSocket&& other) DSB_NOEXCEPT
-    : m_connectedState(other.m_connectedState),
-      m_processingReq(other.m_processingReq),
-      m_socket(std::move(other.m_socket)),
-      m_boundEndpoint(dsb::util::MoveAndReplace(other.m_boundEndpoint)),
-      m_clientIdentity(std::move(other.m_clientIdentity))
-{ }
-
-
-P2PRepSocket& P2PRepSocket::operator=(P2PRepSocket&& other) DSB_NOEXCEPT
+P2PRepSocket::~P2PRepSocket() DSB_NOEXCEPT
 {
-    m_connectedState = dsb::util::MoveAndReplace(other.m_connectedState, DISCONNECTED);
-    m_processingReq = dsb::util::MoveAndReplace(other.m_processingReq, false);
-    m_socket = std::move(other.m_socket);
-    m_boundEndpoint = dsb::util::MoveAndReplace(other.m_boundEndpoint);
-    m_clientIdentity = std::move(other.m_clientIdentity);
-    return *this;
+    if (m_socket) {
+        // ---
+        // Workaround for ZeroMQ issue 1264, https://github.com/zeromq/libzmq/issues/1264
+        char temp;
+        m_socket->recv(&temp, 1, ZMQ_DONTWAIT);
+        // ---
+    }
 }
 
 
@@ -556,10 +520,9 @@ void P2PRepSocket::Bind(const P2PEndpoint& bindpoint)
     EnforceDisconnected();
 
     auto connectedState = DISCONNECTED;
-    std::unique_ptr<zmq::socket_t> socket;
+    auto socket = std::make_unique<zmq::socket_t>(GlobalContext(), ZMQ_ROUTER);
     P2PEndpoint boundEndpoint;
     if (bindpoint.IsBehindProxy()) {
-        socket = std::make_unique<zmq::socket_t>(GlobalContext(), ZMQ_DEALER);
         socket->setsockopt(
             ZMQ_IDENTITY,
             bindpoint.Identity().data(),
@@ -568,7 +531,6 @@ void P2PRepSocket::Bind(const P2PEndpoint& bindpoint)
         boundEndpoint = bindpoint;
         connectedState = PROXY_BOUND;
     } else {
-        socket = std::make_unique<zmq::socket_t>(GlobalContext(), ZMQ_REP);
         socket->bind(bindpoint.Endpoint().c_str());
         boundEndpoint = P2PEndpoint(LastEndpoint(*socket));
         connectedState = BOUND;
@@ -588,7 +550,7 @@ void P2PRepSocket::Connect(const std::string& clientEndpoint)
 {
     EnforceDisconnected();
 
-    auto socket = std::make_unique<zmq::socket_t>(GlobalContext(), ZMQ_REP);
+    auto socket = std::make_unique<zmq::socket_t>(GlobalContext(), ZMQ_ROUTER);
     socket->setsockopt(
         ZMQ_LINGER,
         &P2PREP_DEFAULT_LINGER_MSEC,
@@ -603,11 +565,15 @@ void P2PRepSocket::Connect(const std::string& clientEndpoint)
 void P2PRepSocket::Close()
 {
     if (m_connectedState != DISCONNECTED) {
+        // ---
+        // Workaround for ZeroMQ issue 1264, https://github.com/zeromq/libzmq/issues/1264
+        char temp;
+        m_socket->recv(&temp, 1, ZMQ_DONTWAIT);
+        // ---
         m_connectedState = DISCONNECTED;
-        m_processingReq = false;
         m_socket.reset();
         m_boundEndpoint = P2PEndpoint();
-        m_clientIdentity = zmq::message_t();
+        m_clientEnvelope.clear();
     }
 }
 
@@ -618,52 +584,54 @@ const P2PEndpoint& P2PRepSocket::BoundEndpoint() const
 }
 
 
+namespace
+{
+    // Receives frames up to and including the next empty delimiter frame
+    // and appends them to msg. If no frames follow the delimiter, an exception
+    // is thrown.
+    void RecvEnvelope(zmq::socket_t& socket, std::vector<zmq::message_t>& msg)
+    {
+        do {
+            msg.emplace_back();
+            socket.recv(&msg.back());
+        } while (msg.back().size() > 0 && msg.back().more());
+        if (!msg.back().more()) {
+            throw std::runtime_error("Invalid incoming message (not enough frames)");
+        }
+    }
+}
+
+
 void P2PRepSocket::Receive(std::vector<zmq::message_t>& msg)
 {
     EnforceConnected();
-    if (m_processingReq) {
-        throw std::logic_error("Receive() called out of order");
-    }
+    DSB_PRECONDITION_CHECK(m_clientEnvelope.empty());
+
+    std::vector<zmq::message_t> clientEnvelope;
+    RecvEnvelope(*m_socket, clientEnvelope);
     if (m_connectedState == PROXY_BOUND) {
-        ConsumeDelimiterFrame(*m_socket);
-        zmq::message_t clientIdentity;
-        m_socket->recv(&clientIdentity);
-        if (!clientIdentity.more()) {
-            throw std::runtime_error("Invalid incoming message (not enough frames)");
-        }
-        ConsumeDelimiterFrame(*m_socket);
-        m_clientIdentity = std::move(clientIdentity);
+        // Also receive the "P2P envelope"
+        RecvEnvelope(*m_socket, clientEnvelope);
     }
-    msg.clear();
-    do {
-        msg.push_back(zmq::message_t());
-        m_socket->recv(&msg.back());
-    } while (msg.back().more());
-    m_processingReq = true;
+    dsb::comm::Receive(*m_socket, msg);
+    m_clientEnvelope = std::move(clientEnvelope);
 }
 
 
 void P2PRepSocket::Send(std::vector<zmq::message_t>& msg)
 {
     EnforceConnected();
-    if (!m_processingReq) {
-        throw std::logic_error("Send() called out of order");
-    }
-    if (msg.empty()) {
-        throw std::invalid_argument("Message is empty");
-    }
-    if (m_connectedState == PROXY_BOUND) {
-        m_socket->send("", 0, ZMQ_SNDMORE);
-        m_socket->send(m_clientIdentity, ZMQ_SNDMORE);
-        m_socket->send("", 0, ZMQ_SNDMORE);
-    }
-    const auto nextToLast = --msg.end();
-    for (auto it = msg.begin(); it != nextToLast; ++it) {
-        m_socket->send(*it, ZMQ_SNDMORE);
-    }
-    m_socket->send(msg.back());
-    msg.clear();
-    m_processingReq = false;
+    DSB_PRECONDITION_CHECK(!m_clientEnvelope.empty());
+    DSB_INPUT_CHECK(!msg.empty());
+    dsb::comm::Send(*m_socket, m_clientEnvelope, dsb::comm::SendFlag::more);
+    dsb::comm::Send(*m_socket, msg);
+    assert(m_clientEnvelope.empty());
+}
+
+
+void P2PRepSocket::Ignore()
+{
+    m_clientEnvelope.clear();
 }
 
 
@@ -681,9 +649,8 @@ void P2PRepSocket::EnforceDisconnected() const
     if (m_connectedState != DISCONNECTED) {
         throw std::logic_error("Socket already bound/connected");
     }
-    assert(!m_processingReq);
     assert(!m_socket);
-    assert(m_clientIdentity.size() == 0);
+    assert(m_clientEnvelope.empty());
 }
 
 

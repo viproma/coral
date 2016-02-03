@@ -213,12 +213,7 @@ void SlaveControlMessengerV0::Terminate()
         % this);
     std::vector<zmq::message_t> msg;
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_TERMINATE);
-    m_socket.Send(msg, dsb::comm::SEND_OUT_OF_ORDER);
-    // ---
-    // Workaround for ZeroMQ issue 1264, https://github.com/zeromq/libzmq/issues/1264
-    char temp;
-    m_socket.Socket().recv(&temp, 1, ZMQ_DONTWAIT);
-    // ---
+    m_socket.Send(msg);
     DSB_LOG_TRACE(boost::format("SlaveControlMessengerV0 %x: Send complete") % this);
     Close();
 }
