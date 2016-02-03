@@ -115,12 +115,12 @@ void LastCall(F& f)
     tmp();
 }
 
-template<typename F, typename A0>
-void LastCall(F& f, A0&& a0)
+template<typename F, typename... Args>
+void LastCall(F& f, Args&&... args)
 {
     F tmp;
     swap(f, tmp);
-    tmp(std::forward<A0>(a0));
+    tmp(std::forward<Args>(args)...);
 }
 
 
