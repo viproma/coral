@@ -328,7 +328,7 @@ void PrimingExecutionState::StateEntered(ExecutionManagerPrivate& self)
 
         const auto keepMeAlive = selfPtr->SwapState(std::make_unique<ReadyExecutionState>());
         assert(keepMeAlive.get() == this);
-        dsb::util::MoveAndCall(m_onComplete, std::error_code());
+        dsb::util::LastCall(m_onComplete, std::error_code());
    });
 }
 

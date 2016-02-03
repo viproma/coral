@@ -119,7 +119,7 @@ TEST(dsb_util, MoveAndReplace_class)
     EXPECT_EQ(dataPtr, c.data());
 }
 
-TEST(dsb_util, MoveAndCall)
+TEST(dsb_util, LastCall)
 {
     int i = -1;
 
@@ -128,7 +128,7 @@ TEST(dsb_util, MoveAndCall)
         EXPECT_FALSE(f0);
     };
     EXPECT_TRUE(!!f0);
-    MoveAndCall(f0);
+    LastCall(f0);
     EXPECT_EQ(0, i);
 
     std::function<void(int)> f1 = [&](int x) {
@@ -137,7 +137,7 @@ TEST(dsb_util, MoveAndCall)
         EXPECT_FALSE(f1);
     };
     EXPECT_TRUE(!!f1);
-    MoveAndCall(f1, 123);
+    LastCall(f1, 123);
     EXPECT_EQ(1, i);
 }
 
