@@ -49,16 +49,8 @@ public:
         const std::string& fmuPath,
         SlaveStarter slaveStarterFunction);
 
-    ~FmiSlaveType();
-
     // Implementations of ISlaveType methods.
-    std::string Name() const override;
-    std::string Uuid() const override;
-    std::string Description() const override;
-    std::string Author() const override;
-    std::string Version() const override;
-    size_t VariableCount() const override;
-    virtual dsb::model::VariableDescription Variable(size_t index) const override;
+    const dsb::model::SlaveTypeDescription& Description() const override;
     virtual bool Instantiate(
         std::chrono::milliseconds timeout,
         dsb::net::SlaveLocator& slaveLocator) override;
@@ -69,7 +61,7 @@ private:
     const SlaveStarter m_slaveStarterFunction;
     dsb::util::TempDir m_unzipDir;
     std::shared_ptr<dsb::fmilib::Fmu1> m_fmu;
-    fmi1_import_variable_list_t* m_varList;
+    std::unique_ptr<dsb::model::SlaveTypeDescription> m_description;
     std::string m_instantiationFailureDescription;
 };
 

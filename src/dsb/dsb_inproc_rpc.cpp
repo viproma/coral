@@ -179,18 +179,12 @@ void dsb::inproc_rpc::CallGetSlaveTypes(
     dsb::protobuf::ParseFromFrame(msg[0], recvdSlaveTypes);
 
     slaveTypes.clear();
-    BOOST_FOREACH(const auto& st, recvdSlaveTypes.slave_type()) {
-        dsb::domain::Controller::SlaveType slaveType;
-        const auto& sti = st.slave_type_info();
-        slaveType.name = sti.name();
-        slaveType.uuid = sti.uuid();
-        slaveType.description = sti.description();
-        slaveType.author = sti.author();
-        slaveType.version = sti.version();
-        BOOST_FOREACH(const auto& var, sti.variable()) {
-            slaveType.variables.push_back(dsb::protocol::FromProto(var));
-        }
-        BOOST_FOREACH(const auto& provider, st.provider()) {
+    for (const auto& st : recvdSlaveTypes.slave_type()) {
+        dsb::domain::Controller::SlaveType slaveType = {
+            dsb::protocol::FromProto(st.description()),
+            std::vector<std::string>()
+        };
+        for (const auto& provider : st.provider()) {
             slaveType.providers.push_back(provider);
         }
         slaveTypes.push_back(slaveType);

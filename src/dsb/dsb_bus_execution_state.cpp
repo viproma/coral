@@ -86,35 +86,195 @@ dsb::model::SlaveID ConfigExecutionState::AddSlave(
     std::chrono::milliseconds timeout,
     ExecutionManager::AddSlaveHandler onComplete)
 {
+    namespace dm = dsb::model;
     DSB_INPUT_CHECK(!!onComplete);
     if (!slaveName.empty() && !IsValidSlaveName(slaveName)) {
         throw std::runtime_error('"' + slaveName + "\" is not a valid slave name");
     }
-    if (self.lastSlaveID == std::numeric_limits<dsb::model::SlaveID>::max()) {
+    if (self.lastSlaveID == std::numeric_limits<dm::SlaveID>::max()) {
         throw std::length_error("Maximum number of slaves reached");
     }
     const auto id = ++self.lastSlaveID;
     const auto& realName = slaveName.empty() ? "_slave" + std::to_string(id) : slaveName;
     for (const auto& s : self.slaves) {
-        if (realName == s.second.name) {
+        if (realName == s.second.description.Name()) {
             throw std::runtime_error("Duplicate slave name: " + realName);
         }
     }
     const auto selfPtr = &self;
-    auto slave = std::make_unique<dsb::bus::SlaveController>(
-        reactor, slaveLocator, id, self.slaveSetup, timeout,
-        [id, onComplete, selfPtr] (const std::error_code& ec) {
-            if (!ec) {
-                onComplete(std::error_code(), id);
-            } else {
-                onComplete(ec, dsb::model::INVALID_SLAVE_ID);
-            }
+
+    // Once we have connected the slave, we want to immediately request some
+    // info from it.  We define the handler for that operation here, for
+    // readability's sake.
+    SlaveController::GetDescriptionHandler gotDescription =
+        [selfPtr, onComplete, id]
+        (const std::error_code& ec, const dm::SlaveDescription& sd)
+    {
+        if (!ec) {
+            selfPtr->slaves.at(id).description
+                .SetTypeDescription(sd.TypeDescription());
+            onComplete(ec, id);
+        } else {
+            selfPtr->slaves.at(id).slave->Close();
+            onComplete(ec, dm::INVALID_SLAVE_ID);
+        }
+        selfPtr->SlaveOpComplete();
+    };
+
+    // This is the handler for the connection operation. Note that we pass
+    // gotDescription into it.
+    SlaveController::ConnectHandler connected =
+        [selfPtr, timeout, onComplete, id, gotDescription]
+        (const std::error_code& ec)
+    {
+        if (!ec) {
+            // The slave is now connected. Next, we request some info
+            // from it.
+            selfPtr->slaves.at(id).slave->GetDescription(
+                timeout, std::move(gotDescription));
+        } else {
+            onComplete(ec, dsb::model::INVALID_SLAVE_ID);
             selfPtr->SlaveOpComplete();
-        });
+        }
+    };
+
+    auto slave = std::make_unique<dsb::bus::SlaveController>(
+        reactor, slaveLocator, id, self.slaveSetup, timeout, std::move(connected));
     self.slaves.insert(std::make_pair(
-        id, ExecutionManagerPrivate::Slave(std::move(slave), realName)));
+        id,
+        ExecutionManagerPrivate::Slave(
+            std::move(slave),
+            dsb::model::SlaveDescription(id, realName))));
     selfPtr->SlaveOpStarted();
     return id;
+}
+
+
+namespace
+{
+    std::string DataTypeName(dsb::model::DataType dt)
+    {
+        switch (dt) {
+            case dsb::model::REAL_DATATYPE:    return "real";
+            case dsb::model::INTEGER_DATATYPE: return "integer";
+            case dsb::model::BOOLEAN_DATATYPE: return "boolean";
+            case dsb::model::STRING_DATATYPE:  return "string";
+        }
+        return std::string();
+    }
+
+    std::string CausalityName(dsb::model::Causality c)
+    {
+        switch (c) {
+            case dsb::model::PARAMETER_CAUSALITY:            return "parameter";
+            case dsb::model::CALCULATED_PARAMETER_CAUSALITY: return "calculated parameter";
+            case dsb::model::INPUT_CAUSALITY:                return "input";
+            case dsb::model::OUTPUT_CAUSALITY:               return "output";
+            case dsb::model::LOCAL_CAUSALITY:                return "local";
+        }
+        return std::string();
+    }
+
+    void VerifyDataTypeMatch(
+        dsb::model::DataType expected,
+        dsb::model::DataType actual,
+        const std::string& slaveName,
+        const std::string& varName,
+        const char* action)
+    {
+        if (expected != actual) {
+            std::stringstream sst;
+            sst << "Failed to " << action << ' ' << slaveName << '.' << varName
+                << " due to data type mismatch. Expected: "
+                << DataTypeName(expected) << ". Actual: "
+                << DataTypeName(actual);
+            throw std::runtime_error(sst.str());
+        }
+    }
+
+    void VerifyCausalityMatch(
+        dsb::model::Causality inputCausality,
+        dsb::model::Causality outputCausality,
+        const std::string& slaveName,
+        const std::string& varName)
+    {
+        std::string reason;
+        if ((inputCausality == dsb::model::INPUT_CAUSALITY
+                && (outputCausality == dsb::model::OUTPUT_CAUSALITY
+                    || outputCausality == dsb::model::CALCULATED_PARAMETER_CAUSALITY))
+            || (inputCausality == dsb::model::PARAMETER_CAUSALITY
+                && outputCausality == dsb::model::CALCULATED_PARAMETER_CAUSALITY)) {
+            // All right, these causalities are compatible
+            return;
+        }
+        std::stringstream sst;
+        sst << "Failed to connect " << slaveName << '.' << varName
+            << " due to causality incompatibility. Cannot make a connection from a variable with causality \""
+            << CausalityName(outputCausality) << "\" to a variable with causality \""
+            << CausalityName(inputCausality) << '"';
+        throw std::runtime_error(sst.str());
+    }
+
+    void VerifyVariableSetting(
+        const ExecutionManagerPrivate& self,
+        dsb::model::SlaveID slaveID,
+        const dsb::model::VariableSetting& setting)
+    {
+        const auto sit = self.slaves.find(slaveID);
+        if (sit == self.slaves.end()) {
+            throw std::runtime_error("Invalid slave ID: " + std::to_string(slaveID));
+        }
+        const auto& slaveDesc = sit->second.description;
+        const auto& slaveType = slaveDesc.TypeDescription();
+        const auto& varDesc = slaveType.Variable(setting.Variable());
+        if (setting.HasValue()) {
+            VerifyDataTypeMatch(
+                varDesc.DataType(),
+                dsb::model::DataTypeOf(setting.Value()),
+                slaveDesc.Name(),
+                varDesc.Name(),
+                "set value of");
+        }
+        if (setting.IsConnected()) {
+            const auto oit = self.slaves.find(setting.ConnectedOutput().Slave());
+            if (oit == self.slaves.end()) {
+                throw std::runtime_error(
+                    "Failed to connect " + slaveDesc.Name() + '.' + varDesc.Name()
+                    + " due to an invalid slave ID");
+            }
+            const auto& otherDesc = oit->second.description;
+            const auto& otherType = otherDesc.TypeDescription();
+            const dsb::model::VariableDescription* otherVarDesc = nullptr;
+            try {
+                otherVarDesc = &otherType.Variable(setting.ConnectedOutput().ID());
+            } catch (const std::out_of_range&) {
+                throw std::runtime_error(
+                    "Failed to connect " + slaveDesc.Name() + '.' + varDesc.Name()
+                    + " due to an invalid variable ID");
+            }
+            VerifyDataTypeMatch(
+                varDesc.DataType(),
+                otherVarDesc->DataType(),
+                slaveDesc.Name(),
+                varDesc.Name(),
+                "connect");
+            VerifyCausalityMatch(
+                varDesc.Causality(),
+                otherVarDesc->Causality(),
+                slaveDesc.Name(),
+                varDesc.Name());
+        }
+    }
+
+    void VerifyVariableSettings(
+        const ExecutionManagerPrivate& self,
+        dsb::model::SlaveID slaveID,
+        const std::vector<dsb::model::VariableSetting>& settings)
+    {
+        for (const auto& setting : settings) {
+            VerifyVariableSetting(self, slaveID, setting);
+        }
+    }
 }
 
 
@@ -125,6 +285,7 @@ void ConfigExecutionState::SetVariables(
     std::chrono::milliseconds timeout,
     ExecutionManager::SetVariablesHandler onComplete)
 {
+    VerifyVariableSettings(self, slave, settings);
     const auto selfPtr = &self;
     self.slaves.at(slave).slave->SetVariables(
         settings,

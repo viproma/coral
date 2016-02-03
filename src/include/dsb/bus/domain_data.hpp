@@ -8,11 +8,12 @@
 #include <chrono>
 #include <cstdint>
 #include <map>
+#include <vector>
 #include <string>
 
 #include "boost/range/sub_range.hpp"
 
-#include "domain.pb.h"
+#include "model.pb.h"
 
 
 namespace dsb
@@ -31,8 +32,10 @@ from a slave provider.
 */
 class DomainData
 {
-    typedef std::map<std::string, dsbproto::domain::SlaveTypeList>
-        SlaveTypesByProviderContainer;
+    typedef std::map<
+            std::string,
+            std::vector<dsbproto::model::SlaveTypeDescription>
+        > SlaveTypesByProviderContainer;
 
 public:
     typedef boost::sub_range<const SlaveTypesByProviderContainer>
@@ -92,9 +95,9 @@ public:
             about them.
 
     This function returns a range whose elements are of type
-    `std::pair<std::string,dsbproto::domain::SlaveTypeList>`, where the `first`
-    field of each pair is the slave provider ID and the `second` field is a
-    list of the slaves it provides.
+    `std::pair<std::string,std::vector<dsbproto::model::SlaveTypeDescription>>`,
+    where the `first` field of each pair is the slave provider ID and the
+    `second` field is a list of the slaves it provides.
 
     \warning    This is quite ugly, and very much subject to future change.
     */
@@ -103,7 +106,7 @@ public:
     /// Updates the list of slave types offered by a specific slave provider.
     void UpdateSlaveTypes(
         const std::string& slaveProviderId,
-        const dsbproto::domain::SlaveTypeList& slaveTypes);
+        std::vector<dsbproto::model::SlaveTypeDescription> slaveTypes);
 
     /**
     \brief  Returns the protocol version we use to communicate with the given

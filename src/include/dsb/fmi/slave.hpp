@@ -53,8 +53,7 @@ public:
 
     // ISlaveInstance methods.
     bool Setup(dsb::model::TimePoint startTime, dsb::model::TimePoint stopTime) override;
-    size_t VariableCount() const override;
-    dsb::model::VariableDescription Variable(size_t index) const override;
+    const dsb::model::SlaveTypeDescription& TypeDescription() const override;
     double GetRealVariable(dsb::model::VariableID variable) const override;
     int GetIntegerVariable(dsb::model::VariableID variable) const override;
     bool GetBooleanVariable(dsb::model::VariableID variable) const override;
@@ -72,7 +71,7 @@ private:
     dsb::model::TimePoint m_startTime, m_stopTime;
 
     std::vector<fmi1_value_reference_t> m_fmiValueRefs;
-    std::vector<dsb::model::VariableDescription> m_variables;
+    std::unique_ptr<dsb::model::SlaveTypeDescription> m_typeDescription;
 
     std::ostream* m_outputStream;
 };

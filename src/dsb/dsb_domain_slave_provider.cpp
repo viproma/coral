@@ -55,20 +55,14 @@ void dsb::domain::SlaveProvider(
             switch (header.messageType) {
                 case dp::MSG_GET_SLAVE_LIST: {
                     msg[3] = dp::CreateHeader(dp::MSG_SLAVE_LIST, header.protocol);
-                    dsbproto::domain::SlaveTypeList stl;
+                    dsbproto::domain::SlaveTypeList stList;
                     BOOST_FOREACH (const auto slaveType, slaveTypes) {
-                        auto st = stl.add_slave_type();
-                        st->set_name(slaveType->Name());
-                        st->set_uuid(slaveType->Uuid());
-                        st->set_description(slaveType->Description());
-                        st->set_author(slaveType->Author());
-                        st->set_version(slaveType->Version());
-                        for (size_t i = 0; i < slaveType->VariableCount(); ++i) {
-                            *st->add_variable() = dsb::protocol::ToProto(slaveType->Variable(i));
-                        }
+                        auto stInfo = stList.add_slave_type();
+                        *stInfo->mutable_description() =
+                            dsb::protocol::ToProto(slaveType->Description());
                     }
                     msg.push_back(zmq::message_t());
-                    dsb::protobuf::SerializeToFrame(stl, msg.back());
+                    dsb::protobuf::SerializeToFrame(stList, msg.back());
                     break; }
 
                 case dp::MSG_INSTANTIATE_SLAVE: {
@@ -81,8 +75,9 @@ void dsb::domain::SlaveProvider(
                     const auto stIt = std::find_if(
                         slaveTypes.begin(),
                         slaveTypes.end(),
-                        [&](const dsb::domain::ISlaveType* s)
-                            { return s->Uuid() == data.slave_type_uuid(); });
+                        [&](const dsb::domain::ISlaveType* s) {
+                            return s->Description().UUID() == data.slave_type_uuid();
+                        });
 
                     const auto instantiationTimeout = std::chrono::milliseconds(data.timeout_ms());
                     dsb::net::SlaveLocator slaveLocator;

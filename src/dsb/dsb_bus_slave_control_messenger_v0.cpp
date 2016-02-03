@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "dsb/error.hpp"
+#include "dsb/protobuf.hpp"
 #include "dsb/protocol/execution.hpp"
 #include "dsb/protocol/glue.hpp"
 #include "dsb/util.hpp"
@@ -20,6 +21,39 @@ namespace
     // We use these as default values member variables.
     const int NO_COMMAND_ACTIVE = -1;
     const int NO_TIMER_ACTIVE = -1;
+
+    // boost::variant visitor class for calling a completion handler with an
+    // error code, regardless of operation/handler type.
+    class CallWithError : public boost::static_visitor<>
+    {
+    public:
+        CallWithError(const std::error_code& ec) : m_ec(ec) { }
+
+        void operator()(const ISlaveControlMessenger::VoidHandler& c) const
+        {
+            c(m_ec);
+        }
+
+        void operator()(const ISlaveControlMessenger::GetDescriptionHandler& c) const
+        {
+            c(m_ec, dsb::model::SlaveDescription());
+        }
+
+    private:
+        std::error_code m_ec;
+    };
+
+    // boost::variant visitor class for checking whether a completion handler
+    // object is empty (has no handler assigned to it).  This is only used in
+    // assertions, so for now we only need to include it in debug mode.
+#ifndef NDEBUG
+    class IsEmpty : public boost::static_visitor<bool>
+    {
+    public:
+        template<typename T>
+        bool operator()(const T& x) const { return !x; }
+    };
+#endif
 }
 
 
@@ -76,10 +110,30 @@ void SlaveControlMessengerV0::Close()
         auto onComplete = std::move(m_onComplete);
         m_currentCommand = NO_COMMAND_ACTIVE;
         Reset();
-        onComplete(make_error_code(std::errc::operation_canceled));
+        boost::apply_visitor(
+            CallWithError(make_error_code(std::errc::operation_canceled)),
+            onComplete);
     } else if (m_state != SLAVE_NOT_CONNECTED) {
         Reset();
     }
+}
+
+
+void SlaveControlMessengerV0::GetDescription(
+    std::chrono::milliseconds timeout,
+    GetDescriptionHandler onComplete)
+{
+    DSB_PRECONDITION_CHECK(State() == SLAVE_READY);
+    DSB_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
+    DSB_INPUT_CHECK(onComplete);
+    CheckInvariant();
+
+    SendCommand(
+        dsbproto::execution::MSG_DESCRIBE,
+        nullptr,
+        timeout,
+        std::move(onComplete));
+    assert(State() == SLAVE_BUSY);
 }
 
 
@@ -189,7 +243,7 @@ void SlaveControlMessengerV0::Reset()
 {
     assert(m_attachedToReactor);
     assert(m_currentCommand == NO_COMMAND_ACTIVE);
-    assert(!m_onComplete);
+    assert(boost::apply_visitor(IsEmpty(), m_onComplete));
     assert(m_replyTimeoutTimerId == NO_TIMER_ACTIVE);
     m_reactor.RemoveSocket(m_socket.Socket());
     m_socket.Close();
@@ -202,7 +256,7 @@ void SlaveControlMessengerV0::SendCommand(
     int command,
     const google::protobuf::MessageLite* data,
     std::chrono::milliseconds timeout,
-    VoidHandler onComplete)
+    AnyHandler onComplete)
 {
     std::vector<zmq::message_t> msg;
     const auto msgType = static_cast<dsbproto::execution::MessageType>(command);
@@ -216,7 +270,7 @@ void SlaveControlMessengerV0::SendCommand(
 void SlaveControlMessengerV0::PostSendCommand(
     int command,
     std::chrono::milliseconds timeout,
-    VoidHandler onComplete)
+    AnyHandler onComplete)
 {
     RegisterTimeout(timeout);
     m_state = SLAVE_BUSY;
@@ -273,10 +327,31 @@ void SlaveControlMessengerV0::OnReply()
     std::vector<zmq::message_t> msg;
     m_socket.Receive(msg);
     switch (currentCommand) {
-        case dsbproto::execution::MSG_SETUP:        SetupReplyReceived(msg, std::move(onComplete)); break;
-        case dsbproto::execution::MSG_SET_VARS:     SetVarsReplyReceived(msg, std::move(onComplete)); break;
-        case dsbproto::execution::MSG_STEP:         StepReplyReceived(msg, std::move(onComplete)); break;
-        case dsbproto::execution::MSG_ACCEPT_STEP:  AcceptStepReplyReceived(msg, std::move(onComplete)); break;
+        case dsbproto::execution::MSG_SETUP:
+            SetupReplyReceived(
+                msg,
+                std::move(boost::get<VoidHandler>(onComplete)));
+            break;
+        case dsbproto::execution::MSG_DESCRIBE:
+            DescribeReplyReceived(
+                msg,
+                std::move(boost::get<GetDescriptionHandler>(onComplete)));
+            break;
+        case dsbproto::execution::MSG_SET_VARS:
+            SetVarsReplyReceived(
+                msg,
+                std::move(boost::get<VoidHandler>(onComplete)));
+            break;
+        case dsbproto::execution::MSG_STEP:
+            StepReplyReceived(
+                msg,
+                std::move(boost::get<VoidHandler>(onComplete)));
+            break;
+        case dsbproto::execution::MSG_ACCEPT_STEP:
+            AcceptStepReplyReceived(
+                msg,
+                std::move(boost::get<VoidHandler>(onComplete)));
+            break;
         default: assert(!"Invalid currentCommand value");
     }
 }
@@ -292,7 +367,9 @@ void SlaveControlMessengerV0::OnReplyTimeout()
     m_replyTimeoutTimerId = NO_TIMER_ACTIVE;
     Reset();
 
-    onComplete(make_error_code(std::errc::timed_out));
+    boost::apply_visitor(
+        CallWithError(make_error_code(std::errc::timed_out)),
+        onComplete);
 }
 
 
@@ -302,6 +379,28 @@ void SlaveControlMessengerV0::SetupReplyReceived(
 {
     assert (m_state == SLAVE_BUSY);
     HandleExpectedReadyReply(msg, std::move(onComplete));
+}
+
+
+void SlaveControlMessengerV0::DescribeReplyReceived(
+    const std::vector<zmq::message_t>& msg,
+    GetDescriptionHandler onComplete)
+{
+    assert (m_state == SLAVE_BUSY);
+    const auto reply = dsb::protocol::execution::ParseMessageType(msg.front());
+    if (reply == dsbproto::execution::MSG_READY && msg.size() > 1) {
+        dsbproto::execution::SlaveDescription slaveDescription;
+        dsb::protobuf::ParseFromFrame(msg[1], slaveDescription);
+        m_state = SLAVE_READY;
+        onComplete(
+            std::error_code(),
+            dsb::model::SlaveDescription(
+                dsb::model::INVALID_SLAVE_ID,
+                std::string(),
+                dsb::protocol::FromProto(slaveDescription.type_description())));
+    } else {
+        HandleErrorReply(reply, std::move(onComplete));
+    }
 }
 
 
@@ -356,16 +455,15 @@ void SlaveControlMessengerV0::HandleExpectedReadyReply(
 }
 
 
-void SlaveControlMessengerV0::HandleErrorReply(int reply, VoidHandler onComplete)
+void SlaveControlMessengerV0::HandleErrorReply(int reply, AnyHandler onComplete)
 {
     Reset();
-    if (reply == dsbproto::execution::MSG_ERROR) {
-        onComplete(make_error_code(dsb::error::generic_error::operation_failed));
-    } else {
-        onComplete(make_error_code(std::errc::bad_message));
-    }
+    const auto ec = reply == dsbproto::execution::MSG_ERROR
+        ? make_error_code(dsb::error::generic_error::operation_failed)
+        : make_error_code(std::errc::bad_message);
+    boost::apply_visitor(CallWithError(ec), onComplete);
 }
-
+        
 
 // This function does absolutely nothing when compiled in release mode, and
 // it is expected that the compiler will simply optimise it away entirely.
@@ -375,7 +473,7 @@ void SlaveControlMessengerV0::CheckInvariant() const
         case SLAVE_NOT_CONNECTED:
             assert(!m_attachedToReactor);
             assert(m_currentCommand == NO_COMMAND_ACTIVE);
-            assert(!m_onComplete);
+            assert(boost::apply_visitor(IsEmpty(), m_onComplete));
             assert(m_replyTimeoutTimerId == NO_TIMER_ACTIVE);
             break;
         case SLAVE_CONNECTED:
@@ -383,13 +481,13 @@ void SlaveControlMessengerV0::CheckInvariant() const
         case SLAVE_STEP_OK:
             assert(m_attachedToReactor);
             assert(m_currentCommand == NO_COMMAND_ACTIVE);
-            assert(!m_onComplete);
+            assert(boost::apply_visitor(IsEmpty(), m_onComplete));
             assert(m_replyTimeoutTimerId == NO_TIMER_ACTIVE);
             break;
         case SLAVE_BUSY:
             assert(m_attachedToReactor);
             assert(m_currentCommand != NO_COMMAND_ACTIVE);
-            assert(m_onComplete);
+            assert(!boost::apply_visitor(IsEmpty(), m_onComplete));
             assert(m_replyTimeoutTimerId != NO_TIMER_ACTIVE);
             break;
         default:

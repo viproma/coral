@@ -1,77 +1,88 @@
 #include "dsb/protocol/glue.hpp"
 
+#include <algorithm>
 #include <cassert>
+#include <iterator>
+#include <vector>
 
 
-// TODO: Use a lookup table or something in the two following functions?
-// (A job for the "X macro"?  http://www.drdobbs.com/cpp/the-x-macro/228700289)
+namespace
+{
+    void ConvertToProto_(
+        const dsb::model::VariableDescription& dsbVariable,
+        dsbproto::model::VariableDescription& protoVariable)
+    {
+        protoVariable.set_id(dsbVariable.ID());
+        protoVariable.set_name(dsbVariable.Name());
+        switch (dsbVariable.DataType()) {
+            case dsb::model::REAL_DATATYPE:
+                protoVariable.set_data_type(dsbproto::model::REAL);
+                break;
+            case dsb::model::INTEGER_DATATYPE:
+                protoVariable.set_data_type(dsbproto::model::INTEGER);
+                break;
+            case dsb::model::BOOLEAN_DATATYPE:
+                protoVariable.set_data_type(dsbproto::model::BOOLEAN);
+                break;
+            case dsb::model::STRING_DATATYPE:
+                protoVariable.set_data_type(dsbproto::model::STRING);
+                break;
+            default:
+                assert (!"Unknown data type");
+        }
+        switch (dsbVariable.Causality()) {
+            case dsb::model::PARAMETER_CAUSALITY:
+                protoVariable.set_causality(dsbproto::model::PARAMETER);
+                break;
+            case dsb::model::CALCULATED_PARAMETER_CAUSALITY:
+                protoVariable.set_causality(dsbproto::model::CALCULATED_PARAMETER);
+                break;
+            case dsb::model::INPUT_CAUSALITY:
+                protoVariable.set_causality(dsbproto::model::INPUT);
+                break;
+            case dsb::model::OUTPUT_CAUSALITY:
+                protoVariable.set_causality(dsbproto::model::OUTPUT);
+                break;
+            case dsb::model::LOCAL_CAUSALITY:
+                protoVariable.set_causality(dsbproto::model::LOCAL);
+                break;
+            default:
+                assert (!"Unknown causality");
+        }
+        switch (dsbVariable.Variability()) {
+            case dsb::model::CONSTANT_VARIABILITY:
+                protoVariable.set_variability(dsbproto::model::CONSTANT);
+                break;
+            case dsb::model::FIXED_VARIABILITY:
+                protoVariable.set_variability(dsbproto::model::FIXED);
+                break;
+            case dsb::model::TUNABLE_VARIABILITY:
+                protoVariable.set_variability(dsbproto::model::TUNABLE);
+                break;
+            case dsb::model::DISCRETE_VARIABILITY:
+                protoVariable.set_variability(dsbproto::model::DISCRETE);
+                break;
+            case dsb::model::CONTINUOUS_VARIABILITY:
+                protoVariable.set_variability(dsbproto::model::CONTINUOUS);
+                break;
+            default:
+                assert (!"Unknown variability");
+        }
+    }
+}
 
-dsbproto::model::VariableDefinition dsb::protocol::ToProto(
+
+dsbproto::model::VariableDescription dsb::protocol::ToProto(
     const dsb::model::VariableDescription& dsbVariable)
 {
-    dsbproto::model::VariableDefinition protoVariable;
-    protoVariable.set_id(dsbVariable.ID());
-    protoVariable.set_name(dsbVariable.Name());
-    switch (dsbVariable.DataType()) {
-        case dsb::model::REAL_DATATYPE:
-            protoVariable.set_data_type(dsbproto::model::REAL);
-            break;
-        case dsb::model::INTEGER_DATATYPE:
-            protoVariable.set_data_type(dsbproto::model::INTEGER);
-            break;
-        case dsb::model::BOOLEAN_DATATYPE:
-            protoVariable.set_data_type(dsbproto::model::BOOLEAN);
-            break;
-        case dsb::model::STRING_DATATYPE:
-            protoVariable.set_data_type(dsbproto::model::STRING);
-            break;
-        default:
-            assert (!"Unknown data type");
-    }
-    switch (dsbVariable.Causality()) {
-        case dsb::model::PARAMETER_CAUSALITY:
-            protoVariable.set_causality(dsbproto::model::PARAMETER);
-            break;
-        case dsb::model::CALCULATED_PARAMETER_CAUSALITY:
-            protoVariable.set_causality(dsbproto::model::CALCULATED_PARAMETER);
-            break;
-        case dsb::model::INPUT_CAUSALITY:
-            protoVariable.set_causality(dsbproto::model::INPUT);
-            break;
-        case dsb::model::OUTPUT_CAUSALITY:
-            protoVariable.set_causality(dsbproto::model::OUTPUT);
-            break;
-        case dsb::model::LOCAL_CAUSALITY:
-            protoVariable.set_causality(dsbproto::model::LOCAL);
-            break;
-        default:
-            assert (!"Unknown causality");
-    }
-    switch (dsbVariable.Variability()) {
-        case dsb::model::CONSTANT_VARIABILITY:
-            protoVariable.set_variability(dsbproto::model::CONSTANT);
-            break;
-        case dsb::model::FIXED_VARIABILITY:
-            protoVariable.set_variability(dsbproto::model::FIXED);
-            break;
-        case dsb::model::TUNABLE_VARIABILITY:
-            protoVariable.set_variability(dsbproto::model::TUNABLE);
-            break;
-        case dsb::model::DISCRETE_VARIABILITY:
-            protoVariable.set_variability(dsbproto::model::DISCRETE);
-            break;
-        case dsb::model::CONTINUOUS_VARIABILITY:
-            protoVariable.set_variability(dsbproto::model::CONTINUOUS);
-            break;
-        default:
-            assert (!"Unknown variability");
-    }
+    dsbproto::model::VariableDescription protoVariable;
+    ConvertToProto_(dsbVariable, protoVariable);
     return protoVariable;
 }
 
 
 dsb::model::VariableDescription dsb::protocol::FromProto(
-    const dsbproto::model::VariableDefinition& protoVariable)
+    const dsbproto::model::VariableDescription& protoVariable)
 {
     dsb::model::DataType dataType = dsb::model::REAL_DATATYPE;
     switch (protoVariable.data_type()) {
@@ -138,6 +149,36 @@ dsb::model::VariableDescription dsb::protocol::FromProto(
         variability);
 }
 
+
+dsbproto::model::SlaveTypeDescription dsb::protocol::ToProto(
+    const dsb::model::SlaveTypeDescription& src)
+{
+    dsbproto::model::SlaveTypeDescription tgt;
+    tgt.set_name(src.Name());
+    tgt.set_uuid(src.UUID());
+    tgt.set_description(src.Description());
+    tgt.set_author(src.Author());
+    tgt.set_version(src.Version());
+    for (const auto& srcVar : src.Variables()) {
+        ConvertToProto_(srcVar, *tgt.add_variable());
+    }
+    return tgt;
+}
+
+
+dsb::model::SlaveTypeDescription dsb::protocol::FromProto(
+    const dsbproto::model::SlaveTypeDescription& src)
+{
+    std::vector<dsb::model::VariableDescription> tgtVars;
+    for (const auto& srcVar : src.variable()) tgtVars.push_back(FromProto(srcVar));
+    return dsb::model::SlaveTypeDescription(
+        src.name(),
+        src.uuid(),
+        src.description(),
+        src.author(),
+        src.version(),
+        tgtVars);
+}
 
 
 dsbproto::net::ExecutionLocator dsb::protocol::ToProto(

@@ -63,6 +63,20 @@ SlaveState SlaveController::State() const DSB_NOEXCEPT
 }
 
 
+void SlaveController::GetDescription(
+    std::chrono::milliseconds timeout,
+    GetDescriptionHandler onComplete)
+{
+    if (m_messenger) {
+        m_messenger->GetDescription(timeout, std::move(onComplete));
+    } else {
+        onComplete(
+            std::make_error_code(std::errc::not_connected),
+            dsb::model::SlaveDescription());
+    }
+}
+
+
 void SlaveController::SetVariables(
     const std::vector<dsb::model::VariableSetting>& settings,
     std::chrono::milliseconds timeout,

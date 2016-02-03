@@ -16,6 +16,8 @@
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
 
+#include "boost/variant.hpp"
+
 
 // Forward declaration to avoid header dependency
 namespace google { namespace protobuf { class MessageLite; } }
@@ -48,6 +50,10 @@ public:
 
     void Close() override;
 
+    void GetDescription(
+        std::chrono::milliseconds timeout,
+        GetDescriptionHandler onComplete) override;
+
     void SetVariables(
         const std::vector<dsb::model::VariableSetting>& settings,
         std::chrono::milliseconds timeout,
@@ -67,6 +73,8 @@ public:
     void Terminate() override;
 
 private:
+    typedef boost::variant<VoidHandler, GetDescriptionHandler> AnyHandler;
+
     void Setup(
         dsb::model::SlaveID slaveID,
         const SlaveSetup& setup,
@@ -79,11 +87,11 @@ private:
         int command,
         const google::protobuf::MessageLite* data,
         std::chrono::milliseconds timeout,
-        VoidHandler onComplete);
+        AnyHandler onComplete);
     void PostSendCommand(
         int command,
         std::chrono::milliseconds timeout,
-        VoidHandler onComplete);
+        AnyHandler onComplete);
     void RegisterTimeout(std::chrono::milliseconds timeout);
     void UnregisterTimeout();
 
@@ -95,6 +103,9 @@ private:
     void SetupReplyReceived(
         const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
+    void DescribeReplyReceived(
+        const std::vector<zmq::message_t>& msg,
+        GetDescriptionHandler onComplete);
     void SetVarsReplyReceived(
         const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
@@ -110,7 +121,7 @@ private:
     void HandleExpectedReadyReply(
         const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
-    void HandleErrorReply(int reply, VoidHandler onComplete);
+    void HandleErrorReply(int reply, AnyHandler onComplete);
 
     // Class invariant checker
     void CheckInvariant() const;
@@ -122,7 +133,7 @@ private:
     SlaveState m_state;
     bool m_attachedToReactor;
     int m_currentCommand;
-    VoidHandler m_onComplete;
+    AnyHandler m_onComplete;
     int m_replyTimeoutTimerId;
 };
 

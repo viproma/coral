@@ -47,16 +47,8 @@ public:
         dsb::model::TimePoint startTime,
         dsb::model::TimePoint stopTime) = 0;
 
-    /// How many variables the slave has.
-    virtual size_t VariableCount() const = 0;
-
-    /**
-    \brief  Information about the `index`-th variable.
-
-    Each variable must have a unique ID (which may, but is not required to, be
-    equal to `index`) and a unique name.
-    */
-    virtual dsb::model::VariableDescription Variable(size_t index) const = 0;
+    /// Returns an object that describes the slave type.
+    virtual const dsb::model::SlaveTypeDescription& TypeDescription() const = 0;
 
     /**
     \brief  Returns the value of a real variable.

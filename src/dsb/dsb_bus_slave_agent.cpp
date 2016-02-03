@@ -141,6 +141,9 @@ void SlaveAgent::ReadyHandler(std::vector<zmq::message_t>& msg)
         case dsbproto::execution::MSG_SET_VARS:
             HandleSetVars(msg);
             break;
+        case dsbproto::execution::MSG_DESCRIBE:
+            HandleDescribe(msg);
+            break;
         default:
             InvalidReplyFromMaster();
     }
@@ -163,6 +166,16 @@ void SlaveAgent::StepFailedHandler(std::vector<zmq::message_t>& msg)
     // We never get here, because EnforceMessageType() always throws either
     // Shutdown or ProtocolViolationException.
     assert (false);
+}
+
+
+void SlaveAgent::HandleDescribe(std::vector<zmq::message_t>& msg)
+{
+    dsbproto::execution::SlaveDescription sd;
+    *sd.mutable_type_description() = 
+        dsb::protocol::ToProto(m_slaveInstance.TypeDescription());
+    dsb::protocol::execution::CreateMessage(
+        msg, dsbproto::execution::MSG_READY, sd);
 }
 
 
@@ -257,8 +270,7 @@ bool SlaveAgent::Step(const dsbproto::execution::StepData& stepInfo)
     if (!m_slaveInstance.DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
         return false;
     }
-    for (size_t i = 0; i < m_slaveInstance.VariableCount(); ++i) {
-        const auto varInfo = m_slaveInstance.Variable(i);
+    for (const auto& varInfo : m_slaveInstance.TypeDescription().Variables()) {
         if (varInfo.Causality() != dsb::model::OUTPUT_CAUSALITY) continue;
         m_publisher.Publish(
             m_currentStepID,

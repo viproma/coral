@@ -173,6 +173,55 @@ public:
     virtual void Close() = 0;
 
 
+    /// Completion handler type for GetDescription()
+    typedef std::function<void(const std::error_code&, const dsb::model::SlaveDescription&)>
+        GetDescriptionHandler;
+
+    /**
+    \brief  Requests a description of the slave.
+
+    On return, the slave state is `SLAVE_BUSY`.  When the operation completes
+    (or fails), `onComplete` is called.  Before `onComplete` is called, the
+    slave state is updated to one of the following:
+
+      - `SLAVE_READY` on success or non-fatal failure
+      - `SLAVE_NOT_CONNECTED` on fatal failure
+
+    `onComplete` must have the following signature:
+    ~~~{.cpp}
+    void f(const std::error_code&, const dsb::model::SlaveDescription&);
+    ~~~
+    The first argument specified whether an error occurred, and if so, which
+    one.  If an error occurred, the second argument should be ignored.
+    Otherwise, the second argument is a description of the slave.  Note that
+    this object may not have a correct slave ID and name, as this information
+    may not be known by the slave itself.
+
+    Possible error conditions are:
+
+      - `std::errc::bad_message`: The slave sent invalid data.
+      - `std::errc::timed_out`: The slave did not reply in time.
+      - `std::errc::operation_canceled`: The operation was aborted
+            (e.g. by Close()).
+      - `dsb::error::generic_error::failed`: The operation failed (e.g. due to
+            an error in the slave).
+
+    All error conditions are fatal unless otherwise specified.
+
+    \param [in] timeout         Max. allowed time for the operation to complete
+    \param [in] onComplete      Completion handler
+
+    \throws std::invalid_argument if `timeout` is less than 1 ms or
+        if `onComplete` is empty.
+
+    \pre  `State() == SLAVE_READY`
+    \post `State() == SLAVE_BUSY`.
+    */
+    virtual void GetDescription(
+        std::chrono::milliseconds timeout,
+        GetDescriptionHandler onComplete) = 0;
+
+
     /// Completion handler type for SetVariables()
     typedef VoidHandler SetVariablesHandler;
 

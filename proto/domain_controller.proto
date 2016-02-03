@@ -1,14 +1,13 @@
 package dsbproto.domain_controller;
 
-import "domain.proto";
+import "model.proto";
 
 
 message SlaveTypeInfo
 {
-    required domain.SlaveTypeInfo slave_type_info = 1;
+    required model.SlaveTypeDescription description = 1;
     repeated string provider = 2;
 }
-
 
 message SlaveTypeList
 {

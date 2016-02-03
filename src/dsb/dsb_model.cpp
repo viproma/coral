@@ -1,6 +1,7 @@
 #include "dsb/model.hpp"
 
 #include "dsb/error.hpp"
+#include "dsb/util.hpp"
 
 
 namespace dsb
@@ -8,6 +9,31 @@ namespace dsb
 namespace model
 {
 
+// =============================================================================
+// Free functions
+// =============================================================================
+
+namespace
+{
+    class DataTypeOfVisitor : public boost::static_visitor<DataType>
+    {
+    public:
+        DataType operator()(double)      const DSB_NOEXCEPT { return REAL_DATATYPE; }
+        DataType operator()(int)         const DSB_NOEXCEPT { return INTEGER_DATATYPE; }
+        DataType operator()(bool)        const DSB_NOEXCEPT { return BOOLEAN_DATATYPE; }
+        DataType operator()(std::string) const DSB_NOEXCEPT { return STRING_DATATYPE; }
+    };
+}
+
+DataType DataTypeOf(const ScalarValue& v)
+{
+    return boost::apply_visitor(DataTypeOfVisitor{}, v);
+}
+
+
+// =============================================================================
+// VariableDescription
+// =============================================================================
 
 VariableDescription::VariableDescription(
     dsb::model::VariableID id,
@@ -50,6 +76,108 @@ dsb::model::Causality VariableDescription::Causality() const
 dsb::model::Variability VariableDescription::Variability() const
 {
     return m_variability;
+}
+
+
+// =============================================================================
+// SlaveTypeDescription
+// =============================================================================
+
+SlaveTypeDescription::SlaveTypeDescription() DSB_NOEXCEPT
+{
+}
+
+
+const std::string& SlaveTypeDescription::Name() const
+{
+    return m_name;
+}
+
+
+const std::string& SlaveTypeDescription::UUID() const
+{
+    return m_uuid;
+}
+
+
+const std::string& SlaveTypeDescription::Description() const
+{
+    return m_description;
+}
+
+
+const std::string& SlaveTypeDescription::Author() const
+{
+    return m_author;
+}
+
+
+const std::string& SlaveTypeDescription::Version() const
+{
+    return m_version;
+}
+
+
+SlaveTypeDescription::ConstVariablesRange SlaveTypeDescription::Variables() const
+{
+    return m_variables | boost::adaptors::map_values;
+}
+
+
+const VariableDescription& SlaveTypeDescription::Variable(VariableID id) const
+{
+    return m_variables.at(id);
+}
+
+
+// =============================================================================
+// SlaveDescription
+// =============================================================================
+
+SlaveDescription::SlaveDescription(
+    SlaveID id,
+    const std::string& name,
+    const SlaveTypeDescription& typeDescription)
+    : m_id(id),
+      m_name(name),
+      m_typeDescription(typeDescription)
+{
+}
+
+
+SlaveID SlaveDescription::ID() const
+{
+    return m_id;
+}
+
+
+void SlaveDescription::SetID(SlaveID value)
+{
+    m_id = value;
+}
+
+
+const std::string& SlaveDescription::Name() const
+{
+    return m_name;
+}
+
+
+void SlaveDescription::SetName(const std::string& value)
+{
+    m_name = value;
+}
+
+
+const SlaveTypeDescription& SlaveDescription::TypeDescription() const
+{
+    return m_typeDescription;
+}
+
+
+void SlaveDescription::SetTypeDescription(const SlaveTypeDescription& value)
+{
+    m_typeDescription = value;
 }
 
 
