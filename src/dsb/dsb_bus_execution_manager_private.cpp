@@ -159,7 +159,7 @@ void ExecutionManagerPrivate::SlaveOpComplete()
     assert(m_operationCount > 0);
     --m_operationCount;
     if (m_operationCount == 0 && m_allSlaveOpsCompleteHandler) {
-        dsb::util::MoveAndCall(m_allSlaveOpsCompleteHandler, std::error_code());
+        dsb::util::LastCall(m_allSlaveOpsCompleteHandler, std::error_code());
     }
 }
 
@@ -191,7 +191,7 @@ std::unique_ptr<ExecutionState> ExecutionManagerPrivate::SwapState(
 void ExecutionManagerPrivate::AbortSlaveOpWaiting() DSB_NOEXCEPT
 {
     if (m_allSlaveOpsCompleteHandler) {
-        dsb::util::MoveAndCall(m_allSlaveOpsCompleteHandler,
+        dsb::util::LastCall(m_allSlaveOpsCompleteHandler,
             make_error_code(dsb::error::generic_error::aborted));
     }
 }

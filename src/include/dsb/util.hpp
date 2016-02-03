@@ -79,28 +79,35 @@ T MoveAndReplace(T& variable)
 
 
 /**
-\brief  Calls the given function(-like object), but only after moving it from
-        its original location.
+\brief  Calls the given function(-like object), but only after swapping it with
+        a default-constructed one.
 
-`MoveAndCall(f, x)` is equivalent to the following:
+This is useful for function objects that may only be called once, such as
+one-shot callbacks.
+
+`LastCall(f, x)` is equivalent to the following:
 ~~~{.cpp}
-auto tmp = std::move(f);
+F tmp;
+swap(f, tmp);
 tmp(x);
 ~~~
-This is useful for functions that may only be called once (e.g. one-shot
-callbacks).
+Thus, `f` will be left in its default-constructed state even if it throws.
+(However, if the default constructor throws in the first line, `f` will
+never be called at all.)
 */
 template<typename F>
-void MoveAndCall(F& f)
+void LastCall(F& f)
 {
-    auto tmp = std::move(f);
+    F tmp;
+    swap(f, tmp);
     tmp();
 }
 
 template<typename F, typename A0>
-void MoveAndCall(F& f, A0&& a0)
+void LastCall(F& f, A0&& a0)
 {
-    auto tmp = std::move(f);
+    F tmp;
+    swap(f, tmp);
     tmp(std::forward<A0>(a0));
 }
 
