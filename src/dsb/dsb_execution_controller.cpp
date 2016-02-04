@@ -430,9 +430,10 @@ dsb::net::ExecutionLocator dsb::execution::SpawnExecution(
     dsb::protobuf::SerializeToFrame(seData, msg.back());
 
     dsb::comm::Send(sck, msg);
-    if (!dsb::comm::Receive(sck, msg, std::chrono::seconds(10))) {
+    if (!dsb::comm::WaitForIncoming(sck, std::chrono::seconds(10))) {
         throw std::runtime_error("Failed to spawn execution (domain connection timed out)");
     }
+    dsb::comm::Receive(sck, msg);
     const auto reply = dsb::comm::ToString(msg.front());
     if (reply == "SPAWN_EXECUTION_OK" && msg.size() == 2) {
         dsbproto::broker::SpawnExecutionOkData seOkData;

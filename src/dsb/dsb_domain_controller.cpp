@@ -138,13 +138,14 @@ namespace
         dsb::comm::Send(infoSocket, reqMsg);
 
         std::vector<zmq::message_t> repMsg;
-        if (!dsb::comm::Receive(infoSocket, repMsg, 2*timeout)) {
+        if (!dsb::comm::WaitForIncoming(infoSocket, 2*timeout)) {
             // We double the timeout here, since the same timeout is used
             // at the other end, and we don't want to cancel the operation
             // prematurely at this end.
             throw std::runtime_error(
                 "Instantiation failed: No reply from slave provider");
         }
+        dsb::comm::Receive(infoSocket, repMsg);
         if (repMsg.size() != 4 || repMsg[1].size() != 0) {
             throw dsb::error::ProtocolViolationException("Invalid reply format");
         }
@@ -192,11 +193,12 @@ namespace
                 msg, providerId, dp::MSG_GET_SLAVE_LIST, header.protocol);
             dsb::comm::Send(infoSocket, msg);
 
-            if (!dsb::comm::Receive(infoSocket, msg, std::chrono::seconds(10))) {
+            if (!dsb::comm::WaitForIncoming(infoSocket, std::chrono::seconds(10))) {
                 // TODO: Shouldn't use hardcoded timeout, and must handle the failure better.
                 assert(!"Timeout waiting for reply from slave provider, SP possibly dead.");
                 return;
             }
+            dsb::comm::Receive(infoSocket, msg);
             if (msg.size() != 4 || msg[1].size() != 0) {
                 throw dsb::error::ProtocolViolationException("Invalid reply format");
             }

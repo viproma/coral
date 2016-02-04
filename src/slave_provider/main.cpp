@@ -74,16 +74,17 @@ public:
 
             std::clog << "Waiting for verification..." << std::flush;
             std::vector<zmq::message_t> slaveStatus;
-            const auto feedbackTimedOut = !dsb::comm::Receive(
+            const auto feedbackTimedOut = !dsb::comm::WaitForIncoming(
                 slaveStatusSocket,
-                slaveStatus,
                 timeout);
             if (feedbackTimedOut) {
                 throw std::runtime_error(
                     "Slave took more than "
                     + boost::lexical_cast<std::string>(timeout.count())
                     + " milliseconds to start; presumably it has failed altogether");
-            } else if (slaveStatus.size() != 2) {
+            }
+            dsb::comm::Receive(slaveStatusSocket, slaveStatus);
+            if (slaveStatus.size() != 2) {
                 throw std::runtime_error("Invalid data received from slave executable");
             } else if (dsb::comm::ToString(slaveStatus[0]) == "ERROR") {
                 throw std::runtime_error(dsb::comm::ToString(slaveStatus.at(1)));

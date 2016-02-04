@@ -122,4 +122,18 @@ be a valid C header.  C++-specific code should therefore be placed in
 #endif
 
 
+#ifdef __cplusplus
+#   define DSB_DEFINE_BITWISE_ENUM_OPERATORS(EnumName) \
+        inline EnumName operator|(EnumName a, EnumName b) { \
+            return static_cast<EnumName>(static_cast<int>(a) | static_cast<int>(b)); } \
+        inline EnumName operator&(EnumName a, EnumName b) { \
+            return static_cast<EnumName>(static_cast<int>(a) & static_cast<int>(b)); } \
+        inline EnumName& operator|=(EnumName& a, EnumName b) { \
+            *reinterpret_cast<int*>(&a) |= static_cast<int>(b); \
+            return a; } \
+        inline EnumName& operator&=(EnumName& a, EnumName b) { \
+            *reinterpret_cast<int*>(&a) &= static_cast<int>(b); \
+            return a; }
+#endif
+
 #endif // header guard

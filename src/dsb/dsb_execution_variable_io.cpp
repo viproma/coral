@@ -137,12 +137,13 @@ void VariableSubscriber::Update(
         }
         // If necessary, wait for new data
         while (valQueue.empty()) {
-            if (!dsb::comm::Receive(*m_socket, rawMsg, timeout)) {
+            if (!dsb::comm::WaitForIncoming(*m_socket, timeout)) {
                 // TODO: Create dedicated exception type
                 throw std::runtime_error(
                     "Timeout waiting for variable " + std::to_string(var.ID())
                     + " from slave " + std::to_string(var.Slave()));
             }
+            dsb::comm::Receive(*m_socket, rawMsg);
             const auto msg = dsb::protocol::exe_data::ParseMessage(rawMsg);
             // Queue the variable value iff it is from the current (or a newer)
             // timestep and it is one we're listening for. (Wrt. the latter,
