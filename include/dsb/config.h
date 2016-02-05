@@ -105,19 +105,20 @@ be a valid C header.  C++-specific code should therefore be placed in
 #       define DSB_MOVE_OPER_ASSIGNMENT_6(m1, m2, m3, m4, m5, m)        DSB_MOVE_OPER_ASSIGNMENT_5(m1, m2, m3, m4, m5) m = std::move(other.m);
 #       define DSB_MOVE_OPER_ASSIGNMENT_7(m1, m2, m3, m4, m5, m6, m)    DSB_MOVE_OPER_ASSIGNMENT_6(m1, m2, m3, m4, m5, m6) m = std::move(other.m);
 
-#       define DSB_DEFINE_INLINE_MOVE_CTOR(ClassName, ...) \
+#       define DSB_DEFINE_DEFAULT_MOVE_CONSTRUCTOR(ClassName, ...) \
             ClassName(ClassName&& other) DSB_NOEXCEPT : DSB_MOVE_CTOR_INITIALISER(__VA_ARGS__) { }
-#       define DSB_DEFINE_INLINE_MOVE_OPER(ClassName, ...) \
+#       define DSB_DEFINE_DEFAULT_MOVE_ASSIGNMENT(ClassName, ...) \
             ClassName& operator=(ClassName&& other) DSB_NOEXCEPT { DSB_MOVE_OPER_ASSIGNMENT(__VA_ARGS__) return *this; }
 
-#       define DSB_DEFINE_DEFAULT_MOVE(ClassName, /* all members: */ ...) \
-            DSB_DEFINE_INLINE_MOVE_CTOR(ClassName, __VA_ARGS__) \
-            DSB_DEFINE_INLINE_MOVE_OPER(ClassName, __VA_ARGS__)
 #   else
-#       define DSB_DEFINE_DEFAULT_MOVE(ClassName, /* all members: */ ...) \
-            ClassName(ClassName&&) = default; \
+#       define DSB_DEFINE_DEFAULT_MOVE_CONSTRUCTOR(ClassName, ...) \
+            ClassName(ClassName&&) = default;
+#       define DSB_DEFINE_DEFAULT_MOVE_ASSIGNMENT(ClassName, ...) \
             ClassName& operator=(ClassName&&) = default;
 #   endif
+#   define DSB_DEFINE_DEFAULT_MOVE(ClassName, /* all members: */ ...) \
+        DSB_DEFINE_DEFAULT_MOVE_CONSTRUCTOR(ClassName, __VA_ARGS__) \
+        DSB_DEFINE_DEFAULT_MOVE_ASSIGNMENT(ClassName, __VA_ARGS__)
 #endif
 
 
