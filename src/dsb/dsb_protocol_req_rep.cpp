@@ -375,8 +375,10 @@ bool RRServer::HandleMetaRequest(
     const char*& replyBody, size_t& replyBodySize)
 {
     if (protocolVersion != 0) return false;
-    const auto request = std::string{requestHeader, requestHeaderSize};
-    if (request == META_REQ_MAX_PROTOCOL_VERSION && requestBody != nullptr) {
+    if (0 == dsb::util::ArrayStringCmp(
+            requestHeader, requestHeaderSize, META_REQ_MAX_PROTOCOL_VERSION.c_str())
+        && requestBody != nullptr)
+    {
         const auto requestedID = std::string{requestBody, requestBodySize};
         const auto pi = m_handlers.find(requestedID);
         if (pi == m_handlers.end()) {

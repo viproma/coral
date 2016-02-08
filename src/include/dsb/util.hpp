@@ -39,6 +39,16 @@ uint16_t DecodeUint16(const char source[2]);
 uint32_t DecodeUint32(const char source[4]);
 
 
+/**
+\brief  Given a character array and its length, compares it lexicographically
+        to a zero-terminated string.
+
+This is equivalent to std::strcmp, except that it only requires one of the
+arrays (`stringz`) to be null-terminated.
+*/
+int ArrayStringCmp(const char* array, size_t length, const char* stringz);
+
+
 /// Returns a string that contains a random UUID.
 std::string RandomUUID();
 

@@ -75,6 +75,15 @@ TEST(dsb_util, DecodeUint32) {
     EXPECT_EQ(2018915346u, DecodeUint32("\x12\x34\x56\x78"));
 }
 
+TEST(dsb_util, ArrayStringCmp) {
+    char test[3] = { 'a', 'b', 'c' };
+    EXPECT_EQ(0, ArrayStringCmp(test, 3, "abc"));
+    EXPECT_GT(0, ArrayStringCmp(test, 3, "abcd"));
+    EXPECT_GT(0, ArrayStringCmp(test, 3, "abd"));
+    EXPECT_LT(0, ArrayStringCmp(test, 3, "ab"));
+    EXPECT_LT(0, ArrayStringCmp(test, 3, "abb"));
+}
+
 TEST(dsb_util, RandomUUID)
 {
     const auto u = RandomUUID();

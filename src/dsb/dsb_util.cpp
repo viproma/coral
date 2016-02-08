@@ -53,6 +53,18 @@ uint32_t dsb::util::DecodeUint32(const char source[4])
 }
 
 
+int dsb::util::ArrayStringCmp(
+    const char* array, size_t length, const char* stringz)
+{
+    for (size_t i = 0; ; ++i) {
+        if (i == length) return -static_cast<int>(stringz[i] != '\0');
+        if (stringz[i] == '\0') return 1;
+        if (array[i] < stringz[i]) return -1;
+        if (array[i] > stringz[i]) return 1;
+    }
+}
+
+
 std::string dsb::util::RandomUUID()
 {
     boost::uuids::random_generator gen;
