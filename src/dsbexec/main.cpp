@@ -37,7 +37,9 @@ int Run(const std::vector<std::string>& args)
                 "The domain address, of the form \"hostname:port\". (\":port\" is "
                 "optional, and only required if a nonstandard port is used.)")
             ("name,n", po::value<std::string>()->default_value(""),
-                "The execution name (if left unspecified, a timestamp will be used)");
+                "The execution name (if left unspecified, a timestamp will be used)")
+            ("warnings,w",
+                "Enable warnings while parsing execution configuration file");
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("exec-config", po::value<std::string>(),
@@ -114,6 +116,7 @@ int Run(const std::vector<std::string>& args)
         const auto sysConfigFile = (*argValues)["sys-config"].as<std::string>();
         const auto address = (*argValues)["domain"].as<std::string>();
         const auto execName = (*argValues)["name"].as<std::string>();
+        const auto warningStream = argValues->count("warnings") ? &std::clog : nullptr;
 
         const auto domainLoc = MakeDomainLocator(address);
         auto domain = dsb::domain::Controller(domainLoc);
@@ -140,7 +143,7 @@ int Run(const std::vector<std::string>& args)
         std::vector<SimulationEvent> unsortedScenario;
         ParseSystemConfig(sysConfigFile, domain, exec, execLoc, unsortedScenario,
                           execConfig.commTimeout, execConfig.instantiationTimeout,
-                          &std::clog);
+                          warningStream);
 
         // Put the scenario events into a priority queue, in order of ascending
         // event time.

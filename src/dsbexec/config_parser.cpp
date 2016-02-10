@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <limits>
 #include <map>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -215,10 +216,12 @@ namespace
     void ParseConnectionsNode(
         const boost::property_tree::ptree& ptree,
         const std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
+        std::ostream* warningLog,
         std::map<std::string, std::vector<VariableConnection>>& connections,
         VarDescriptionCache& varDescriptionCache)
     {
         assert(connections.empty());
+        std::map<std::string, std::set<std::string>> connectedVars; // just for making warnings
         const auto connTree = ptree.get_child("connections", boost::property_tree::ptree());
         BOOST_FOREACH (const auto& connNode, connTree) {
             const auto inputSpec = SplitVarSpec(connNode.first);
@@ -244,10 +247,34 @@ namespace
                 vc.otherSlaveName = outputSpec.first;
                 vc.otherOutputId = outputVarDesc->ID();
                 connections[inputSpec.first].push_back(vc);
+
+                if (warningLog) {
+                    connectedVars[inputSpec.first].insert(inputSpec.second);
+                    connectedVars[outputSpec.first].insert(outputSpec.second);
+                }
             } catch (const std::runtime_error& e) {
                 throw std::runtime_error("In connection between "
                     + connNode.first + " and " + connNode.second.data() + ": "
                     + e.what());
+            }
+        }
+
+        // If warnings are enabled, we list all unconnected input/output variables.
+        if (warningLog) {
+            for (const auto& slave : slaves) {
+                const auto sit = connectedVars.find(slave.first);
+                for (const auto& var : slave.second->description.Variables()) {
+                    if (var.Causality() == dsb::model::INPUT_CAUSALITY
+                        || var.Causality() == dsb::model::OUTPUT_CAUSALITY)
+                    {
+                        if (sit == connectedVars.end()
+                            || sit->second.find(var.Name()) == sit->second.end())
+                        {
+                            *warningLog << "Warning: " << slave.first << '.'
+                                << var.Name() << " is not connected" << std::endl;
+                        }
+                    }
+                }
             }
         }
     }
@@ -339,7 +366,7 @@ void ParseSystemConfig(
     ParseSlavesNode(ptree, slaveTypes, slaves, variables, varDescriptionCache);
 
     std::map<std::string, std::vector<VariableConnection>> connections;
-    ParseConnectionsNode(ptree, slaves, connections, varDescriptionCache);
+    ParseConnectionsNode(ptree, slaves, warningLog, connections, varDescriptionCache);
 
     std::vector<SimulationEvent> scenario;
     std::vector<std::string> scenarioEventSlaveName; // We don't know IDs yet, so we keep a parallel list of names
