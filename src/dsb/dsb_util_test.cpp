@@ -82,6 +82,21 @@ TEST(dsb_util, RandomUUID)
     EXPECT_NE(u, RandomUUID());
 }
 
+TEST(dsb_util, RandomString)
+{
+    const auto s = RandomString(10, "abcdefghijklmnopqrstuvwxyz");
+    ASSERT_EQ(10u, s.size());
+    for (char c : s) {
+        EXPECT_GE(c, 'a');
+        EXPECT_LE(c, 'z');
+    }
+    EXPECT_NE(s, RandomString(10, "abcdefghijklmnopqrstuvwxyz"));
+    EXPECT_EQ("aaaa", RandomString(4, "a"));
+    EXPECT_TRUE(RandomString(0, "abcd").empty());
+    EXPECT_THROW(RandomString(4, nullptr), std::invalid_argument);
+    EXPECT_THROW(RandomString(4, ""), std::invalid_argument);
+}
+
 TEST(dsb_util, MoveAndReplace_value)
 {
     int a = 123;

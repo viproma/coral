@@ -43,6 +43,17 @@ std::string RandomUUID();
 
 
 /**
+\brief  Creates a random string.
+
+This creates a string of the given size by randomly selecting characters from
+`charSet`, which must be a null-terminated string.
+
+\throws std::invalid_argument
+    If `charSet` is null or empty.
+*/
+std::string RandomString(size_t size, const char* charSet);
+
+/**
 \brief  Returns the current UTC time in the ISO 8601 "basic" format.
 
 This returns a string on the form `yyyymmddThhmmssZ` (where the lower-case

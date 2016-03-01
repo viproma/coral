@@ -1,4 +1,3 @@
-find_package (BoostTarget REQUIRED COMPONENTS "filesystem" "system")
 find_package (CPPZMQ REQUIRED)
 find_package (ProtobufTarget REQUIRED)
 
@@ -9,7 +8,6 @@ target_link_libraries (${_target}
     PRIVATE "dsb"
             ${CPPZMQ_LIBRARIES}
             "protobuf"
-            "boost"
 )
 target_include_directories (${_target}
     PRIVATE ${publicHeaderDir}

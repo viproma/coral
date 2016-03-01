@@ -1,5 +1,4 @@
 #include <chrono>
-#include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <iostream>
@@ -19,19 +18,6 @@
 #include "dsb/fmi.hpp"
 #include "dsb/util.hpp"
 #include "dsb/util/console.hpp"
-
-
-// Note: Not threadsafe
-std::string RandomString(size_t length)
-{
-    static const auto wordChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvxyz-_";
-    static const auto wordCharsLen = std::strlen(wordChars);
-    auto id = std::string(length, '\xFF');
-    for (size_t i = 0; i < length; ++i) {
-        id[i] = wordChars[std::rand() % wordCharsLen];
-    }
-    return id;
-}
 
 
 struct StartSlave
@@ -56,14 +42,15 @@ public:
         const auto fmuBaseName = boost::filesystem::path(fmuPath).stem().string();
         const auto outputFile = m_outputDir + '/'
             + dsb::util::Timestamp() + '_' + fmuBaseName + '_'
-            + RandomString(6) + ".csv";
+            + dsb::util::RandomString(6, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz") + ".csv";
 
         auto slaveStatusSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PULL);
         const auto slaveStatusPort = dsb::comm::BindToEphemeralPort(slaveStatusSocket);
         const auto slaveStatusEp = "tcp://localhost:" + boost::lexical_cast<std::string>(slaveStatusPort);
 
-        const auto slaveBindEndpoint =
-            dsb::comm::P2PEndpoint(m_proxyEndpoint, RandomString(6));
+        const auto slaveBindEndpoint = dsb::comm::P2PEndpoint(
+            m_proxyEndpoint,
+            dsb::util::RandomString(6, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"));
 
         std::vector<std::string> args;
         args.push_back(slaveStatusEp);

@@ -8,12 +8,15 @@
 
 #include <chrono>
 #include <cstdio>
+#include <cstring>
 #include <ctime>
 #include <iomanip>
 
 #include "boost/filesystem.hpp"
 #include "boost/foreach.hpp"
 #include "boost/numeric/conversion/cast.hpp"
+#include "boost/random/random_device.hpp"
+#include "boost/random/uniform_int_distribution.hpp"
 #include "boost/uuid/random_generator.hpp"
 #include "boost/uuid/uuid_io.hpp"
 
@@ -55,6 +58,26 @@ std::string dsb::util::RandomUUID()
     boost::uuids::random_generator gen;
     return boost::uuids::to_string(gen());
 }
+
+
+std::string dsb::util::RandomString(size_t size, const char* charSet)
+{
+    if (charSet == nullptr) {
+        throw std::invalid_argument("charSet is null");
+    }
+    const auto charSetSize = std::strlen(charSet);
+    if (charSetSize < 1) {
+        throw std::invalid_argument("Empty character set");
+    }
+    boost::random::random_device rng;
+    auto dist = boost::random::uniform_int_distribution<size_t>{0u, charSetSize-1};
+    auto ret = std::string(size, '\xFF');
+    for (char& c : ret) {
+        c = charSet[dist(rng)];
+    }
+    return ret;
+}
+
 
 std::string dsb::util::Timestamp()
 {
