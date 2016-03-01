@@ -60,6 +60,8 @@ message SetupData
     optional double stop_time = 3;
     required string variable_pub_endpoint = 4;
     required string variable_sub_endpoint = 5;
+    optional string execution_name = 6;
+    optional string slave_name = 7;
 }
 
 // A message that is sent by the master to a slave to set some of its variables.

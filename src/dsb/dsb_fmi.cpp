@@ -14,7 +14,7 @@ std::unique_ptr<dsb::domain::ISlaveType> dsb::fmi::MakeSlaveType(
 
 std::unique_ptr<dsb::execution::ISlaveInstance> dsb::fmi::MakeSlaveInstance(
     const boost::filesystem::path& fmu,
-    std::ostream* outputStream)
+    const std::string* outputFilePrefix)
 {
-    return std::make_unique<FmiSlaveInstance>(fmu.string(), outputStream);
+    return std::make_unique<FmiSlaveInstance>(fmu.string(), outputFilePrefix);
 }

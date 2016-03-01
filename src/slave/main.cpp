@@ -21,8 +21,9 @@ Command line arguments:
     dsb::comm::P2PEndpoint.
  4  Communications timeout, i.e., the number of seconds of inactivity before
     the slave will shut itself down.
- 5  The name of an output file, which will be written in CSV format.  This is
-    optional, and if no file is specified, no file will be written.
+ 5  The name of an output directory, to which a file will be written in CSV
+    format.  This is optional, and if no directory is specified, no file will
+    be written.
 
 The program will open a PUSH socket and connect it to the slave provider
 feedback endpoint.  If anything goes wrong during the startup process, it will
@@ -47,23 +48,15 @@ try {
     const auto bindpoint = std::string(argv[3]);
     const auto commTimeout = std::chrono::seconds(std::atoi(argv[4]));
 
-    std::ofstream csvOutput;
-    if (argc > 5)
-    {
-        const auto outFile = std::string(argv[5]);
-        csvOutput.open(outFile, std::ios_base::out | std::ios_base::trunc
 #ifdef _WIN32
-            , _SH_DENYWR // Don't let other processes/threads write to the file
+    const char dirSep = '\\';
+#else
+    const char dirSep = '/';
 #endif
-        );
-        if (!csvOutput) {
-            throw std::runtime_error("Error opening output file for writing: " + outFile);
-        }
-        std::clog << "Output printed to: " << outFile << std::endl;
-    }
+    const auto outputDir = (argc > 5) ? std::string(argv[5]) + dirSep : std::string();
 
     std::shared_ptr<dsb::execution::ISlaveInstance> fmiSlave =
-        dsb::fmi::MakeSlaveInstance(fmuPath, csvOutput.is_open() ? &csvOutput : nullptr);
+        dsb::fmi::MakeSlaveInstance(fmuPath, outputDir.empty() ? nullptr : &outputDir);
     auto slaveRunner = dsb::execution::SlaveRunner(fmiSlave, bindpoint, commTimeout);
     auto boundpoint = slaveRunner.BoundEndpoint();
     feedbackSocket->send("OK", 2, ZMQ_SNDMORE);

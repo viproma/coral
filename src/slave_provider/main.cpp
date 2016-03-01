@@ -40,9 +40,6 @@ public:
         std::chrono::milliseconds instantiationTimeout)
     {
         const auto fmuBaseName = boost::filesystem::path(fmuPath).stem().string();
-        const auto outputFile = m_outputDir + '/'
-            + dsb::util::Timestamp() + '_' + fmuBaseName + '_'
-            + dsb::util::RandomString(6, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz") + ".csv";
 
         auto slaveStatusSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PULL);
         const auto slaveStatusPort = dsb::comm::BindToEphemeralPort(slaveStatusSocket);
@@ -57,11 +54,10 @@ public:
         args.push_back(fmuPath);
         args.push_back(slaveBindEndpoint.URL());
         args.push_back(std::to_string(m_commTimeout.count()));
-        args.push_back(outputFile);
+        args.push_back(m_outputDir);
 
         std::cout << "\nStarting slave...\n"
-            << "  FMU      : " << fmuPath << '\n'
-            << "  Output   : " << outputFile << '\n'
+            << "  FMU       : " << fmuPath << '\n'
             << std::flush;
         dsb::util::SpawnProcess(m_slaveExe, args);
 
@@ -134,7 +130,7 @@ try {
             "optional, and only required if a nonstandard port is used.)")
         ("slave-exe", po::value<std::string>(),
             "The path to the DSB slave executable")
-        ("output-dir,o", po::value<std::string>()->default_value(""),
+        ("output-dir,o", po::value<std::string>()->default_value("."),
             "The directory where output files should be written")
         ("timeout", po::value<unsigned int>()->default_value(3600),
             "The number of seconds of inactivity before a slave shuts itself down");

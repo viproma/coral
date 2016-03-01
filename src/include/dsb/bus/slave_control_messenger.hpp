@@ -502,6 +502,7 @@ throws an exception.
                             connection.
 \param [in] slaveID         The ID number assigned to the slave. Must be a
                             valid ID.
+\param [in] slaveName       The name given to the slave.
 \param [in] setup           Slave configuration parameters
 \param [in] onComplete      Completion handler. May not be null.
 
@@ -512,6 +513,7 @@ throws an exception.
 std::unique_ptr<ISlaveControlMessenger> MakeSlaveControlMessenger(
     SlaveControlConnection connection,
     dsb::model::SlaveID slaveID,
+    const std::string& slaveName,
     const SlaveSetup& setup,
     MakeSlaveControlMessengerHandler onComplete);
 

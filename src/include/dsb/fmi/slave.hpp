@@ -33,26 +33,33 @@ public:
     be automatically deleted again when the object is destroyed.
 
     As a *temporary* measure until the DSB supports proper observers, an output
-    stream may optionally be provided for logging of variable values in CSV
-    format.  If so, a header line containing variable names is printed by the
-    constructor, and variable values are printed on consecutive lines every
-    time DoStep() is called.
+    path/prefix may optionally be provided for logging of variable values to a
+    CSV file.
 
-    \param [in] fmuPath         The FMU file path.
-    \param [in] outputStream    An output stream for CSV output.  If this is
-                                null, no output is produced.
+    \param [in] fmuPath
+        The FMU file path.
+    \param [in] outputFilePrefix
+        A directory and prefix for a CSV output file, if logging of variable
+        values is desired.  An execution- and slave-specific name as well as
+        a ".csv" extension will be appended to this name.  If no prefix is
+        required, and the string only contains a directory name, it should
+        end with a directory separator (a slash).
 
     \throws std::runtime_error if `fmuPath` does not refer to an FMU that
         implements FMI 1.0.
     */
     explicit FmiSlaveInstance(
         const std::string& fmuPath,
-        std::ostream* outputStream = nullptr);
+        const std::string* outputFilePrefix = nullptr);
 
     ~FmiSlaveInstance();
 
     // ISlaveInstance methods.
-    bool Setup(dsb::model::TimePoint startTime, dsb::model::TimePoint stopTime) override;
+    bool Setup(
+        dsb::model::TimePoint startTime,
+        dsb::model::TimePoint stopTime,
+        const std::string& executionName,
+        const std::string& slaveName) override;
     const dsb::model::SlaveTypeDescription& TypeDescription() const override;
     double GetRealVariable(dsb::model::VariableID variable) const override;
     int GetIntegerVariable(dsb::model::VariableID variable) const override;
@@ -73,7 +80,8 @@ private:
     std::vector<fmi1_value_reference_t> m_fmiValueRefs;
     std::unique_ptr<dsb::model::SlaveTypeDescription> m_typeDescription;
 
-    std::ostream* m_outputStream;
+    std::string m_outputFilePrefix;
+    std::unique_ptr<std::ostream> m_outputStream;
 };
 
 

@@ -25,11 +25,13 @@ struct SlaveSetup
         dsb::model::TimePoint startTime,
         dsb::model::TimePoint stopTime,
         const std::string& variablePubEndpoint,
-        const std::string& variableSubEndpoint);
+        const std::string& variableSubEndpoint,
+        const std::string& executionName);
     dsb::model::TimePoint startTime;
     dsb::model::TimePoint stopTime;
     std::string variablePubEndpoint;
     std::string variableSubEndpoint;
+    std::string executionName;
 };
 
 

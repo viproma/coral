@@ -60,6 +60,8 @@ public:
         Information about how to connect to the slave.
     \param [in] slaveID
         The ID number assigned to the slave.
+    \param [in] slaveName
+        The name given to the slave.
     \param [in] setup
         Slave configuration parameters.
     \param [in] timeout
@@ -78,6 +80,7 @@ public:
         dsb::comm::Reactor& reactor,
         const dsb::net::SlaveLocator& slaveLocator,
         dsb::model::SlaveID slaveID,
+        const std::string& slaveName,
         const SlaveSetup& setup,
         std::chrono::milliseconds timeout,
         ConnectHandler onComplete,
@@ -96,7 +99,7 @@ public:
     /**
     \brief  Closes the connection to the slave and cancels all pending
             operations.
-    
+
     After this, the SlaveController can no longer be used for anything.
 
     Note that this simply closes the communication channel without notifying

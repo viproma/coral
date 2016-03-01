@@ -139,7 +139,8 @@ dsb::model::SlaveID ConfigExecutionState::AddSlave(
     };
 
     auto slave = std::make_unique<dsb::bus::SlaveController>(
-        reactor, slaveLocator, id, self.slaveSetup, timeout, std::move(connected));
+        reactor, slaveLocator, id, slaveName, self.slaveSetup,
+        timeout, std::move(connected));
     self.slaves.insert(std::make_pair(
         id,
         ExecutionManagerPrivate::Slave(

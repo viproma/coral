@@ -61,6 +61,7 @@ SlaveControlMessengerV0::SlaveControlMessengerV0(
     dsb::comm::Reactor& reactor,
     dsb::comm::P2PReqSocket socket,
     dsb::model::SlaveID slaveID,
+    const std::string& slaveName,
     const SlaveSetup& setup,
     std::chrono::milliseconds timeout,
     MakeSlaveControlMessengerHandler onComplete)
@@ -77,7 +78,7 @@ SlaveControlMessengerV0::SlaveControlMessengerV0(
         OnReply();
     });
     m_attachedToReactor = true;
-    Setup(slaveID, setup, timeout, std::move(onComplete));
+    Setup(slaveID, slaveName, setup, timeout, std::move(onComplete));
 
     assert(State() == SLAVE_BUSY);
     CheckInvariant();
@@ -218,6 +219,7 @@ void SlaveControlMessengerV0::Terminate()
 
 void SlaveControlMessengerV0::Setup(
     dsb::model::SlaveID slaveID,
+    const std::string& slaveName,
     const SlaveSetup& setup,
     std::chrono::milliseconds timeout,
     VoidHandler onComplete)
@@ -233,7 +235,8 @@ void SlaveControlMessengerV0::Setup(
     }
     data.set_variable_pub_endpoint(setup.variablePubEndpoint);
     data.set_variable_sub_endpoint(setup.variableSubEndpoint);
-
+    data.set_execution_name(setup.executionName);
+    data.set_slave_name(slaveName);
     SendCommand(dsbproto::execution::MSG_SETUP, &data, timeout, std::move(onComplete));
     assert(State() == SLAVE_BUSY);
 }
