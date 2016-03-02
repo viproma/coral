@@ -17,7 +17,12 @@ namespace bus
 
 ExecutionManagerPrivate::ExecutionManagerPrivate(
     const dsb::net::ExecutionLocator& execLoc)
-    : slaveSetup(0, dsb::model::ETERNITY, execLoc.VariablePubEndpoint(), execLoc.VariableSubEndpoint()),
+    : slaveSetup(
+        0,
+        dsb::model::ETERNITY,
+        execLoc.VariablePubEndpoint(),
+        execLoc.VariableSubEndpoint(),
+        execLoc.ExecName()),
       lastSlaveID(0),
       slaves(),
       m_state(), // created below

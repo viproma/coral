@@ -1,5 +1,4 @@
 #include <chrono>
-#include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <iostream>
@@ -19,19 +18,6 @@
 #include "dsb/fmi.hpp"
 #include "dsb/util.hpp"
 #include "dsb/util/console.hpp"
-
-
-// Note: Not threadsafe
-std::string RandomString(size_t length)
-{
-    static const auto wordChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvxyz-_";
-    static const auto wordCharsLen = std::strlen(wordChars);
-    auto id = std::string(length, '\xFF');
-    for (size_t i = 0; i < length; ++i) {
-        id[i] = wordChars[std::rand() % wordCharsLen];
-    }
-    return id;
-}
 
 
 struct StartSlave
@@ -54,27 +40,24 @@ public:
         std::chrono::milliseconds instantiationTimeout)
     {
         const auto fmuBaseName = boost::filesystem::path(fmuPath).stem().string();
-        const auto outputFile = m_outputDir + '/'
-            + dsb::util::Timestamp() + '_' + fmuBaseName + '_'
-            + RandomString(6) + ".csv";
 
         auto slaveStatusSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_PULL);
         const auto slaveStatusPort = dsb::comm::BindToEphemeralPort(slaveStatusSocket);
         const auto slaveStatusEp = "tcp://localhost:" + boost::lexical_cast<std::string>(slaveStatusPort);
 
-        const auto slaveBindEndpoint =
-            dsb::comm::P2PEndpoint(m_proxyEndpoint, RandomString(6));
+        const auto slaveBindEndpoint = dsb::comm::P2PEndpoint(
+            m_proxyEndpoint,
+            dsb::util::RandomString(6, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"));
 
         std::vector<std::string> args;
         args.push_back(slaveStatusEp);
         args.push_back(fmuPath);
         args.push_back(slaveBindEndpoint.URL());
         args.push_back(std::to_string(m_commTimeout.count()));
-        args.push_back(outputFile);
+        args.push_back(m_outputDir);
 
         std::cout << "\nStarting slave...\n"
-            << "  FMU      : " << fmuPath << '\n'
-            << "  Output   : " << outputFile << '\n'
+            << "  FMU       : " << fmuPath << '\n'
             << std::flush;
         dsb::util::SpawnProcess(m_slaveExe, args);
 
@@ -147,7 +130,7 @@ try {
             "optional, and only required if a nonstandard port is used.)")
         ("slave-exe", po::value<std::string>(),
             "The path to the DSB slave executable")
-        ("output-dir,o", po::value<std::string>()->default_value(""),
+        ("output-dir,o", po::value<std::string>()->default_value("."),
             "The directory where output files should be written")
         ("timeout", po::value<unsigned int>()->default_value(3600),
             "The number of seconds of inactivity before a slave shuts itself down");

@@ -15,6 +15,7 @@ SlaveController::SlaveController(
     dsb::comm::Reactor& reactor,
     const dsb::net::SlaveLocator& slaveLocator,
     dsb::model::SlaveID slaveID,
+    const std::string& slaveName,
     const SlaveSetup& setup,
     std::chrono::milliseconds timeout,
     ConnectHandler onComplete,
@@ -31,6 +32,7 @@ SlaveController::SlaveController(
                 m_messenger = MakeSlaveControlMessenger(
                     std::move(scc),
                     slaveID,
+                    slaveName,
                     setup,
                     onComplete);
             } else {

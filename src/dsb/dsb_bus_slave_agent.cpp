@@ -109,7 +109,9 @@ void SlaveAgent::ConnectedHandler(std::vector<zmq::message_t>& msg)
     m_id = data.slave_id();
     m_slaveInstance.Setup(
         data.start_time(),
-        data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity());
+        data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity(),
+        data.execution_name(),
+        data.slave_name());
     m_publisher.Connect(data.variable_pub_endpoint(), m_id);
     m_connections.Connect(data.variable_sub_endpoint());
     std::clog << "Simulating from t = " << data.start_time()

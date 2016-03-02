@@ -40,6 +40,7 @@ public:
         dsb::comm::Reactor& reactor,
         dsb::comm::P2PReqSocket socket,
         dsb::model::SlaveID slaveID,
+        const std::string& slaveName,
         const SlaveSetup& setup,
         std::chrono::milliseconds timeout,
         MakeSlaveControlMessengerHandler onComplete);
@@ -77,6 +78,7 @@ private:
 
     void Setup(
         dsb::model::SlaveID slaveID,
+        const std::string& slaveName,
         const SlaveSetup& setup,
         std::chrono::milliseconds timeout,
         VoidHandler onComplete);

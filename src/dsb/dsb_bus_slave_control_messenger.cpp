@@ -317,6 +317,7 @@ PendingSlaveControlConnection ConnectToSlave(
 std::unique_ptr<ISlaveControlMessenger> MakeSlaveControlMessenger(
     SlaveControlConnection connection,
     dsb::model::SlaveID slaveID,
+    const std::string& slaveName,
     const SlaveSetup& setup,
     MakeSlaveControlMessengerHandler onComplete)
 {
@@ -328,6 +329,7 @@ std::unique_ptr<ISlaveControlMessenger> MakeSlaveControlMessenger(
             *connection.Private().reactor,
             std::move(connection.Private().socket),
             slaveID,
+            slaveName,
             setup,
             connection.Private().timeout,
             std::move(onComplete));

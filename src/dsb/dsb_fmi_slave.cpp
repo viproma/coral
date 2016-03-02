@@ -1,12 +1,13 @@
 #include "dsb/fmi/slave.hpp"
 
 #include <cassert>
-#include <cstdlib>
+#include <fstream>
 #include <limits>
 #include <stdexcept>
 
 #include "boost/numeric/conversion/cast.hpp"
 #include "fmilib.h"
+
 #include "dsb/fmilib/importcontext.hpp"
 #include "dsb/fmi/glue.hpp"
 #include "dsb/util.hpp"
@@ -31,9 +32,11 @@ namespace fmi
 
 
 FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
-                                   std::ostream* outputStream)
-    : m_initialized(false),
-      m_outputStream(outputStream)
+                                   const std::string* outputFilePrefix)
+    : m_initialized(false)
+    , m_outputFilePrefix(outputFilePrefix
+        ? (outputFilePrefix->empty() ? "./" : *outputFilePrefix)
+        : std::string{})
 {
     auto ctx = dsb::fmilib::MakeImportContext(nullptr, jm_log_level_error);
     auto fmu = ctx->Import(fmuPath, m_fmuDir.Path().string());
@@ -57,7 +60,6 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
         fmi1_import_free_variable_list(fmiVars);
     });
 
-    if (m_outputStream) *m_outputStream << "Time";
     std::vector<dsb::model::VariableDescription> variables;
     const auto nVars = fmi1_import_get_variable_list_size(fmiVars);
     for (unsigned int i = 0; i < nVars; ++i) {
@@ -65,9 +67,7 @@ FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
         m_fmiValueRefs.push_back(fmi1_import_get_variable_vr(var));
         variables.push_back(
             ToVariable(var, boost::numeric_cast<dsb::model::VariableID>(i)));
-        if (m_outputStream) *m_outputStream << "," << fmi1_import_get_variable_name(var);
     }
-    if (m_outputStream) *m_outputStream << std::endl;
     m_typeDescription = std::make_unique<dsb::model::SlaveTypeDescription>(
         m_fmu->ModelName(),
         m_fmu->GUID(),
@@ -89,10 +89,46 @@ FmiSlaveInstance::~FmiSlaveInstance()
 
 bool FmiSlaveInstance::Setup(
     dsb::model::TimePoint startTime,
-    dsb::model::TimePoint stopTime)
+    dsb::model::TimePoint stopTime,
+    const std::string& executionName,
+    const std::string& slaveName)
 {
     m_startTime = startTime;
     m_stopTime = stopTime;
+
+    // TODO: Temporary, to be removed when we have proper observers
+    if (!m_outputFilePrefix.empty()) {
+        auto outputFileName = m_outputFilePrefix;
+        if (executionName.empty()) {
+            outputFileName += dsb::util::Timestamp();
+        } else {
+            outputFileName += executionName;
+        }
+        outputFileName += '_';
+        if (slaveName.empty()) {
+            outputFileName += m_typeDescription->Name() + '_'
+                + dsb::util::RandomString(6, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+        } else {
+            outputFileName += slaveName;
+        }
+        outputFileName += ".csv";
+        m_outputStream = std::make_unique<std::ofstream>(
+            outputFileName,
+            std::ios_base::out | std::ios_base::trunc
+#ifdef _MSC_VER
+            , _SH_DENYWR // Don't let other processes/threads write to the file
+#endif
+            );
+        if (m_outputStream->fail()) {
+            throw std::runtime_error(
+                "Error opening output file for writing: " + outputFileName);
+        }
+        *m_outputStream << "Time";
+        for (const auto& var : m_typeDescription->Variables()) {
+            *m_outputStream << "," << var.Name();
+        }
+        *m_outputStream << std::endl;
+    }
     return true;
 }
 
@@ -169,7 +205,7 @@ namespace
         const dsb::model::VariableDescription& varInfo,
         dsb::execution::ISlaveInstance& slaveInstance)
     {
-        out << ","; // << varInfo.name << " ";
+        out << ",";
         switch (varInfo.DataType()) {
             case dsb::model::REAL_DATATYPE:
                 out << slaveInstance.GetRealVariable(varInfo.ID());

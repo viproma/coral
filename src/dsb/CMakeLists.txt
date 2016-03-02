@@ -138,7 +138,8 @@ CreateHeaderGroups("Public Header Files" ${_publicHeadersFull})
 CreateHeaderGroups("Private Header Files" ${_privateHeadersFull})
 
 # Dependencies
-find_package (BoostTarget REQUIRED COMPONENTS program_options filesystem thread system chrono)
+find_package (BoostTarget REQUIRED
+    COMPONENTS program_options filesystem thread system chrono random)
 find_package (CPPZMQ REQUIRED)
 find_package (ProtobufTarget REQUIRED)
 find_package (FMILIB REQUIRED)

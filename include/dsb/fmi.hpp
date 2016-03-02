@@ -83,14 +83,20 @@ called.
 CSV output is a temporary feature which will be removed in the future, so
 future-proof code should omit the `outputStream` parameter.
 
-\param [in] fmu           The FMU file path.
-\param [in] outputStream  An output stream to which CSV output will be written.
+\param [in] fmu
+    The FMU file path.
+\param [in] outputFilePrefix
+    A directory and prefix for a CSV output file, if logging of variable
+    values is desired.  An execution- and slave-specific name as well as
+    a ".csv" extension will be appended to this name.  If no prefix is
+    required, and the string only contains a directory name, it should
+    end with a directory separator (a slash).
 
 \throws std::runtime_error if `fmu` does not refer to a valid FMU.
 */
 std::unique_ptr<dsb::execution::ISlaveInstance> MakeSlaveInstance(
     const boost::filesystem::path& fmu,
-    std::ostream* outputStream = nullptr); // TODO: Temporary; remove when we have proper observers.
+    const std::string* outputFilePrefix = nullptr); // TODO: Temporary; remove when we have proper observers.
 
 
 }}

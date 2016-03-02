@@ -38,14 +38,26 @@ public:
     outside this interval.)  If the slave is unable to meet this requirement,
     the function must return `false`, and the simulation will not be started.
 
-    \param [in] startTime   The earliest possible time point for the simulation.
-    \param [in] stopTime    The latest possible time point for the simulation.
+    \param [in] startTime
+        The earliest possible time point for the simulation.
+    \param [in] stopTime
+        The latest possible time point for the simulation.  May be infinity if
+        there is no defined stop time.
+    \param [in] slaveName
+        The name of the slave in the current execution.  May be empty if this
+        feature is not used.
+    \param [in] executionName
+        The name of the current execution.  May be empty if this feature is
+        not used.
+
     \return `true` if the slave is ready to perform a simulation in the given
         time interval, `false` otherwise.
     */
     virtual bool Setup(
         dsb::model::TimePoint startTime,
-        dsb::model::TimePoint stopTime) = 0;
+        dsb::model::TimePoint stopTime,
+        const std::string& executionName,
+        const std::string& slaveName) = 0;
 
     /// Returns an object that describes the slave type.
     virtual const dsb::model::SlaveTypeDescription& TypeDescription() const = 0;
