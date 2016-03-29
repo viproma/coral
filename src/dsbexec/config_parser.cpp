@@ -40,6 +40,10 @@ namespace
 {
     std::pair<std::string, std::string> SplitVarSpec(const std::string& varSpec)
     {
+        if (varSpec.empty()) {
+            throw std::runtime_error(
+                "Missing or empty variable identifier (should be on the format \"slave.var\")");
+        }
         const auto dotPos = varSpec.find_first_of('.');
         if (dotPos >= varSpec.size() - 1) {
             throw std::runtime_error(
@@ -223,40 +227,45 @@ namespace
         assert(connections.empty());
         std::map<std::string, std::set<std::string>> connectedVars; // just for making warnings
         const auto connTree = ptree.get_child("connections", boost::property_tree::ptree());
-        BOOST_FOREACH (const auto& connNode, connTree) {
-            const auto inputSpec = SplitVarSpec(connNode.first);
-            const auto outputSpec = SplitVarSpec(connNode.second.data());
-            try {
-                const auto inputSlaveType = GetSlaveType(slaves, inputSpec.first);
-                const auto outputSlaveType = GetSlaveType(slaves, outputSpec.first);
-                const auto inputVarDesc = GetCachedVarDescription(
-                    inputSlaveType, inputSpec.second, varDescriptionCache);
-                const auto outputVarDesc = GetCachedVarDescription(
-                    outputSlaveType, outputSpec.second, varDescriptionCache);
-                if (inputVarDesc->DataType() != outputVarDesc->DataType()) {
-                    throw std::runtime_error("Incompatible data types");
-                }
-                if (inputVarDesc->Causality() != dsb::model::INPUT_CAUSALITY) {
-                    throw std::runtime_error("Not an input variable: " + inputVarDesc->Name());
-                }
-                if (outputVarDesc->Causality() != dsb::model::OUTPUT_CAUSALITY) {
-                    throw std::runtime_error("Not an output variable: " + outputVarDesc->Name());
-                }
-                VariableConnection vc;
-                vc.inputId = inputVarDesc->ID();
-                vc.otherSlaveName = outputSpec.first;
-                vc.otherOutputId = outputVarDesc->ID();
-                connections[inputSpec.first].push_back(vc);
+        try {
+            for (const auto& connNode : connTree) {
+                const auto inputSpec = SplitVarSpec(connNode.first);
+                const auto outputSpec = SplitVarSpec(connNode.second.data());
+                try {
+                    const auto inputSlaveType = GetSlaveType(slaves, inputSpec.first);
+                    const auto outputSlaveType = GetSlaveType(slaves, outputSpec.first);
+                    const auto inputVarDesc = GetCachedVarDescription(
+                        inputSlaveType, inputSpec.second, varDescriptionCache);
+                    const auto outputVarDesc = GetCachedVarDescription(
+                        outputSlaveType, outputSpec.second, varDescriptionCache);
+                    if (inputVarDesc->DataType() != outputVarDesc->DataType()) {
+                        throw std::runtime_error("Incompatible data types");
+                    }
+                    if (inputVarDesc->Causality() != dsb::model::INPUT_CAUSALITY) {
+                        throw std::runtime_error("Not an input variable: " + inputVarDesc->Name());
+                    }
+                    if (outputVarDesc->Causality() != dsb::model::OUTPUT_CAUSALITY) {
+                        throw std::runtime_error("Not an output variable: " + outputVarDesc->Name());
+                    }
+                    VariableConnection vc;
+                    vc.inputId = inputVarDesc->ID();
+                    vc.otherSlaveName = outputSpec.first;
+                    vc.otherOutputId = outputVarDesc->ID();
+                    connections[inputSpec.first].push_back(vc);
 
-                if (warningLog) {
-                    connectedVars[inputSpec.first].insert(inputSpec.second);
-                    connectedVars[outputSpec.first].insert(outputSpec.second);
+                    if (warningLog) {
+                        connectedVars[inputSpec.first].insert(inputSpec.second);
+                        connectedVars[outputSpec.first].insert(outputSpec.second);
+                    }
+                } catch (const std::runtime_error& e) {
+                    throw std::runtime_error("In connection between "
+                        + connNode.first + " and " + connNode.second.data() + ": "
+                        + e.what());
                 }
-            } catch (const std::runtime_error& e) {
-                throw std::runtime_error("In connection between "
-                    + connNode.first + " and " + connNode.second.data() + ": "
-                    + e.what());
             }
+        } catch (const std::runtime_error& e) {
+            throw std::runtime_error(
+                std::string("In \"connections\" section: ") + e.what());
         }
 
         // If warnings are enabled, we list all unconnected input/output variables.
