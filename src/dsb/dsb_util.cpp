@@ -90,22 +90,53 @@ std::string dsb::util::Timestamp()
 }
 
 
-dsb::util::TempDir::TempDir()
-    : m_path(boost::filesystem::temp_directory_path()
-             / boost::filesystem::unique_path())
+dsb::util::TempDir::TempDir(const boost::filesystem::path& parent)
 {
-    boost::filesystem::create_directory(m_path);
+    if (parent.empty()) {
+        m_path = boost::filesystem::temp_directory_path()
+            / boost::filesystem::unique_path();
+    } else if (parent.is_absolute()) {
+        m_path = parent / boost::filesystem::unique_path();
+    } else {
+        m_path = boost::filesystem::temp_directory_path()
+            / parent / boost::filesystem::unique_path();
+    }
+    boost::filesystem::create_directories(m_path);
+}
+
+dsb::util::TempDir::TempDir(TempDir&& other) DSB_NOEXCEPT
+    : m_path{std::move(other.m_path)}
+{
+    // This doesn't seem to be guaranteed by path's move constructor:
+    other.m_path.clear();
+}
+
+dsb::util::TempDir& dsb::util::TempDir::operator=(TempDir&& other) DSB_NOEXCEPT
+{
+    DeleteNoexcept();
+    m_path = std::move(other.m_path);
+    // This doesn't seem to be guaranteed by path's move constructor:
+    other.m_path.clear();
+    return *this;
 }
 
 dsb::util::TempDir::~TempDir()
 {
-    boost::system::error_code ec;
-    boost::filesystem::remove_all(m_path, ec);
+    DeleteNoexcept();
 }
 
 const boost::filesystem::path& dsb::util::TempDir::Path() const
 {
     return m_path;
+}
+
+void dsb::util::TempDir::DeleteNoexcept() DSB_NOEXCEPT
+{
+    if (!m_path.empty()) {
+        boost::system::error_code ignoreErrors;
+        boost::filesystem::remove_all(m_path, ignoreErrors);
+        m_path.clear();
+    }
 }
 
 
