@@ -33,7 +33,8 @@ namespace fmi
 
 FmiSlaveInstance::FmiSlaveInstance(const std::string& fmuPath,
                                    const std::string* outputFilePrefix)
-    : m_initialized(false)
+    : m_fmuDir("dsb-fmus"),
+      m_initialized(false)
     , m_outputFilePrefix(outputFilePrefix
         ? (outputFilePrefix->empty() ? "./" : *outputFilePrefix)
         : std::string{})

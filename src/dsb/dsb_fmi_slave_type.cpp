@@ -20,7 +20,9 @@ namespace fmi
 FmiSlaveType::FmiSlaveType(
     const std::string& fmuPath,
     SlaveStarter slaveStarterFunction)
-    : m_fmuPath(fmuPath), m_slaveStarterFunction(slaveStarterFunction)
+    : m_fmuPath(fmuPath),
+      m_slaveStarterFunction(slaveStarterFunction),
+      m_unzipDir("dsb-fmus")
 {
     auto ctx = dsb::fmilib::MakeImportContext(nullptr, jm_log_level_error);
     auto fmu = ctx->Import(fmuPath, m_unzipDir.Path().string());
