@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <iostream>
@@ -186,16 +187,29 @@ try {
             fmuPaths.push_back(fmuSpec);
         }
     }
+
     std::vector<std::unique_ptr<dsb::domain::ISlaveType>> fmus;
-    std::vector<dsb::domain::ISlaveType*> fmuPtrs;
-    for (auto it = fmuPaths.begin(); it != fmuPaths.end(); ++it) {
-        fmus.push_back(dsb::fmi::MakeSlaveType(*it,
+    for (const auto& p : fmuPaths) {
+        fmus.push_back(dsb::fmi::MakeSlaveType(p,
             StartSlave(domainLoc.InfoSlavePEndpoint(), slaveExe, timeout, outputDir)));
-        fmuPtrs.push_back(fmus.back().get());
-        std::cout << "FMU loaded: " << *it << std::endl;
+        std::cout << "FMU loaded: " << p << std::endl;
     }
     std::cout << fmus.size() << " FMUs loaded" << std::endl;
-    dsb::domain::SlaveProvider(domainLoc, fmuPtrs);
+
+    dsb::domain::SlaveProvider slaveProvider{
+        domainLoc,
+        std::move(fmus),
+        [](std::exception_ptr e) {
+            try { std::rethrow_exception(e); }
+            catch (const std::exception& e) {
+                std::cerr << "Error: " << e.what() << std::endl;
+                std::exit(1);
+            }
+        }
+    };
+    std::cout << "Press ENTER to quit" << std::flush;
+    std::cin.ignore();
+    slaveProvider.Stop();
 } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 1;

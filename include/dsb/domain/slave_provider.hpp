@@ -6,11 +6,22 @@
 #define DSB_DOMAIN_SLAVE_PROVIDER_HPP
 
 #include <chrono>
+#include <exception>
+#include <functional>
+#include <memory>
 #include <string>
+#include <thread>
 #include <vector>
+
 #include "boost/noncopyable.hpp"
+
+#include "dsb/config.h"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
+
+
+// Forward declaration to avoid dependency on ZMQ headers
+namespace zmq { class socket_t; }
 
 
 namespace dsb
@@ -78,9 +89,60 @@ public:
 };
 
 
-void SlaveProvider(
-    const dsb::net::DomainLocator& domainLocator,
-    const std::vector<dsb::domain::ISlaveType*>& slaveTypes); // TODO: Range API here.
+/// A slave provider that runs in a background thread.
+class SlaveProvider
+{
+public:
+    /**
+    \brief  Creates a background thread and runs a slave provider in it.
+
+    \param [in] domainLocator
+        The domain to which the slave provider will connect.
+    \param [in] slaveTypes
+        The slave types offered by the slave provider.
+    \param [in] exceptionHandler
+        A function that will be called if an exception is thrown in the
+        background thread.  If no handler is provided, or if the handler itself
+        throws, std::terminate() will be called.  If the handler returns without
+        throwing, the background thread will simply terminate.  (In this case,
+        it is still necessary to call Stop() in the foreground thread before
+        the SlaveProvider object is destroyed.)
+        Note that the exception handler will be called *in* the background
+        thread, so care should be taken not to implement it in a thread-unsafe
+        manner.
+    */
+    SlaveProvider(
+        const dsb::net::DomainLocator& domainLocator,
+        std::vector<std::unique_ptr<dsb::domain::ISlaveType>>&& slaveTypes,
+        std::function<void(std::exception_ptr)> exceptionHandler = nullptr);
+
+    SlaveProvider(SlaveProvider&) = delete;
+    SlaveProvider& operator=(SlaveProvider&) = delete;
+
+    DSB_DEFINE_DEFAULT_MOVE(SlaveProvider, m_killSocket, m_thread);
+
+    /**
+    \brief  Destructs the SlaveProvider object; requires that Stop() has been
+            called first.
+
+    If the background thread has not been terminated with Stop() when the
+    destructor runs, std::terminate() is called.
+    */
+    ~SlaveProvider() DSB_NOEXCEPT;
+
+    /**
+    \brief  Stops the slave provider.
+
+    This will send a signal to the background thread that triggers a shutdown
+    of the slave provider.  The function blocks until the background thread has
+    terminated.
+    */
+    void Stop();
+
+private:
+    std::unique_ptr<zmq::socket_t> m_killSocket;
+    std::thread m_thread;
+};
 
 
 }}      // namespace

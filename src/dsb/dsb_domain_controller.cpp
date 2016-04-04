@@ -41,7 +41,7 @@ namespace dp = dsb::protocol::domain;
 
 namespace
 {
-    const auto SLAVEPROVIDER_TIMEOUT = std::chrono::seconds(10);
+    const auto SLAVEPROVIDER_TIMEOUT = std::chrono::seconds(10000);
 
 
     void HandleGetSlaveTypes(
