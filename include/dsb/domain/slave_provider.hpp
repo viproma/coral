@@ -13,8 +13,6 @@
 #include <thread>
 #include <vector>
 
-#include "boost/noncopyable.hpp"
-
 #include "dsb/config.h"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
@@ -31,7 +29,7 @@ namespace domain
 
 
 /// An interface for classes that represent slave types.
-class ISlaveType : boost::noncopyable
+class ISlaveType
 // TODO: Rename this to ISlaveFactory or similar?
 {
 public:
@@ -116,8 +114,8 @@ public:
         std::vector<std::unique_ptr<dsb::domain::ISlaveType>>&& slaveTypes,
         std::function<void(std::exception_ptr)> exceptionHandler = nullptr);
 
-    SlaveProvider(SlaveProvider&) = delete;
-    SlaveProvider& operator=(SlaveProvider&) = delete;
+    SlaveProvider(const SlaveProvider&) = delete;
+    SlaveProvider& operator=(const SlaveProvider&) = delete;
 
     DSB_DEFINE_DEFAULT_MOVE(SlaveProvider, m_killSocket, m_thread);
 

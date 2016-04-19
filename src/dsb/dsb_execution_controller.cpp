@@ -220,6 +220,7 @@ namespace
             m_reactor,
             std::chrono::milliseconds(args.timeout_ms()),
             [promisedID, slaveName, this] (const std::error_code& ec, dsb::model::SlaveID id) {
+                std::clog << "addedSlave " << id << ": " << ec.message() << std::endl;
                 if (!ec) {
                     promisedID->set_value(id);
                 } else {

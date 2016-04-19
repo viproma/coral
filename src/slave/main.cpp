@@ -4,12 +4,14 @@
 #include <memory>
 #include <stdexcept>
 
-#include "boost/filesystem/path.hpp"
+#include "boost/filesystem.hpp"
 #include "boost/lexical_cast.hpp"
 #include "zmq.hpp"
 
+#include "dsb/execution/logging_slave.hpp"
 #include "dsb/execution/slave.hpp"
-#include "dsb/fmi.hpp"
+#include "dsb/fmi/fmu.hpp"
+#include "dsb/fmi/importer.hpp"
 
 
 /*
@@ -55,9 +57,20 @@ try {
 #endif
     const auto outputDir = (argc > 5) ? std::string(argv[5]) + dirSep : std::string();
 
-    std::shared_ptr<dsb::execution::ISlaveInstance> fmiSlave =
-        dsb::fmi::MakeSlaveInstance(fmuPath, outputDir.empty() ? nullptr : &outputDir);
-    auto slaveRunner = dsb::execution::SlaveRunner(fmiSlave, bindpoint, commTimeout);
+    const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "dsb" / "cache";
+    auto fmuImporter = dsb::fmi::Importer::Create(fmuCacheDir);
+    auto fmu = fmuImporter->Import(fmuPath);
+    auto fmiSlave = fmu->InstantiateSlave();
+    std::shared_ptr<dsb::execution::ISlaveInstance> slave;
+    if (outputDir.empty()) {
+        slave = fmiSlave;
+    } else {
+        slave = std::make_shared<dsb::execution::LoggingSlaveInstance>(
+            fmiSlave,
+            outputDir);
+    }
+
+    auto slaveRunner = dsb::execution::SlaveRunner(slave, bindpoint, commTimeout);
     auto boundpoint = slaveRunner.BoundEndpoint();
     feedbackSocket->send("OK", 2, ZMQ_SNDMORE);
     feedbackSocket->send(boundpoint.data(), boundpoint.size());

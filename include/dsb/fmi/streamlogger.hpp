@@ -1,5 +1,5 @@
-#ifndef DSB_FMILIB_STREAMLOGGER_HPP
-#define DSB_FMILIB_STREAMLOGGER_HPP
+#ifndef DSB_FMI_STREAMLOGGER_HPP
+#define DSB_FMI_STREAMLOGGER_HPP
 
 #include <memory>
 #include <ostream>
@@ -8,12 +8,12 @@
 #include "boost/format.hpp"
 
 #include "dsb/config.h"
-#include "dsb/fmilib/logger.hpp"
+#include "dsb/fmi/logger.hpp"
 
 
 namespace dsb
 {
-namespace fmilib
+namespace fmi
 {
 
 
@@ -23,9 +23,9 @@ const std::string streamLoggerFormat = "%3$s: %4$s\n";
 
 /**
 \brief  A logger which logs messages to an output stream.
-\see dsb::fmilib::StdStreamLogger()
+\see StdStreamLogger()
 */
-class StreamLogger : public dsb::fmilib::ILogger
+class StreamLogger : public Logger
 {
 public:
     /**
@@ -56,13 +56,12 @@ public:
 
     \throws boost::format_error if `format` is ill-formed.
     */
-    StreamLogger(std::shared_ptr<std::ostream> stream,
-                 const std::string& format = dsb::fmilib::streamLoggerFormat);
+    StreamLogger(
+        std::shared_ptr<std::ostream> stream,
+        const std::string& format = streamLoggerFormat);
 
-    /// Implements dsb::fmilib::ILogger::Log()
-    void Log(jm_string module,
-             jm_log_level_enu_t logLevel,
-             jm_string message) final override;
+    // Logger implementations:
+    void Log(const char* module, int logLevel, const char* message) override;
 
 private:
     std::shared_ptr<std::ostream> m_stream;
@@ -71,14 +70,14 @@ private:
 
 
 /**
-\brief  Creates and returns an dsb::fmilib::StreamLogger instance which logs to the standard
+\brief  Creates and returns a StreamLogger instance which logs to the standard
         log stream (as defined by `std::clog`).
 
-\param [in] format  The message format.  This is passed straight to
-                    dsb::fmilib::StreamLogger::StreamLogger().
+\param [in] format
+    The message format. This is passed straight to StreamLogger::StreamLogger().
 */
-std::shared_ptr<dsb::fmilib::StreamLogger> StdStreamLogger(
-    const std::string& format = dsb::fmilib::streamLoggerFormat);
+std::shared_ptr<StreamLogger> StdStreamLogger(
+    const std::string& format = streamLoggerFormat);
 
 
 }} // namespace

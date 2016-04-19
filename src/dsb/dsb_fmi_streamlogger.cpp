@@ -1,41 +1,45 @@
-#include "dsb/fmilib/streamlogger.hpp"
+#include "dsb/fmi/streamlogger.hpp"
 
 #include <iostream>
 #include "boost/format.hpp"
 #include "fmilib.h"
 
 
+namespace dsb
+{
+namespace fmi
+{
+
 namespace
 {
     // This function defines the order in which arguments are formatted.
     boost::format& FormatArgs(
         boost::format& format,
-        jm_string module,
-        jm_log_level_enu_t logLevel,
-        jm_string message)
+        const char* module,
+        int logLevel,
+        const char* message)
     {
-        return format % module
-                      % logLevel
-                      % jm_log_level_to_string(logLevel)
-                      % message;
+        return format
+            % module
+            % logLevel
+            % jm_log_level_to_string(static_cast<jm_log_level_enu_t>(logLevel))
+            % message;
     }
 }
 
 
-dsb::fmilib::StreamLogger::StreamLogger(std::shared_ptr<std::ostream> stream,
-                                   const std::string& format)
-    : m_stream(stream),
-      m_format(format)
+StreamLogger::StreamLogger(
+    std::shared_ptr<std::ostream> stream,
+    const std::string& format)
+    : m_stream{stream}
+    , m_format{format}
 {
     // Test format string.  This will throw an exception if it is ill-formed.
     boost::str(FormatArgs(m_format, "module", jm_log_level_nothing, "message"));
 }
 
 
-void dsb::fmilib::StreamLogger::Log(
-    jm_string module,
-    jm_log_level_enu_t logLevel,
-    jm_string message)
+void StreamLogger::Log(const char* module, int logLevel, const char* message)
 {
     m_format.clear();
     *m_stream << FormatArgs(m_format, module, logLevel, message);
@@ -49,13 +53,16 @@ namespace
 }
 
 
-std::shared_ptr<dsb::fmilib::StreamLogger> dsb::fmilib::StdStreamLogger(
+std::shared_ptr<StreamLogger> StdStreamLogger(
     const std::string& format)
 {
     // We don't actually want to delete std::clog when the last shared pointer
     // to it goes out of scope, so we supply a custom deleter which does
     // nothing.
-    return std::make_shared<dsb::fmilib::StreamLogger>(
+    return std::make_shared<StreamLogger>(
         std::shared_ptr<std::ostream>(&std::clog, NoOpDeleter),
         format);
 }
+
+
+}} // namespace

@@ -1,18 +1,15 @@
-#ifndef DSB_FMILIB_LOGGER_HPP
-#define DSB_FMILIB_LOGGER_HPP
-
-#include "boost/noncopyable.hpp"
-#include "fmilib.h"
+#ifndef DSB_FMI_LOGGER_HPP
+#define DSB_FMI_LOGGER_HPP
 
 
 namespace dsb
 {
-namespace fmilib
+namespace fmi
 {
 
 
 /// An interface for objects that log status messages from FMI Library.
-class ILogger : boost::noncopyable
+class Logger
 {
 public:
     /**
@@ -22,11 +19,9 @@ public:
     \param [in] logLevel    The message type.
     \param [in] message     The message.
     */
-    virtual void Log(jm_string module,
-                     jm_log_level_enu_t logLevel,
-                     jm_string message) = 0;
+    virtual void Log(const char* module, int logLevel, const char* message) = 0;
 
-    virtual ~ILogger() { }
+    virtual ~Logger() { }
 };
 
 
