@@ -145,9 +145,15 @@ void ScanDirectoryForFMUs(
 int main(int argc, const char** argv)
 {
 try {
+    const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "dsb" / "cache";
+    auto importer = dsb::fmi::Importer::Create(fmuCacheDir);
+
     namespace po = boost::program_options;
     po::options_description options("Options");
     options.add_options()
+        ("clean-cache",
+            "Clear the cache which contains previously unpacked FMU contents."
+            "The program will exit immediately after performing this action.")
         ("domain,d", po::value<std::string>()->default_value("localhost"),
             "The domain address, of the form \"hostname:port\". (\":port\" is "
             "optional, and only required if a nonstandard port is used.)")
@@ -172,6 +178,10 @@ try {
         "This program loads one or more FMUs and makes them available as\n"
         "slaves on a domain.");
     if (!optionValues) return 0;
+    if (optionValues->count("clean-cache")) {
+        importer->CleanCache();
+        return 0;
+    }
     if (!optionValues->count("fmu")) throw std::runtime_error("No FMUs specified");
 
     const auto domainAddress = (*optionValues)["domain"].as<std::string>();
@@ -210,8 +220,6 @@ try {
         }
     }
 
-    const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "dsb" / "cache";
-    auto importer = dsb::fmi::Importer::Create(fmuCacheDir);
     std::vector<std::unique_ptr<dsb::domain::ISlaveType>> fmus;
     for (const auto& p : fmuPaths) {
         fmus.push_back(std::make_unique<DSBSlaveType>(
