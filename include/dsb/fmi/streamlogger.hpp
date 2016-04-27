@@ -17,7 +17,7 @@ namespace fmi
 {
 
 
-/// The standard message format used by dsb::fmilib::StreamLogger.
+/// The standard message format used by dsb::fmi::StreamLogger.
 const std::string streamLoggerFormat = "%3$s: %4$s\n";
 
 
