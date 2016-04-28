@@ -12,7 +12,9 @@
 
 #include "dsb/domain/controller.hpp"
 #include "dsb/execution/controller.hpp"
+#include "dsb/log.hpp"
 #include "dsb/util/console.hpp"
+
 #include "config_parser.hpp"
 
 
@@ -467,6 +469,12 @@ int Info(const std::vector<std::string>& args)
 
 int main(int argc, const char** argv)
 {
+#ifdef DSB_LOG_TRACE_ENABLED
+    dsb::log::SetLevel(dsb::log::trace);
+#elif defined(DSB_LOG_DEBUG_ENABLED)
+    dsb::log::SetLevel(dsb::log::debug);
+#endif
+
     if (argc < 2) {
         std::cerr <<
             "Master demonstrator.\n"

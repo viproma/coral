@@ -226,13 +226,11 @@ void dsb::util::SpawnProcess(
     }
 
     std::vector<const char*> argz;
-    std::cout << program;
     argz.push_back(program.c_str());
     for (auto it = begin(args); it != end(args); ++it) {
         std::cout << ' ' << *it;
         argz.push_back(it->c_str());
     }
-    std::cout << std::endl;
     argz.push_back(nullptr);
 
     const auto pid = fork();

@@ -3,6 +3,8 @@
 #include <iostream> //TODO: For debugging purposes; remove later.
 #include <utility>
 
+#include "dsb/log.hpp"
+
 
 namespace dsb
 {
@@ -34,8 +36,8 @@ bool DomainData::UpdateSlaveProvider(
     if (newProvider) {
         SlaveProvider sp;
         it = m_slaveProviders.insert(std::make_pair(id, sp)).first;
-        // std::clog << "Slave provider added: " << id << std::endl;
-    } // else std::clog << "Slave provider updated: " << id << std::endl;
+        DSB_LOG_TRACE(boost::format("DomainData: Slave provider added: %s") % id);
+    }
     it->second.protocol = std::min(protocol, m_maxProtocol);
     it->second.lastHeartbeat = heartbeatTime;
     return newProvider;
@@ -53,7 +55,8 @@ void DomainData::PurgeSlaveProviders(
                 && "Some funky time travelling is going on here");
         if (referenceTime - it->second.lastHeartbeat > m_slaveProviderTimeout) {
             const auto d = it++;
-            // std::clog << "Slave provider timeout: " << d->first << std::endl;
+            DSB_LOG_TRACE(boost::format("DomainData: Slave provider timed out: %s")
+                % d->first);
             m_slaveTypes.erase(d->first);
             m_slaveProviders.erase(d);
         } else ++it;
@@ -98,4 +101,4 @@ void DomainData::Dump() const
 }
 
 
-}}      // namespace
+}} // namespace

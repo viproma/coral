@@ -9,6 +9,18 @@ elseif (MSVC)
     add_compile_options("/WX")      # Treat all warnings as errors.
 endif()
 
+# Same, only macro definitions.
+if (DSB_ENABLE_DEBUG_LOGGING OR DSB_ENABLE_TRACE_LOGGING)
+    set_property (DIRECTORY APPEND PROPERTY
+        COMPILE_DEFINITIONS "DSB_LOG_DEBUG_ENABLED")
+else ()
+    set_property (DIRECTORY APPEND PROPERTY
+        COMPILE_DEFINITIONS "$<$<CONFIG:Debug>:DSB_LOG_DEBUG_ENABLED>")
+endif ()
+if (DSB_ENABLE_TRACE_LOGGING)
+    set_property (DIRECTORY APPEND PROPERTY
+        COMPILE_DEFINITIONS "DSB_LOG_TRACE_ENABLED")
+endif ()
 # The directory in which private headers are located.
 # These are the headers that should be available to all submodules in this
 # project, but which should not be installed as part of the public API.

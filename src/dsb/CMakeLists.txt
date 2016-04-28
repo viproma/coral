@@ -12,7 +12,9 @@ set (_publicHeaders
     "dsb/fmi/fmu1.hpp"
     "dsb/fmi/importer.hpp"
     "dsb/fmi/logger.hpp"
+    "dsb/fmi/dsblogger.hpp"
     "dsb/fmi/streamlogger.hpp"
+    "dsb/log.hpp"
     "dsb/model.hpp"
     "dsb/net.hpp"
 )
@@ -80,7 +82,9 @@ set (_sources
     "dsb_execution_variable_io.cpp"
     "dsb_fmi_fmu1.cpp"
     "dsb_fmi_importer.cpp"
+    "dsb_fmi_dsblogger.cpp"
     "dsb_fmi_streamlogger.cpp"
+    "dsb_log.cpp"
     "dsb_model.cpp"
     "dsb_net.cpp"
 )

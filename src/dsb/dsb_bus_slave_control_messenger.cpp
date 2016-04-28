@@ -6,6 +6,7 @@
 #include "dsb/bus/slave_control_messenger_v0.hpp"
 #include "dsb/comm/p2p.hpp"
 #include "dsb/error.hpp"
+#include "dsb/log.hpp"
 #include "dsb/protocol/execution.hpp"
 
 
@@ -130,10 +131,16 @@ void PendingSlaveControlConnectionPrivate::TryConnect(int remainingAttempts)
     m_socket.Connect(dsb::comm::P2PEndpoint(
         m_slaveLocator.Endpoint(),
         m_slaveLocator.Identity()));
+    DSB_LOG_TRACE(boost::format("PendingSlaveControlConnectionPrivate  %x: "
+            "Connecting to endpoint %s, identity %s")
+        % this % m_slaveLocator.Endpoint() % m_slaveLocator.Identity());
 
     std::vector<zmq::message_t> msg;
     dsb::protocol::execution::CreateHelloMessage(msg, 0);
     m_socket.Send(msg);
+    DSB_LOG_TRACE(
+        boost::format("PendingSlaveControlConnectionPrivate  %x: Sent HELLO")
+        % this);
 
     // Register a timeout timer and a reply listener.
     // Both of these cancel the other if triggered.
@@ -164,6 +171,11 @@ void PendingSlaveControlConnectionPrivate::HandleHelloReply()
     std::vector<zmq::message_t> msg;
     m_socket.Receive(msg);
     const auto reply = dsb::protocol::execution::ParseMessageType(msg.front());
+    DSB_LOG_TRACE(
+        boost::format("PendingSlaveControlConnectionPrivate  %x: Received %s")
+        % this
+        % dsbproto::execution::MessageType_Name(
+            static_cast<dsbproto::execution::MessageType>(reply)));
 
     if (reply == dsbproto::execution::MSG_HELLO) {
         auto p = std::make_unique<SlaveControlConnectionPrivate>();

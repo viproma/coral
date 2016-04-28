@@ -5,7 +5,6 @@
 #include <cctype>
 #include <chrono>
 #include <exception>
-#include <iostream>
 #include <iterator> // for back_inserter()
 #include <sstream>
 #include <stdexcept>
@@ -24,6 +23,7 @@
 #include "dsb/comm/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/inproc_rpc.hpp"
+#include "dsb/log.hpp"
 #include "dsb/protocol/glue.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/util.hpp"
@@ -220,7 +220,6 @@ namespace
             m_reactor,
             std::chrono::milliseconds(args.timeout_ms()),
             [promisedID, slaveName, this] (const std::error_code& ec, dsb::model::SlaveID id) {
-                std::clog << "addedSlave " << id << ": " << ec.message() << std::endl;
                 if (!ec) {
                     promisedID->set_value(id);
                 } else {
@@ -336,6 +335,12 @@ namespace
         try {
             // Main messaging loop
             dsb::comm::Reactor reactor;
+            reactor.AddTimer(std::chrono::seconds(5), -1,
+                [](dsb::comm::Reactor&, int) {
+                    // Just some no-op, so we can set a breakpoint
+                    int i = 1;
+                    ++i;
+                });
             dsb::bus::ExecutionManager execMgr(*execLocator);
             ControllerBackend backend(execMgr, reactor, *rpcEndpoint);
             reactor.Run();
@@ -364,10 +369,10 @@ namespace
             // "exception result" (besides runtime and logic error) to the
             // frontend, and making the frontend throw a BackendDiedException
             // or similar when it receives such a result after an RPC call.
-            std::cerr << "Fatal: Unexpected exception thrown in execution "
-                         "controller backend thread. Exception type: "
-                      << typeid(e).name() << ". Exception message: " << e.what()
-                      << std::endl;
+            dsb::log::Log(dsb::log::error, boost::format(
+                    "Unexpected exception thrown in execution controller "
+                    "backend thread.  Exception type: %s.  Exception message: %s")
+                % typeid(e).name() % e.what());
             std::terminate();
         }
     }

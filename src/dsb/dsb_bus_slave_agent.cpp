@@ -1,13 +1,13 @@
 #include "dsb/bus/slave_agent.hpp"
 
 #include <cassert>
-#include <iostream> // TEMPORARY
 #include <limits>
 #include <utility>
 
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/error.hpp"
+#include "dsb/log.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/execution.hpp"
 #include "dsb/protocol/glue.hpp"
@@ -19,6 +19,9 @@ namespace
     uint16_t NormalMessageType(const std::vector<zmq::message_t>& msg)
     {
         const auto mt = dsb::protocol::execution::NonErrorMessageType(msg);
+        DSB_LOG_TRACE(boost::format("Received %s")
+            % dsbproto::execution::MessageType_Name(
+                static_cast<dsbproto::execution::MessageType>(mt)));
         if (mt == dsbproto::execution::MSG_TERMINATE) throw dsb::bus::Shutdown();
         return mt;
     }
@@ -57,6 +60,10 @@ SlaveAgent::SlaveAgent(
       m_currentStepID(dsb::model::INVALID_STEP_ID)
 {
     m_control.Bind(bindpoint);
+    DSB_LOG_TRACE(boost::format("Slave bound to %s with identity %s")
+        % bindpoint.Endpoint()
+        % bindpoint.Identity());
+
     reactor.AddSocket(
         m_control.Socket(),
         [this](dsb::comm::Reactor& r, zmq::socket_t& s) {
@@ -73,7 +80,11 @@ SlaveAgent::SlaveAgent(
                 r.Stop();
                 return;
             }
+            const auto replyType = static_cast<dsbproto::execution::MessageType>(
+                dsb::protocol::execution::ParseMessageType(msg.front()));
             m_control.Send(msg);
+            DSB_LOG_TRACE(boost::format("Sent %s")
+                % dsbproto::execution::MessageType_Name(replyType));
         });
 }
 
@@ -92,9 +103,11 @@ void SlaveAgent::RequestReply(std::vector<zmq::message_t>& msg)
 
 void SlaveAgent::NotConnectedHandler(std::vector<zmq::message_t>& msg)
 {
+    DSB_LOG_TRACE("NOT CONNECTED state: incoming message");
     if (dsb::protocol::execution::ParseHelloMessage(msg) != 0) {
         throw std::runtime_error("Master required unsupported protocol");
     }
+    DSB_LOG_TRACE("Received HELLO");
     dsb::protocol::execution::CreateHelloMessage(msg, 0);
     m_stateHandler = &SlaveAgent::ConnectedHandler;
 }
@@ -102,21 +115,26 @@ void SlaveAgent::NotConnectedHandler(std::vector<zmq::message_t>& msg)
 
 void SlaveAgent::ConnectedHandler(std::vector<zmq::message_t>& msg)
 {
+    DSB_LOG_TRACE("CONNECTED state: incoming message");
     EnforceMessageType(msg, dsbproto::execution::MSG_SETUP);
     if (msg.size() != 2) InvalidReplyFromMaster();
+
     dsbproto::execution::SetupData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
+    DSB_LOG_DEBUG(boost::format("Slave name (ID): %s (%d)")
+        % data.slave_name() % data.slave_id());
+    DSB_LOG_DEBUG(boost::format("Simulation time frame: %g to %g")
+        % data.start_time()
+        % (data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity()));
     m_id = data.slave_id();
     m_slaveInstance.Setup(
         data.start_time(),
         data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity(),
         data.execution_name(),
         data.slave_name());
+
     m_publisher.Connect(data.variable_pub_endpoint(), m_id);
     m_connections.Connect(data.variable_sub_endpoint());
-    std::clog << "Simulating from t = " << data.start_time()
-              << " to " << (data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity())
-              << std::endl;
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }
@@ -124,6 +142,7 @@ void SlaveAgent::ConnectedHandler(std::vector<zmq::message_t>& msg)
 
 void SlaveAgent::ReadyHandler(std::vector<zmq::message_t>& msg)
 {
+    DSB_LOG_TRACE("READY state: incoming message");
     switch (NormalMessageType(msg)) {
         case dsbproto::execution::MSG_STEP: {
             if (msg.size() != 2) {
@@ -154,6 +173,7 @@ void SlaveAgent::ReadyHandler(std::vector<zmq::message_t>& msg)
 
 void SlaveAgent::PublishedHandler(std::vector<zmq::message_t>& msg)
 {
+    DSB_LOG_TRACE("STEP OK state: incoming message");
     EnforceMessageType(msg, dsbproto::execution::MSG_ACCEPT_STEP);
     // TODO: Use a different timeout here?
     m_connections.Update(m_slaveInstance, m_currentStepID, m_commTimeout);
@@ -164,6 +184,7 @@ void SlaveAgent::PublishedHandler(std::vector<zmq::message_t>& msg)
 
 void SlaveAgent::StepFailedHandler(std::vector<zmq::message_t>& msg)
 {
+    DSB_LOG_TRACE("STEP FAILED state: incoming message");
     EnforceMessageType(msg, dsbproto::execution::MSG_TERMINATE);
     // We never get here, because EnforceMessageType() always throws either
     // Shutdown or ProtocolViolationException.
@@ -174,7 +195,7 @@ void SlaveAgent::StepFailedHandler(std::vector<zmq::message_t>& msg)
 void SlaveAgent::HandleDescribe(std::vector<zmq::message_t>& msg)
 {
     dsbproto::execution::SlaveDescription sd;
-    *sd.mutable_type_description() = 
+    *sd.mutable_type_description() =
         dsb::protocol::ToProto(m_slaveInstance.TypeDescription());
     dsb::protocol::execution::CreateMessage(
         msg, dsbproto::execution::MSG_READY, sd);
@@ -221,7 +242,7 @@ void SlaveAgent::HandleSetVars(std::vector<zmq::message_t>& msg)
         throw dsb::error::ProtocolViolationException(
             "Wrong number of frames in SET_VARS message");
     }
-    std::clog << "Setting/connecting variables... " << std::flush;
+    DSB_LOG_DEBUG("Setting/connecting variables begins");
     dsbproto::execution::SetVarsData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
     for (const auto& varSetting : data.variable()) {
@@ -238,8 +259,8 @@ void SlaveAgent::HandleSetVars(std::vector<zmq::message_t>& msg)
                 varSetting.variable_id());
         }
     }
+    DSB_LOG_TRACE("Setting/connecting variables ends");
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
-    std::clog << "done" << std::endl;
 }
 
 
