@@ -78,7 +78,8 @@ public:
     \throws std::out_of_range
         If there is no variable with the given ID.
     */
-    fmi1_value_reference_t FMIValueReference(dsb::model::VariableID variable);
+    fmi1_value_reference_t FMIValueReference(dsb::model::VariableID variable)
+        const;
 
     /// Returns the underlying C API handle (for FMI Library)
     fmi1_import_t* FmilibHandle() const;
@@ -86,6 +87,7 @@ public:
 private:
     std::shared_ptr<dsb::fmi::Importer> m_importer;
     boost::filesystem::path m_dir;
+
     fmi1_import_t* m_handle;
     std::unique_ptr<dsb::model::SlaveTypeDescription> m_description;
     std::vector<fmi1_value_reference_t> m_valueReferences;
@@ -149,6 +151,7 @@ public:
 private:
     std::shared_ptr<dsb::fmi::FMU1> m_fmu;
     fmi1_import_t* m_handle;
+    std::string m_instanceName;
 
     bool m_initialized = false;
     dsb::model::TimePoint m_startTime = 0.0;

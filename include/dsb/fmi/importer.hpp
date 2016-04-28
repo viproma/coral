@@ -24,7 +24,6 @@ namespace dsb
 namespace fmi
 {
 
-class Logger;
 class FMU;
 
 
@@ -58,13 +57,9 @@ public:
     \param [in] cachePath
         The path to the directory which will hold the %FMU cache.  If it does
         not exist already, it will be created.
-    \param [in] logger
-        The logger which should be used.  If this is null, a standard logger is
-        acquired using dsb::fmi::StdStreamLogger().
     */
     static std::shared_ptr<Importer> Create(
-        const boost::filesystem::path& cachePath,
-        std::shared_ptr<Logger> logger = nullptr);
+        const boost::filesystem::path& cachePath);
 
     /**
     \brief  Creates a new %FMU importer that uses a temporary cache directory.
@@ -72,22 +67,13 @@ public:
     A new cache directory will be created in a location suitable for temporary
     files under the conventions of the operating system.  It will be completely
     removed again on destruction.
-
-    \param [in] logger
-        The logger which should be used.  If this is null, a standard logger is
-        acquired using dsb::fmi::StdStreamLogger().
     */
-    static std::shared_ptr<Importer> Create(
-        std::shared_ptr<Logger> logger = nullptr);
+    static std::shared_ptr<Importer> Create();
 
 private:
     // Private constructors, to force use of factory functions.
-    Importer(
-        const boost::filesystem::path& cachePath,
-        std::shared_ptr<Logger> logger);
-    Importer(
-        dsb::util::TempDir tempDir,
-        std::shared_ptr<Logger> logger);
+    Importer(const boost::filesystem::path& cachePath);
+    Importer(dsb::util::TempDir tempDir);
 
 public:
     /**
@@ -125,7 +111,6 @@ private:
 
     // Note: The order of these declarations is important!
     boost::optional<dsb::util::TempDir> m_tempCacheDir; // Only used when no cache dir is given
-    std::shared_ptr<Logger> m_logger;
     std::unique_ptr<jm_callbacks> m_callbacks;
     std::unique_ptr<fmi_import_context_t, void (*)(fmi_import_context_t*)> m_handle;
 

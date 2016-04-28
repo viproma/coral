@@ -12,7 +12,6 @@
 
 #include "dsb/execution/logging_slave.hpp"
 #include "dsb/execution/slave.hpp"
-#include "dsb/fmi/dsblogger.hpp"
 #include "dsb/fmi/fmu.hpp"
 #include "dsb/fmi/importer.hpp"
 #include "dsb/log.hpp"
@@ -73,9 +72,7 @@ try {
     const auto outputDir = (argc > 5) ? std::string(argv[5]) + dirSep : std::string();
 
     const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "dsb" / "cache";
-    auto fmuImporter = dsb::fmi::Importer::Create(
-        fmuCacheDir,
-        std::make_shared<dsb::fmi::DSBLogger>());
+    auto fmuImporter = dsb::fmi::Importer::Create(fmuCacheDir);
     auto fmu = fmuImporter->Import(fmuPath);
     dsb::log::Log(dsb::log::info, boost::format("Model name: %s")
         % fmu->Description().Name());

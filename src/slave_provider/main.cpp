@@ -15,7 +15,6 @@
 #include "dsb/comm/p2p.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/domain/slave_provider.hpp"
-#include "dsb/fmi/dsblogger.hpp"
 #include "dsb/fmi/fmu.hpp"
 #include "dsb/fmi/importer.hpp"
 #include "dsb/util.hpp"
@@ -147,9 +146,7 @@ int main(int argc, const char** argv)
 {
 try {
     const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "dsb" / "cache";
-    auto importer = dsb::fmi::Importer::Create(
-        fmuCacheDir,
-        std::make_shared<dsb::fmi::DSBLogger>());
+    auto importer = dsb::fmi::Importer::Create(fmuCacheDir);
 
     namespace po = boost::program_options;
     po::options_description options("Options");

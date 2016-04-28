@@ -12,8 +12,7 @@
 #include "fmilib.h"
 
 #include "dsb/fmi/fmu1.hpp"
-#include "dsb/fmi/logger.hpp"
-#include "dsb/fmi/streamlogger.hpp"
+#include "dsb/log.hpp"
 #include "dsb/util.hpp"
 #include "dsb/util/zip.hpp"
 
@@ -25,34 +24,59 @@ namespace fmi
 
 
 std::shared_ptr<Importer> Importer::Create(
-    const boost::filesystem::path& cachePath,
-    std::shared_ptr<Logger> logger)
+    const boost::filesystem::path& cachePath)
 {
-    return std::shared_ptr<Importer>(new Importer(cachePath, logger));
+    return std::shared_ptr<Importer>(new Importer(cachePath));
 }
 
 
-std::shared_ptr<Importer> Importer::Create(std::shared_ptr<Logger> logger)
+std::shared_ptr<Importer> Importer::Create()
 {
-    return std::shared_ptr<Importer>(new Importer(
-        dsb::util::TempDir(),
-        logger));
+    return std::shared_ptr<Importer>(new Importer(dsb::util::TempDir()));
 }
 
 
 namespace
 {
+    dsb::log::Level ConvertLogLevel(jm_log_level_enu_t jmLogLevel)
+    {
+        switch (jmLogLevel)
+        {
+        case jm_log_level_fatal:
+        case jm_log_level_error:
+            return dsb::log::error;
+        case jm_log_level_warning:
+            return dsb::log::warning;
+        case jm_log_level_info:
+            return dsb::log::info;
+        case jm_log_level_verbose:
+        case jm_log_level_debug:
+        case jm_log_level_nothing:
+        case jm_log_level_all:
+        default:
+            // The last two cases + default should never match, and if
+            // they do, we at least make sure a message is printed in
+            // debug mode.
+            return dsb::log::debug;
+        }
+    }
+
     void LoggerCallback(
         jm_callbacks* callbacks,
         jm_string module,
         jm_log_level_enu_t logLevel,
         jm_string message)
     {
-        reinterpret_cast<Logger*>(callbacks->context)
-            ->Log(module, logLevel, message);
+        const auto myLevel = ConvertLogLevel(logLevel);
+        // Errors are dealt with with exceptions
+        if (myLevel < dsb::log::error) {
+            dsb::log::Log(
+                myLevel,
+                boost::format("[FMI Library: %s] %s") % module % message);
+        }
     }
 
-    std::unique_ptr<jm_callbacks> MakeCallbacks(Logger* logger)
+    std::unique_ptr<jm_callbacks> MakeCallbacks()
     {
         auto c = std::make_unique<jm_callbacks>();
         std::memset(c.get(), 0, sizeof(jm_callbacks));
@@ -61,19 +85,16 @@ namespace
         c->realloc = std::realloc;
         c->free = std::free;
         c->logger = &LoggerCallback;
-        c->log_level = jm_log_level_warning;
-        c->context = logger;
+        c->log_level = jm_log_level_all;
+        c->context = nullptr;
         std::memset(c->errMessageBuffer, 0, JM_MAX_ERROR_MESSAGE_SIZE);
         return c;
     }
 }
 
 
-Importer::Importer(
-    const boost::filesystem::path& cachePath,
-    std::shared_ptr<Logger> logger)
-    : m_logger{!logger ? StdStreamLogger() : logger}
-    , m_callbacks{MakeCallbacks(m_logger.get())}
+Importer::Importer(const boost::filesystem::path& cachePath)
+    : m_callbacks{MakeCallbacks()}
     , m_handle{fmi_import_allocate_context(m_callbacks.get()), &fmi_import_free_context}
     , m_fmuDir{cachePath / "fmu"}
     , m_workDir{cachePath / "tmp"}
@@ -82,8 +103,8 @@ Importer::Importer(
 }
 
 
-Importer::Importer(dsb::util::TempDir tempDir, std::shared_ptr<Logger> logger)
-    : Importer{tempDir.Path(), logger}
+Importer::Importer(dsb::util::TempDir tempDir)
+    : Importer{tempDir.Path()}
 {
     m_tempCacheDir = std::move(tempDir);
 }

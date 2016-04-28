@@ -7,15 +7,19 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdarg>
 #include <cstdlib>
+#include <cstring>
 #include <mutex>
 #include <stdexcept>
+#include <unordered_map>
 
 #include "boost/numeric/conversion/cast.hpp"
 #include "fmilib.h"
 
 #include "dsb/fmi/glue.hpp"
 #include "dsb/fmi/importer.hpp"
+#include "dsb/log.hpp"
 #include "dsb/util.hpp"
 
 
@@ -23,15 +27,6 @@ namespace dsb
 {
 namespace fmi
 {
-
-
-namespace
-{
-    void StepFinishedPlaceholder(fmi1_component_t, fmi1_status_t)
-    {
-        assert (!"stepFinished was called, but synchronous FMUs are currently not supported");
-    }
-}
 
 
 #ifdef _WIN32
@@ -226,6 +221,7 @@ const boost::filesystem::path& FMU1::Directory() const
 
 
 fmi1_value_reference_t FMU1::FMIValueReference(dsb::model::VariableID variable)
+    const
 {
     return m_valueReferences.at(variable);
 }
@@ -241,10 +237,108 @@ fmi1_import_t* FMU1::FmilibHandle() const
 // SlaveInstance1
 // =============================================================================
 
-SlaveInstance1::SlaveInstance1(
-    std::shared_ptr<dsb::fmi::FMU1> fmu)
+namespace
+{
+    void StepFinishedPlaceholder(fmi1_component_t, fmi1_status_t)
+    {
+        DSB_LOG_DEBUG("FMU instance completed asynchronous step, "
+            "but this is not supported by DSB");
+    }
+
+    struct LogRecord
+    {
+        LogRecord() { }
+        LogRecord(fmi1_status_t s, const std::string& m) : status{s}, message(m) { }
+        fmi1_status_t status = fmi1_status_ok;
+        std::string message;
+    };
+    std::unordered_map<std::string, LogRecord> g_logRecords;
+    std::mutex g_logMutex;
+
+    void LogMessage(
+        fmi1_component_t c,
+        fmi1_string_t instanceName,
+        fmi1_status_t status,
+        fmi1_string_t category,
+        fmi1_string_t message,
+        ...)
+    {
+        std::va_list args;
+        va_start(args, message);
+        const auto msgLength = std::vsnprintf(nullptr, 0, message, args);
+        auto msgBuffer = std::vector<char>(msgLength+1);
+        std::vsnprintf(msgBuffer.data(), msgBuffer.size(), message, args);
+        assert(msgBuffer.back() == '\0');
+        va_end(args);
+
+        std::string statusName = "UNKNOWN";
+        dsb::log::Level logLevel = dsb::log::error;
+        switch (status) {
+            case fmi1_status_ok:
+                statusName = "OK";
+                logLevel = dsb::log::info;
+                break;
+            case fmi1_status_warning:
+                statusName = "WARNING";
+                logLevel = dsb::log::warning;
+                break;
+            case fmi1_status_discard:
+                // Don't know if this ever happens, but we should at least
+                // print a debug message if it does.
+                statusName = "DISCARD";
+                logLevel = dsb::log::debug;
+                break;
+            case fmi1_status_error:
+                statusName = "ERROR";
+                logLevel = dsb::log::error;
+                break;
+            case fmi1_status_fatal:
+                statusName = "FATAL";
+                logLevel = dsb::log::error;
+                break;
+            case fmi1_status_pending:
+                // Don't know if this ever happens, but we should at least
+                // print a debug message if it does.
+                statusName = "PENDING";
+                logLevel = dsb::log::debug;
+                break;
+        }
+
+        if (logLevel < dsb::log::error) {
+            // Errors are not logged; we handle them with exceptions instead.
+            dsb::log::Log(logLevel, msgBuffer.data());
+        }
+
+        g_logMutex.lock();
+        g_logRecords[instanceName] =
+            LogRecord{status, std::string(msgBuffer.data())};
+        g_logMutex.unlock();
+    }
+
+    LogRecord LastLogRecord(const std::string& instanceName)
+    {
+        std::lock_guard<std::mutex> lock(g_logMutex);
+        const auto it = g_logRecords.find(instanceName);
+        if (it == g_logRecords.end()) {
+            return LogRecord{};
+        } else {
+            // Note the use of c_str() here, to force the string to be copied.
+            // The C++ standard now disallows copy-on-write, but some compilers
+            // still use it, which could lead to problems in multithreaded
+            // programs.
+            return LogRecord{
+                it->second.status,
+                std::string(it->second.message.c_str())
+            };
+        }
+    }
+}
+
+
+SlaveInstance1::SlaveInstance1(std::shared_ptr<dsb::fmi::FMU1> fmu)
     : m_fmu{fmu}
     , m_handle{fmi1_import_parse_xml(fmu->Importer()->FmilibHandle(), fmu->Directory().string().c_str())}
+    , m_instanceName(dsb::util::RandomString(8, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
 {
     if (m_handle == nullptr) {
         throw std::runtime_error(fmu->Importer()->LastErrorMessage());
@@ -253,19 +347,20 @@ SlaveInstance1::SlaveInstance1(
     fmi1_callback_functions_t callbacks;
     callbacks.allocateMemory = std::calloc;
     callbacks.freeMemory     = std::free;
-    callbacks.logger         = fmi1_log_forwarding;
+    callbacks.logger         = LogMessage;
     callbacks.stepFinished   = StepFinishedPlaceholder;
 
     // WARNING: Using fmi1_log_forwarding above and 'true' below means that
     //          the library is no longer thread safe.
     if (fmi1_import_create_dllfmu(m_handle, callbacks, true) != jm_status_success) {
+        const auto msg = fmu->Importer()->LastErrorMessage();
         fmi1_import_free(m_handle);
-        throw std::runtime_error(fmu->Importer()->LastErrorMessage());
+        throw std::runtime_error(msg);
     }
 
     const auto importStatus = fmi1_import_instantiate_slave(
         m_handle,
-        "unnamed_instance",
+        m_instanceName.c_str(),
         nullptr,
         nullptr,
         0,
@@ -274,7 +369,7 @@ SlaveInstance1::SlaveInstance1(
     if (importStatus != jm_status_success) {
         fmi1_import_destroy_dllfmu(m_handle);
         fmi1_import_free(m_handle);
-        throw std::runtime_error(fmu->Importer()->LastErrorMessage());
+        throw std::runtime_error(LastLogRecord(m_instanceName).message);
     }
 }
 
@@ -313,13 +408,14 @@ namespace
     std::runtime_error MakeGetOrSetException(
         const std::string& getOrSet,
         dsb::model::VariableID varID,
-        const SlaveInstance1& instance)
+        const FMU1& fmu,
+        const std::string& instanceName)
     {
         return std::runtime_error(
             "Failed to " + getOrSet + "value of variable with ID "
             + std::to_string(varID) + " and FMI value reference "
-            + std::to_string(instance.FMU1()->FMIValueReference(varID))
-            + " (" + instance.FMU1()->Importer()->LastErrorMessage() + ")");
+            + std::to_string(fmu.FMIValueReference(varID))
+            + " (" + LastLogRecord(instanceName).message + ")");
     }
 }
 
@@ -330,7 +426,7 @@ double SlaveInstance1::GetRealVariable(dsb::model::VariableID varID) const
     fmi1_real_t value = 0.0;
     const auto status = fmi1_import_get_real(m_handle, &valRef, 1, &value);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
-        throw MakeGetOrSetException("get", varID, *this);
+        throw MakeGetOrSetException("get", varID, *FMU1(), m_instanceName);
     }
     return value;
 }
@@ -342,7 +438,7 @@ int SlaveInstance1::GetIntegerVariable(dsb::model::VariableID varID) const
     fmi1_integer_t value = 0;
     const auto status = fmi1_import_get_integer(m_handle, &valRef, 1, &value);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
-        throw MakeGetOrSetException("get", varID, *this);
+        throw MakeGetOrSetException("get", varID, *FMU1(), m_instanceName);
     }
     return value;
 }
@@ -354,7 +450,7 @@ bool SlaveInstance1::GetBooleanVariable(dsb::model::VariableID varID) const
     fmi1_boolean_t value = 0;
     const auto status = fmi1_import_get_boolean(m_handle, &valRef, 1, &value);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
-        throw MakeGetOrSetException("get", varID, *this);
+        throw MakeGetOrSetException("get", varID, *FMU1(), m_instanceName);
     }
     return value != 0;
 }
@@ -366,7 +462,7 @@ std::string SlaveInstance1::GetStringVariable(dsb::model::VariableID varID) cons
     fmi1_string_t value = nullptr;
     const auto status = fmi1_import_get_string(m_handle, &valRef, 1, &value);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
-        throw MakeGetOrSetException("get", varID, *this);
+        throw MakeGetOrSetException("get", varID, *FMU1(), m_instanceName);
     }
     return value ? std::string(value) : std::string();
 }
@@ -377,7 +473,7 @@ void SlaveInstance1::SetRealVariable(dsb::model::VariableID varID, double value)
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_real(m_handle, &valRef, 1, &value);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
-        throw MakeGetOrSetException("set", varID, *this);
+        throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
 }
 
@@ -387,7 +483,7 @@ void SlaveInstance1::SetIntegerVariable(dsb::model::VariableID varID, int value)
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_integer(m_handle, &valRef, 1, &value);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
-        throw MakeGetOrSetException("set", varID, *this);
+        throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
 }
 
@@ -398,7 +494,7 @@ void SlaveInstance1::SetBooleanVariable(dsb::model::VariableID varID, bool value
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_boolean(m_handle, &valRef, 1, &fmiValue);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
-        throw MakeGetOrSetException("set", varID, *this);
+        throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
 }
 
@@ -409,7 +505,7 @@ void SlaveInstance1::SetStringVariable(dsb::model::VariableID varID, const std::
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_string(m_handle, &valRef, 1, &fmiValue);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
-        throw MakeGetOrSetException("set", varID, *this);
+        throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
 }
 
@@ -427,7 +523,7 @@ bool SlaveInstance1::DoStep(
         if (status != fmi1_status_ok && status != fmi1_status_warning) {
             throw std::runtime_error(
                 "Failed to initialize slave ("
-                + m_fmu->Importer()->LastErrorMessage() + ")");
+                + LastLogRecord(m_instanceName).message + ")");
         }
         m_initialized = true;
     }
