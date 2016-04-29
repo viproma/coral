@@ -106,7 +106,7 @@ Importer::Importer(const boost::filesystem::path& cachePath)
 Importer::Importer(dsb::util::TempDir tempDir)
     : Importer{tempDir.Path()}
 {
-    m_tempCacheDir = std::move(tempDir);
+    m_tempCacheDir = std::make_unique<dsb::util::TempDir>(std::move(tempDir));
 }
 
 

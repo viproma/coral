@@ -6,7 +6,6 @@
 #include <string>
 
 #include "boost/filesystem/path.hpp"
-#include "boost/optional.hpp"
 
 #include "dsb/config.h"
 #include "dsb/util.hpp"
@@ -110,7 +109,7 @@ private:
     void PrunePtrCaches();
 
     // Note: The order of these declarations is important!
-    boost::optional<dsb::util::TempDir> m_tempCacheDir; // Only used when no cache dir is given
+    std::unique_ptr<dsb::util::TempDir> m_tempCacheDir; // Only used when no cache dir is given
     std::unique_ptr<jm_callbacks> m_callbacks;
     std::unique_ptr<fmi_import_context_t, void (*)(fmi_import_context_t*)> m_handle;
 

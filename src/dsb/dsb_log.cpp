@@ -14,7 +14,7 @@ namespace log
 namespace
 {
     // Globals
-    std::atomic<Level> g_logLevel = error;
+    std::atomic<Level> g_logLevel{error};
     std::mutex g_clogMutex;
 
     // Returns a space-padded, human-readable string for each log level.

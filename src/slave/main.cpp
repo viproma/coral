@@ -1,4 +1,8 @@
-#include <process.h>
+#ifdef _WIN32
+#   include <process.h>
+#else
+#   include <unistd.h>
+#endif
 
 #include <cstring>
 #include <fstream>

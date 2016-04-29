@@ -266,10 +266,12 @@ namespace
         std::va_list args;
         va_start(args, message);
         const auto msgLength = std::vsnprintf(nullptr, 0, message, args);
-        auto msgBuffer = std::vector<char>(msgLength+1);
-        std::vsnprintf(msgBuffer.data(), msgBuffer.size(), message, args);
-        assert(msgBuffer.back() == '\0');
         va_end(args);
+        auto msgBuffer = std::vector<char>(msgLength+1);
+        va_start(args, message);
+        std::vsnprintf(msgBuffer.data(), msgBuffer.size(), message, args);
+        va_end(args);
+        assert(msgBuffer.back() == '\0');
 
         std::string statusName = "UNKNOWN";
         dsb::log::Level logLevel = dsb::log::error;

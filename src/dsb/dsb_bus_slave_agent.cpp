@@ -80,8 +80,10 @@ SlaveAgent::SlaveAgent(
                 r.Stop();
                 return;
             }
+#ifdef DSB_LOG_TRACE_ENABLED
             const auto replyType = static_cast<dsbproto::execution::MessageType>(
                 dsb::protocol::execution::ParseMessageType(msg.front()));
+#endif
             m_control.Send(msg);
             DSB_LOG_TRACE(boost::format("Sent %s")
                 % dsbproto::execution::MessageType_Name(replyType));
