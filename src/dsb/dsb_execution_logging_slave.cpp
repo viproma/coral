@@ -1,8 +1,12 @@
 #include "dsb/execution/logging_slave.hpp"
 
 #include <cassert>
+#include <cerrno>
 #include <ios>
+#include <stdexcept>
 
+#include "dsb/error.hpp"
+#include "dsb/log.hpp"
 #include "dsb/util.hpp"
 
 
@@ -19,7 +23,6 @@ LoggingSlaveInstance::LoggingSlaveInstance(
     , m_outputFilePrefix(outputFilePrefix)
 {
     if (m_outputFilePrefix.empty()) m_outputFilePrefix = "./";
-    m_outputStream.exceptions(std::ios_base::badbit | std::ios_base::failbit);
 }
 
 
@@ -46,13 +49,21 @@ bool LoggingSlaveInstance::Setup(
         outputFileName += slaveName;
     }
     outputFileName += ".csv";
-    m_outputStream.open(
+
+    DSB_LOG_TRACE("LoggingSlaveInstance: Opening " + outputFileName);
+    m_outputStream = std::ofstream(
         outputFileName,
         std::ios_base::out | std::ios_base::trunc
 #ifdef _MSC_VER
         , _SH_DENYWR // Don't let other processes/threads write to the file
 #endif
         );
+    if (!m_outputStream.is_open()) {
+        const int e = errno;
+        throw std::runtime_error(dsb::error::ErrnoMessage(
+            "Error opening file \"" + outputFileName + "\" for writing",
+            e));
+    }
 
     m_outputStream << "Time";
     for (const auto& var : TypeDescription().Variables()) {

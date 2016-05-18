@@ -211,10 +211,21 @@ namespace
         assert(!buffer.empty());
 
         ZipFile srcFile(archive, index, 0);
-        std::ofstream tgtFile;
-        tgtFile.exceptions(std::ios_base::badbit | std::ios_base::failbit);
-        tgtFile.open(targetPath.string(), std::ios_base::binary | std::ios_base::trunc);
+        std::ofstream tgtFile(
+            targetPath.string(),
+            std::ios_base::binary | std::ios_base::trunc);
+        if (!tgtFile.is_open()) {
+            const int e = errno;
+            throw std::runtime_error(dsb::error::ErrnoMessage(
+                "Error opening file \"" + targetPath.string() + "\" for writing",
+                e));
+        }
         Copy(srcFile, tgtFile, buffer);
+        if (tgtFile.fail()) {
+            throw std::runtime_error(
+                "An I/O error occurred during extraction of \""
+                + targetPath.string() + '"');
+        }
     }
 }
 

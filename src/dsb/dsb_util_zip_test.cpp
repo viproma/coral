@@ -70,7 +70,7 @@ TEST(dsb_util, ZipArchive)
         ASSERT_TRUE(fs::is_regular_file(txtExtracted));
         ASSERT_EQ(binSize, fs::file_size(binExtracted));
         ASSERT_EQ(txtSize, fs::file_size(txtExtracted));
-        ASSERT_THROW(archive.ExtractFileTo(binIndex, tempDir.Path()/"nonexistent"), std::ios_base::failure);
+        ASSERT_THROW(archive.ExtractFileTo(binIndex, tempDir.Path()/"nonexistent"), std::runtime_error);
     }
 
     // Extract individual entries
@@ -83,7 +83,7 @@ TEST(dsb_util, ZipArchive)
         ASSERT_EQ(binSize, fs::file_size(binExtracted));
         ASSERT_EQ(txtSize, fs::file_size(txtExtracted));
         ASSERT_THROW(archive.ExtractFileTo(invIndex, tempDir.Path()), du::ZipException);
-        ASSERT_THROW(archive.ExtractFileTo(binIndex, tempDir.Path()/"nonexistent"), std::ios_base::failure);
+        ASSERT_THROW(archive.ExtractFileTo(binIndex, tempDir.Path()/"nonexistent"), std::runtime_error);
     }
 
     archive.Discard();
