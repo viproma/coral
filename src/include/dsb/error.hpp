@@ -7,6 +7,7 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <system_error>
 #include "dsb/config.h"
 
@@ -185,6 +186,20 @@ namespace detail
         throw ExceptionT(s.str());
     }
 }
+
+
+/**
+\brief  Constructs an error message by combining a user-defined message and
+        a standard system error message.
+
+The system error message is obtained by calling `std::strerror(errnoValue)`.
+If `errnoValue` is zero, the function only returns `msg`.  Otherwise, if
+`msg` is empty, only the system message is returned.  Otherwise, the format
+of the returned message is:
+
+    user message (system message)
+*/
+std::string ErrnoMessage(const std::string& msg, int errnoValue) DSB_NOEXCEPT;
 
 
 /**

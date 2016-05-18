@@ -1,13 +1,21 @@
 #include "dsb/error.hpp"
 
 #include <cassert>
-#include <string>
+#include <cstring>
 
 
 namespace dsb
 {
 namespace error
 {
+
+std::string ErrnoMessage(const std::string& msg, int errnoValue) DSB_NOEXCEPT
+{
+    if (errnoValue == 0) return msg;
+    else if (msg.empty()) return std::strerror(errnoValue);
+    else return msg + " (" + std::strerror(errnoValue) + ')';
+}
+
 
 namespace
 {
