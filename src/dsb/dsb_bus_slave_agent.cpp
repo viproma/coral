@@ -244,7 +244,7 @@ void SlaveAgent::HandleSetVars(std::vector<zmq::message_t>& msg)
         throw dsb::error::ProtocolViolationException(
             "Wrong number of frames in SET_VARS message");
     }
-    DSB_LOG_DEBUG("Setting/connecting variables begins");
+    DSB_LOG_DEBUG("Setting/connecting variables");
     dsbproto::execution::SetVarsData data;
     dsb::protobuf::ParseFromFrame(msg[1], data);
     for (const auto& varSetting : data.variable()) {
@@ -261,7 +261,7 @@ void SlaveAgent::HandleSetVars(std::vector<zmq::message_t>& msg)
                 varSetting.variable_id());
         }
     }
-    DSB_LOG_TRACE("Setting/connecting variables ends");
+    DSB_LOG_TRACE("Done setting/connecting variables");
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
 }
 
