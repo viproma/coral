@@ -4,13 +4,16 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <sstream>
 
+#include "boost/algorithm/string/trim.hpp"
 #include "boost/filesystem.hpp"
 #include "boost/property_tree/ptree.hpp"
 #include "boost/property_tree/xml_parser.hpp"
 
 #include "fmilib.h"
 
+#include "dsb/error.hpp"
 #include "dsb/fmi/fmu1.hpp"
 #include "dsb/log.hpp"
 #include "dsb/util.hpp"
@@ -128,9 +131,10 @@ namespace
 
         MinimalModelDescription md;
 
-        const auto fmiVersion = xml.get(
+        auto fmiVersion = xml.get(
             "fmiModelDescription.<xmlattr>.fmiVersion",
             std::string());
+        boost::trim(fmiVersion);
         if (fmiVersion.empty()) {
             throw std::runtime_error(
                 "Invalid modelDescription.xml; fmiVersion attribute missing or empty");
@@ -147,12 +151,42 @@ namespace
             md.guid = xml.get(
                 "fmiModelDescription.<xmlattr>.guid",
                 std::string());
+            boost::trim(md.guid);
             if (md.guid.empty()) {
                 throw std::runtime_error(
                     "Invalid modelDescription.xml; guid attribute missing or empty");
             }
         }
         return md;
+    }
+
+    // Replaces all characters which are not printable ASCII characters or
+    // not valid for use in a path with their percent-encoded equivalents.
+    // References:
+    //     https://en.wikipedia.org/wiki/Percent-encoding
+    //     https://msdn.microsoft.com/en-us/library/aa365247.aspx
+    std::string SanitisePath(const std::string& str)
+    {
+        DSB_INPUT_CHECK(!str.empty());
+        std::ostringstream sanitised;
+        sanitised.fill('0');
+        sanitised << std::hex;
+        for (const char c : str) {
+            if (c < 0x20 || c > 0x7E
+#ifdef _WIN32
+                || c == '<'  || c == '>' || c == ':' || c == '"' || c == '/'
+                || c == '\\' || c == '|' || c == '?' || c == '*'
+#endif
+            ) {
+                sanitised
+                    << '%'
+                    << std::setw(2)
+                    << static_cast<int>(static_cast<unsigned char>(c));
+            } else {
+                sanitised << c;
+            }
+        }
+        return sanitised.str();
     }
 }
 
@@ -186,7 +220,7 @@ std::shared_ptr<FMU> Importer::Import(const boost::filesystem::path& fmuPath)
     auto git = m_guidCache.find(minModelDesc.guid);
     if (git != end(m_guidCache)) return git->second.lock();
 
-    const auto fmuUnpackDir = m_fmuDir / minModelDesc.guid;
+    const auto fmuUnpackDir = m_fmuDir / SanitisePath(minModelDesc.guid);
     if (!boost::filesystem::exists(fmuUnpackDir) ||
         !boost::filesystem::exists(fmuUnpackDir / "modelDescription.xml") ||
         boost::filesystem::last_write_time(fmuPath) > boost::filesystem::last_write_time(fmuUnpackDir / "modelDescription.xml"))
