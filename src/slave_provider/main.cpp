@@ -17,6 +17,7 @@
 #include "dsb/domain/slave_provider.hpp"
 #include "dsb/fmi/fmu.hpp"
 #include "dsb/fmi/importer.hpp"
+#include "dsb/log.hpp"
 #include "dsb/util.hpp"
 #include "dsb/util/console.hpp"
 
@@ -145,6 +146,12 @@ void ScanDirectoryForFMUs(
 int main(int argc, const char** argv)
 {
 try {
+#ifdef DSB_LOG_TRACE_ENABLED
+    dsb::log::SetLevel(dsb::log::trace);
+#elif defined(DSB_LOG_DEBUG_ENABLED)
+    dsb::log::SetLevel(dsb::log::debug);
+#endif
+
     const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "dsb" / "cache";
     auto importer = dsb::fmi::Importer::Create(fmuCacheDir);
 
