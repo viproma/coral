@@ -51,7 +51,7 @@ bool LoggingSlaveInstance::Setup(
     outputFileName += ".csv";
 
     DSB_LOG_TRACE("LoggingSlaveInstance: Opening " + outputFileName);
-    m_outputStream = std::ofstream(
+    m_outputStream.open(
         outputFileName,
         std::ios_base::out | std::ios_base::trunc
 #ifdef _MSC_VER
