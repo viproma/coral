@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "dsb/config.h"
 #include "boost/filesystem/path.hpp"
 #include "boost/noncopyable.hpp"
 
@@ -166,16 +167,54 @@ ScopeGuard<Action> OnScopeExit(Action action) { return ScopeGuard<Action>(action
 
 
 /**
-\brief  An RAII object that creates a unique directory on construction,
+\brief  An RAII object that creates a unique directory on construction
         and recursively deletes it again on destruction.
 */
 class TempDir
 {
 public:
-    TempDir();
-    ~TempDir();
+    /**
+    \brief  Creates a new temporary directory.
+
+    The name of the new directory will be randomly generated, and there are
+    three options of where it will be created, depending on the value of
+    `parent`.  In the following, `temp` refers to a directory suitable for
+    temporary files under the conventions of the operating system (e.g. `/tmp`
+    under UNIX-like systems), and `name` refers to the randomly generated
+    name mentioned above.
+
+      - If `parent` is empty: `temp/name`
+      - If `parent` is relative: `temp/parent/name`
+      - If `parent` is absolute: `parent/name`
+    */
+    explicit TempDir(
+        const boost::filesystem::path& parent = boost::filesystem::path());
+
+    TempDir(const TempDir&) = delete;
+    TempDir& operator=(const TempDir&) = delete;
+
+    /**
+    \brief  Move constructor.
+
+    Ownership of the directory is transferred from `other` to `this`.
+    Afterwards, `other` no longer refers to any directory, meaning that
+    `other.Path()` will return an empty path, and its destructor will not
+    perform any filesystem operations.
+    */
+    TempDir(TempDir&& other) DSB_NOEXCEPT;
+
+    /// Move assignment operator. See TempDir(TempDir&&) for semantics.
+    TempDir& operator=(TempDir&&) DSB_NOEXCEPT;
+
+    /// Destructor.  Recursively deletes the directory.
+    ~TempDir() DSB_NOEXCEPT;
+
+    /// Returns the path to the directory.
     const boost::filesystem::path& Path() const;
+
 private:
+    void DeleteNoexcept() DSB_NOEXCEPT;
+
     boost::filesystem::path m_path;
 };
 

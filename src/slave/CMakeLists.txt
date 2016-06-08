@@ -1,4 +1,5 @@
 find_package (CPPZMQ REQUIRED)
+find_package (LIBZIP REQUIRED)
 find_package (FMILIB REQUIRED)
 
 set (_target "slave")

@@ -1,15 +1,22 @@
-#include <cstring>
-#include <fstream>
-#include <iostream>
+#ifdef _WIN32
+#   include <process.h>
+#else
+#   include <unistd.h>
+#endif
+
 #include <memory>
 #include <stdexcept>
 
-#include "boost/filesystem/path.hpp"
+#include "boost/filesystem.hpp"
 #include "boost/lexical_cast.hpp"
+
 #include "zmq.hpp"
 
+#include "dsb/execution/logging_slave.hpp"
 #include "dsb/execution/slave.hpp"
-#include "dsb/fmi.hpp"
+#include "dsb/fmi/fmu.hpp"
+#include "dsb/fmi/importer.hpp"
+#include "dsb/log.hpp"
 
 
 /*
@@ -33,7 +40,12 @@ If all goes well, it will instead send a 2-frame message which contains
 */
 int main(int argc, const char** argv)
 {
-//    std::cin.ignore();
+#ifdef DSB_LOG_TRACE_ENABLED
+    dsb::log::SetLevel(dsb::log::trace);
+#elif defined(DSB_LOG_DEBUG_ENABLED)
+    dsb::log::SetLevel(dsb::log::debug);
+#endif
+
     // We use this socket to report back to the provider that started the slave.
     zmq::context_t context;
     std::unique_ptr<zmq::socket_t> feedbackSocket;
@@ -48,6 +60,12 @@ try {
     const auto bindpoint = std::string(argv[3]);
     const auto commTimeout = std::chrono::seconds(std::atoi(argv[4]));
 
+    DSB_LOG_DEBUG(boost::format("PID: %d") % getpid());
+    dsb::log::Log(dsb::log::info, boost::format("FMU: %s") % fmuPath);
+    DSB_LOG_TRACE(boost::format("Endpoint: %s") % bindpoint);
+    DSB_LOG_TRACE(boost::format("Communication silence timeout: %d s")
+        % commTimeout.count());
+
 #ifdef _WIN32
     const char dirSep = '\\';
 #else
@@ -55,29 +73,43 @@ try {
 #endif
     const auto outputDir = (argc > 5) ? std::string(argv[5]) + dirSep : std::string();
 
-    std::shared_ptr<dsb::execution::ISlaveInstance> fmiSlave =
-        dsb::fmi::MakeSlaveInstance(fmuPath, outputDir.empty() ? nullptr : &outputDir);
-    auto slaveRunner = dsb::execution::SlaveRunner(fmiSlave, bindpoint, commTimeout);
+    const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "dsb" / "cache";
+    auto fmuImporter = dsb::fmi::Importer::Create(fmuCacheDir);
+    auto fmu = fmuImporter->Import(fmuPath);
+    dsb::log::Log(dsb::log::info, boost::format("Model name: %s")
+        % fmu->Description().Name());
+
+    auto fmiSlave = fmu->InstantiateSlave();
+    std::shared_ptr<dsb::execution::ISlaveInstance> slave;
+    if (outputDir.empty()) {
+        slave = fmiSlave;
+    } else {
+        slave = std::make_shared<dsb::execution::LoggingSlaveInstance>(
+            fmiSlave,
+            outputDir);
+    }
+
+    auto slaveRunner = dsb::execution::SlaveRunner(slave, bindpoint, commTimeout);
     auto boundpoint = slaveRunner.BoundEndpoint();
     feedbackSocket->send("OK", 2, ZMQ_SNDMORE);
     feedbackSocket->send(boundpoint.data(), boundpoint.size());
     slaveRunner.Run();
-    std::cout << "Slave shut down normally" << std::endl;
+    DSB_LOG_DEBUG("Normal shutdown");
 
 } catch (const std::runtime_error& e) {
     if (feedbackSocket) {
         feedbackSocket->send("ERROR", 5, ZMQ_SNDMORE);
         feedbackSocket->send(e.what(), std::strlen(e.what()));
     }
-    std::cerr << "Error: " << e.what() << std::endl;
+    dsb::log::Log(dsb::log::error, e.what());
     return 1;
 } catch (const std::exception& e) {
-    auto msg = std::string("Internal error (") + e.what() + ')';
+    const auto msg = std::string("Internal error (") + e.what() + ')';
     if (feedbackSocket) {
         feedbackSocket->send("ERROR", 5, ZMQ_SNDMORE);
         feedbackSocket->send(msg.data(), msg.size());
     }
-    std::cerr << msg << std::endl;
+    dsb::log::Log(dsb::log::error, msg);
     return 2;
 }
 return 0;

@@ -430,7 +430,7 @@ void SteppingExecutionState::StateEntered(ExecutionManagerPrivate& self)
             assert(keepMeAlive.get() == this);
             m_onComplete(std::error_code());
         }
-    });           
+    });
 }
 
 

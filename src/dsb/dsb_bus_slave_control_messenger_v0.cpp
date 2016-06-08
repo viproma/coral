@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "dsb/error.hpp"
+#include "dsb/log.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/execution.hpp"
 #include "dsb/protocol/glue.hpp"
@@ -73,6 +74,8 @@ SlaveControlMessengerV0::SlaveControlMessengerV0(
       m_onComplete(),
       m_replyTimeoutTimerId(NO_TIMER_ACTIVE)
 {
+    DSB_LOG_TRACE(boost::format("SlaveControlMessengerV0 %x: connected to \"%s\" (ID = %d)")
+        % this % slaveName % slaveID);
     reactor.AddSocket(m_socket.Socket(), [=](dsb::comm::Reactor& r, zmq::socket_t& s) {
         assert (&s == &m_socket.Socket());
         OnReply();
@@ -205,6 +208,9 @@ void SlaveControlMessengerV0::Terminate()
     DSB_PRECONDITION_CHECK(m_state != SLAVE_NOT_CONNECTED);
     CheckInvariant();
 
+    DSB_LOG_TRACE(
+        boost::format("SlaveControlMessengerV0 %x: Sending MSG_TERMINATE")
+        % this);
     std::vector<zmq::message_t> msg;
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_TERMINATE);
     m_socket.Send(msg, dsb::comm::SEND_OUT_OF_ORDER);
@@ -213,6 +219,7 @@ void SlaveControlMessengerV0::Terminate()
     char temp;
     m_socket.Socket().recv(&temp, 1, ZMQ_DONTWAIT);
     // ---
+    DSB_LOG_TRACE(boost::format("SlaveControlMessengerV0 %x: Send complete") % this);
     Close();
 }
 
@@ -263,9 +270,12 @@ void SlaveControlMessengerV0::SendCommand(
 {
     std::vector<zmq::message_t> msg;
     const auto msgType = static_cast<dsbproto::execution::MessageType>(command);
+    DSB_LOG_TRACE(boost::format("SlaveControlMessengerV0 %x: Sending %s")
+        % this % dsbproto::execution::MessageType_Name(msgType));
     if (data) dsb::protocol::execution::CreateMessage(msg, msgType, *data);
     else      dsb::protocol::execution::CreateMessage(msg, msgType);
     m_socket.Send(msg);
+    DSB_LOG_TRACE(boost::format("SlaveControlMessengerV0 %x: Send complete") % this);
     PostSendCommand(command, timeout, std::move(onComplete));
 }
 
@@ -329,6 +339,11 @@ void SlaveControlMessengerV0::OnReply()
     // Delegate different replies to different functions.
     std::vector<zmq::message_t> msg;
     m_socket.Receive(msg);
+    DSB_LOG_TRACE(boost::format("SlaveControlMessengerV0 %x: Received %s")
+        % this
+        % dsbproto::execution::MessageType_Name(
+            static_cast<dsbproto::execution::MessageType>(
+                dsb::protocol::execution::ParseMessageType(msg.front()))));
     switch (currentCommand) {
         case dsbproto::execution::MSG_SETUP:
             SetupReplyReceived(
@@ -426,7 +441,7 @@ void SlaveControlMessengerV0::StepReplyReceived(
         m_state = SLAVE_STEP_OK;
         onComplete(std::error_code());
     } else if (msgType == dsbproto::execution::MSG_STEP_FAILED) {
-        Reset();
+        m_state = SLAVE_STEP_FAILED;
         onComplete(dsb::error::sim_error::cannot_perform_timestep);
     } else {
         HandleErrorReply(msgType, std::move(onComplete));
@@ -466,7 +481,7 @@ void SlaveControlMessengerV0::HandleErrorReply(int reply, AnyHandler onComplete)
         : make_error_code(std::errc::bad_message);
     boost::apply_visitor(CallWithError(ec), onComplete);
 }
-        
+
 
 // This function does absolutely nothing when compiled in release mode, and
 // it is expected that the compiler will simply optimise it away entirely.
@@ -482,6 +497,7 @@ void SlaveControlMessengerV0::CheckInvariant() const
         case SLAVE_CONNECTED:
         case SLAVE_READY:
         case SLAVE_STEP_OK:
+        case SLAVE_STEP_FAILED:
             assert(m_attachedToReactor);
             assert(m_currentCommand == NO_COMMAND_ACTIVE);
             assert(boost::apply_visitor(IsEmpty(), m_onComplete));

@@ -18,6 +18,12 @@ set (versionPatch "0")
 option (DSB_BUILD_PRIVATE_API_DOCS
         "Whether to generate API documentation for the non-public API"
         OFF)
+option (DSB_ENABLE_DEBUG_LOGGING
+        "Whether to log messages of severity 'debug' also in release mode. (This is always enabled in debug mode.)"
+        OFF)
+option (DSB_ENABLE_TRACE_LOGGING
+        "Whether to log messages of severity 'trace' in both debug and release mode. (Implies DSB_ENABLE_DEBUG_LOGGING.)"
+        OFF)
 option (FMILIB_USE_SHARED_LIB
         "Whether to link against the shared library version of FMI Library"
         ON)

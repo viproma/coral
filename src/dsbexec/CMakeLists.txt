@@ -7,6 +7,7 @@ set (_sources
 )
 
 find_package (CPPZMQ REQUIRED)
+find_package (LIBZIP REQUIRED)
 
 set (_target "dsbexec")
 add_executable (${_target} ${_headers} ${_sources})

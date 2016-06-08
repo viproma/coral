@@ -8,7 +8,6 @@
 #include <chrono>
 #include <memory>
 #include <stdexcept>
-#include "boost/noncopyable.hpp"
 #include "dsb/config.h"
 #include "dsb/model.hpp"
 
@@ -25,7 +24,7 @@ namespace execution
 
 
 /// An interface for classes that represent slave instances.
-class ISlaveInstance : boost::noncopyable
+class ISlaveInstance
 {
 public:
     /**
@@ -131,7 +130,7 @@ public:
         dsb::model::TimePoint currentT,
         dsb::model::TimeDuration deltaT) = 0;
 
-    // Virtual destructor to allow deletion through base class reference.
+    // Because it's an interface:
     virtual ~ISlaveInstance() { }
 };
 

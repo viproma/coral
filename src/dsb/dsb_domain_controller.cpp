@@ -8,7 +8,6 @@
 #include <cassert>
 #include <chrono>
 #include <cstdint>
-#include <iostream> // TODO: For debugging, remove later.
 #include <iterator>
 #include <map>
 #include <vector>
@@ -23,11 +22,11 @@
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/reactor.hpp"
 #include "dsb/comm/util.hpp"
-
 #include "dsb/error.hpp"
 #define DSB_USE_OLD_DOMAIN_INPROC_RPC
 #include "dsb/inproc_rpc.hpp"
 #undef DSB_USE_OLD_DOMAIN_INPROC_RPC
+#include "dsb/log.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/domain.hpp"
 #include "dsb/protocol/glue.hpp"
@@ -41,7 +40,7 @@ namespace dp = dsb::protocol::domain;
 
 namespace
 {
-    const auto SLAVEPROVIDER_TIMEOUT = std::chrono::seconds(10);
+    const auto SLAVEPROVIDER_TIMEOUT = std::chrono::seconds(10000);
 
 
     void HandleGetSlaveTypes(
@@ -333,8 +332,9 @@ namespace
         for (;;) {
             try { reactor.Run(); break; }
             catch (const dsb::error::ProtocolViolationException& e) {
-                //TODO: Proper error reporting
-                std::cerr << "Warning: Protocol violation: " << e.what() << std::endl;
+                dsb::log::Log(dsb::log::error,
+                    boost::format("Controller backend thread: Protocol violation: %s")
+                    % e.what());
             }
         }
     }
