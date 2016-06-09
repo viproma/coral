@@ -13,7 +13,7 @@ be a valid C header.  C++-specific code should therefore be placed in
 
 // Version number
 #define DSB_VERSION_MAJOR 0
-#define DSB_VERSION_MINOR 4
+#define DSB_VERSION_MINOR 5
 #define DSB_VERSION_PATCH 0
 
 #define DSB_VERSION_STRINGIFY(a, b, c) #a "." #b "." #c
