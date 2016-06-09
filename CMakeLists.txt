@@ -11,9 +11,6 @@ cmake_minimum_required (VERSION 3.0.0)
 #
 project ("dsb")
 set (projectSummary "Distributed Simulation Bus")
-set (versionMajor "0")
-set (versionMinor "4")
-set (versionPatch "0")
 
 option (DSB_BUILD_PRIVATE_API_DOCS
         "Whether to generate API documentation for the non-public API"
@@ -106,6 +103,15 @@ endif()
 # ==============================================================================
 # Other initialisation
 # ==============================================================================
+
+# Read version numbers from config.h
+file (READ "${publicHeaderDir}/dsb/config.h" configDotH)
+string (REGEX MATCH "#define +DSB_VERSION_MAJOR +([0-9]+)" dummy "${configDotH}")
+set (versionMajor "${CMAKE_MATCH_1}")
+string (REGEX MATCH "#define +DSB_VERSION_MINOR +([0-9]+)" dummy "${configDotH}")
+set (versionMinor "${CMAKE_MATCH_1}")
+string (REGEX MATCH "#define +DSB_VERSION_PATCH +([0-9]+)" dummy "${configDotH}")
+set (versionPatch "${CMAKE_MATCH_1}")
 
 # Get rid of a CMake warning wrt. INTERFACE_LINK_LIBRARIES target property.
 # Note: This has to be done globally due to some issues with policy scope and
