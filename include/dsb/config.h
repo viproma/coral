@@ -11,6 +11,16 @@ be a valid C header.  C++-specific code should therefore be placed in
 #ifndef DSB_CONFIG_H
 #define DSB_CONFIG_H
 
+// Version number
+#define DSB_VERSION_MAJOR 0
+#define DSB_VERSION_MINOR 5
+#define DSB_VERSION_PATCH 0
+
+#define DSB_VERSION_STRINGIFY(a, b, c) #a "." #b "." #c
+#define DSB_VERSION_STRINGIFY_EXPAND(a, b, c) DSB_VERSION_STRINGIFY(a, b, c)
+#define DSB_VERSION_STRING DSB_VERSION_STRINGIFY_EXPAND( \
+    DSB_VERSION_MAJOR, DSB_VERSION_MINOR, DSB_VERSION_PATCH)
+
 // Unified GCC version macro
 #ifdef __GNUC__
 #   ifdef __GNUC_PATCHLEVEL__

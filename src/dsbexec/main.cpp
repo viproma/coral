@@ -477,7 +477,7 @@ int main(int argc, const char** argv)
 
     if (argc < 2) {
         std::cerr <<
-            "Master demonstrator.\n"
+            "Execution master (DSB v" DSB_VERSION_STRING ")\n\n"
             "This program will connect to a domain and obtain information about\n"
             "available slave types, and can be used to run simple simulations.\n\n"
             "Usage:\n"

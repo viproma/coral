@@ -181,7 +181,7 @@ try {
         args, options, positionalOptions, positions,
         std::cerr,
         "slave_provider",
-        "Slave provider demonstrator.\n"
+        "Slave provider (DSB v" DSB_VERSION_STRING ")\n\n"
         "This program loads one or more FMUs and makes them available as\n"
         "slaves on a domain.");
     if (!optionValues) return 0;
