@@ -1,7 +1,8 @@
-Copyright (c) 2014, the ViProMa project consortium.
+Copyright (c) 2016, the ViProMa project consortium.
 All rights reserved.
 
 This source code will be released under a permissive open-source
 licence in the future.  However, until further notice, use and
 redistribution of the source and binary code is limited to the
-ViProMa project consortium.
+ViProMa project consortium, as well as other entities or users
+who have received express permission from the authors.
