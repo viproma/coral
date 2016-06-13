@@ -35,6 +35,7 @@ set (_privateHeaders
     "dsb/error.hpp"
     "dsb/fmi/glue.hpp"
     "dsb/protobuf.hpp"
+    "dsb/protocol/discovery.hpp"
     "dsb/protocol/domain.hpp"
     "dsb/protocol/exe_data.hpp"
     "dsb/protocol/execution.hpp"
@@ -65,6 +66,7 @@ set (_sources
     "dsb_comm_util.cpp"
     "dsb_error.cpp"
     "dsb_protobuf.cpp"
+    "dsb_protocol_discovery.cpp"
     "dsb_protocol_domain.cpp"
     "dsb_protocol_exe_data.cpp"
     "dsb_protocol_execution.cpp"
@@ -99,6 +101,7 @@ set (_testSources
     "dsb_error_test.cpp"
     "dsb_fmi_fmu1_test.cpp"
     "dsb_protobuf_test.cpp"
+    "dsb_protocol_discovery_test.cpp"
     "dsb_protocol_domain_test.cpp"
     "dsb_protocol_exe_data_test.cpp"
     "dsb_protocol_execution_test.cpp"
@@ -159,6 +162,9 @@ target_link_libraries (${_target}
             "protobuf"
             "boost"
 )
+if (WIN32)
+    target_link_libraries (${_target} PUBLIC "ws2_32")
+endif()
 if (UNIX)
     target_compile_options (${_target} PRIVATE "-fPIC")
 endif()
