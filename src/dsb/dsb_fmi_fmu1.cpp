@@ -352,9 +352,7 @@ SlaveInstance1::SlaveInstance1(std::shared_ptr<dsb::fmi::FMU1> fmu)
     callbacks.logger         = LogMessage;
     callbacks.stepFinished   = StepFinishedPlaceholder;
 
-    // WARNING: Using fmi1_log_forwarding above and 'true' below means that
-    //          the library is no longer thread safe.
-    if (fmi1_import_create_dllfmu(m_handle, callbacks, true) != jm_status_success) {
+    if (fmi1_import_create_dllfmu(m_handle, callbacks, false) != jm_status_success) {
         const auto msg = fmu->Importer()->LastErrorMessage();
         fmi1_import_free(m_handle);
         throw std::runtime_error(msg);
