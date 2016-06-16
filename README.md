@@ -9,9 +9,8 @@ domains and modelling tools, to simulate complex marine systems and operations.
 The VPF is currently under development as part of the KMB ViProMa project.
 
 The Distributed Simulation Bus (DSB) is a fundamental software component of
-the VPF.  It is the lowest layer of the VPF software stack, and its job is to
-connect the various subsystems involved in a simulation.  More precisely, it
-takes care of:
+the VPF.  Its job is to connect the various subsystems involved in a simulation.
+More precisely, it takes care of:
 
   - *Abstraction*, in that it hides the implementation details of each subsystem
     behind a common communication interface.
@@ -34,8 +33,8 @@ Requirements
 DSB may currently be built on the following platforms, using the following
 compilers:
 
-  - Windows: Visual Studio 2010 or newer.
-  - Linux:   GCC 4.8 or newer.
+  - Windows: Visual Studio 2013 or newer.
+  - Linux:   GCC 4.9 or newer.
 
 In addition, the following tools are needed:
 
@@ -52,16 +51,13 @@ Finally, the following libraries are used by DSB and must therefore be present:
   - [FMI Library](http://jmodelica.org/FMILibrary) v2.0 or newer.
   - [Protocol Buffers](https://developers.google.com/protocol-buffers/) v2.5 or
     newer.
+  - [libzip](http://www.nih.at/libzip/) v1.1 or newer.
+  - [zlib](http://www.zlib.net/)
 
-Tip to Debian users: You can obtain most of these by running the following
-command:
-
-    sudo apt-get install g++ cmake protobuf-compiler doxygen libboost-all-dev \
-        libzmq3-dev libprotobuf-dev
 
 Building
 --------
-The DSB is built using a fairly standard CMake procedure, so we refer to the
+DSB is built using a fairly standard CMake procedure, so we refer to the
 [CMake documentation](http://cmake.org/cmake/help/documentation.html) for
 details and advanced usage, and only give a quick walk-through of the procedure
 here.
@@ -74,11 +70,7 @@ commands:
 
     mkdir build
     cd build
-    cmake -DDSB_BUILD_PRIVATE_API_DOCS=ON ..
-
-The -D switch may be omitted, in which case Doxygen will only generate API
-documentation for the headers in the `include` directory, and not those in
-`src/include`.
+    cmake ..
 
 The above may or may not succeed, depending on whether the various libraries and
 other tools are installed in standard locations.  Look for messages that say
@@ -89,7 +81,7 @@ by running CMake again, this time providing explicit paths with the -D switch.
 For example, the path where the Boost libraries are installed can be specified
 with the `BOOST_ROOT` variable, like this:
 
-    cmake -DBOOST_ROOT=/path/to/boost
+    cmake -DBOOST_ROOT=/path/to/boost ..
 
 The variables that may need to be set in this manner are:
 
@@ -99,6 +91,8 @@ The variables that may need to be set in this manner are:
     CPPZMQ_DIR                  Path to zmq.hpp
     PROTOBUF_SRC_ROOT_FOLDER    The Protocol Buffers source directory (Windows
                                 only; Protobuf must be built first)
+    LIBZIP_DIR                  Path to libzip
+    ZLIB_ROOT                   Path to zlib
 
 With the exception of the last one, the paths specified in this manner are
 typically "prefix paths", i.e. the ones that contain `bin/`, `lib/`, `include/`
@@ -108,6 +102,7 @@ following commands:
     cmake --help-module FindDoxygen
     cmake --help-module FindBoost
     cmake --help-module FindProtobuf
+    cmake --help-module FindZLIB
 
 For details about finding ZMQ, CPPZMQ and FMI Library, please look at the
 comments at the start of the relevant `cmake/FindXXX.cmake` files.
@@ -127,7 +122,3 @@ it should.  The command for this is (unfortunately) platform dependent:
 
     cmake --build . --target RUN_TESTS          &:: Windows
     cmake --build . --target test               #   Linux
-
-### Packaging/installation ###
-
-[To be described later.]
