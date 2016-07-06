@@ -1,3 +1,7 @@
+/**
+\file
+\brief  Dynamic network discovery.
+*/
 #ifndef DSB_PROTOCOL_DISCOVERY_HPP
 #define DSB_PROTOCOL_DISCOVERY_HPP
 
@@ -61,11 +65,14 @@ public:
         How often the service is announced on the network.  A smaller period
         generally leads to faster detection, but also causes more network
         traffic.  1 second is often a good tradeoff for many application.
+    \param [in] networkInterface
+        The name or IP address of the network interface to broadcast on,
+        or "*" to broadcast on all interfaces.
     \param [in] port
         Which UDP port to broadcast to.  The ServiceListener must use the
         same port.
 
-    \throws std::runtime_error on network error.
+    \throws std::runtime_error on error.
     */
     ServiceBeacon(
         std::uint64_t domainID,
@@ -74,6 +81,7 @@ public:
         const char* payload,
         std::uint16_t payloadSize,
         std::chrono::milliseconds period,
+        const std::string& networkInterface,
         std::uint16_t port);
 
     /**
@@ -121,7 +129,7 @@ public:
     Such a function must have the following signature:
     ~~~{.cpp}
     void handler(
-        const std::string& address,     // the service's IP address or hostname
+        const std::string& address,     // the service's IP address
         const std::string& serviceType, // the service type (see ServiceBeacon)
         const std::string& serviceID,   // the service name (see ServiceBeacon)
         const char* payload,            // data payload (or null if none)
@@ -146,6 +154,9 @@ public:
     \param [in] domainID
         This must match the domain ID of any ServiceBeacon one wishes to
         detect.
+    \param [in] networkInterface
+        The name or IP address of the network interface to listen on,
+        or "*" to listen on all interfaces.
     \param [in] port
         Which UDP port to listen on.  This must match the port used in the
         ServiceBeacon.
@@ -158,6 +169,7 @@ public:
     ServiceListener(
         dsb::comm::Reactor& reactor,
         std::uint64_t domainID,
+        const std::string& networkInterface,
         std::uint16_t port,
         NotificationHandler onNotification);
 

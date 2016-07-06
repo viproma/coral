@@ -26,10 +26,12 @@ set (_privateHeaders
     "dsb/bus/slave_control_messenger.hpp"
     "dsb/bus/slave_control_messenger_v0.hpp"
     "dsb/bus/slave_setup.hpp"
+    "dsb/comm/ip.hpp"
     "dsb/comm/messaging.hpp"
     "dsb/comm/p2p.hpp"
     "dsb/comm/proxy.hpp"
     "dsb/comm/reactor.hpp"
+    "dsb/comm/udp.hpp"
     "dsb/comm/util.hpp"
     "dsb/comm.hpp"
     "dsb/error.hpp"
@@ -59,10 +61,12 @@ set (_sources
     "dsb_bus_slave_control_messenger.cpp"
     "dsb_bus_slave_control_messenger_v0.cpp"
     "dsb_bus_slave_setup.cpp"
+    "dsb_comm_ip.cpp"
     "dsb_comm_messaging.cpp"
     "dsb_comm_p2p.cpp"
     "dsb_comm_proxy.cpp"
     "dsb_comm_reactor.cpp"
+    "dsb_comm_udp.cpp"
     "dsb_comm_util.cpp"
     "dsb_error.cpp"
     "dsb_protobuf.cpp"
@@ -163,7 +167,7 @@ target_link_libraries (${_target}
             "boost"
 )
 if (WIN32)
-    target_link_libraries (${_target} PUBLIC "ws2_32")
+    target_link_libraries (${_target} PUBLIC "ws2_32" "iphlpapi")
 endif()
 if (UNIX)
     target_compile_options (${_target} PRIVATE "-fPIC")
