@@ -4,10 +4,10 @@
 #include <cassert>
 #include <chrono>
 
-#include "boost/numeric/conversion/cast.hpp"
 #include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
+#include "dsb/comm/reactor.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protocol/glue.hpp"
@@ -37,10 +37,9 @@ namespace
         std::shared_ptr<zmq::socket_t> killSocket,
         std::shared_ptr<zmq::socket_t> controlSocket,
         std::shared_ptr<zmq::socket_t> beaconSocket,
-        std::shared_ptr<std::vector<std::unique_ptr<dsb::domain::ISlaveType>>> slaveTypesPtr,
+        std::shared_ptr<std::vector<std::unique_ptr<dsb::domain::ISlaveType>>> slaveTypes,
         std::function<void(std::exception_ptr)> exceptionHandler)
     {
-        auto& slaveTypes = *slaveTypesPtr;
         try {
             char slaveProviderIDBuffer[255];
             std::size_t slaveProviderIDSize = 255;
@@ -49,42 +48,35 @@ namespace
             const auto slaveProviderID =
                 std::string(slaveProviderIDBuffer, slaveProviderIDSize);
 
-            const std::size_t POLLITEM_COUNT = 2;
-            zmq::pollitem_t pollItems[POLLITEM_COUNT] = {
-                { static_cast<void*>(*killSocket),    0, ZMQ_POLLIN, 0 },
-                { static_cast<void*>(*controlSocket), 0, ZMQ_POLLIN, 0 }
-            };
-
-            namespace bc = std::chrono;
-            const auto HELLO_INTERVAL = bc::milliseconds(1000);
-            auto nextHelloTime = bc::steady_clock::now() + HELLO_INTERVAL;
-            for (;;) {
-                const auto timeout = bc::duration_cast<bc::milliseconds>
-                                     (nextHelloTime - bc::steady_clock::now());
-                zmq::poll(pollItems, POLLITEM_COUNT, boost::numeric_cast<long>(timeout.count()));
-
-                if (pollItems[0].revents & ZMQ_POLLIN) {
-                    break;
-                }
-
-                if (pollItems[1].revents & ZMQ_POLLIN) {
+            dsb::comm::Reactor reactor;
+            reactor.AddSocket(
+                *killSocket,
+                [] (dsb::comm::Reactor& r, zmq::socket_t&) { r.Stop(); });
+            reactor.AddSocket(
+                *controlSocket,
+                [slaveTypes] (dsb::comm::Reactor&, zmq::socket_t& s) {
                     std::vector<zmq::message_t> msg;
-                    dsb::comm::Receive(*controlSocket, msg);
+                    dsb::comm::Receive(s, msg);
                     // TODO: Resolve this bug. See:
                     // http://stackoverflow.com/questions/23281405/how-to-use-a-stdvectorunique-ptrt-as-default-parameter
-                    HandleRequest(msg, slaveTypes);
-                    dsb::comm::Send(*controlSocket, msg);
-                }
+                    HandleRequest(msg, *slaveTypes);
+                    dsb::comm::Send(s, msg);
+                });
 
-                if (bc::steady_clock::now() >= nextHelloTime) {
+            const auto HELLO_INTERVAL = std::chrono::milliseconds(1000);
+            reactor.AddTimer(
+                HELLO_INTERVAL,
+                -1,
+                [=] (dsb::comm::Reactor&, int) {
                     std::vector<zmq::message_t> msg;
-                    msg.push_back(dp::CreateHeader(dp::MSG_SLAVEPROVIDER_HELLO,
-                                                   dp::MAX_PROTOCOL_VERSION));
+                    msg.push_back(dp::CreateHeader(
+                        dp::MSG_SLAVEPROVIDER_HELLO,
+                        dp::MAX_PROTOCOL_VERSION));
                     msg.push_back(dsb::comm::ToFrame(slaveProviderID));
                     dsb::comm::Send(*beaconSocket, msg);
-                    nextHelloTime = bc::steady_clock::now() + HELLO_INTERVAL;
-                }
-            }
+                });
+
+            reactor.Run();
         } catch (...) {
             if (exceptionHandler) {
                 exceptionHandler(std::current_exception());
