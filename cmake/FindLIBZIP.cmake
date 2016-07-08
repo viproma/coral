@@ -25,10 +25,18 @@ if (LIBZIP_LIBRARY)
 endif ()
 
 # Find header files and, on Windows, the DLL
-find_path (LIBZIP_INCLUDE_DIRS "zip.h"
+find_path (LIBZIP_INCLUDE_DIR_zip "zip.h"
     ${_LIBZIP_hints}
     PATHS ${LIBZIP_DIR} $ENV{LIBZIP_DIR}
     PATH_SUFFIXES "include")
+find_path (LIBZIP_INCLUDE_DIR_zipconf "zipconf.h"
+    ${_LIBZIP_hints}
+    PATHS ${LIBZIP_DIR} $ENV{LIBZIP_DIR}
+    PATH_SUFFIXES "include" "lib/libzip/include")
+set (LIBZIP_INCLUDE_DIRS
+    "${LIBZIP_INCLUDE_DIR_zip}" "${LIBZIP_INCLUDE_DIR_zipconf}"
+)
+
 mark_as_advanced (LIBZIP_INCLUDE_DIRS)
 
 if (WIN32)
