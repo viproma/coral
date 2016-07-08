@@ -18,23 +18,23 @@ find_library (LIBZIP_LIBRARY "zip"
 mark_as_advanced (LIBZIP_LIBRARY)
 unset (_LIBZIP_hints)
 if (LIBZIP_LIBRARY)
-    get_filename_component (_LIBZIP_prefix "${FMILIB_LIBRARY}" PATH)
-    get_filename_component (_LIBZIP_prefix "${_FMILIB_prefix}" PATH)
-    set (_LIBZIP_hints "HINTS" "${_FMILIB_prefix}")
+    get_filename_component (_LIBZIP_prefix "${LIBZIP_LIBRARY}" PATH)
+    get_filename_component (_LIBZIP_prefix "${_LIBZIP_prefix}" PATH)
+    set (_LIBZIP_hints "HINTS" "${_LIBZIP_prefix}")
     unset (_LIBZIP_prefix)
 endif ()
 
 # Find header files and, on Windows, the DLL
 find_path (LIBZIP_INCLUDE_DIRS "zip.h"
     ${_LIBZIP_hints}
-    PATHS ${LIBZIP_DIR} $ENV{FMILIB_DIR}
+    PATHS ${LIBZIP_DIR} $ENV{LIBZIP_DIR}
     PATH_SUFFIXES "include")
 mark_as_advanced (LIBZIP_INCLUDE_DIRS)
 
 if (WIN32)
     find_file (LIBZIP_DLL "zip.dll"
         ${_LIBZIP_hints}
-        PATHS ${LIBZIP_DIR} $ENV{FMILIB_DIR}
+        PATHS ${LIBZIP_DIR} $ENV{LIBZIP_DIR}
         PATH_SUFFIXES "bin" "lib"
         NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
     mark_as_advanced (LIBZIP_DLL)
