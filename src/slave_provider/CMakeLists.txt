@@ -12,3 +12,4 @@ target_link_libraries (${_target}
 target_include_directories (${_target}
     PRIVATE ${publicHeaderDir}
             ${privateHeaderDir})
+install (TARGETS ${_target} ${targetInstallDestinations})

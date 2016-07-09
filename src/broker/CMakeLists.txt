@@ -15,3 +15,4 @@ target_include_directories (${_target}
             ${privateHeaderDir}
             $<TARGET_PROPERTY:dsbproto,INTERFACE_INCLUDE_DIRECTORIES>
 )
+install (TARGETS ${_target} ${targetInstallDestinations})

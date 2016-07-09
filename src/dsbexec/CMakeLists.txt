@@ -15,3 +15,4 @@ target_link_libraries (${_target} PRIVATE "dsb" ${CPPZMQ_LIBRARIES})
 target_include_directories (${_target}
     PRIVATE ${publicHeaderDir}
             ${privateHeaderDir})
+install (TARGETS ${_target} ${targetInstallDestinations})
