@@ -191,5 +191,145 @@ private:
 };
 
 
+/**
+\brief  A class for keeping track of services on a network.
+
+An object of this class can be used to keep track of services that announce
+their presence using ServiceBeacon.  It is built on top of ServiceListener,
+but rather than forwarding "raw" beacon pings, it translates these into
+events that indicate whether a new service has appeared on the network,
+whether one has disappeared, or whether one has changed its data payload.
+
+Unlike ServiceBeacon, this class does not create a background thread;
+rather it uses the reactor pattern (specifically, dsb::comm::Reactor) to
+deal with incoming data in the current thread.
+*/
+class ServiceTracker
+{
+public:
+    /**
+    \brief  The type for functions that are called when a service is discovered.
+
+    Such a function must have the following signature:
+    ~~~{.cpp}
+    void handler(
+        const std::string& address,     // the service's IP address
+        const std::string& serviceType, // the service type (see ServiceBeacon)
+        const std::string& serviceID,   // the service name (see ServiceBeacon)
+        const char* payload,            // data payload (or null if none)
+        std::size_t payloadSize);       // data payload size
+    ~~~
+    The `payload` array is not guaranteed to exist beyond this function call,
+    so a copy must be made if the data is to be kept around.
+    */
+    typedef std::function<void (
+            const std::string&,
+            const std::string&,
+            const std::string&,
+            const char*,
+            std::size_t)>
+        AppearedHandler;
+
+    /**
+    \brief  The type for functions that are called when a service changes its
+            data payload.
+
+    Such a function must have the following signature:
+    ~~~{.cpp}
+    void handler(
+        const std::string& address,     // the service's IP address
+        const std::string& serviceType, // the service type (see ServiceBeacon)
+        const std::string& serviceID,   // the service name (see ServiceBeacon)
+        const char* payload,            // data payload (or null if none)
+        std::size_t payloadSize);       // data payload size
+    ~~~
+    The `payload` array is not guaranteed to exist beyond this function call,
+    so a copy must be made if the data is to be kept around.
+    */
+    typedef AppearedHandler PayloadChangedHandler;
+
+    /**
+    \brief  The type for functions that are called when a service disappears.
+
+    Such a function must have the following signature:
+    ~~~{.cpp}
+    void handler(
+        const std::string& serviceType, // the service type (see ServiceBeacon)
+        const std::string& serviceID);  // the service name (see ServiceBeacon)
+    ~~~
+    */
+    typedef std::function<void(const std::string&, const std::string&)>
+        DisappearedHandler;
+
+    /**
+    \brief  Constructor.
+
+    \param [in] reactor
+        Used to listen for incoming data.
+    \param [in] domainID
+        This must match the domain ID of any ServiceBeacon one wishes to
+        detect.
+    \param [in] networkInterface
+        The name or IP address of the network interface to listen on,
+        or "*" to listen on all interfaces.
+    \param [in] port
+        Which UDP port to listen on.  This must match the port used in the
+        ServiceBeacon.
+
+    \throws std::runtime_error on network error.
+    */
+    ServiceTracker(
+        dsb::comm::Reactor& reactor,
+        std::uint64_t domainID,
+        const std::string& networkInterface,
+        std::uint16_t port);
+
+    /// Destructor.
+    ~ServiceTracker() DSB_NOEXCEPT;
+
+    ServiceTracker(const ServiceTracker&) = delete;
+    ServiceTracker& operator=(const ServiceTracker&) = delete;
+
+    /// Move constructor.
+    ServiceTracker(ServiceTracker&&) DSB_NOEXCEPT;
+
+    /// Move assignment operator.
+    ServiceTracker& operator=(ServiceTracker&&) DSB_NOEXCEPT;
+
+    /**
+    \brief  Adds (or updates the settings for) a tracked service type.
+
+    \param [in] serviceType
+        The service type to listen for.
+    \param [in] timeout
+        How long a period of silence from a particular service of this type
+        must pass before it is considered to have disappeared.  This should
+        be at least a few times larger than the services' beacon period.
+    \param [in] onAppearance
+        A function that should be called when a new service of this type is
+        discovered, or `nullptr` if this event is not to be handled.
+    \param [in] onPayloadChange
+        A function that should be called when a previously discoverd service
+        of this type changes its data "payload", or `nullptr` if this event
+        is not to be handled.
+    \param [in] onDisappearance
+        A function that should be called when a previously discovered service
+        of this type disappears again (i.e. a period of `timeout` has passed
+        without any pings having been received from it), or `nullptr` if this
+        event is not to be handled.
+    */
+    void AddTrackedServiceType(
+        const std::string& serviceType,
+        std::chrono::milliseconds timeout,
+        AppearedHandler onAppearance,
+        PayloadChangedHandler onPayloadChange,
+        DisappearedHandler onDisappearance);
+
+private:
+    class Impl;
+    std::unique_ptr<Impl> m_impl;
+};
+
+
 }} // namespace
 #endif // header guard

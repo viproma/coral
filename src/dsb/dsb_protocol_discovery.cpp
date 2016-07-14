@@ -1,9 +1,13 @@
+#ifdef _WIN32
+#   define NOMINMAX
+#endif
 #include "dsb/protocol/discovery.hpp"
 
 #include <algorithm> // std::copy
 #include <cassert>
 #include <cstring>
 #include <exception>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -302,6 +306,219 @@ ServiceListener& ServiceListener::operator=(ServiceListener&& other) DSB_NOEXCEP
 {
     m_impl = std::move(other.m_impl);
     return *this;
+}
+
+
+// =============================================================================
+// ServiceTracker
+// =============================================================================
+
+using namespace std::placeholders;
+
+class ServiceTracker::Impl
+{
+public:
+    Impl(
+        dsb::comm::Reactor& reactor,
+        std::uint64_t domainID,
+        const std::string& networkInterface,
+        std::uint16_t port)
+        : m_reactor(reactor)
+        , m_listener(
+            reactor,
+            domainID,
+            networkInterface,
+            port,
+            std::bind(&Impl::OnNotification, this, _1, _2, _3, _4, _5))
+        , m_timeoutID(-1)
+        , m_smallestTimeout(std::chrono::milliseconds::max())
+    {
+    }
+
+    ~Impl() DSB_NOEXCEPT
+    {
+        if (m_timeoutID >= 0) {
+            m_reactor.RemoveTimer(m_timeoutID);
+        }
+    }
+
+    Impl(const Impl&) = delete;
+    Impl& operator=(const Impl&) = delete;
+    Impl(Impl&&) = delete;
+    Impl& operator=(Impl&&) = delete;
+
+    void AddTrackedServiceType(
+        const std::string& serviceType,
+        std::chrono::milliseconds timeout,
+        AppearedHandler onAppearance,
+        PayloadChangedHandler onPayloadChange,
+        DisappearedHandler onDisappearance)
+    {
+        auto& s = m_trackedServiceTypes[serviceType];
+        s.timeout = timeout;
+        s.onAppearance = std::move(onAppearance);
+        s.onPayloadChange = std::move(onPayloadChange);
+        s.onDisappearance = std::move(onDisappearance);
+
+        if (timeout < m_smallestTimeout) {
+            if (m_timeoutID >= 0) {
+                m_reactor.RemoveTimer(m_timeoutID);
+            }
+            m_smallestTimeout = timeout;
+            m_timeoutID = m_reactor.AddTimer(
+                m_smallestTimeout,
+                -1,
+                [this] (dsb::comm::Reactor&, int) { CheckTimeouts(); });
+        }
+    }
+
+private:
+    void OnNotification(
+        const std::string& address,
+        const std::string& serviceType,
+        const std::string& serviceID,
+        const char* payload,
+        std::size_t payloadSize)
+    {
+        const auto handlers = m_trackedServiceTypes.find(serviceType);
+        if (handlers == m_trackedServiceTypes.end()) return;
+
+        auto serviceTypeIt = m_currentServices.find(serviceType);
+        if (serviceTypeIt == m_currentServices.end()) {
+            serviceTypeIt = m_currentServices.insert(std::make_pair(
+                serviceType,
+                decltype(m_currentServices)::mapped_type())).first;
+        }
+        auto& services = serviceTypeIt->second;
+
+        auto serviceIt = services.find(serviceID);
+        if (serviceIt == services.end()) {
+            // We have not seen this particular service before
+            auto& service = services[serviceID];
+            service.lastSeen = std::chrono::steady_clock::now();
+            if (payloadSize > 0) {
+                service.payload = std::vector<char>(payload, payload + payloadSize);
+            }
+            if (handlers->second.onAppearance) {
+                handlers->second.onAppearance(
+                    address,
+                    serviceType,
+                    serviceID,
+                    service.payload.data(),
+                    payloadSize);
+            }
+        } else {
+            // we have seen this particular service before, so check if the
+            // payload has changed.
+            auto& service = services[serviceID];
+            service.lastSeen = std::chrono::steady_clock::now();
+            if (payloadSize != service.payload.size()
+                    || std::memcmp(payload, service.payload.data(), payloadSize) != 0) {
+                service.payload.resize(payloadSize);
+                std::memcpy(service.payload.data(), payload, payloadSize);
+                if (handlers->second.onPayloadChange) {
+                    handlers->second.onPayloadChange(
+                        address,
+                        serviceType,
+                        serviceID,
+                        service.payload.data(),
+                        payloadSize);
+                }
+            }
+        }
+    }
+
+    void CheckTimeouts()
+    {
+        const auto now = std::chrono::steady_clock::now();
+        for (auto& serviceType : m_currentServices) {
+            const auto& tracked = m_trackedServiceTypes.at(serviceType.first);
+            for (auto service = begin(serviceType.second);
+                    service != end(serviceType.second);
+                    ) {
+                if (now > service->second.lastSeen + tracked.timeout) {
+                    const auto serviceID = service->first;
+                    service = serviceType.second.erase(service);
+                    if (tracked.onDisappearance) {
+                        tracked.onDisappearance(
+                            serviceType.first,
+                            serviceID);
+                    }
+                } else {
+                    ++service;
+                }
+            }
+        }
+    }
+
+    struct TrackedServiceType
+    {
+        std::chrono::milliseconds timeout;
+        AppearedHandler onAppearance;
+        PayloadChangedHandler onPayloadChange;
+        DisappearedHandler onDisappearance;
+    };
+
+    struct Service
+    {
+        std::chrono::steady_clock::time_point lastSeen;
+        std::vector<char> payload;
+    };
+
+    dsb::comm::Reactor& m_reactor;
+    ServiceListener m_listener;
+    std::unordered_map<std::string, TrackedServiceType> m_trackedServiceTypes;
+    std::unordered_map<
+            std::string,
+            std::unordered_map<std::string, Service>
+        > m_currentServices;
+
+    int m_timeoutID;
+    std::chrono::milliseconds m_smallestTimeout;
+};
+
+
+ServiceTracker::ServiceTracker(
+    dsb::comm::Reactor& reactor,
+    std::uint64_t domainID,
+    const std::string& networkInterface,
+    std::uint16_t port)
+    : m_impl(std::make_unique<Impl>(reactor, domainID, networkInterface, port))
+{
+}
+
+
+ServiceTracker::~ServiceTracker() DSB_NOEXCEPT
+{
+}
+
+
+ServiceTracker::ServiceTracker(ServiceTracker&& other) DSB_NOEXCEPT
+    : m_impl(std::move(other.m_impl))
+{
+}
+
+
+ServiceTracker& ServiceTracker::operator=(ServiceTracker&& other) DSB_NOEXCEPT
+{
+    m_impl = std::move(other.m_impl);
+    return *this;
+}
+
+
+void ServiceTracker::AddTrackedServiceType(
+    const std::string& serviceType,
+    std::chrono::milliseconds timeout,
+    AppearedHandler onAppearance,
+    PayloadChangedHandler onPayloadChange,
+    DisappearedHandler onDisappearance)
+{
+    m_impl->AddTrackedServiceType(
+        serviceType,
+        timeout,
+        onAppearance,
+        onPayloadChange,
+        onDisappearance);
 }
 
 
