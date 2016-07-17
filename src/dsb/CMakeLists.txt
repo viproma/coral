@@ -17,7 +17,6 @@ set (_publicHeaders
 )
 set (_privateHeaders
     "dsb/async.hpp"
-    "dsb/bus/domain_data.hpp"
     "dsb/bus/execution_manager.hpp"
     "dsb/bus/execution_manager_private.hpp"
     "dsb/bus/execution_state.hpp"
@@ -25,6 +24,7 @@ set (_privateHeaders
     "dsb/bus/slave_controller.hpp"
     "dsb/bus/slave_control_messenger.hpp"
     "dsb/bus/slave_control_messenger_v0.hpp"
+    "dsb/bus/slave_provider_comm.hpp"
     "dsb/bus/slave_setup.hpp"
     "dsb/comm/ip.hpp"
     "dsb/comm/messaging.hpp"
@@ -52,7 +52,6 @@ set (_sources
     "dsb_protocol_glue.cpp"
 
     "dsb_async.cpp"
-    "dsb_bus_domain_data.cpp"
     "dsb_bus_execution_manager.cpp"
     "dsb_bus_execution_manager_private.cpp"
     "dsb_bus_execution_state.cpp"
@@ -60,6 +59,7 @@ set (_sources
     "dsb_bus_slave_controller.cpp"
     "dsb_bus_slave_control_messenger.cpp"
     "dsb_bus_slave_control_messenger_v0.cpp"
+    "dsb_bus_slave_provider_comm.cpp"
     "dsb_bus_slave_setup.cpp"
     "dsb_comm_ip.cpp"
     "dsb_comm_messaging.cpp"

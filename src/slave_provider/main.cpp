@@ -103,7 +103,7 @@ public:
             assert(slaveBoundEndpoint.Endpoint() == slaveBindEndpoint.Endpoint());
             assert(slaveBoundEndpoint.Identity() == slaveBindEndpoint.Identity());
             slaveLocator = dsb::net::SlaveLocator(
-                std::string(), // signifying that we use same proxy as provider
+                slaveBoundEndpoint.Endpoint(),
                 slaveBoundEndpoint.Identity());
             return true;
         } catch (const std::exception& e) {
@@ -242,8 +242,10 @@ try {
     std::cout << fmus.size() << " FMUs loaded" << std::endl;
 
     dsb::domain::SlaveProvider slaveProvider{
-        domainLoc,
+        dsb::util::RandomUUID(),
         std::move(fmus),
+        "*",
+        10272,
         [](std::exception_ptr e) {
             try { std::rethrow_exception(e); }
             catch (const std::exception& e) {

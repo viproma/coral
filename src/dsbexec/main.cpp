@@ -121,7 +121,7 @@ int Run(const std::vector<std::string>& args)
         const auto warningStream = argValues->count("warnings") ? &std::clog : nullptr;
 
         const auto domainLoc = MakeDomainLocator(address);
-        auto domain = dsb::domain::Controller(domainLoc);
+        auto domain = dsb::domain::Controller("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -256,7 +256,7 @@ int List(const std::vector<std::string>& args)
         const auto address = (*argValues)["domain"].as<std::string>();
 
         const auto domainLoc = MakeDomainLocator(address);
-        auto domain = dsb::domain::Controller(domainLoc);
+        auto domain = dsb::domain::Controller("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -264,9 +264,10 @@ int List(const std::vector<std::string>& args)
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        auto slaveTypes = domain.GetSlaveTypes();
+        auto slaveTypes = domain.GetSlaveTypes(std::chrono::seconds(1));
         for (const auto& st : slaveTypes) {
             std::cout << st.description.Name() << '\n';
+            //DSB_LOG_TRACE(st.description.Name());
         }
     } catch (const std::runtime_error& e) {
         std::cerr << "Error: " << e.what() << std::endl;
@@ -330,14 +331,14 @@ int LsVars(const std::vector<std::string>& args)
         // Now we have read all the command-line arguments, connect to the
         // domain and find the slave type
         const auto domainLoc = MakeDomainLocator(address);
-        auto domain = dsb::domain::Controller(domainLoc);
+        auto domain = dsb::domain::Controller("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
         // slave provider heartbeat time.
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        const auto slaveTypes = domain.GetSlaveTypes();
+        const auto slaveTypes = domain.GetSlaveTypes(std::chrono::seconds(1));
         const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
             [&](const dsb::domain::Controller::SlaveType& s) {
                 return s.description.Name() == slaveType;
@@ -416,7 +417,7 @@ int Info(const std::vector<std::string>& args)
 
         // Connect to domain
         const auto domainLoc = MakeDomainLocator(address);
-        auto domain = dsb::domain::Controller(domainLoc);
+        auto domain = dsb::domain::Controller("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -424,7 +425,7 @@ int Info(const std::vector<std::string>& args)
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        const auto slaveTypes = domain.GetSlaveTypes();
+        const auto slaveTypes = domain.GetSlaveTypes(std::chrono::seconds(1));
         const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
             [&](const dsb::domain::Controller::SlaveType& s) {
                 return s.description.Name() == slaveType; });

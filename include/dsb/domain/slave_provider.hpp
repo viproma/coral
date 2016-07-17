@@ -94,10 +94,16 @@ public:
     /**
     \brief  Creates a background thread and runs a slave provider in it.
 
-    \param [in] domainLocator
-        The domain to which the slave provider will connect.
+    \param [in] slaveProviderID
+        A string which is used to uniquely identify the slave provider.
+        Expect trouble if two slave providers have the same ID.
     \param [in] slaveTypes
         The slave types offered by the slave provider.
+    \param [in] networkInterface
+        The name or IP address (in dot-decimal format) of the network
+        interface that should be used, or "*" for all available interfaces.
+    \param [in] discoveryPort
+        The UDP port used by others to discover this slave provider.
     \param [in] exceptionHandler
         A function that will be called if an exception is thrown in the
         background thread.  If no handler is provided, or if the handler itself
@@ -110,8 +116,10 @@ public:
         manner.
     */
     SlaveProvider(
-        const dsb::net::DomainLocator& domainLocator,
+        const std::string& slaveProviderID,
         std::vector<std::unique_ptr<dsb::domain::ISlaveType>>&& slaveTypes,
+        const std::string& networkInterface,
+        std::uint16_t discoveryPort,
         std::function<void(std::exception_ptr)> exceptionHandler = nullptr);
 
     SlaveProvider(const SlaveProvider&) = delete;

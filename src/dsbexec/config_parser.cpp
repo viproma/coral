@@ -65,7 +65,7 @@ namespace
     SlaveTypeMap SlaveTypesByName(dsb::domain::Controller& domain)
     {
         SlaveTypeMap types;
-        BOOST_FOREACH (const auto& st, domain.GetSlaveTypes()) {
+        BOOST_FOREACH (const auto& st, domain.GetSlaveTypes(std::chrono::seconds(1))) {
             types.insert(std::make_pair(st.description.Name(), st));
         }
         return types;
@@ -386,7 +386,9 @@ void ParseSystemConfig(
     std::map<std::string, std::shared_future<dsb::model::SlaveID>> slaveIDs;
     BOOST_FOREACH (const auto& slave, slaves) {
         auto slaveLoc = domain.InstantiateSlave(
-            slave.second->description.UUID(), instantiationTimeout);
+            slave.second->providers.front(),
+            slave.second->description.UUID(),
+            instantiationTimeout);
         slaveIDs[slave.first] = execution.AddSlave(slaveLoc, slave.first, commTimeout).share();
     }
 
