@@ -237,126 +237,6 @@ void RRClient::CancelTimer()
 // RRServer
 // =============================================================================
 
-RRServer::RRServer(
-    dsb::comm::Reactor& reactor,
-    const dsb::comm::P2PEndpoint& endpoint)
-    : m_reactor{reactor}
-{
-    m_socket.Bind(endpoint);
-    m_reactor.AddSocket(
-        m_socket.Socket(),
-        [this] (dsb::comm::Reactor&, zmq::socket_t&) {
-            HandleRequest();
-        });
-}
-
-
-RRServer::~RRServer() DSB_NOEXCEPT
-{
-    m_reactor.RemoveSocket(m_socket.Socket());
-}
-
-
-void RRServer::AddProtocolHandler(
-    const std::string& protocolIdentifier,
-    std::uint16_t protocolVersion,
-    std::shared_ptr<RRServerProtocolHandler> handler)
-{
-    if (protocolIdentifier.empty()) {
-        throw std::invalid_argument("Protocol identifier is empty");
-    }
-    if (protocolIdentifier == META_PROTOCOL_IDENTIFIER) {
-        throw std::invalid_argument(
-            META_PROTOCOL_IDENTIFIER + " is a reserved protocol identifier");
-    }
-    const auto pi = m_handlers.find(protocolIdentifier);
-    if (pi != m_handlers.end() && pi->second.count(protocolVersion) > 0) {
-        throw std::invalid_argument(
-            "A handler already exists for this protocol version");
-    }
-    m_handlers[protocolIdentifier][protocolVersion] = handler;
-}
-
-
-void RRServer::HandleRequest()
-{
-    std::vector<zmq::message_t> msg;
-    m_socket.Receive(msg);
-    if (msg.size() < 2 || msg[0].size() < 3) {
-        m_socket.Ignore();
-        return;
-    }
-    const auto protocolIdentifier = std::string{
-        static_cast<const char*>(msg[0].data()),
-        msg[0].size() - 2};
-    const auto protocolVersion = dsb::util::DecodeUint16(
-        static_cast<const char*>(msg[0].data()) + protocolIdentifier.size());
-
-    const char* replyHeader = nullptr;
-    size_t replyHeaderSize = 0u;
-    const char* replyBody = nullptr;
-    size_t replyBodySize = 0u;
-
-    const auto hasReply = DispatchRequest(
-        protocolIdentifier,
-        protocolVersion,
-        static_cast<const char*>(msg[1].data()),
-        msg[1].size(),
-        msg.size() > 2 ? static_cast<const char*>(msg[2].data()) : nullptr,
-        msg.size() > 2 ? msg[2].size() : 0u,
-        replyHeader,
-        replyHeaderSize,
-        replyBody,
-        replyBodySize);
-    if (hasReply) {
-        assert(replyHeader != nullptr);
-        msg[1].rebuild(replyHeader, replyHeaderSize);
-        if (replyBody != nullptr) {
-            msg.resize(3);
-            msg[2].rebuild(replyBody, replyBodySize);
-        } else {
-            msg.resize(2);
-        }
-        m_socket.Send(msg);
-    } else {
-        m_socket.Ignore();
-    }
-}
-
-
-bool RRServer::DispatchRequest(
-    const std::string& protocolIdentifier,
-    std::uint16_t protocolVersion,
-    const char* requestHeader, size_t requestHeaderSize,
-    const char* requestBody, size_t requestBodySize,
-    const char*& replyHeader, size_t& replyHeaderSize,
-    const char*& replyBody, size_t& replyBodySize)
-{
-    if (protocolIdentifier == META_PROTOCOL_IDENTIFIER) {
-        return HandleMetaRequest(
-            protocolVersion,
-            requestHeader, requestHeaderSize,
-            requestBody, requestBodySize,
-            replyHeader, replyHeaderSize,
-            replyBody, replyBodySize);
-    }
-
-    const auto pi = m_handlers.find(protocolIdentifier);
-    if (pi == m_handlers.end()) return false;
-
-    const auto pv = pi->second.find(protocolVersion);
-    if (pv == pi->second.end()) return false;
-
-    return pv->second->HandleRequest(
-        protocolIdentifier,
-        protocolVersion,
-        requestHeader, requestHeaderSize,
-        requestBody, requestBodySize,
-        replyHeader, replyHeaderSize,
-        replyBody, replyBodySize);
-}
-
-
 namespace
 {
     void Copy(const char* cstr, std::vector<char>& vec)
@@ -367,37 +247,222 @@ namespace
 }
 
 
-bool RRServer::HandleMetaRequest(
-    std::uint16_t protocolVersion,
-    const char* requestHeader, size_t requestHeaderSize,
-    const char* requestBody, size_t requestBodySize,
-    const char*& replyHeader, size_t& replyHeaderSize,
-    const char*& replyBody, size_t& replyBodySize)
+class RRServer::Private
 {
-    if (protocolVersion != 0) return false;
-    if (0 == dsb::util::ArrayStringCmp(
-            requestHeader, requestHeaderSize, META_REQ_MAX_PROTOCOL_VERSION.c_str())
-        && requestBody != nullptr)
+public:
+    Private(
+        dsb::comm::Reactor& reactor,
+        const dsb::comm::P2PEndpoint& endpoint)
+        : m_reactor{reactor}
     {
-        const auto requestedID = std::string{requestBody, requestBodySize};
-        const auto pi = m_handlers.find(requestedID);
-        if (pi == m_handlers.end()) {
-            m_metaReplyHeader = META_REP_ERROR;
-            Copy("Protocol not supported", m_metaReplyBody);
-        } else {
-            const auto pv = pi->second.rbegin();
-            assert(pv != pi->second.rend());
-            m_metaReplyHeader = META_REP_OK;
-            m_metaReplyBody.resize(2);
-            dsb::util::EncodeUint16(pv->first, m_metaReplyBody.data());
-        }
-    } else return false;
+        m_socket.Bind(endpoint);
+        m_reactor.AddSocket(
+            m_socket.Socket(),
+            [this] (dsb::comm::Reactor&, zmq::socket_t&) {
+                HandleRequest();
+            });
+    }
 
-    replyHeader = m_metaReplyHeader.data();
-    replyHeaderSize = m_metaReplyHeader.size();
-    replyBody = m_metaReplyBody.data();
-    replyBodySize = m_metaReplyBody.size();
-    return true;
+    ~Private() DSB_NOEXCEPT
+    {
+        m_reactor.RemoveSocket(m_socket.Socket());
+    }
+
+    Private(const Private&) = delete;
+    Private(Private&&) = delete;
+    Private& operator=(const Private&) = delete;
+    Private& operator=(Private&&) = delete;
+
+    void AddProtocolHandler(
+        const std::string& protocolIdentifier,
+        std::uint16_t protocolVersion,
+        std::shared_ptr<RRServerProtocolHandler> handler)
+    {
+        if (protocolIdentifier.empty()) {
+            throw std::invalid_argument("Protocol identifier is empty");
+        }
+        if (protocolIdentifier == META_PROTOCOL_IDENTIFIER) {
+            throw std::invalid_argument(
+                META_PROTOCOL_IDENTIFIER + " is a reserved protocol identifier");
+        }
+        const auto pi = m_handlers.find(protocolIdentifier);
+        if (pi != m_handlers.end() && pi->second.count(protocolVersion) > 0) {
+            throw std::invalid_argument(
+                "A handler already exists for this protocol version");
+        }
+        m_handlers[protocolIdentifier][protocolVersion] = handler;
+    }
+
+    dsb::comm::P2PEndpoint BoundEndpoint() const
+    {
+        return m_socket.BoundEndpoint();
+    }
+
+private:
+    void HandleRequest()
+    {
+        std::vector<zmq::message_t> msg;
+        m_socket.Receive(msg);
+        if (msg.size() < 2 || msg[0].size() < 3) {
+            m_socket.Ignore();
+            return;
+        }
+        const auto protocolIdentifier = std::string{
+            static_cast<const char*>(msg[0].data()),
+            msg[0].size() - 2};
+        const auto protocolVersion = dsb::util::DecodeUint16(
+            static_cast<const char*>(msg[0].data()) + protocolIdentifier.size());
+
+        const char* replyHeader = nullptr;
+        size_t replyHeaderSize = 0u;
+        const char* replyBody = nullptr;
+        size_t replyBodySize = 0u;
+
+        const auto hasReply = DispatchRequest(
+            protocolIdentifier,
+            protocolVersion,
+            static_cast<const char*>(msg[1].data()),
+            msg[1].size(),
+            msg.size() > 2 ? static_cast<const char*>(msg[2].data()) : nullptr,
+            msg.size() > 2 ? msg[2].size() : 0u,
+            replyHeader,
+            replyHeaderSize,
+            replyBody,
+            replyBodySize);
+        if (hasReply) {
+            assert(replyHeader != nullptr);
+            msg[1].rebuild(replyHeader, replyHeaderSize);
+            if (replyBody != nullptr) {
+                msg.resize(3);
+                msg[2].rebuild(replyBody, replyBodySize);
+            } else {
+                msg.resize(2);
+            }
+            m_socket.Send(msg);
+        } else {
+            m_socket.Ignore();
+        }
+    }
+
+    bool DispatchRequest(
+        const std::string& protocolIdentifier,
+        std::uint16_t protocolVersion,
+        const char* requestHeader, size_t requestHeaderSize,
+        const char* requestBody, size_t requestBodySize,
+        const char*& replyHeader, size_t& replyHeaderSize,
+        const char*& replyBody, size_t& replyBodySize)
+    {
+        if (protocolIdentifier == META_PROTOCOL_IDENTIFIER) {
+            return HandleMetaRequest(
+                protocolVersion,
+                requestHeader, requestHeaderSize,
+                requestBody, requestBodySize,
+                replyHeader, replyHeaderSize,
+                replyBody, replyBodySize);
+        }
+
+        const auto pi = m_handlers.find(protocolIdentifier);
+        if (pi == m_handlers.end()) return false;
+
+        const auto pv = pi->second.find(protocolVersion);
+        if (pv == pi->second.end()) return false;
+
+        return pv->second->HandleRequest(
+            protocolIdentifier,
+            protocolVersion,
+            requestHeader, requestHeaderSize,
+            requestBody, requestBodySize,
+            replyHeader, replyHeaderSize,
+            replyBody, replyBodySize);
+    }
+
+    bool HandleMetaRequest(
+        std::uint16_t protocolVersion,
+        const char* requestHeader, size_t requestHeaderSize,
+        const char* requestBody, size_t requestBodySize,
+        const char*& replyHeader, size_t& replyHeaderSize,
+        const char*& replyBody, size_t& replyBodySize)
+    {
+        if (protocolVersion != 0) return false;
+        if (0 == dsb::util::ArrayStringCmp(
+                requestHeader, requestHeaderSize, META_REQ_MAX_PROTOCOL_VERSION.c_str())
+            && requestBody != nullptr)
+        {
+            const auto requestedID = std::string{requestBody, requestBodySize};
+            const auto pi = m_handlers.find(requestedID);
+            if (pi == m_handlers.end()) {
+                m_metaReplyHeader = META_REP_ERROR;
+                Copy("Protocol not supported", m_metaReplyBody);
+            } else {
+                const auto pv = pi->second.rbegin();
+                assert(pv != pi->second.rend());
+                m_metaReplyHeader = META_REP_OK;
+                m_metaReplyBody.resize(2);
+                dsb::util::EncodeUint16(pv->first, m_metaReplyBody.data());
+            }
+        } else return false;
+
+        replyHeader = m_metaReplyHeader.data();
+        replyHeaderSize = m_metaReplyHeader.size();
+        replyBody = m_metaReplyBody.data();
+        replyBodySize = m_metaReplyBody.size();
+        return true;
+    }
+
+    dsb::comm::Reactor& m_reactor;
+    dsb::comm::P2PRepSocket m_socket;
+    std::unordered_map<
+            std::string,
+            std::map<std::uint16_t, std::shared_ptr<RRServerProtocolHandler>>>
+        m_handlers;
+
+    std::string m_metaReplyHeader;
+    std::vector<char> m_metaReplyBody;
+};
+
+
+RRServer::RRServer(
+    dsb::comm::Reactor& reactor,
+    const dsb::comm::P2PEndpoint& endpoint)
+    : m_private{std::make_unique<Private>(reactor, endpoint)}
+{
+}
+
+
+RRServer::~RRServer() DSB_NOEXCEPT
+{
+    // Do nothing, rely on ~Private().
+}
+
+
+RRServer::RRServer(RRServer&& other) DSB_NOEXCEPT
+    : m_private(std::move(other.m_private))
+{
+}
+
+
+RRServer& RRServer::operator=(RRServer&& other) DSB_NOEXCEPT
+{
+    m_private = std::move(other.m_private);
+    return *this;
+}
+
+
+void RRServer::AddProtocolHandler(
+    const std::string& protocolIdentifier,
+    std::uint16_t protocolVersion,
+    std::shared_ptr<RRServerProtocolHandler> handler)
+{
+    m_private->AddProtocolHandler(
+        protocolIdentifier,
+        protocolVersion,
+        std::move(handler));
+}
+
+
+dsb::comm::P2PEndpoint RRServer::BoundEndpoint() const
+{
+    return m_private->BoundEndpoint();
 }
 
 

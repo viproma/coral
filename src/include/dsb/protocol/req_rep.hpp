@@ -324,14 +324,13 @@ public:
         dsb::comm::Reactor& reactor,
         const dsb::comm::P2PEndpoint& endpoint);
 
-    // This class is not copyable or movable because it leaks its `this`
-    // pointer to the reactor.
-    RRServer(const RRServer&) = delete;
-    RRServer(RRServer&&) = delete;
-    RRServer& operator=(const RRServer&) = delete;
-    RRServer& operator=(RRServer&&) = delete;
-
     ~RRServer() DSB_NOEXCEPT;
+
+    RRServer(const RRServer&) = delete;
+    RRServer& operator=(const RRServer&) = delete;
+
+    RRServer(RRServer&&) DSB_NOEXCEPT;
+    RRServer& operator=(RRServer&&) DSB_NOEXCEPT;
 
     /**
     \brief  Adds a protocol handler for the protocol with the given identifier
@@ -345,33 +344,23 @@ public:
         std::uint16_t protocolVersion,
         std::shared_ptr<RRServerProtocolHandler> handler);
 
+    /**
+    \brief  Returns the endpoint to which the server is bound.
+
+    This is generally the one that was specified in the constructor, unless
+    the server is bound to a local endpoint (not a proxy), in which case
+    there are two special cases:
+
+      - If the address was specified as `*` (i.e., bind on all interfaces),
+        then the returned address will be `0.0.0.0`.
+      - If the port was specified as `*` (i.e., ask the OS for an available
+        emphemeral port), then the actual port will be returned.
+    */
+    dsb::comm::P2PEndpoint BoundEndpoint() const;
+
 private:
-    void HandleRequest();
-
-    bool DispatchRequest(
-        const std::string& protocolIdentifier,
-        std::uint16_t protocolVersion,
-        const char* requestHeader, size_t requestHeaderSize,
-        const char* requestBody, size_t requestBodySize,
-        const char*& replyHeader, size_t& replyHeaderSize,
-        const char*& replyBody, size_t& replyBodySize);
-
-    bool HandleMetaRequest(
-        std::uint16_t protocolVersion,
-        const char* requestHeader, size_t requestHeaderSize,
-        const char* requestBody, size_t requestBodySize,
-        const char*& replyHeader, size_t& replyHeaderSize,
-        const char*& replyBody, size_t& replyBodySize);
-
-    dsb::comm::Reactor& m_reactor;
-    dsb::comm::P2PRepSocket m_socket;
-    std::unordered_map<
-            std::string,
-            std::map<std::uint16_t, std::shared_ptr<RRServerProtocolHandler>>>
-        m_handlers;
-
-    std::string m_metaReplyHeader;
-    std::vector<char> m_metaReplyBody;
+    class Private;
+    std::unique_ptr<Private> m_private;
 };
 
 
