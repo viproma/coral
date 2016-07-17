@@ -9,6 +9,7 @@
 #include "dsb/async.hpp"
 #include "dsb/bus/execution_manager.hpp"
 #include "dsb/comm/reactor.hpp"
+#include "dsb/log.hpp"
 
 // For SpawnExecution() only
 #include "dsb/comm/messaging.hpp"
@@ -258,6 +259,12 @@ public:
                         } else if (ec == dsb::error::sim_error::cannot_perform_timestep) {
                             slaveResults->push_back(
                                 std::make_pair(slaveID, STEP_FAILED));
+                        } else {
+                            dsb::log::Log(
+                                dsb::log::error,
+                                boost::format("Slave %d failed to perform time step (%s)")
+                                    % slaveID
+                                    % ec.message());
                         }
                     };
                 }
