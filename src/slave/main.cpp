@@ -12,6 +12,7 @@
 
 #include "zmq.hpp"
 
+#include "dsb/comm/util.hpp"
 #include "dsb/execution/logging_slave.hpp"
 #include "dsb/execution/slave.hpp"
 #include "dsb/fmi/fmu.hpp"
@@ -24,8 +25,8 @@ Command line arguments:
  0  Program name (of course).
  1  Slave provider feedback endpoint (see below).
  2  FMU path
- 3  The endpoint to which the slave should bind, in the URL format used by
-    dsb::comm::P2PEndpoint.
+ 3  The network interface to which the slave should bind, or "*" for all
+    interfaces.
  4  Communications timeout, i.e., the number of seconds of inactivity before
     the slave will shut itself down.
  5  The name of an output directory, to which a file will be written in CSV
@@ -35,8 +36,8 @@ Command line arguments:
 The program will open a PUSH socket and connect it to the slave provider
 feedback endpoint.  If anything goes wrong during the startup process, it will
 send a 2-frame message on this channel, which contains (ERROR,<details>).
-If all goes well, it will instead send a 2-frame message which contains
-(OK,<bound endpoint>) just before the RunSlave() call.
+If all goes well, it will instead send a 2-frame text message which contains
+(OK,<bound port>) just before the RunSlave() call.
 */
 int main(int argc, const char** argv)
 {
@@ -57,12 +58,12 @@ try {
     feedbackSocket->connect(feedbackEndpoint.c_str());
 
     const auto fmuPath = std::string(argv[2]);
-    const auto bindpoint = std::string(argv[3]);
+    const auto networkInterface = std::string(argv[3]);
     const auto commTimeout = std::chrono::seconds(std::atoi(argv[4]));
 
     DSB_LOG_DEBUG(boost::format("PID: %d") % getpid());
     dsb::log::Log(dsb::log::info, boost::format("FMU: %s") % fmuPath);
-    DSB_LOG_TRACE(boost::format("Endpoint: %s") % bindpoint);
+    DSB_LOG_TRACE(boost::format("Network interface: %s") % networkInterface);
     DSB_LOG_TRACE(boost::format("Communication silence timeout: %d s")
         % commTimeout.count());
 
@@ -89,10 +90,14 @@ try {
             outputDir);
     }
 
-    auto slaveRunner = dsb::execution::SlaveRunner(slave, bindpoint, commTimeout);
-    auto boundpoint = slaveRunner.BoundEndpoint();
+    auto slaveRunner = dsb::execution::SlaveRunner(
+        slave,
+        "tcp://" + networkInterface + ":*",
+        commTimeout);
+    const auto slavePort = std::to_string(
+        dsb::comm::EndpointPort(slaveRunner.BoundEndpoint()));
     feedbackSocket->send("OK", 2, ZMQ_SNDMORE);
-    feedbackSocket->send(boundpoint.data(), boundpoint.size());
+    feedbackSocket->send(slavePort.data(), slavePort.size());
     slaveRunner.Run();
     DSB_LOG_DEBUG("Normal shutdown");
 
