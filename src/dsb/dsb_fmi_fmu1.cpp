@@ -140,7 +140,7 @@ FMU1::FMU1(
     });
     std::vector<dsb::model::VariableDescription> variables;
     const auto varCount = fmi1_import_get_variable_list_size(varList);
-    for (std::size_t i = 0; i < varCount; ++i) {
+    for (unsigned int i = 0; i < varCount; ++i) {
         const auto var = fmi1_import_get_variable(varList, i);
         m_valueReferences.push_back(fmi1_import_get_variable_vr(var));
         variables.push_back(

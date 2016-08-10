@@ -190,6 +190,7 @@ set (readmeFile "${CMAKE_SOURCE_DIR}/README.md")
 install (FILES ${readmeFile} DESTINATION ${readmeInstallDir})
 set (licenceFile "${CMAKE_SOURCE_DIR}/LICENCE.txt")
 install (FILES ${licenceFile} DESTINATION ${readmeInstallDir})
+install (DIRECTORY "${CMAKE_SOURCE_DIR}/manuals/" DESTINATION ${docInstallDir})
 
 install (FILES
         "cmake/FindBoostTarget.cmake"
