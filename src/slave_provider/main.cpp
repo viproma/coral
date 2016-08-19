@@ -80,21 +80,27 @@ public:
                     + " milliseconds to start; presumably it has failed altogether");
             }
             dsb::comm::Receive(slaveStatusSocket, slaveStatus);
-            if (slaveStatus.size() != 2) {
-                throw std::runtime_error("Invalid data received from slave executable");
-            } else if (dsb::comm::ToString(slaveStatus[0]) == "ERROR") {
-                throw std::runtime_error(dsb::comm::ToString(slaveStatus.at(1)));
+            if (dsb::comm::ToString(slaveStatus[0]) == "ERROR" &&
+                    slaveStatus.size() == 2) {
+                throw std::runtime_error(dsb::comm::ToString(slaveStatus[1]));
             } else if (dsb::comm::ToString(slaveStatus[0]) != "OK" ||
-                       slaveStatus[1].size() == 0) {
+                    slaveStatus.size() < 3 ||
+                    slaveStatus[1].size() == 0 ||
+                    slaveStatus[2].size() == 0) {
                 throw std::runtime_error("Invalid data received from slave executable");
             }
-            // At this point, we know that slaveStatus contains two frames, where
+            // At this point, we know that slaveStatus contains three frames, where
             // the first one is "OK", signifying that the slave seems to be up and
-            // running.  The second one contains the port to which the slave is bound
-            // (as a text string).
-            const auto slavePort = dsb::comm::ToString(slaveStatus[1]);
-            std::clog << "OK, bound to port " << slavePort << std::endl;
-            slaveLocator = dsb::net::SlaveLocator(':' + slavePort);
+            // running.  The following two contains the endpoints to which the slave
+            // is bound.
+            slaveLocator = dsb::net::SlaveLocator{
+                dsb::net::InetEndpoint{dsb::comm::ToString(slaveStatus[1])}
+                    .ToEndpoint("tcp"),
+                dsb::net::InetEndpoint{dsb::comm::ToString(slaveStatus[2])}
+                    .ToEndpoint("tcp")
+            };
+
+            std::clog << "OK" << std::endl;
             return true;
         } catch (const std::exception& e) {
             m_instantiationFailureDescription = e.what();
@@ -206,8 +212,6 @@ try {
         }
     }
     assert (!slaveExe.empty());
-
-    const auto domainLoc = dsb::net::GetDomainEndpoints(domainAddress);
 
     std::vector<std::string> fmuPaths;
     for (const auto& fmuSpec :

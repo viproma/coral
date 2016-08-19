@@ -23,12 +23,6 @@ namespace
                 state ? "Not connected" : "Already connected");
         }
     }
-
-    template<typename T>
-    void SetSocketOption(zmq::socket_t& socket, int option, T value)
-    {
-        socket.setsockopt(option, &value, sizeof(value));
-    }
 }
 
 
@@ -37,37 +31,41 @@ namespace
 // =============================================================================
 
 VariablePublisher::VariablePublisher()
-    : m_ownID(dsb::model::INVALID_SLAVE_ID)
 { }
 
 
-void VariablePublisher::Connect(
-    const std::string& endpoint,
-    dsb::model::SlaveID ownID)
+void VariablePublisher::Bind(const dsb::net::Endpoint& endpoint)
 {
     EnforceConnected(m_socket, false);
     m_socket = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PUB);
     try {
-        SetSocketOption(*m_socket, ZMQ_SNDHWM, 0);
-        SetSocketOption(*m_socket, ZMQ_RCVHWM, 0);
-        SetSocketOption(*m_socket, ZMQ_LINGER, 0);
-        m_socket->connect(endpoint.c_str());
+        m_socket->setsockopt(ZMQ_SNDHWM, 0);
+        m_socket->setsockopt(ZMQ_RCVHWM, 0);
+        m_socket->setsockopt(ZMQ_LINGER, 0);
+        m_socket->bind(endpoint.URL().c_str());
     } catch (...) {
         m_socket.reset();
         throw;
     }
-    m_ownID = ownID;
+}
+
+
+dsb::net::Endpoint VariablePublisher::BoundEndpoint() const
+{
+    EnforceConnected(m_socket, true);
+    return dsb::net::Endpoint{dsb::comm::LastEndpoint(*m_socket)};
 }
 
 
 void VariablePublisher::Publish(
     dsb::model::StepID stepID,
+    dsb::model::SlaveID slaveID,
     dsb::model::VariableID variableID,
     dsb::model::ScalarValue value)
 {
     EnforceConnected(m_socket, true);
     dsb::protocol::exe_data::Message m = {
-        dsb::model::Variable(m_ownID, variableID),
+        dsb::model::Variable(slaveID, variableID),
         stepID,
         value
     };
@@ -87,15 +85,21 @@ VariableSubscriber::VariableSubscriber()
 { }
 
 
-void VariableSubscriber::Connect(const std::string& endpoint)
+void VariableSubscriber::Connect(
+    const dsb::net::Endpoint* endpoints,
+    std::size_t endpointsSize)
 {
-    EnforceConnected(m_socket, false);
     m_socket = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_SUB);
     try {
-        SetSocketOption(*m_socket, ZMQ_SNDHWM, 0);
-        SetSocketOption(*m_socket, ZMQ_RCVHWM, 0);
-        SetSocketOption(*m_socket, ZMQ_LINGER, 0);
-        m_socket->connect(endpoint.c_str());
+        m_socket->setsockopt(ZMQ_SNDHWM, 0);
+        m_socket->setsockopt(ZMQ_RCVHWM, 0);
+        m_socket->setsockopt(ZMQ_LINGER, 0);
+        for (std::size_t i = 0; i < endpointsSize; ++i) {
+            m_socket->connect(endpoints[i].URL().c_str());
+        }
+        for (const auto& variable : m_values) {
+            dsb::protocol::exe_data::Subscribe(*m_socket, variable.first);
+        }
     } catch (...) {
         m_socket.reset();
         throw;

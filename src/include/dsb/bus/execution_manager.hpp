@@ -14,6 +14,7 @@
 
 #include "boost/noncopyable.hpp"
 
+#include "dsb/config.h"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
 
@@ -28,6 +29,47 @@ namespace dsb
 namespace bus
 {
 
+
+/**
+\brief  Used in `ExecutionManager::Reconstitute()` to specify a slave which
+        should be added to the simulation.
+*/
+struct AddedSlave
+{
+    /// The slave's network location
+    dsb::net::SlaveLocator locator;
+
+    /// A name for the slave, unique in the execution
+    std::string name;
+
+    /// Default constructor
+    AddedSlave() DSB_NOEXCEPT { }
+
+    /// Constructor which sets the `#locator` and `#name` fields.
+    AddedSlave(dsb::net::SlaveLocator locator_, std::string name_)
+        : locator{std::move(locator_)}, name(std::move(name_))
+    { }
+};
+
+/**
+\brief  Used in `ExecutionManager::Reconfigure()` to specify variable value
+        and connection changes.
+*/
+struct SlaveConfig
+{
+    dsb::model::SlaveID slaveID;
+    std::vector<dsb::model::VariableSetting> variableSettings;
+
+    SlaveConfig() DSB_NOEXCEPT { }
+    SlaveConfig(
+        dsb::model::SlaveID slaveID_,
+        std::vector<dsb::model::VariableSetting> variableSettings_)
+        : slaveID{slaveID_}
+        , variableSettings(variableSettings_)
+    { }
+};
+
+
 class ExecutionManagerPrivate;
 
 
@@ -35,72 +77,96 @@ class ExecutionManagerPrivate;
 class ExecutionManager : boost::noncopyable
 {
 public:
-    /// Constructs an object which manages the given execution.
-    explicit ExecutionManager(const dsb::net::ExecutionLocator& execLoc);
+    /**
+    \brief  Constructs an object which manages an execution.
+
+    \param [in] reactor
+        The dsb::comm::Reactor object used for communication.
+    \param [in] executionName
+        A (preferably unique) name for the execution.
+    \param [in] startTime
+        The start time of the simulation.
+    \param [in] maxTime
+        The maximum simulation time.
+    */
+    ExecutionManager(
+        dsb::comm::Reactor& reactor,
+        const std::string& executionName,
+        dsb::model::TimePoint startTime = 0.0,
+        dsb::model::TimePoint maxTime = dsb::model::ETERNITY);
 
     ~ExecutionManager();
 
-    /// Completion handler type for BeginConfig().
-    typedef std::function<void(const std::error_code&)> BeginConfigHandler;
+    /// Completion handler type for Reconstitute().
+    typedef std::function<void(const std::error_code&)> ReconstituteHandler;
 
-    /// Enters configuration mode.
-    void BeginConfig(BeginConfigHandler onComplete);
-
-    /// Completion handler type for EndConfig().
-    typedef std::function<void(const std::error_code&)> EndConfigHandler;
-
-    /// Leaves configuration mode, enters simulation mode.
-    void EndConfig(EndConfigHandler onComplete);
-
-    /// Terminates the entire execution and all associated slaves.
-    void Terminate();
-
-    /// Sets the total simulation time for the execution.
-    void SetSimulationTime(
-        dsb::model::TimePoint startTime,
-        dsb::model::TimePoint stopTime);
-
-    /// Completion handler type for AddSlave().
-    typedef std::function<void(const std::error_code&, dsb::model::SlaveID)>
-        AddSlaveHandler;
+    /// Per-slave completion handler type for Reconstitute()
+    typedef std::function<void(const std::error_code&, dsb::model::SlaveID, std::size_t)>
+        SlaveReconstituteHandler;
 
     /**
-    \brief  Adds a slave to the execution.
+    \brief  Adds new slaves to the execution.
 
-    The bus will connect the slave asynchronously and call `onComplete` when
-    this is done.  If the connection fails, `onComplete` will be called with
-    a "failure" result, after which the slave ID is no longer valid.  (However,
-    the ID will not be reused for another slave later.)
+    The naming of this function reflects the fact that, in a future version,
+    it is intended to also support *removing* slaves from an execution, and
+    not just adding.
 
-    Note that this is a compound operation which consists of two or more steps
-    of communication with the slave.  First a certain maximum number of attempts
-    (N) to contact the slave are performed, and if this is successful, a slave
-    setup step.  The timeout in this case is for each of those steps, so the
-    maximum possible time this can take is `(N+1)*commTimeout`.
-
-    \returns the ID of the new slave.
-    \throws std::length_error if adding a slave would cause the number of slaves
-        to exceed the hard maximum limit of 65535 (which is unlikely indeed).
+    \param [in] slavesToAdd
+        A list of slaves to add.  If empty, `onComplete` is called
+        immediately and the function returns without doing anything else.
+        Contains information about the slaves on output.
+    \param [in] commTimeout
+        The communications timeout used to detect loss of communication
+        with the slaves.
+    \param [in] onComplete
+        Handler callback which is called when the entire operation is
+        complete.
+    \param [in] onSlaveComplete
+        Handler callback which is called once for each slave, and which
+        receives the slave's assigned ID number (or an error code, in case
+        the operation failed).  It also receives a `size_t` variable which
+        contains the slave's index in the `slavesToAdd` vector.
     */
-    dsb::model::SlaveID AddSlave(
-        const dsb::net::SlaveLocator& slaveLocator,
-        const std::string& slaveName,
-        dsb::comm::Reactor& reactor,
+    void Reconstitute(
+        const std::vector<AddedSlave>& slavesToAdd,
         std::chrono::milliseconds commTimeout,
-        AddSlaveHandler onComplete);
+        ReconstituteHandler onComplete,
+        SlaveReconstituteHandler onSlaveComplete = SlaveReconstituteHandler{});
 
-    /// Completion handler type for SetVariables().
-    typedef std::function<void(const std::error_code&)> SetVariablesHandler;
+    /// Completion handler type for Reconfigure().
+    typedef std::function<void(const std::error_code&)> ReconfigureHandler;
+
+    /// Per-slave completion handler type for Reconfigure()
+    typedef std::function<void(const std::error_code&, dsb::model::SlaveID, std::size_t)>
+        SlaveReconfigureHandler;
 
     /**
-    \brief  Sets the values or connections of one or more variables for a single
-            slave.
+    \brief  Sets the values of and/or connects variables.
+
+    When a connection is made between an output variable and an input
+    variable, or such a connection is to be broken, this is specified in
+    the `SlaveConfig` object for the slave which owns the *input* variable.
+
+    \param [in] slaveConfigs
+        A list of slave configuration change specifications, at most one
+        entry per slave.
+    \param [in] commTimeout
+        The communications timeout used to detect loss of communication
+        with the slaves.
+    \param [in] onComplete
+        Handler callback which is called when the entire operation is
+        complete.
+    \param [in] onSlaveComplete
+        Handler callback which is called once for each slave, and which
+        receives an error code in case of error.  It also receives the
+        slave ID and a `size_t` variable which contains the slave's index
+        in the `slavesToAdd` vector.
     */
-    void SetVariables(
-        dsb::model::SlaveID slave,
-        const std::vector<dsb::model::VariableSetting>& settings,
-        std::chrono::milliseconds timeout,
-        SetVariablesHandler onComplete);
+    void Reconfigure(
+        const std::vector<SlaveConfig>& slaveConfigs,
+        std::chrono::milliseconds commTimeout,
+        ReconfigureHandler onComplete,
+        SlaveReconfigureHandler onSlaveComplete = SlaveReconfigureHandler{});
 
     /// Completion handler type for the Step() function.
     typedef std::function<void(const std::error_code&)> StepHandler;
@@ -131,6 +197,9 @@ public:
         std::chrono::milliseconds timeout,
         AcceptStepHandler onComplete,
         SlaveAcceptStepHandler onSlaveAcceptStepComplete = nullptr);
+
+    /// Terminates the entire execution and all associated slaves.
+    void Terminate();
 
     /// Gets the name of the slave with the given ID.
     const std::string& SlaveName(dsb::model::SlaveID id) const;

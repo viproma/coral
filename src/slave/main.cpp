@@ -6,10 +6,9 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string>
 
 #include "boost/filesystem.hpp"
-#include "boost/lexical_cast.hpp"
-
 #include "zmq.hpp"
 
 #include "dsb/comm/util.hpp"
@@ -90,14 +89,26 @@ try {
             outputDir);
     }
 
+    const auto bindpoint =
+        dsb::net::InetEndpoint(networkInterface, "*").ToEndpoint("tcp");
     auto slaveRunner = dsb::execution::SlaveRunner(
         slave,
-        "tcp://" + networkInterface + ":*",
+        bindpoint,
+        bindpoint,
         commTimeout);
-    const auto slavePort = std::to_string(
-        dsb::comm::EndpointPort(slaveRunner.BoundEndpoint()));
+
+    const auto controlEndpoint =
+        dsb::net::InetEndpoint{
+            slaveRunner.BoundControlEndpoint().Address()
+        }.ToString();
+    const auto dataPubEndpoint =
+        dsb::net::InetEndpoint{
+            slaveRunner.BoundDataPubEndpoint().Address()
+        }.ToString();
+
     feedbackSocket->send("OK", 2, ZMQ_SNDMORE);
-    feedbackSocket->send(slavePort.data(), slavePort.size());
+    feedbackSocket->send(controlEndpoint.data(), controlEndpoint.size(), ZMQ_SNDMORE);
+    feedbackSocket->send(dataPubEndpoint.data(), dataPubEndpoint.size());
     slaveRunner.Run();
     DSB_LOG_DEBUG("Normal shutdown");
 

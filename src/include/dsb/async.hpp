@@ -10,13 +10,17 @@
 #include <functional>
 #include <future>
 #include <memory>
+#include <thread>
 #include <utility>
 
 #include "zmq.hpp"
 
 #include "dsb/config.h"
 #include "dsb/comm/reactor.hpp"
+#include "dsb/comm/util.hpp"
 #include "dsb/error.hpp"
+#include "dsb/log.hpp"
+#include "dsb/util.hpp"
 
 
 namespace dsb
@@ -27,26 +31,105 @@ namespace async
 
 
 /**
+\brief  Contains the Type member alias, which defines the signature for
+        functions executed asynchronously by CommThread.
+
+\tparam StackData
+    The type used for the `StackData` parameter of the CommThread template.
+\tparam Result
+    The type of value returned by the task function (by means of the
+    future/promise mechanism).
+*/
+template<typename StackData, typename Result>
+struct CommThreadTask
+{
+    /**
+    \brief  An std::function specialisation which defines the signature
+            for functions executed asynchronously by CommThread.
+
+    If `StackData` is not `void`, the signature is defined as follows:
+    ~~~{.cpp}
+    void fun(
+        dsb::comm::Reactor& reactor,
+        StackData& data,
+        std::promise<Result> promise);
+    ~~~
+    And if `StackData` is `void`, the signature is defined like this:
+    ~~~{.cpp}
+    void fun(
+        dsb::comm::Reactor& reactor,
+        std::promise<Result> promise);
+    ~~~
+    Here, `reactor` and `data` are the dedicated dsb::comm::Reactor and
+    `StackData` objects associated with the background thread, respectively,
+    and `promise` is the std::promise object which the task function should
+    use to return its result (or throw an exception).
+    */
+    using Type = typedef std::function<void(
+        dsb::comm::Reactor&,
+        StackData&,
+        std::promise<Result>)>;
+};
+
+// Specialisation of the above for `StackData = void`.
+template<typename Result>
+struct CommThreadTask<void, Result>
+{
+    using Type = std::function<void(
+        dsb::comm::Reactor&,
+        std::promise<Result>)>;
+};
+
+
+namespace detail
+{
+    template<typename StackData>
+    struct CommThreadAnyTask
+    {
+        using Type = std::function<void(dsb::comm::Reactor&, StackData&)>;
+        using SharedPtr = std::shared_ptr<Type>;
+        using WeakPtr = std::weak_ptr<Type>;
+    };
+
+    template<>
+    struct CommThreadAnyTask<void>
+    {
+        using Type = std::function<void(dsb::comm::Reactor&)>;
+        using SharedPtr = std::shared_ptr<Type>;
+        using WeakPtr = std::weak_ptr<Type>;
+    };
+} // namespace detail
+
+
+/**
 \brief  Creates and controls a background communications thread.
 
-On construction, an object of this class will create a new thread whose
-lifetime is tied to that of the object.  (The destructor will wait for the
+The constructor of this class creates a new thread whose lifetime is tied
+to that of the constructed object (i.e., the destructor will wait for the
 background thread to complete before returning.)  This thread can be used
 to execute arbitrary code, but its primary design purpose is to run
 event-based communications code based on dsb::comm::Reactor.  The thread
-therefore has a dedicated reactor object which is passed to all functions
-that are executed in it.
+therefore has a dedicated `Reactor` object, a reference to which is passed
+to all functions that are executed in it.
 
-To execute functions in the background thread, use the Execute() method.
-Return values and exceptions from such functions should be transferred to
+To execute tasks in the background thread, use the Execute() method.
+Results and exceptions from such functions should be transferred to
 the foreground thread using the std::future / std::promise mechanism.
+
+The background thread may have a dedicated object of type `StackData`.
+This is located on that thread's stack, and can be used to hold objects
+persistently across Execute() calls.  The `StackData` object does
+not move in memory, and its lifetime ends before that of the `Reactor`.
+A reference to this object is passed to each function that is executed
+in the background thread.  `StackData` may be `void`, in which case no
+object is ever created, and no reference is passed to the executed
+functions.
 
 Any exceptions that are *thrown* in the background thread (as opposed to
 being reported using a promise) will cause the thread to terminate.
-This is true for exceptions that escape the initialisation routine,
-exceptions that escape functions which are executed with Execute(),
-and exceptions thrown in code which is executed indirectly as a
-result of reactor events.
+This is true both for exceptions that escape functions which are executed
+with Execute() and for those thrown in code which is executed indirectly as
+a result of reactor events.
 If this happens, a subsequent call to Execute() or Shutdown() will throw
 a CommThreadDead exception.  The original exception can be obtained from
 this object.
@@ -64,29 +147,21 @@ returns `false`:
 
   - The object is moved from, i.e., it is used as the source for a move
     construction or move assignment operation.
+
+\tparam StackData
+    The type used for an object that holds stack data persistently
+    across function calls in the background thread, or `void` if
+    no such object is needed.
 */
+template<typename StackData>
 class CommThread
 {
 public:
     /**
-    \brief  Creates the background thread and optionally executes an
-            initialisation routine in it.
-
-    The initialisation routine will typically be used to register sockets,
-    timers, etc. with the reactor, a reference to which is passed as an
-    argument to the `init` function.  If the `init` function throws, a
-    subsequent call to Execute() or Shutdown() will throw a CommThreadDead
-    exception, and the CommThread object is no longer usable.
-
-    \param [in] init
-        An initialisation function, or an empty function object if no
-        initialisation is needed.
-
-    \post
-        `Active() == true`
+    \brief  Creates the background thread.
+    \post `Active() == true`
     */
-    explicit CommThread(std::function<void(dsb::comm::Reactor&)> init
-        = std::function<void(dsb::comm::Reactor&)>{});
+    explicit CommThread();
 
     /**
     \brief  If the CommThread object is still active, shuts down the
@@ -119,7 +194,7 @@ public:
     /**
     \brief  Executes a task asynchronously in the background thread.
 
-    This function returns an std::future that shares its state with the
+    This function returns a std::future that shares its state with the
     std::promise object passed to the `task` function.  The promise should
     be used to report results or errors.  This may be done immediately,
     in the body of the `task` function, or it may be done at a later
@@ -131,15 +206,31 @@ public:
     behaviour.  Instead, use Shutdown() to terminate the thread in a
     controlled manner.
 
+    Finally, if the type parameter `StackData` is not `void`, the
+    function also receives a reference to an object of the given type.
+    This object is located on the background thread's stack, and thus
+    persists across function calls.
+
+    See CommThreadTask for more information about the type and signature
+    of the `task` function.
+
     Any exceptions that are thrown and allowed to escape from `task`
     will cause the background thread to terminate, and a subsequent
     call to Execute() or Shutdown() will throw a CommThreadDead exception,
     rendering the CommThread object in an inactive state.
-    
-    \tparam R
+
+    \warning
+        Visual Studio versions prior to 2015 do not handle std::promise
+        destruction correctly.  Specifically, a destroyed std::promise
+        does not cause a "broken promise" error to be thrown by its
+        corresponding `std::future`.  Thus, if an exception is thrown in
+        the background thread when there are any unfulfilled promises,
+        calls to std::future::get() will block indefinitely.
+
+    \tparam Result
         The type of the function's "return value".  The function will
-        receive an object of type `std::promise<R>` which it can use
-        to return the value (or an exception).  `R` may be `void`,
+        receive an object of type `std::promise<Result>` which it can
+        use to return the value (or an exception).  `Result` may be `void`,
         in which case the promise is simply used to report whether
         the task was completed successfully.
     \param [in] task
@@ -153,9 +244,9 @@ public:
     \pre
         `Active() == true`
     */
-    template<typename R>
-    std::future<R> Execute(
-        std::function<void(dsb::comm::Reactor&, std::promise<R>)> task);
+    template<typename Result>
+    std::future<Result> Execute(
+        typename CommThreadTask<StackData, Result>::Type task);
 
     /**
     \brief  Terminates the background thread in a controlled manner.
@@ -191,13 +282,14 @@ public:
     bool Active() const DSB_NOEXCEPT;
 
 private:
-    void CheckThreadStatus();
+    // Waits for the background thread to terminate and performs cleanup
+    void WaitForThreadTermination();
     void DestroySilently() DSB_NOEXCEPT;
 
     bool m_active;
     zmq::socket_t m_socket;
     std::future<void> m_threadStatus;
-    std::unique_ptr<std::function<void(dsb::comm::Reactor&)>> m_sharedTask;
+    typename detail::CommThreadAnyTask<StackData>::WeakPtr m_nextTask;
 };
 
 
@@ -229,32 +321,366 @@ private:
 // Templates
 // =============================================================================
 
-template<typename R>
-std::future<R> CommThread::Execute(
-    std::function<void(dsb::comm::Reactor&, std::promise<R>)> task)
+namespace detail
+{
+    template<typename StackData>
+    void CommThreadMessagingLoop(
+        zmq::socket_t& bgSocket,
+        typename CommThreadAnyTask<StackData>::SharedPtr nextTask)
+    {
+        dsb::comm::Reactor reactor;
+        StackData data;
+        reactor.AddSocket(
+            bgSocket,
+            [nextTask, &data] (dsb::comm::Reactor& r, zmq::socket_t& s) {
+                char dummy;
+                s.recv(&dummy, 1);
+
+                // Now, the foreground thread is blocked waiting for our
+                // reply, so we can freely access `nextTask`.
+                CommThreadAnyTask<StackData>::Type myTask;
+                swap(*nextTask, myTask);
+
+                // Unblock foreground thread again and then run the task.
+                s.send("", 0);
+                myTask(r, data);
+            });
+        reactor.Run();
+    }
+
+    template<>
+    inline void CommThreadMessagingLoop<void>(
+        zmq::socket_t& bgSocket,
+        typename CommThreadAnyTask<void>::SharedPtr nextTask)
+    {
+        dsb::comm::Reactor reactor;
+        reactor.AddSocket(
+            bgSocket,
+            [nextTask] (dsb::comm::Reactor& r, zmq::socket_t& s) {
+                char dummy;
+                s.recv(&dummy, 1);
+
+                // Now, the foreground thread is blocked waiting for our
+                // reply, so we can freely access `nextTask`.
+                CommThreadAnyTask<void>::Type myTask;
+                swap(*nextTask, myTask);
+
+                // Unblock foreground thread again and then run the task.
+                s.send("", 0);
+                myTask(r);
+            });
+        reactor.Run();
+    }
+
+    // Note: Some of the parameters are only shared_ptr because VS2013 has
+    // a bug that prevents the use of move-only objects as arguments to the
+    // thread function.
+    template<typename StackData>
+    void CommThreadBackground(
+        std::shared_ptr<zmq::socket_t> bgSocket,
+        std::shared_ptr<std::promise<void>> statusNotifier,
+        typename CommThreadAnyTask<StackData>::SharedPtr nextTask)
+        DSB_NOEXCEPT
+    {
+        try {
+            CommThreadMessagingLoop<StackData>(
+                *bgSocket,
+                std::move(nextTask));
+
+            // We should possibly use set_value_at_thread_exit() and
+            // set_exception_at_thread_exit() in the following, but those are
+            // not supported in GCC 4.9.
+            statusNotifier->set_value();
+        } catch (...) {
+            statusNotifier->set_exception(
+                std::current_exception());
+        }
+
+        // This is to avoid the potential race condition where the background
+        // thread dies after the foreground thread has sent a task notification
+        // and is waiting to receive an acknowledgement.
+        bgSocket->send("", 0);
+    }
+} // namespace detail
+
+
+template<typename StackData>
+CommThread<StackData>::CommThread()
+    : m_active{true}
+    , m_socket{dsb::comm::GlobalContext(), ZMQ_PAIR}
+    , m_threadStatus{}
+    , m_nextTask{}
+{
+    auto bgSocket =
+        std::make_shared<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PAIR);
+    bgSocket->setsockopt(ZMQ_LINGER, 0);
+    m_socket.setsockopt(ZMQ_LINGER, 0);
+    const auto endpoint = "inproc://" + dsb::util::RandomUUID();
+    bgSocket->bind(endpoint);
+    m_socket.connect(endpoint);
+
+    auto statusNotifier = std::make_shared<std::promise<void>>();
+    m_threadStatus = statusNotifier->get_future();
+
+    auto sharedTask =
+        std::make_shared<typename detail::CommThreadAnyTask<StackData>::Type>(/*empty*/);
+    m_nextTask = sharedTask;
+
+    std::thread{&detail::CommThreadBackground<StackData>,
+        bgSocket, statusNotifier, sharedTask}.detach();
+}
+
+
+template<typename StackData>
+CommThread<StackData>::~CommThread() DSB_NOEXCEPT
+{
+    DestroySilently();
+}
+
+
+template<typename StackData>
+CommThread<StackData>::CommThread(CommThread&& other) DSB_NOEXCEPT
+    : m_active{other.m_active}
+    , m_socket{std::move(other.m_socket)}
+    , m_threadStatus{std::move(other.m_threadStatus)}
+    , m_nextTask{std::move(other.m_nextTask)}
+{
+    other.m_active = false;
+}
+
+
+template<typename StackData>
+CommThread<StackData>& CommThread<StackData>::operator=(CommThread&& other)
+    DSB_NOEXCEPT
+{
+    DestroySilently();
+    m_active = other.m_active;
+    m_socket = std::move(other.m_socket);
+    m_threadStatus = std::move(other.m_threadStatus);
+    m_nextTask = std::move(other.m_nextTask);
+    other.m_active = false;
+    return *this;
+}
+
+
+namespace detail
+{
+    template<typename StackData, typename Result>
+    struct CommThreadFunctions
+    {
+        static typename CommThreadAnyTask<StackData>::Type WrapTask(
+            typename CommThreadTask<StackData, Result>::Type task,
+            std::promise<Result> promise)
+        {
+            const auto sharedPromise =
+                std::make_shared<typename std::promise<Result>>(std::move(promise));
+            return [task, sharedPromise]
+                (dsb::comm::Reactor& reactor, StackData& data)
+            {
+                task(reactor, data, std::move(*sharedPromise));
+            };
+        }
+    };
+
+
+    template<typename Result>
+    struct CommThreadFunctions<void, Result>
+    {
+        static typename CommThreadAnyTask<void>::Type WrapTask(
+            typename CommThreadTask<void, Result>::Type task,
+            std::promise<Result> promise)
+        {
+            const auto sharedPromise =
+                std::make_shared<typename std::promise<Result>>(std::move(promise));
+            return [task, sharedPromise]
+                (dsb::comm::Reactor& reactor)
+            {
+                task(reactor, std::move(*sharedPromise));
+            };
+        }
+    };
+} // namespace detail
+
+
+template<typename StackData>
+template<typename Result>
+std::future<Result> CommThread<StackData>::Execute(
+    typename CommThreadTask<StackData, Result>::Type task)
 {
     DSB_PRECONDITION_CHECK(Active());
     DSB_INPUT_CHECK(task);
-    CheckThreadStatus();
 
-    auto promise = std::make_shared<std::promise<R>>();
-    auto future = promise->get_future();
+    auto promise = std::promise<Result>{};
+    auto future = promise.get_future();
 
-    assert(!(*m_sharedTask));
-    *m_sharedTask = [task, promise] (dsb::comm::Reactor& reactor)
-    {
-        task(reactor, std::move(*promise));
-    };
+    if (auto sharedTask = m_nextTask.lock()) {
+        assert(!(*sharedTask));
+        *sharedTask = detail::CommThreadFunctions<StackData, Result>::WrapTask(
+            std::move(task),
+            std::move(promise));
 
-    // Notify background thread that a task is ready and wait for it
-    // to acknowledge it.
-    m_socket.send("", 0);
-    char dummy;
-    m_socket.recv(&dummy, 1);
-    assert(!(*m_sharedTask));
+        // Notify background thread that a task is ready and wait for it
+        // to acknowledge it before returning.
+        m_socket.send("", 0);
+        char dummy;
+        m_socket.recv(&dummy, 1);
+        return future;
+    } else {
+        // The weak_ptr has expired, meaning that the thread (which holds
+        // a shared_ptr to the same object) must be dead.
+        WaitForThreadTermination();
 
-    return future;
+        // The above function should have thrown.  If it didn't, it probably
+        // means that calling code did something stupid.
+        dsb::log::Log(
+            dsb::log::error,
+            "CommThread background thread has terminated silently and "
+            "unexpectedly.  Perhaps Reactor::Stop() was called?");
+        std::terminate();
+    }
 }
+
+
+namespace detail
+{
+    inline void CommThreadShutdown(
+        dsb::comm::Reactor& reactor,
+        std::promise<void> promise)
+    {
+        reactor.Stop();
+        promise.set_value();
+    }
+
+    template<typename StackData>
+    typename CommThreadTask<StackData, void>::Type CommThreadShutdownTask()
+    {
+        return [] (dsb::comm::Reactor& r, StackData&, std::promise<void> p)
+        {
+            CommThreadShutdown(r, std::move(p));
+        };
+    }
+
+    template<>
+    inline typename CommThreadTask<void, void>::Type CommThreadShutdownTask<void>()
+    {
+        return [] (dsb::comm::Reactor& r, std::promise<void> p)
+        {
+            CommThreadShutdown(r, std::move(p));
+        };
+    }
+} // namespace detail
+
+
+template<typename StackData>
+void CommThread<typename StackData>::Shutdown()
+{
+    Execute<void>(detail::CommThreadShutdownTask<StackData>());
+    WaitForThreadTermination();
+}
+
+
+template<typename StackData>
+bool CommThread<typename StackData>::Active() const DSB_NOEXCEPT
+{
+    return m_active;
+}
+
+
+template<typename StackData>
+void CommThread<typename StackData>::WaitForThreadTermination()
+    {
+        assert(m_active);
+        assert(m_threadStatus.valid());
+        try {
+            const auto cleanup = dsb::util::OnScopeExit([this] ()
+            {
+                m_active = false;
+                m_socket.close();
+#ifdef _MSC_VER
+                // Visual Studio does not "reset" the future after get().
+                // See:  http://stackoverflow.com/q/33899615
+                m_threadStatus = std::future<void>{};
+#endif
+            });
+            m_threadStatus.get();
+        }
+#ifdef _MSC_VER
+        // Visual Studio (versions up to and including 2015, at least)
+        // has a bug where std::current_exception() returns a null
+        // exception pointer if it is called during stack unwinding.
+        // We have to do the best we can in this case, and special-case
+        // some well-known exceptions.
+        // See: http://stackoverflow.com/q/29652438
+        catch (const zmq::error_t& e) {
+            if (std::current_exception()) {
+                throw CommThreadDead(std::current_exception());
+            } else {
+                throw CommThreadDead(std::make_exception_ptr(e));
+            }
+        }
+        catch (const std::runtime_error& e) {
+            if (std::current_exception()) {
+                throw CommThreadDead(std::current_exception());
+            } else {
+                throw CommThreadDead(std::make_exception_ptr(e));
+            }
+        }
+        catch (const std::logic_error& e) {
+            if (std::current_exception()) {
+                throw CommThreadDead(std::current_exception());
+            } else {
+                throw CommThreadDead(std::make_exception_ptr(e));
+            }
+        }
+        catch (const std::exception& e) {
+            if (std::current_exception()) {
+                throw CommThreadDead(std::current_exception());
+            } else {
+                throw CommThreadDead(std::make_exception_ptr(
+                    std::runtime_error(e.what())));
+            }
+        }
+#else
+        catch (...) {
+            throw CommThreadDead(std::current_exception());
+        }
+#endif
+    }
+
+
+#ifdef _MSC_VER
+#   pragma warning(push)
+#   pragma warning(disable: 4101) // Unreferenced local variable 'e'
+#endif
+
+template<typename StackData>
+void CommThread<typename StackData>::DestroySilently() DSB_NOEXCEPT
+{
+    if (Active()) {
+        try {
+            Shutdown();
+        } catch (const CommThreadDead& e) {
+            try {
+                std::rethrow_exception(e.OriginalException());
+            } catch (const std::exception& e) {
+                DSB_LOG_DEBUG(
+                    boost::format("Unexpected exception thrown in CommThread destructor: %s")
+                    % e.what());
+            }
+        } catch (const std::exception& e) {
+            DSB_LOG_DEBUG(
+                boost::format("Unexpected exception thrown in CommThread destructor: %s")
+                % e.what());
+        }
+    }
+    assert(!Active());
+    assert(!m_socket);
+    assert(!m_threadStatus.valid());
+}
+
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 
 }} // namespace

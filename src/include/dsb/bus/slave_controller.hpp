@@ -147,6 +147,25 @@ public:
         std::chrono::milliseconds timeout,
         SetVariablesHandler onComplete);
 
+    /// Completion handler type for SetPeers()
+    typedef VoidHandler SetPeersHandler;
+
+    /**
+    \brief  Sets or resets the list of peers to which the slave should be
+            connected for the purpose of subscribing to variable data.
+
+    \param [in] peers
+        A list of peer endpoint specifications.
+    \param [in] timeout
+        Max. allowed time for the operation to complete. Must be at least 1 ms.
+    \param [in] onComplete
+        Completion handler.
+    */
+    void SetPeers(
+        const std::vector<dsb::net::Endpoint>& peers,
+        std::chrono::milliseconds timeout,
+        SetPeersHandler onComplete);
+
     /// Completion handler type for Step()
     typedef VoidHandler StepHandler;
 

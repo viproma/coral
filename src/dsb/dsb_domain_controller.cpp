@@ -3,9 +3,7 @@
 #include <cassert>
 #include <unordered_map>
 
-#include "boost/lexical_cast.hpp"
-#include "boost/numeric/conversion/cast.hpp"
-#include "boost/range/algorithm/find_if.hpp"
+#include "boost/optional.hpp"
 
 #include "zmq.hpp"
 
@@ -41,6 +39,10 @@ namespace
 
     // Forward declarations of internal functions, definitions are
     // further down.
+    void SetupSlaveProviderTracking(
+        dsb::protocol::ServiceTracker& tracker,
+        SlaveProviderMap& slaveProviderMap,
+        dsb::comm::Reactor& reactor);
     void HandleGetSlaveTypes(
         std::chrono::milliseconds timeout,
         SlaveProviderMap& slaveProviders,
@@ -54,6 +56,8 @@ namespace
         SlaveProviderMap& slaveProviders,
         std::promise<dsb::net::SlaveLocator> promise)
         DSB_NOEXCEPT;
+
+
 }
 
 
@@ -63,28 +67,28 @@ using namespace std::placeholders;
 class Controller::Private
 {
 public:
-    explicit Private(
+    Private(
         const std::string& networkInterface,
         std::uint16_t discoveryPort)
-        : m_slaveProviders{}
-        , m_serviceTracker{boost::none}
-        , m_thread{std::bind(&Private::Init, this, _1, networkInterface, discoveryPort)}
+        : m_thread{}
     {
-    }
-
-    ~Private() DSB_NOEXCEPT
-    {
-        // FIXME:
-        // Ok, this sucks, and it is a general problem with the CommThread
-        // API.  Basically, we shouldn't have to manually destroy these
-        // objects, but at the same time, they must be destroyed *before*
-        // the background thread terminates because they need to unregister
-        // from the Reactor.
-        m_thread.Execute<void>([this] (dsb::comm::Reactor&, std::promise<void> p)
+        m_thread.Execute<void>([&]
+            (dsb::comm::Reactor& reactor, BgData& bgData, std::promise<void> status)
         {
-            m_serviceTracker = boost::none;
-            m_slaveProviders.clear();
-            p.set_value();
+            try {
+                bgData.serviceTracker.emplace(
+                    reactor,
+                    0,
+                    networkInterface,
+                    discoveryPort);
+                SetupSlaveProviderTracking(
+                    *bgData.serviceTracker,
+                    bgData.slaveProviders,
+                    reactor);
+                status.set_value();
+            } catch (...) {
+                status.set_exception(std::current_exception());
+            }
         }).get();
     }
 
@@ -98,12 +102,15 @@ public:
         std::chrono::milliseconds timeout)
     {
         return m_thread.Execute<std::vector<SlaveType>>(
-            [=] (dsb::comm::Reactor&, std::promise<std::vector<SlaveType>> promise)
+            [=] (
+                dsb::comm::Reactor&,
+                BgData& bgData,
+                std::promise<std::vector<SlaveType>> result)
             {
                 HandleGetSlaveTypes(
                     timeout,
-                    m_slaveProviders,
-                    std::move(promise));
+                    bgData.slaveProviders,
+                    std::move(result));
             }
         ).get();
     }
@@ -116,90 +123,29 @@ public:
         // Note: It is safe to capture by reference in the lambda because
         // the present thread is blocked waiting for the operation to complete.
         return m_thread.Execute<dsb::net::SlaveLocator>(
-            [&] (dsb::comm::Reactor&, std::promise<dsb::net::SlaveLocator> promise)
+            [&] (
+                dsb::comm::Reactor&,
+                BgData& bgData,
+                std::promise<dsb::net::SlaveLocator> result)
             {
                 HandleInstantiateSlave(
                     slaveProviderID,
                     slaveTypeUUID,
                     timeout,   // instantiation timeout
                     2*timeout, // communication timeout
-                    m_slaveProviders,
-                    std::move(promise));
+                    bgData.slaveProviders,
+                    std::move(result));
             }
         ).get();
     }
 
 private:
-    // This function initialises the objects we will use in the background
-    // thread, and is executed in that thread.
-    void Init(
-        dsb::comm::Reactor& reactor,
-        const std::string& m_networkInterface,
-        std::uint16_t m_discoveryPort)
+    struct BgData
     {
-        const auto reactorPtr = &reactor;
-        m_serviceTracker.emplace(reactor, 0, m_networkInterface, m_discoveryPort);
-        m_serviceTracker->AddTrackedServiceType(
-            "no.sintef.viproma.dsb.slave_provider",
-            SLAVEPROVIDER_TIMEOUT,
-            // Slave provider discovered:
-            [reactorPtr, this] (
-                const std::string& address,
-                const std::string& serviceType,
-                const std::string& serviceID,
-                const char* payload,
-                std::size_t payloadSize)
-            {
-                if (payloadSize != 2) {
-                    DSB_LOG_TRACE("Domain controller ignoring slave provider beacon due to missing data");
-                    return;
-                }
-                const auto port = dsb::util::DecodeUint16(payload);
-                m_slaveProviders.insert(std::make_pair(
-                    serviceID,
-                    dsb::bus::SlaveProviderClient(*reactorPtr, address, port)));
-                DSB_LOG_TRACE(
-                    boost::format("Slave provider discovered: %s @ %s:%d")
-                    % serviceID % address % port);
-            },
-            // Slave provider port changed:
-            [reactorPtr, this] (
-                const std::string& address,
-                const std::string& serviceType,
-                const std::string& serviceID,
-                const char* payload,
-                std::size_t payloadSize)
-            {
-                if (payloadSize != 2) {
-                    DSB_LOG_TRACE("Domain controller ignoring slave provider beacon due to missing data");
-                    return;
-                }
-                const auto port = dsb::util::DecodeUint16(payload);
-                m_slaveProviders.erase(serviceID);
-                m_slaveProviders.insert(std::make_pair(
-                    serviceID,
-                    dsb::bus::SlaveProviderClient(*reactorPtr, address, port)));
-                DSB_LOG_TRACE(
-                    boost::format("Slave provider updated: %s @ %s:%d")
-                    % serviceID % address % port);
-            },
-            // Slave provider disappeared:
-            [reactorPtr, this] (
-                const std::string& serviceType,
-                const std::string& serviceID)
-            {
-                m_slaveProviders.erase(serviceID);
-                DSB_LOG_TRACE(boost::format("Slave provider disappeared: %s")
-                    % serviceID);
-            });
-    }
-
-    // For use in background thread
-    SlaveProviderMap m_slaveProviders;
-    boost::optional<dsb::protocol::ServiceTracker> m_serviceTracker;
-
-    // Background thread
-    dsb::async::CommThread m_thread;
+        SlaveProviderMap slaveProviders;
+        boost::optional<dsb::protocol::ServiceTracker> serviceTracker;
+    };
+    dsb::async::CommThread<BgData> m_thread;
 };
 
 
@@ -252,6 +198,70 @@ dsb::net::SlaveLocator Controller::InstantiateSlave(
 namespace // Internal functions
 {
 
+// Configures the service tracker to automatically add and remove
+// slave providers in the slave provider map.
+void SetupSlaveProviderTracking(
+    dsb::protocol::ServiceTracker& tracker,
+    SlaveProviderMap& slaveProviderMap,
+    dsb::comm::Reactor& reactor)
+{
+    const auto slaveProviderMapPtr = &slaveProviderMap;
+    const auto reactorPtr = &reactor;
+
+    tracker.AddTrackedServiceType(
+        "no.sintef.viproma.dsb.slave_provider",
+        SLAVEPROVIDER_TIMEOUT,
+        // Slave provider discovered:
+        [slaveProviderMapPtr, reactorPtr] (
+            const std::string& address,
+            const std::string& serviceType,
+            const std::string& serviceID,
+            const char* payload,
+            std::size_t payloadSize)
+        {
+            if (payloadSize != 2) {
+                DSB_LOG_TRACE("Domain controller ignoring slave provider beacon due to missing data");
+                return;
+            }
+            const auto port = dsb::util::DecodeUint16(payload);
+            slaveProviderMapPtr->insert(std::make_pair(
+                serviceID,
+                dsb::bus::SlaveProviderClient(*reactorPtr, address, port)));
+            DSB_LOG_TRACE(
+                boost::format("Slave provider discovered: %s @ %s:%d")
+                % serviceID % address % port);
+        },
+        // Slave provider port changed:
+        [slaveProviderMapPtr, reactorPtr] (
+            const std::string& address,
+            const std::string& serviceType,
+            const std::string& serviceID,
+            const char* payload,
+            std::size_t payloadSize)
+        {
+            if (payloadSize != 2) {
+                DSB_LOG_TRACE("Domain controller ignoring slave provider beacon due to missing data");
+                return;
+            }
+            const auto port = dsb::util::DecodeUint16(payload);
+            slaveProviderMapPtr->erase(serviceID);
+            slaveProviderMapPtr->insert(std::make_pair(
+                serviceID,
+                dsb::bus::SlaveProviderClient(*reactorPtr, address, port)));
+            DSB_LOG_TRACE(
+                boost::format("Slave provider updated: %s @ %s:%d")
+                % serviceID % address % port);
+        },
+        // Slave provider disappeared:
+        [slaveProviderMapPtr] (
+            const std::string& serviceType,
+            const std::string& serviceID)
+        {
+            slaveProviderMapPtr->erase(serviceID);
+            DSB_LOG_TRACE(boost::format("Slave provider disappeared: %s")
+                % serviceID);
+        });
+}
 
 // This struct contains the state of an ongoing GetSlaveTypes request
 // to multiple slave providers.
@@ -275,6 +285,10 @@ void HandleGetSlaveTypes(
     SlaveProviderMap& slaveProviders,
     std::promise<std::vector<dsb::domain::Controller::SlaveType>> promise)
 {
+    if (slaveProviders.empty()) {
+        promise.set_value(std::vector<dsb::domain::Controller::SlaveType>{});
+        return;
+    }
     const auto sharedPromise =
         std::make_shared<decltype(promise)>(std::move(promise));
     try {
@@ -365,20 +379,14 @@ void HandleInstantiateSlave(
             instantiationTimeout,
             [sharedPromise] (
                 const std::error_code& ec,
-                const dsb::comm::P2PEndpoint endpoint,
+                const dsb::net::SlaveLocator& locator,
                 const std::string& errorMessage)
             {
-                if (ec) {
+                if (!ec) {
+                    sharedPromise->set_value(locator);
+                } else {
                     sharedPromise->set_exception(std::make_exception_ptr(
                         std::runtime_error(ec.message() + " (" + errorMessage + ")")));
-                    return;
-                } else {
-                    sharedPromise->set_value(dsb::net::SlaveLocator(
-                        endpoint.Endpoint(),
-                        endpoint.IsBehindProxy()
-                            ? endpoint.Identity()
-                            : std::string{}));
-                    return;
                 }
             },
             commTimeout);

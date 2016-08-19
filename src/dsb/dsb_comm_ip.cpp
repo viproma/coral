@@ -138,9 +138,23 @@ std::string IPAddressToString(in_addr address)
 {
     char buffer[INET_ADDRSTRLEN];
     if (inet_ntop(AF_INET, &address, buffer, sizeof(buffer)) == nullptr) {
-        throw std::invalid_argument("Invalid IP address");
+        throw std::logic_error("IP address conversion failed");
     }
     return buffer;
+}
+
+
+in_addr StringToIPAddress(const std::string& address)
+{
+    in_addr result;
+    const auto status = inet_pton(AF_INET, address.c_str(), &result);
+    if (status == 1) {
+        return result;
+    } else if (status == 0) {
+        throw std::invalid_argument("Not an IPv4 address: " + address);
+    } else {
+        throw std::logic_error("IP address conversion failed");
+    }
 }
 
 

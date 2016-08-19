@@ -77,7 +77,7 @@ public:
     /// Completion handler type for InstantiateSlave().
     typedef std::function<void(
             const std::error_code& ec,
-            const dsb::comm::P2PEndpoint& endpoint,
+            const dsb::net::SlaveLocator& slaveLocator,
             const std::string& errorMessage)>
         InstantiateSlaveHandler;
 

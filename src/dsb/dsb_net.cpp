@@ -1,9 +1,20 @@
+#ifdef _WIN32
+#   define WIN32_LEAN_AND_MEAN
+#endif
 #include "dsb/net.hpp"
 
+#ifdef _WIN32
+#   include <ws2tcpip.h>
+#else
+#   include <arpa/inet.h>
+#endif
+
+#include <cstdlib>
 #include <stdexcept>
 #include <utility>
 #include "zmq.hpp"
 
+#include "dsb/comm/ip.hpp"
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/error.hpp"
@@ -14,137 +25,305 @@ namespace dsb
 namespace net
 {
 
-
 // =============================================================================
-// DomainLocator
+// InetEndpoint
 // =============================================================================
 
-DomainLocator::DomainLocator(
-    const std::string& reportMasterEndpoint,
-    const std::string& reportSlavePEndpoint,
-    const std::string& infoMasterEndpoint,
-    const std::string& infoSlavePEndpoint,
-    const std::string& execReqEndpoint)
-    : m_reportMasterEndpoint(reportMasterEndpoint),
-      m_reportSlavePEndpoint(reportSlavePEndpoint),
-      m_infoMasterEndpoint(infoMasterEndpoint),
-      m_infoSlavePEndpoint(infoSlavePEndpoint),
-      m_execReqEndpoint(execReqEndpoint)
+Endpoint::Endpoint() DSB_NOEXCEPT { }
+
+
+Endpoint::Endpoint(const std::string& url)
+{
+    const auto colonPos = url.find("://");
+    if (colonPos == std::string::npos) {
+        throw std::invalid_argument("Invalid URL: " + url);
+    }
+    m_transport = url.substr(0, colonPos);
+    m_address = url.substr(colonPos + 3);
+}
+
+
+Endpoint::Endpoint(const std::string& transport, const std::string& address)
+    : m_transport(transport)
+    , m_address(address)
 {
 }
 
 
-const std::string& DomainLocator::ReportMasterEndpoint() const { return m_reportMasterEndpoint; }
-
-
-const std::string& DomainLocator::ReportSlavePEndpoint() const { return m_reportSlavePEndpoint; }
-
-
-const std::string& DomainLocator::InfoMasterEndpoint() const { return m_infoMasterEndpoint; }
-
-
-const std::string& DomainLocator::InfoSlavePEndpoint() const { return m_infoSlavePEndpoint; }
-
-
-const std::string& DomainLocator::ExecReqEndpoint() const { return m_execReqEndpoint; }
-
-
-DomainLocator GetDomainEndpoints(const std::string& domainBrokerAddress)
+std::string Endpoint::Transport() const DSB_NOEXCEPT
 {
-    auto baseAddress = (domainBrokerAddress.find("://") == std::string::npos)
-        ? "tcp://" + domainBrokerAddress
-        : domainBrokerAddress;
-    if (baseAddress.substr(0, 6) != "tcp://") {
-        throw std::runtime_error(
-            "Invalid broker address: " + domainBrokerAddress
-            + " (only TCP communication supported)");
-    }
+    return m_transport;
+}
 
-    // baseAddress := "tcp://hostname:"
-    // fullAddress := "tcp://hostname:port"
-    const auto colonPos = baseAddress.rfind(':');
-    std::string fullAddress;
-    if (colonPos == 3) {
-        baseAddress += ':';
-        fullAddress = baseAddress + std::to_string(DEFAULT_DOMAIN_BROKER_PORT);
+
+std::string Endpoint::Address() const DSB_NOEXCEPT
+{
+    return m_address;
+}
+
+
+std::string Endpoint::URL() const DSB_NOEXCEPT
+{
+    return m_transport + "://" + m_address;
+}
+
+
+// =============================================================================
+// InetAddress
+// =============================================================================
+
+// NOTE:
+// In this object, either the string member or the in_addr member may be set,
+// but not both.  We use the emptiness of the string member as an indicator of
+// which it is.
+
+namespace
+{
+    void ParseAddressString(
+        const std::string& address,
+        std::string& name,
+        in_addr& ipv4)
+    {
+        DSB_INPUT_CHECK(!address.empty());
+        name.clear();
+        std::memset(&ipv4, 0, sizeof(ipv4));
+        if (address == "*") {
+            ipv4.s_addr = INADDR_ANY;
+        } else if (inet_pton(AF_INET, address.c_str(), &ipv4) != 1) {
+            name = address;
+        }
+    }
+}
+
+InetAddress::InetAddress() DSB_NOEXCEPT
+{
+    ParseAddressString("*", m_strAddr, m_inAddr);
+}
+
+
+InetAddress::InetAddress(const std::string& address)
+{
+    ParseAddressString(address, m_strAddr, m_inAddr);
+}
+
+
+InetAddress::InetAddress(const char* address)
+{
+    ParseAddressString(address, m_strAddr, m_inAddr);
+}
+
+
+InetAddress::InetAddress(in_addr address) DSB_NOEXCEPT
+    : m_inAddr(address)
+{
+}
+
+
+bool InetAddress::IsAnyAddress() const DSB_NOEXCEPT
+{
+    return m_strAddr.empty() && m_inAddr.s_addr == INADDR_ANY;
+}
+
+
+std::string InetAddress::ToString() const DSB_NOEXCEPT
+{
+    if (m_strAddr.empty()) {
+        if (m_inAddr.s_addr == INADDR_ANY) {
+            return "*";
+        } else {
+            return dsb::comm::IPAddressToString(m_inAddr);
+        }
     } else {
-        fullAddress = std::move(baseAddress);
-        baseAddress = fullAddress.substr(0, colonPos+1);
+        return m_strAddr;
     }
+}
 
-    auto sck = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
-    sck.connect(fullAddress.c_str());
-    std::vector<zmq::message_t> msg;
-    msg.push_back(dsb::comm::ToFrame("GET_PROXY_PORTS"));
-    dsb::comm::Send(sck, msg);
-    dsb::comm::Receive(sck, msg);
-    if (msg.size() < 5 || dsb::comm::ToString(msg[0]) != "PROXY_PORTS") {
-        throw std::runtime_error("Invalid reply from domain broker");
+
+in_addr InetAddress::ToInAddr() const
+{
+    if (m_strAddr.empty()) {
+        return m_inAddr;
+    } else {
+        throw std::logic_error("Not an IPv4 address");
     }
-    return DomainLocator(
-        baseAddress + dsb::comm::ToString(msg[1]),
-        baseAddress + dsb::comm::ToString(msg[2]),
-        baseAddress + dsb::comm::ToString(msg[3]),
-        baseAddress + dsb::comm::ToString(msg[4]),
-        fullAddress);
 }
 
 
 // =============================================================================
-// ExecutionLocator
+// InetPort
 // =============================================================================
 
-ExecutionLocator::ExecutionLocator(
-    const std::string& masterEndpoint,
-    const std::string& slaveEndpoint,
-    const std::string& variablePubEndpoint,
-    const std::string& variableSubEndpoint,
-    const std::string& execTerminationEndpoint,
-    const std::string& execID,
-    std::chrono::seconds commTimeout)
-    : m_masterEndpoint(masterEndpoint),
-      m_slaveEndpoint(slaveEndpoint),
-      m_variablePubEndpoint(variablePubEndpoint),
-      m_variableSubEndpoint(variableSubEndpoint),
-      m_execTerminationEndpoint(execTerminationEndpoint),
-      m_execName(execID),
-      m_commTimeout(commTimeout)
+namespace
+{
+    const std::int32_t ANY_PORT = -1;
+    const std::int32_t MAX_PORT = 65535;
+
+    bool IsInternetPortNumber(std::int32_t port) DSB_NOEXCEPT
+    {
+        return port >= 0 && port <= MAX_PORT;
+    }
+
+    std::int32_t ParsePortString(const std::string& s)
+    {
+        if (s == "*") return ANY_PORT;
+        const auto i = std::stoi(s);
+        if (!IsInternetPortNumber(i)) {
+            throw std::out_of_range("Port number out of range: " + s);
+        }
+        return i;
+    }
+}
+
+
+InetPort::InetPort(std::uint16_t port) DSB_NOEXCEPT
+    : m_port{port}
 {
 }
 
-const std::string& ExecutionLocator::MasterEndpoint() const
+
+InetPort::InetPort(const std::string& port)
+    : m_port{ParsePortString(port)}
 {
-    return m_masterEndpoint;
 }
 
-const std::string& ExecutionLocator::SlaveEndpoint() const
+
+InetPort::InetPort(const char* port)
+    : m_port{ParsePortString(port)}
 {
-    return m_slaveEndpoint;
 }
 
-const std::string& ExecutionLocator::VariablePubEndpoint() const
+
+bool InetPort::IsNumber() const DSB_NOEXCEPT
 {
-    return m_variablePubEndpoint;
+    return IsInternetPortNumber(m_port);
 }
 
-const std::string& ExecutionLocator::VariableSubEndpoint() const
+
+bool InetPort::IsAnyPort() const DSB_NOEXCEPT
 {
-    return m_variableSubEndpoint;
+    return m_port == ANY_PORT;
 }
 
-const std::string& ExecutionLocator::ExecTerminationEndpoint() const
+
+std::uint16_t InetPort::ToNumber() const
 {
-    return m_execTerminationEndpoint;
+    DSB_PRECONDITION_CHECK(IsNumber());
+    return static_cast<std::uint16_t>(m_port);
 }
 
-const std::string& ExecutionLocator::ExecName() const
+
+std::string InetPort::ToString() const
 {
-    return m_execName;
+    if (m_port == ANY_PORT) {
+        return "*";
+    } else {
+        return std::to_string(m_port);
+    }
 }
 
-std::chrono::seconds ExecutionLocator::CommTimeout() const
+
+std::uint16_t InetPort::ToNetworkByteOrder() const
 {
-    return m_commTimeout;
+    return htons(ToNumber());
+}
+
+
+InetPort InetPort::FromNetworkByteOrder(std::uint16_t nPort) DSB_NOEXCEPT
+{
+    return InetPort(ntohs(nPort));
+}
+
+
+// =============================================================================
+// InetEndpoint
+// =============================================================================
+
+
+InetEndpoint::InetEndpoint() DSB_NOEXCEPT
+{
+}
+
+
+InetEndpoint::InetEndpoint(const InetAddress& address, const InetPort& port)
+    DSB_NOEXCEPT
+    : m_address{address}
+    , m_port{port}
+{
+}
+
+
+InetEndpoint::InetEndpoint(const std::string& specification)
+{
+    const auto colonPos = specification.find(':');
+    m_address = InetAddress{specification.substr(0, colonPos)};
+    if (colonPos < specification.size() - 1) {
+        m_port = InetPort{specification.substr(colonPos+1)};
+    }
+}
+
+
+InetEndpoint::InetEndpoint(const sockaddr_in& sin)
+{
+    DSB_INPUT_CHECK(sin.sin_family == AF_INET);
+    m_address = InetAddress{sin.sin_addr};
+    m_port = InetPort::FromNetworkByteOrder(sin.sin_port);
+}
+
+
+InetEndpoint::InetEndpoint(const sockaddr& sa)
+{
+    DSB_INPUT_CHECK(sa.sa_family == AF_INET);
+    const auto sin = reinterpret_cast<const sockaddr_in*>(&sa);
+    m_address = InetAddress{sin->sin_addr};
+    m_port = InetPort::FromNetworkByteOrder(sin->sin_port);
+}
+
+
+const InetAddress& InetEndpoint::Address() const DSB_NOEXCEPT
+{
+    return m_address;
+}
+
+
+void InetEndpoint::SetAddress(const InetAddress& value) DSB_NOEXCEPT
+{
+    m_address = value;
+}
+
+
+const InetPort& InetEndpoint::Port() const DSB_NOEXCEPT
+{
+    return m_port;
+}
+
+
+void InetEndpoint::SetPort_(const InetPort& value) DSB_NOEXCEPT
+{
+    m_port = value;
+}
+
+
+std::string InetEndpoint::ToString() const DSB_NOEXCEPT
+{
+    return m_address.ToString() + ':' + m_port.ToString();
+}
+
+
+Endpoint InetEndpoint::ToEndpoint(const std::string& transport) const
+{
+    DSB_INPUT_CHECK(!transport.empty());
+    return Endpoint{transport, m_address.ToString() + ':' + m_port.ToString()};
+}
+
+
+sockaddr_in InetEndpoint::ToSockaddrIn() const
+{
+    sockaddr_in result;
+    std::memset(&result, 0, sizeof(result));
+    result.sin_family = AF_INET;
+    result.sin_port = m_port.ToNetworkByteOrder();
+    result.sin_addr = m_address.ToInAddr();
+    return result;
 }
 
 
@@ -153,31 +332,24 @@ std::chrono::seconds ExecutionLocator::CommTimeout() const
 // =============================================================================
 
 SlaveLocator::SlaveLocator(
-    const std::string& endpoint,
-    const std::string& identity)
-    : m_endpoint(endpoint),
-      m_identity(identity)
+    const Endpoint& controlEndpoint,
+    const Endpoint& dataPubEndpoint)
+    DSB_NOEXCEPT
+    : m_controlEndpoint{controlEndpoint},
+      m_dataPubEndpoint{dataPubEndpoint}
 {
 }
 
-const std::string& SlaveLocator::Endpoint() const
+
+const Endpoint& SlaveLocator::ControlEndpoint() const DSB_NOEXCEPT
 {
-    return m_endpoint;
+    return m_controlEndpoint;
 }
 
-const std::string& SlaveLocator::Identity() const
-{
-    return m_identity;
-}
 
-bool SlaveLocator::Empty() const
+const Endpoint& SlaveLocator::DataPubEndpoint() const DSB_NOEXCEPT
 {
-    return m_endpoint.empty();
-}
-
-bool SlaveLocator::HasIdentity() const
-{
-    return !m_identity.empty();
+    return m_dataPubEndpoint;
 }
 
 

@@ -1,6 +1,7 @@
 package dsbproto.domain;
 
 import "model.proto";
+import "net.proto";
 
 
 message SlaveTypeInfo
@@ -17,6 +18,11 @@ message InstantiateSlaveData
 {
     required string slave_type_uuid = 1;
     required int32 timeout_ms = 2;
+}
+
+message InstantiateSlaveReply
+{
+    required net.SlaveLocator slave_locator = 1;
 }
 
 message Error

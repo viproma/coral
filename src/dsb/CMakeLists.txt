@@ -104,6 +104,7 @@ set (_testSources
     "dsb_comm_util_test.cpp"
     "dsb_error_test.cpp"
     "dsb_fmi_fmu1_test.cpp"
+    "dsb_net_test.cpp"
     "dsb_protobuf_test.cpp"
     "dsb_protocol_discovery_test.cpp"
     "dsb_protocol_domain_test.cpp"

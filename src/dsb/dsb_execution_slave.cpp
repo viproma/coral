@@ -20,14 +20,16 @@ namespace execution
 
 SlaveRunner::SlaveRunner(
     std::shared_ptr<ISlaveInstance> slaveInstance,
-    std::string bindURL,
+    const dsb::net::Endpoint& controlEndpoint,
+    const dsb::net::Endpoint& dataPubEndpoint,
     std::chrono::seconds commTimeout)
     : m_slaveInstance(slaveInstance),
       m_reactor(std::make_unique<dsb::comm::Reactor>()),
       m_slaveAgent(std::make_unique<dsb::bus::SlaveAgent>(
         *m_reactor,
         *slaveInstance,
-        dsb::comm::P2PEndpoint(bindURL),
+        controlEndpoint,
+        dataPubEndpoint,
         commTimeout))
 {
 }
@@ -54,9 +56,15 @@ SlaveRunner& SlaveRunner::operator=(SlaveRunner&& other) DSB_NOEXCEPT
 SlaveRunner::~SlaveRunner() { }
 
 
-std::string SlaveRunner::BoundEndpoint()
+dsb::net::Endpoint SlaveRunner::BoundControlEndpoint()
 {
-    return m_slaveAgent->BoundEndpoint().URL();
+    return m_slaveAgent->BoundControlEndpoint();
+}
+
+
+dsb::net::Endpoint SlaveRunner::BoundDataPubEndpoint()
+{
+    return m_slaveAgent->BoundDataPubEndpoint();
 }
 
 

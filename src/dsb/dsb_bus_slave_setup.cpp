@@ -20,18 +20,12 @@ SlaveSetup::SlaveSetup()
 SlaveSetup::SlaveSetup(
     dsb::model::TimePoint startTime_,
     dsb::model::TimePoint stopTime_,
-    const std::string& variablePubEndpoint_,
-    const std::string& variableSubEndpoint_,
     const std::string& executionName_)
     : startTime(startTime_),
       stopTime(stopTime_),
-      variablePubEndpoint(variablePubEndpoint_),
-      variableSubEndpoint(variableSubEndpoint_),
       executionName(executionName_)
 {
     assert(startTime <= stopTime);
-    assert(!variablePubEndpoint.empty());
-    assert(!variableSubEndpoint.empty());
 }
 
 

@@ -60,6 +60,11 @@ public:
         std::chrono::milliseconds timeout,
         SetVariablesHandler onComplete) override;
 
+    void SetPeers(
+        const std::vector<dsb::net::Endpoint>& peers,
+        std::chrono::milliseconds timeout,
+        SetPeersHandler onComplete) override;
+
     void Step(
         dsb::model::StepID stepID,
         dsb::model::TimePoint currentT,
@@ -108,6 +113,9 @@ private:
     void DescribeReplyReceived(
         const std::vector<zmq::message_t>& msg,
         GetDescriptionHandler onComplete);
+    void SetPeersReplyReceived(
+        const std::vector<zmq::message_t>& msg,
+        VoidHandler onComplete);
     void SetVarsReplyReceived(
         const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);

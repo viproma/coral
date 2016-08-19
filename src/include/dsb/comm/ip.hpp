@@ -53,5 +53,9 @@ std::vector<NetworkInterfaceInfo> GetNetworkInterfaces();
 std::string IPAddressToString(in_addr address);
 
 
+/// Converts an IP address in dotted-decimal string format to an in_addr.
+in_addr StringToIPAddress(const std::string& address);
+
+
 }} // namespace
 #endif // header guard

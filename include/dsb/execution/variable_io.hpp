@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "dsb/model.hpp"
+#include "dsb/net.hpp"
 
 
 // Forward declaration to avoid dependency on ZMQ headers
@@ -27,22 +28,31 @@ public:
     /**
     \brief  Default constructor.
 
-    Note that Connect() must be called before any variables may be published.
+    Note that Bind() must be called before any variables may be published.
     */
     VariablePublisher();
 
     /**
-    \brief  Connects to the remote endpoint to which variable values should be
-            published, and set the slave ID used for the outgoing data.
+    \brief  Binds to a local endpoint.
 
-    This is typically used to connect to an XPUB/XSUB broker.
+    \param [in] endpoint
+        The endpoint, in the format `tcp://<interface>:<port>`, where
+        "interface" may be "*" to signify all network interfaces, and
+        "port" may be "*" to signify an OS-assigned (ephemeral) port.
 
-    \param [in] endpoint    The address to an XSUB or SUB endpoint.
-    \param [in] ownID       The slave ID with which to tag the outgoing data.
-
-    \pre Connect() has not been called previously on this instance.
+    \pre Bind() has not been called previously on this instance.
     */
-    void Connect(const std::string& endpoint, dsb::model::SlaveID ownID);
+    void Bind(const dsb::net::Endpoint& endpoint);
+
+    /**
+    \brief  Returns the endpoint bound to by the last Bind() call.
+
+    This is useful when the port number was specified as '*', as this will
+    return the actual port number as part of the endpoint address.
+
+    \pre Bind() has been called successfully on this instance.
+    */
+    dsb::net::Endpoint BoundEndpoint() const;
 
     /**
     \brief  Publishes the value of a single variable.
@@ -53,19 +63,20 @@ public:
     decreases.
 
     \param [in] stepID      Time step ID
+    \param [in] slaveID     Slave ID
     \param [in] variableID  Variable ID (which is paired with the slave ID
                             to form a "global" variable ID before sending)
     \param [in] value       The variable value
 
-    \pre Connect() has been called successfully on this instance.
+    \pre Bind() has been called successfully on this instance.
     */
     void Publish(
         dsb::model::StepID stepID,
+        dsb::model::SlaveID slaveID,
         dsb::model::VariableID variableID,
         dsb::model::ScalarValue value);
 
 private:
-    dsb::model::SlaveID m_ownID;
     std::unique_ptr<zmq::socket_t> m_socket;
 };
 
@@ -82,16 +93,21 @@ public:
     VariableSubscriber();
 
     /**
-    \brief  Connects to the remote endpoint from which variable values should
+    \brief  Connects to the remote endpoints from which variable values should
             be received.
 
-    This is typically used to connect to an XPUB/XSUB broker.
+    Every time this function is called, existing connections are broken and
+    new ones are established.  Thus, *all* endpoints must be specified each
+    time.
 
-    \param [in] endpoint    The address to an XPUB or PUB endpoint.
-
-    \pre Connect() has not been called previously on this instance.
+    \param [in] endpoints
+        A pointer to an array of endpoints.
+    \param [in] endpointsSize
+        The size of the `endpoints` array.
     */
-    void Connect(const std::string& endpoint);
+    void Connect(
+        const dsb::net::Endpoint* endpoints,
+        std::size_t endpointsSize);
 
     /**
     \brief Subscribes to the given variable.

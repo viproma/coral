@@ -42,6 +42,29 @@ namespace
 // SlaveProviderClient
 // =============================================================================
 
+namespace
+{
+    // If the slave endpoints have "*" as their address, it means that
+    // the slave is listening on the same interface(s) as the slave provider.
+    // This helper function takes care of replacing the address if necessary.
+    dsb::net::Endpoint MakeSlaveEndpoint(
+        const std::string& slaveProviderAddress,
+        const std::string& slaveEndpointURL)
+    {
+        const auto ep = dsb::net::Endpoint{slaveEndpointURL};
+        if (ep.Transport() == "tcp") {
+            auto inEp = dsb::net::InetEndpoint{ep.Address()};
+            if (inEp.Address().IsAnyAddress()) {
+                inEp.SetAddress(slaveProviderAddress);
+            }
+            return inEp.ToEndpoint("tcp");
+        } else {
+            return ep;
+        }
+    }
+}
+
+
 using namespace std::placeholders;
 
 class SlaveProviderClient::Private
@@ -154,28 +177,42 @@ private:
         const char* replyBody, size_t replyBodySize)
     {
         if (ec) {
-            completionHandler(ec, dsb::comm::P2PEndpoint{}, std::string{});
+            completionHandler(ec, dsb::net::SlaveLocator{}, std::string{});
             return;
         }
         const auto reply = std::string{replyHeader, replyHeaderSize};
-        if (reply == OK_REPLY && replyBodySize > 1) {
-            completionHandler(
-                std::error_code{},
-                replyBody[0] == ':'
-                    ? "tcp://" + m_address + std::string{replyBody, replyBodySize}
-                    : std::string{replyBody, replyBodySize},
-                std::string{});
+        if (reply == OK_REPLY) {
+            dsbproto::domain::InstantiateSlaveReply replyData;
+            if (replyData.ParseFromArray(replyBody, replyBodySize)) {
+                // Trandlate "*" in the slave addresses with the slave
+                // provider address.
+                const auto slaveLocator = dsb::net::SlaveLocator{
+                    MakeSlaveEndpoint(
+                        m_address,
+                        replyData.slave_locator().control_endpoint()),
+                    MakeSlaveEndpoint(
+                        m_address,
+                        replyData.slave_locator().data_pub_endpoint())
+                };
+
+                completionHandler(
+                    std::error_code{},
+                    slaveLocator,
+                    std::string{});
+                return;
+            } // else fall through to the end of the function
         } else if (reply == ERROR_REPLY) {
             completionHandler(
                 make_error_code(dsb::error::generic_error::operation_failed),
-                dsb::comm::P2PEndpoint{},
+                dsb::net::SlaveLocator{},
                 std::string{replyBody, replyBodySize});
-        } else {
-            completionHandler(
-                make_error_code(std::errc::bad_message),
-                dsb::comm::P2PEndpoint{},
-                std::string{});
+            return;
         }
+        // If we get here, it means we have received bad data.
+        completionHandler(
+            make_error_code(std::errc::bad_message),
+            dsb::net::SlaveLocator{},
+            std::string{});
     }
 
     const std::string m_address;
@@ -360,11 +397,12 @@ private:
                 std::chrono::milliseconds(args.timeout_ms()));
             replyHeader = OK_REPLY.data();
             replyHeaderSize = OK_REPLY.size();
-            m_replyBodyBuffer = slaveLocator.Endpoint();
-            if (slaveLocator.HasIdentity()) {
-                m_replyBodyBuffer += '$';
-                m_replyBodyBuffer += slaveLocator.Identity();
-            }
+            dsbproto::domain::InstantiateSlaveReply data;
+            data.mutable_slave_locator()->set_control_endpoint(
+                slaveLocator.ControlEndpoint().URL());
+            data.mutable_slave_locator()->set_data_pub_endpoint(
+                slaveLocator.DataPubEndpoint().URL());
+            m_replyBodyBuffer = data.SerializeAsString();
         } catch (const std::runtime_error& e) {
              replyHeader = ERROR_REPLY.data();
              replyHeaderSize = ERROR_REPLY.size();

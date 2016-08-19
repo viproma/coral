@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include "dsb/config.h"
 #include "dsb/model.hpp"
+#include "dsb/net.hpp"
 
 
 namespace dsb
@@ -140,7 +141,8 @@ class SlaveRunner
 public:
     SlaveRunner(
         std::shared_ptr<ISlaveInstance> slaveInstance,
-        std::string bindURL,
+        const dsb::net::Endpoint& controlEndpoint,
+        const dsb::net::Endpoint& dataPubEndpoint,
         std::chrono::seconds commTimeout);
 
     SlaveRunner(SlaveRunner&&) DSB_NOEXCEPT;
@@ -149,7 +151,8 @@ public:
 
     ~SlaveRunner();
 
-    std::string BoundEndpoint();
+    dsb::net::Endpoint BoundControlEndpoint();
+    dsb::net::Endpoint BoundDataPubEndpoint();
 
     void Run();
 

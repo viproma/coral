@@ -6,10 +6,12 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 
 #include "dsb/bus/execution_manager_private.hpp"
 #include "dsb/bus/slave_control_messenger.hpp"
 #include "dsb/bus/slave_controller.hpp"
+#include "dsb/log.hpp"
 #include "dsb/util.hpp"
 
 
@@ -17,138 +19,6 @@ namespace dsb
 {
 namespace bus
 {
-
-
-// =============================================================================
-
-
-void ConfigExecutionState::Terminate(ExecutionManagerPrivate& self)
-{
-    self.DoTerminate();
-}
-
-
-void ConfigExecutionState::BeginConfig(
-    ExecutionManagerPrivate& /*self*/,
-    ExecutionManager::BeginConfigHandler onComplete)
-{
-    // Do nothing, we're already here.
-    onComplete(std::error_code());
-}
-
-
-void ConfigExecutionState::EndConfig(
-    ExecutionManagerPrivate& self,
-    ExecutionManager::BeginConfigHandler onComplete)
-{
-    self.SwapState(
-        std::make_unique<PrimingExecutionState>(std::move(onComplete)));
-}
-
-
-void ConfigExecutionState::SetSimulationTime(
-    ExecutionManagerPrivate& self,
-    dsb::model::TimePoint startTime,
-    dsb::model::TimePoint stopTime)
-{
-    DSB_PRECONDITION_CHECK(self.slaves.empty());
-    DSB_INPUT_CHECK(startTime <= stopTime);
-    self.slaveSetup.startTime = startTime;
-    self.slaveSetup.stopTime = stopTime;
-}
-
-
-namespace
-{
-    // Checks that s matches the regex [a-zA-Z][0-9a-zA-Z_]*
-    bool IsValidSlaveName(const std::string& s)
-    {
-        if (s.empty()) return false;
-        if (!std::isalpha(s.front())) return false;
-        for (char c : s) if (!std::isalnum(c) && c != '_') return false;
-        return true;
-    }
-}
-
-// NOTE:
-// None of the per-slave operation completion handlers in the CONFIG state
-// should capture the 'this' pointer of the ConfigExecutionState object.
-// The reason is that if the user calls EndConfig() while operations are still
-// pending, the operations will not complete in this state, but in the PRIMING
-// state.  Hence, the object will have been deleted and replaced with a
-// PrimingExecutionState object.
-
-dsb::model::SlaveID ConfigExecutionState::AddSlave(
-    ExecutionManagerPrivate& self,
-    const dsb::net::SlaveLocator& slaveLocator,
-    const std::string& slaveName,
-    dsb::comm::Reactor& reactor,
-    std::chrono::milliseconds timeout,
-    ExecutionManager::AddSlaveHandler onComplete)
-{
-    namespace dm = dsb::model;
-    DSB_INPUT_CHECK(!!onComplete);
-    if (!slaveName.empty() && !IsValidSlaveName(slaveName)) {
-        throw std::runtime_error('"' + slaveName + "\" is not a valid slave name");
-    }
-    if (self.lastSlaveID == std::numeric_limits<dm::SlaveID>::max()) {
-        throw std::length_error("Maximum number of slaves reached");
-    }
-    const auto id = ++self.lastSlaveID;
-    const auto& realName = slaveName.empty() ? "_slave" + std::to_string(id) : slaveName;
-    for (const auto& s : self.slaves) {
-        if (realName == s.second.description.Name()) {
-            throw std::runtime_error("Duplicate slave name: " + realName);
-        }
-    }
-    const auto selfPtr = &self;
-
-    // Once we have connected the slave, we want to immediately request some
-    // info from it.  We define the handler for that operation here, for
-    // readability's sake.
-    SlaveController::GetDescriptionHandler gotDescription =
-        [selfPtr, onComplete, id]
-        (const std::error_code& ec, const dm::SlaveDescription& sd)
-    {
-        if (!ec) {
-            selfPtr->slaves.at(id).description
-                .SetTypeDescription(sd.TypeDescription());
-            onComplete(ec, id);
-        } else {
-            selfPtr->slaves.at(id).slave->Close();
-            onComplete(ec, dm::INVALID_SLAVE_ID);
-        }
-        selfPtr->SlaveOpComplete();
-    };
-
-    // This is the handler for the connection operation. Note that we pass
-    // gotDescription into it.
-    SlaveController::ConnectHandler connected =
-        [selfPtr, timeout, onComplete, id, gotDescription]
-        (const std::error_code& ec)
-    {
-        if (!ec) {
-            // The slave is now connected. Next, we request some info
-            // from it.
-            selfPtr->slaves.at(id).slave->GetDescription(
-                timeout, std::move(gotDescription));
-        } else {
-            onComplete(ec, dsb::model::INVALID_SLAVE_ID);
-            selfPtr->SlaveOpComplete();
-        }
-    };
-
-    auto slave = std::make_unique<dsb::bus::SlaveController>(
-        reactor, slaveLocator, id, slaveName, self.slaveSetup,
-        timeout, std::move(connected));
-    self.slaves.insert(std::make_pair(
-        id,
-        ExecutionManagerPrivate::Slave(
-            std::move(slave),
-            dsb::model::SlaveDescription(id, realName))));
-    selfPtr->SlaveOpStarted();
-    return id;
-}
 
 
 namespace
@@ -279,76 +149,37 @@ namespace
 }
 
 
-void ConfigExecutionState::SetVariables(
+void ReadyExecutionState::Reconstitute(
     ExecutionManagerPrivate& self,
-    dsb::model::SlaveID slave,
-    const std::vector<dsb::model::VariableSetting>& settings,
-    std::chrono::milliseconds timeout,
-    ExecutionManager::SetVariablesHandler onComplete)
+    const std::vector<AddedSlave>& slavesToAdd,
+    std::chrono::milliseconds commTimeout,
+    ExecutionManager::ReconstituteHandler onComplete,
+    ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
 {
-    VerifyVariableSettings(self, slave, settings);
-    const auto selfPtr = &self;
-    self.slaves.at(slave).slave->SetVariables(
-        settings,
-        timeout,
-        [onComplete, selfPtr](const std::error_code& ec) {
-            const auto onExit = dsb::util::OnScopeExit([=]() {
-                selfPtr->SlaveOpComplete();
-            });
-            onComplete(ec);
-        });
-    self.SlaveOpStarted();
+    self.SwapState(std::make_unique<ReconstitutingExecutionState>(
+        slavesToAdd,
+        commTimeout,
+        std::move(onComplete),
+        std::move(onSlaveComplete)));
 }
 
 
-// =============================================================================
-
-
-PrimingExecutionState::PrimingExecutionState(
-    ExecutionManager::EndConfigHandler onComplete)
-    : m_onComplete(std::move(onComplete))
-{
-}
-
-
-void PrimingExecutionState::StateEntered(ExecutionManagerPrivate& self)
-{
-    const auto selfPtr = &self;
-    self.WhenAllSlaveOpsComplete([selfPtr, this] (const std::error_code& ec) {
-        assert(!ec);
-
-        // Garbage collection: Remove all slave controllers whose connection
-        // has failed or been canceled.
-        for (auto it = begin(selfPtr->slaves); it != end(selfPtr->slaves); ) {
-            if (it->second.slave->State() == SLAVE_NOT_CONNECTED) {
-                it = selfPtr->slaves.erase(it);
-            } else {
-                ++it;
-            }
-        }
-
-        const auto keepMeAlive = selfPtr->SwapState(std::make_unique<ReadyExecutionState>());
-        assert(keepMeAlive.get() == this);
-        dsb::util::LastCall(m_onComplete, std::error_code());
-   });
-}
-
-
-// =============================================================================
-
-
-void ReadyExecutionState::Terminate(ExecutionManagerPrivate& self)
-{
-    self.DoTerminate();
-}
-
-
-void ReadyExecutionState::BeginConfig(
+void ReadyExecutionState::Reconfigure(
     ExecutionManagerPrivate& self,
-    ExecutionManager::BeginConfigHandler onComplete)
+    const std::vector<SlaveConfig>& slaveConfigs,
+    std::chrono::milliseconds commTimeout,
+    ExecutionManager::ReconstituteHandler onComplete,
+    ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
 {
-    self.SwapState(std::make_unique<ConfigExecutionState>());
-    onComplete(std::error_code());
+    // TODO: Maybe hoist this check to ExecutionManagerPrivate?
+    for (const auto& sc : slaveConfigs) {
+        VerifyVariableSettings(self, sc.slaveID, sc.variableSettings);
+    }
+    self.SwapState(std::make_unique<ReconfiguringExecutionState>(
+        slaveConfigs,
+        commTimeout,
+        std::move(onComplete),
+        std::move(onSlaveComplete)));
 }
 
 
@@ -361,6 +192,300 @@ void ReadyExecutionState::Step(
 {
     self.SwapState(std::make_unique<SteppingExecutionState>(
         stepSize, timeout, std::move(onComplete), std::move(onSlaveStepComplete)));
+}
+
+
+void ReadyExecutionState::Terminate(ExecutionManagerPrivate& self)
+{
+    self.DoTerminate();
+}
+
+
+// =============================================================================
+
+namespace
+{
+    /*
+    Helper function for ReconstitutingExecutionState which performs the
+    following tasks for ONE slave:
+
+     1. Creates a SlaveController object and thus initiates the connection.
+
+     2. When the SlaveController is connected, calls its GetDescription()
+        function to populate the ExecutionManager's slave description cache.
+
+     3. Once GetDescription() has completed, calls the given onComplete
+        callback with the slave's assigned ID.
+
+    If any of these operations fail, the callback will be called with an
+    error code and an invalid ID, and any remaining operations will not be
+    carried out.  The slave controller will remain in the slave list
+    (ExecutionManagerPrivate::slaves), but it will be in a non-connected
+    state.
+    */
+    dsb::model::SlaveID AddSlave(
+        ExecutionManagerPrivate& self,
+        const AddedSlave& slave,
+        std::chrono::milliseconds commTimeout,
+        std::function<void(const std::error_code&, dsb::model::SlaveID)> onComplete)
+    {
+        if (!slave.name.empty() && !dsb::model::IsValidSlaveName(slave.name)) {
+            throw std::invalid_argument(
+                '"' + slave.name + "\" is not a valid slave name");
+        }
+        const auto id = ++self.lastSlaveID;
+        assert(self.slaves.count(id) == 0);
+        const auto& realName = slave.name.empty()
+            ? "_slave" + std::to_string(id)
+            : slave.name;
+        for (const auto& s : self.slaves) {
+            if (realName == s.second.description.Name()) {
+                throw std::runtime_error("Duplicate slave name: " + realName);
+            }
+        }
+
+        const auto selfPtr = &self; // For use in lambdas
+
+        // Once we have connected the slave, we want to immediately request some
+        // info from it.  We define the handler for that operation here, for
+        // readability's sake.
+        SlaveController::GetDescriptionHandler onDescriptionReceived =
+            [selfPtr, onComplete, id]
+            (const std::error_code& ec, const dsb::model::SlaveDescription& sd)
+        {
+            if (!ec) {
+                selfPtr->slaves.at(id).description
+                    .SetTypeDescription(sd.TypeDescription());
+                onComplete(ec, id);
+            } else {
+                selfPtr->slaves.at(id).slave->Terminate();
+                onComplete(ec, dsb::model::INVALID_SLAVE_ID);
+            }
+        };
+
+        // This is the handler for the connection operation. Note that we pass
+        // onDescriptionReceived into it and use it if the connection succeeds.
+        SlaveController::ConnectHandler onConnected =
+            [selfPtr, commTimeout, onComplete, id, onDescriptionReceived]
+            (const std::error_code& ec)
+        {
+            if (!ec) {
+                selfPtr->slaves.at(id).slave->GetDescription(
+                    commTimeout,
+                    std::move(onDescriptionReceived));
+            } else {
+                assert(selfPtr->slaves.at(id).slave->State() == SLAVE_NOT_CONNECTED);
+                onComplete(ec, dsb::model::INVALID_SLAVE_ID);
+            }
+        };
+
+        // Initiate the connection and add the slave to the slave list
+        auto slaveController = std::make_unique<dsb::bus::SlaveController>(
+            self.reactor,
+            slave.locator,
+            id,
+            realName,
+            self.slaveSetup,
+            commTimeout,
+            std::move(onConnected));
+        self.slaves.insert(std::make_pair(
+            id,
+            ExecutionManagerPrivate::Slave(
+                std::move(slaveController),
+                slave.locator,
+                dsb::model::SlaveDescription(id, realName))));
+        return id;
+    }
+}
+
+
+ReconstitutingExecutionState::ReconstitutingExecutionState(
+    const std::vector<AddedSlave>& slavesToAdd,
+    std::chrono::milliseconds commTimeout,
+    ExecutionManager::ReconstituteHandler onComplete,
+    ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
+    : m_slavesToAdd(slavesToAdd)
+    , m_commTimeout{commTimeout}
+    , m_onComplete{std::move(onComplete)}
+    , m_onSlaveComplete{std::move(onSlaveComplete)}
+{
+}
+
+
+void ReconstitutingExecutionState::StateEntered(
+    ExecutionManagerPrivate& self)
+{
+    assert(std::numeric_limits<dsb::model::SlaveID>::max() - self.lastSlaveID
+            >= (int) m_slavesToAdd.size());
+
+    // We call AddSlave() for each of the slaves to be added, using opCount
+    // to keep track of how many such operations we have ongoing.  When the
+    // counter reaches zero, we move to the next stage by calling
+    // AllSlavesAdded().
+    //
+    // m_addedSlaves contains the IDs of the slaves we have added.  If any
+    // per-slave operations fail in the AddSlave() step, the per-slave handler
+    // is called with an error code and the corresponding m_addedSlaves
+    // element is reset to INVALID_SLAVE_ID.
+    const auto selfPtr = &self;
+    const auto opCount = std::make_shared<int>(0);
+    for (std::size_t index = 0; index < m_slavesToAdd.size(); ++index) {
+        auto addedSlaveID = AddSlave(
+            self,
+            m_slavesToAdd[index],
+            m_commTimeout,
+            [selfPtr, opCount, index, this]
+                (const std::error_code& ec, dsb::model::SlaveID id)
+            {
+                --(*opCount);
+                if (ec) {
+                    m_addedSlaves[index] = dsb::model::INVALID_SLAVE_ID;
+                    m_onSlaveComplete(ec, dsb::model::INVALID_SLAVE_ID, index);
+                }
+                if (*opCount == 0) {
+                    AllSlavesAdded(*selfPtr);
+                }
+            });
+        ++(*opCount);
+        m_addedSlaves.push_back(addedSlaveID);
+    }
+}
+
+
+void ReconstitutingExecutionState::AllSlavesAdded(
+    ExecutionManagerPrivate& self)
+{
+    // Build a list that contains the endpoints on which the slaves
+    // publish their variable values.
+    std::vector<dsb::net::Endpoint> peers;
+    for (const auto& slave : self.slaves) {
+        if (slave.second.slave->State() != SLAVE_NOT_CONNECTED) {
+            peers.push_back(slave.second.locator.DataPubEndpoint());
+        }
+    }
+
+    // Send that list to all the slaves.  We use opTally to keep track of
+    // the number of ongoing operations as well as the number of failed
+    // operations.  The latter is needed because any failure should be
+    // counted as fatal -- the simulation is not likely to run if one of
+    // the slaves is not in contact with the others.
+    //
+    // When all per-slave operations are done, we move to the final stage
+    // by calling Completed() if all went well, otherwise we call Failed().
+    const auto selfPtr = &self;
+    const auto opTally = std::make_shared<std::pair<int, int>>(0, 0); // ops, fails
+    for (auto& slave : self.slaves) {
+        const auto slaveName = slave.second.description.Name();
+        slave.second.slave->SetPeers(
+            peers,
+            m_commTimeout,
+            [selfPtr, opTally, slaveName, this] (const std::error_code& ec)
+            {
+                --(opTally->first);
+                if (ec) {
+                    ++(opTally->second);
+                    dsb::log::Log(dsb::log::error,
+                        boost::format("Failed to send SET_PEERS command to slave '%s': %s")
+                        % slaveName % ec.message());
+                }
+                if (opTally->first == 0) {
+                    if (opTally->second == 0) {
+                        Completed(*selfPtr);
+                    } else {
+                        Failed(*selfPtr);
+                    }
+                }
+            });
+        ++(opTally->first);
+    }
+}
+
+
+void ReconstitutingExecutionState::Completed(
+    ExecutionManagerPrivate& self)
+{
+    // Call the remaining per-slave handlers.  Those elements in
+    // m_addedSlave for which the handler callback has already been called
+    // have already been set to INVALID_SLAVE_ID.
+    for (std::size_t index = 0; index < m_addedSlaves.size(); ++index) {
+        const auto id = m_addedSlaves[index];
+        if (id != dsb::model::INVALID_SLAVE_ID) {
+            m_onSlaveComplete(std::error_code{}, id, index);
+        }
+    }
+    m_onComplete(std::error_code{});
+    self.SwapState(std::make_unique<ReadyExecutionState>());
+}
+
+
+void ReconstitutingExecutionState::Failed(
+    ExecutionManagerPrivate& self)
+{
+    // Call the remaining per-slave handlers.  Those elements in
+    // m_addedSlave for which the handler callback has already been called
+    // have already been set to INVALID_SLAVE_ID.
+    for (std::size_t index = 0; index < m_addedSlaves.size(); ++index) {
+        const auto id = m_addedSlaves[index];
+        if (id != dsb::model::INVALID_SLAVE_ID) {
+            m_onSlaveComplete(
+                make_error_code(dsb::error::generic_error::operation_failed),
+                dsb::model::INVALID_SLAVE_ID,
+                index);
+        }
+    }
+    m_onComplete(make_error_code(dsb::error::generic_error::operation_failed));
+    self.SwapState(std::make_unique<FatalErrorExecutionState>());
+}
+
+
+// =============================================================================
+
+
+ReconfiguringExecutionState::ReconfiguringExecutionState(
+    const std::vector<SlaveConfig>& slaveConfigs,
+    std::chrono::milliseconds commTimeout,
+    ExecutionManager::ReconstituteHandler onComplete,
+    ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
+    : m_slaveConfigs(slaveConfigs)
+    , m_commTimeout{commTimeout}
+    , m_onComplete{std::move(onComplete)}
+    , m_onSlaveComplete{std::move(onSlaveComplete)}
+{
+}
+
+
+void ReconfiguringExecutionState::StateEntered(
+    ExecutionManagerPrivate& self)
+{
+    const auto selfPtr = &self;
+    const auto opTally = std::make_shared<std::pair<int, int>>(0, 0);
+    for (std::size_t index = 0; index < m_slaveConfigs.size(); ++index) {
+        const auto slaveID = m_slaveConfigs[index].slaveID;
+        self.slaves.at(slaveID).slave->SetVariables(
+            m_slaveConfigs[index].variableSettings,
+            m_commTimeout,
+            [selfPtr, opTally, index, slaveID, this] (const std::error_code& ec)
+            {
+                --(opTally->first);
+                if (ec) {
+                    ++(opTally->second);
+                }
+                m_onSlaveComplete(ec, slaveID, index);
+                if (opTally->first == 0) {
+                    // All per-slave calls complete
+                    if (opTally->second == 0) {
+                        // No errors
+                        m_onComplete(std::error_code{});
+                        selfPtr->SwapState(std::make_unique<ReadyExecutionState>());
+                    } else {
+                        m_onComplete(make_error_code(
+                            dsb::error::generic_error::operation_failed));
+                        selfPtr->SwapState(std::make_unique<FatalErrorExecutionState>());
+                    }
+                }
+            });
+        ++(opTally->first);
+    }
 }
 
 
