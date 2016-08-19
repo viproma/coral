@@ -85,7 +85,8 @@ public:
     \post
         `Active() == true`
     */
-    explicit CommThread(std::function<void(dsb::comm::Reactor&)> init);
+    explicit CommThread(std::function<void(dsb::comm::Reactor&)> init
+        = std::function<void(dsb::comm::Reactor&)>{});
 
     /**
     \brief  If the CommThread object is still active, shuts down the
