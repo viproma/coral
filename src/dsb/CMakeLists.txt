@@ -16,6 +16,7 @@ set (_publicHeaders
     "dsb/net.hpp"
 )
 set (_privateHeaders
+    "dsb/async.hpp"
     "dsb/bus/domain_data.hpp"
     "dsb/bus/execution_manager.hpp"
     "dsb/bus/execution_manager_private.hpp"
@@ -47,6 +48,7 @@ set (_sources
     "dsb_fmi_glue.cpp"
     "dsb_protocol_glue.cpp"
 
+    "dsb_async.cpp"
     "dsb_bus_domain_data.cpp"
     "dsb_bus_execution_manager.cpp"
     "dsb_bus_execution_manager_private.cpp"
@@ -88,6 +90,7 @@ set (_testSources
     "dsb_execution_controller_test.cpp"
     "dsb_execution_variable_io_test.cpp"
 
+    "dsb_async_test.cpp"
     "dsb_comm_messaging_test.cpp"
     "dsb_comm_p2p_test.cpp"
     "dsb_comm_proxy_test.cpp"
