@@ -16,6 +16,7 @@ set (_publicHeaders
     "dsb/net.hpp"
 )
 set (_privateHeaders
+    "dsb/async.hpp"
     "dsb/bus/domain_data.hpp"
     "dsb/bus/execution_manager.hpp"
     "dsb/bus/execution_manager_private.hpp"
@@ -33,7 +34,6 @@ set (_privateHeaders
     "dsb/comm.hpp"
     "dsb/error.hpp"
     "dsb/fmi/glue.hpp"
-    "dsb/inproc_rpc.hpp"
     "dsb/protobuf.hpp"
     "dsb/protocol/domain.hpp"
     "dsb/protocol/exe_data.hpp"
@@ -47,6 +47,7 @@ set (_sources
     "dsb_fmi_glue.cpp"
     "dsb_protocol_glue.cpp"
 
+    "dsb_async.cpp"
     "dsb_bus_domain_data.cpp"
     "dsb_bus_execution_manager.cpp"
     "dsb_bus_execution_manager_private.cpp"
@@ -62,7 +63,6 @@ set (_sources
     "dsb_comm_reactor.cpp"
     "dsb_comm_util.cpp"
     "dsb_error.cpp"
-    "dsb_inproc_rpc.cpp"
     "dsb_protobuf.cpp"
     "dsb_protocol_domain.cpp"
     "dsb_protocol_exe_data.cpp"
@@ -88,6 +88,7 @@ set (_testSources
     "dsb_execution_controller_test.cpp"
     "dsb_execution_variable_io_test.cpp"
 
+    "dsb_async_test.cpp"
     "dsb_comm_messaging_test.cpp"
     "dsb_comm_p2p_test.cpp"
     "dsb_comm_proxy_test.cpp"
@@ -99,7 +100,6 @@ set (_testSources
     "dsb_protocol_domain_test.cpp"
     "dsb_protocol_exe_data_test.cpp"
     "dsb_protocol_execution_test.cpp"
-    "dsb_inproc_rpc_test.cpp"
     "dsb_util_test.cpp"
     "dsb_util_console_test.cpp"
     "dsb_util_zip_test.cpp"

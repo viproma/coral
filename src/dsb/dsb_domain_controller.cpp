@@ -13,19 +13,16 @@
 #include <vector>
 
 #include "boost/lexical_cast.hpp"
-#include "boost/numeric/conversion/cast.hpp"
 #include "boost/range/algorithm/find_if.hpp"
 
 #include "zmq.hpp"
 
+#include "dsb/async.hpp"
 #include "dsb/bus/domain_data.hpp"
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/reactor.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/error.hpp"
-#define DSB_USE_OLD_DOMAIN_INPROC_RPC
-#include "dsb/inproc_rpc.hpp"
-#undef DSB_USE_OLD_DOMAIN_INPROC_RPC
 #include "dsb/log.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/domain.hpp"
@@ -33,58 +30,55 @@
 #include "dsb/util.hpp"
 
 #include "domain.pb.h"
-#include "domain_controller.pb.h"
 
 
 namespace dp = dsb::protocol::domain;
+
+namespace dsb
+{
+namespace domain
+{
+
 
 namespace
 {
     const auto SLAVEPROVIDER_TIMEOUT = std::chrono::seconds(10000);
 
 
-    void HandleGetSlaveTypes(
-        zmq::socket_t& rpcSocket,
+    std::vector<dsb::domain::Controller::SlaveType> HandleGetSlaveTypes(
         dsb::bus::DomainData& domainData)
     {
-        // Create a mapping from slave type UUIDs to SlaveTypeInfo objects.
-        // Each such object contains a list of the providers which offer this
-        // slave type.
-        std::map<std::string, dsbproto::domain_controller::SlaveTypeInfo> slaveTypesByUUID;
+        std::vector<dsb::domain::Controller::SlaveType> slaveTypes;
+        std::map<std::string, std::size_t> slaveTypeIndices;
         for (const auto& providerSlaveTypesPair : domainData.SlaveTypesByProvider()) {
             for (const auto& slaveTypeDesc : providerSlaveTypesPair.second) {
-                auto it = slaveTypesByUUID.find(slaveTypeDesc.uuid());
-                if (it == slaveTypesByUUID.end()) {
-                    it = slaveTypesByUUID.insert(std::make_pair(
-                        std::string(slaveTypeDesc.uuid()),
-                        dsbproto::domain_controller::SlaveTypeInfo())).first;
-                    *it->second.mutable_description() = slaveTypeDesc;
+                auto it = slaveTypeIndices.find(slaveTypeDesc.uuid());
+                if (it == slaveTypeIndices.end()) {
+                    slaveTypes.emplace_back();
+                    slaveTypes.back().description =
+                        dsb::protocol::FromProto(slaveTypeDesc);
+                    it = slaveTypeIndices.insert(
+                            std::make_pair(
+                                std::string(slaveTypeDesc.uuid()),
+                                slaveTypes.size() - 1)
+                        ).first;
                 }
-                *it->second.add_provider() = providerSlaveTypesPair.first;
+                slaveTypes[it->second].providers.push_back(
+                    providerSlaveTypesPair.first);
             }
         }
-
-        // Put them all into a SlaveTypeList object.
-        dsbproto::domain_controller::SlaveTypeList slaveTypeList;
-        for (const auto& slaveType : slaveTypesByUUID) {
-            *slaveTypeList.add_slave_type() = slaveType.second;
-        }
-
-        dsb::inproc_rpc::ReturnGetSlaveTypes(rpcSocket, slaveTypeList);
+        return slaveTypes;
     }
 
-    void HandleInstantiateSlave(
-        zmq::socket_t& rpcSocket,
+
+    dsb::net::SlaveLocator HandleInstantiateSlave(
+        const std::string& slaveTypeUUID,
+        std::chrono::milliseconds timeout,
+        std::string provider,
         zmq::socket_t& infoSocket,
-        std::vector<zmq::message_t>& msg,
         const std::string& p2pBrokerAddress,
         const dsb::bus::DomainData& domainData)
     {
-        std::string slaveTypeUUID;
-        std::chrono::milliseconds timeout;
-        std::string provider;
-        dsb::inproc_rpc::UnmarshalInstantiateSlave(msg, slaveTypeUUID, timeout, provider);
-
         if (provider.empty()) {
             // Search through all slave types for all providers, and use the
             // first one that matches the UUID.
@@ -98,9 +92,9 @@ namespace
                 if (!provider.empty()) break;
             }
             if (provider.empty()) {
-                dsb::inproc_rpc::ThrowRuntimeError(rpcSocket,
-                    "Slave type not offered by any slave provider: " + slaveTypeUUID);
-                return;
+                throw std::runtime_error(
+                    "Slave type not offered by any slave provider: "
+                    + slaveTypeUUID);
             }
         } else {
             // Look for the specified provider in the domain data provider list.
@@ -111,9 +105,8 @@ namespace
                 });
 
             if (providerIt == providerRng.end()) {
-                dsb::inproc_rpc::ThrowRuntimeError(
-                    rpcSocket, "Unknown slave provider name: " + provider);
-                return;
+                throw std::runtime_error(
+                    "Unknown slave provider name: " + provider);
             }
 
             // Provider was found; now check whether it provides slaves with
@@ -124,10 +117,9 @@ namespace
                     return a.uuid() == slaveTypeUUID;
                 });
             if (slaveIt == slaveRng.end()) {
-                dsb::inproc_rpc::ThrowRuntimeError(
-                    rpcSocket,
-                    "Slave provider \"" + provider + "\" does not provide slave: " + slaveTypeUUID);
-                return;
+                throw std::runtime_error(
+                    "Slave provider \"" + provider
+                    + "\" does not provide slave: " + slaveTypeUUID);
             }
         }
 
@@ -150,10 +142,8 @@ namespace
             // We double the timeout here, since the same timeout is used
             // at the other end, and we don't want to cancel the operation
             // prematurely at this end.
-            dsb::inproc_rpc::ThrowRuntimeError(
-                rpcSocket,
+            throw std::runtime_error(
                 "Instantiation failed: No reply from slave provider");
-            return;
         }
         if (repMsg.size() != 4 || repMsg[1].size() != 0) {
             throw dsb::error::ProtocolViolationException("Invalid reply format");
@@ -170,47 +160,19 @@ namespace
                 if (slaveLocPb.endpoint().empty()) {
                     slaveLocPb.set_endpoint(p2pBrokerAddress);
                 } else if (slaveLocPb.endpoint()[0] == ':') {
-                    assert (!"This feature is not supported yet");
-                    break;
+                    throw std::logic_error("Unsupported feature used");
                 }
-                dsb::inproc_rpc::ReturnInstantiateSlave(
-                    rpcSocket,
-                    dsb::net::SlaveLocator(
-                        slaveLocPb.endpoint(),
-                        slaveLocPb.identity()));
-                break; }
+                return dsb::net::SlaveLocator{
+                    slaveLocPb.endpoint(),
+                    slaveLocPb.identity()}; }
             case dp::MSG_INSTANTIATE_SLAVE_FAILED: {
                 dsbproto::domain::Error errorPb;
                 dsb::protobuf::ParseFromFrame(repMsg[3], errorPb);
-                dsb::inproc_rpc::ThrowRuntimeError(
-                    rpcSocket,
-                    "Instantiation failed: " + errorPb.message());
-                break; }
+                throw std::runtime_error(
+                    "Instantiation failed: " + errorPb.message()); }
             default:
                 throw dsb::error::ProtocolViolationException(
                     "Invalid reply to INSTANTIATE_SLAVE");
-        }
-    }
-
-    void HandleRPCCall(
-        const std::string& p2pBrokerAddress,
-        dsb::bus::DomainData& domainData,
-        zmq::socket_t& rpcSocket,
-        zmq::socket_t& infoSocket)
-    {
-        std::vector<zmq::message_t> msg;
-        dsb::comm::Receive(rpcSocket, msg);
-        switch (dsb::comm::DecodeRawDataFrame<dsb::inproc_rpc::CallType>(msg.front())) {
-            case dsb::inproc_rpc::GET_SLAVE_TYPES_CALL:
-                HandleGetSlaveTypes(rpcSocket, domainData);
-                break;
-            case dsb::inproc_rpc::INSTANTIATE_SLAVE_CALL:
-                HandleInstantiateSlave(rpcSocket, infoSocket, msg, p2pBrokerAddress, domainData);
-                break;
-            default:
-                assert (!"Invalid RPC call");
-                dsb::inproc_rpc::ThrowLogicError(rpcSocket, "Internal error");
-                return;
         }
     }
 
@@ -258,6 +220,7 @@ namespace
         }
     }
 
+
     void HandleReportMsg(
         const std::chrono::steady_clock::time_point recvTime,
         dsb::bus::DomainData& domainData,
@@ -288,118 +251,137 @@ namespace
                 assert (!"Unknown report message received");
         }
     }
+} // anonymous namespace
 
 
-    void MessagingLoop(
-        std::shared_ptr<std::string> rpcEndpoint,
-        std::shared_ptr<std::string> destroyEndpoint,
-        std::shared_ptr<std::string> reportEndpoint,
-        std::shared_ptr<std::string> infoEndpoint) DSB_NOEXCEPT
+class Controller::Private
+{
+public:
+    explicit Private(const dsb::net::DomainLocator& locator)
+        : m_reportSocket{dsb::comm::GlobalContext(), ZMQ_SUB}
+        , m_infoSocket{dsb::comm::GlobalContext(), ZMQ_REQ}
+        , m_domainData{dp::MAX_PROTOCOL_VERSION, SLAVEPROVIDER_TIMEOUT}
+        , m_domainLocator{std::make_shared<dsb::net::DomainLocator>(locator)}
+        , m_thread{[this] (dsb::comm::Reactor& reactor)
+            {
+                dp::SubscribeToReports(m_reportSocket);
+                m_reportSocket.connect(
+                    m_domainLocator->ReportMasterEndpoint());
+                m_infoSocket.connect(
+                    m_domainLocator->InfoMasterEndpoint());
+
+                reactor.AddSocket(
+                    m_reportSocket,
+                    [&] (dsb::comm::Reactor& r, zmq::socket_t&)
+                    {
+                        HandleReportMsg(
+                            std::chrono::steady_clock::now(),
+                            m_domainData,
+                            m_reportSocket,
+                            m_infoSocket);
+                    });
+                reactor.AddTimer(
+                    std::chrono::milliseconds(SLAVEPROVIDER_TIMEOUT)
+                        / (m_domainData.SlaveProviderCount() + 1),
+                    -1,
+                    [&] (dsb::comm::Reactor& r, int)
+                    {
+                        m_domainData.PurgeSlaveProviders(
+                            std::chrono::steady_clock::now());
+                    });
+            }}
     {
-        zmq::socket_t rpcSocket(dsb::comm::GlobalContext(), ZMQ_PAIR);
-        rpcSocket.connect(rpcEndpoint->c_str());
-
-        zmq::socket_t destroySocket(dsb::comm::GlobalContext(), ZMQ_PAIR);
-        destroySocket.connect(destroyEndpoint->c_str());
-
-        zmq::socket_t reportSocket(dsb::comm::GlobalContext(), ZMQ_SUB);
-        dp::SubscribeToReports(reportSocket);
-        reportSocket.connect(reportEndpoint->c_str());
-
-        zmq::socket_t infoSocket(dsb::comm::GlobalContext(), ZMQ_REQ);
-        infoSocket.connect(infoEndpoint->c_str());
-
-        auto domainData = dsb::bus::DomainData(
-            dp::MAX_PROTOCOL_VERSION, SLAVEPROVIDER_TIMEOUT);
-
-        dsb::comm::Reactor reactor;
-        reactor.AddSocket(destroySocket, [&](dsb::comm::Reactor& r, zmq::socket_t&) {
-            r.Stop();
-        });
-        reactor.AddSocket(rpcSocket, [&](dsb::comm::Reactor& r, zmq::socket_t&) {
-            HandleRPCCall(*infoEndpoint, domainData, rpcSocket, infoSocket);
-        });
-        reactor.AddSocket(reportSocket, [&](dsb::comm::Reactor& r, zmq::socket_t&) {
-            HandleReportMsg(std::chrono::steady_clock::now(), domainData, reportSocket, infoSocket);
-        });
-        reactor.AddTimer(
-            std::chrono::milliseconds(SLAVEPROVIDER_TIMEOUT) / (domainData.SlaveProviderCount() + 1),
-            -1,
-            [&](dsb::comm::Reactor& r, int) {
-                domainData.PurgeSlaveProviders(std::chrono::steady_clock::now());
-            });
-
-        for (;;) {
-            try { reactor.Run(); break; }
-            catch (const dsb::error::ProtocolViolationException& e) {
-                dsb::log::Log(dsb::log::error,
-                    boost::format("Controller backend thread: Protocol violation: %s")
-                    % e.what());
-            }
-        }
     }
-}
+
+    ~Private() DSB_NOEXCEPT
+    {
+    }
+
+    Private(const Private&) = delete;
+    Private& operator=(const Private&) = delete;
+    Private(Private&& other) = delete;
+    Private& operator=(Private&& other) = delete;
 
 
-namespace dsb
-{
-namespace domain
-{
+    std::vector<SlaveType> GetSlaveTypes()
+    {
+        return m_thread.Execute<std::vector<SlaveType>>(
+            [this] (dsb::comm::Reactor&, std::promise<std::vector<SlaveType>> promise)
+            {
+                try {
+                    promise.set_value(HandleGetSlaveTypes(m_domainData));
+                } catch (...) {
+                    promise.set_exception(std::current_exception());
+                }
+            }
+        ).get();
+    }
+
+    dsb::net::SlaveLocator InstantiateSlave(
+        const std::string& slaveTypeUUID,
+        std::chrono::milliseconds timeout,
+        const std::string& provider)
+    {
+        // Note: It is safe to capture by reference in the lambda because
+        // the present thread is blocked waiting for the operation to complete.
+        return m_thread.Execute<dsb::net::SlaveLocator>(
+            [&] (dsb::comm::Reactor&, std::promise<dsb::net::SlaveLocator> promise)
+            {
+                try {
+                    promise.set_value(HandleInstantiateSlave(
+                        slaveTypeUUID,
+                        timeout,
+                        provider,
+                        m_infoSocket,
+                        m_domainLocator->InfoMasterEndpoint(),
+                        m_domainData));
+                } catch (...) {
+                    promise.set_exception(std::current_exception());
+                }
+            }
+        ).get();
+    }
+
+private:
+    // For use in background thread
+    zmq::socket_t m_reportSocket;
+    zmq::socket_t m_infoSocket;
+    dsb::bus::DomainData m_domainData;
+    std::shared_ptr<dsb::net::DomainLocator> m_domainLocator;
+
+    // Background thread
+    dsb::async::CommThread m_thread;
+};
 
 
 Controller::Controller(const dsb::net::DomainLocator& locator)
-    : m_rpcSocket(std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PAIR)),
-      m_destroySocket(std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PAIR)),
-      m_active(true)
+    : m_private{std::make_unique<Private>(locator)}
 {
-    const auto rpcEndpoint = std::make_shared<std::string>(
-        "inproc://" + dsb::util::RandomUUID());
-    m_rpcSocket->bind(rpcEndpoint->c_str());
-    const auto destroyEndpoint = std::make_shared<std::string>(
-        "inproc://" + dsb::util::RandomUUID());
-    m_destroySocket->bind(destroyEndpoint->c_str());
-    m_thread = std::thread(MessagingLoop,
-        rpcEndpoint,
-        destroyEndpoint,
-        std::make_shared<std::string>(locator.ReportMasterEndpoint()),
-        std::make_shared<std::string>(locator.InfoMasterEndpoint()));
 }
 
 
+Controller::~Controller() DSB_NOEXCEPT
+{
+    // Do nothing, everything's handled by ~Private().
+}
+
 
 Controller::Controller(Controller&& other) DSB_NOEXCEPT
-    : m_rpcSocket(std::move(other.m_rpcSocket)),
-      m_destroySocket(std::move(other.m_destroySocket)),
-      m_active(dsb::util::MoveAndReplace(other.m_active, false)),
-      m_thread(std::move(other.m_thread))
+    : m_private{std::move(other.m_private)}
 {
 }
 
 
 Controller& Controller::operator=(Controller&& other) DSB_NOEXCEPT
 {
-    m_rpcSocket     = std::move(other.m_rpcSocket);
-    m_destroySocket = std::move(other.m_destroySocket);
-    m_active        = dsb::util::MoveAndReplace(other.m_active, false);
-    m_thread        = std::move(other.m_thread);
+    m_private = std::move(other.m_private);
     return *this;
-}
-
-
-Controller::~Controller()
-{
-    if (m_active) {
-        m_destroySocket->send("", 0);
-    }
-    m_thread.join();
 }
 
 
 std::vector<Controller::SlaveType> Controller::GetSlaveTypes()
 {
-    std::vector<Controller::SlaveType> ret;
-    dsb::inproc_rpc::CallGetSlaveTypes(*m_rpcSocket, ret);
-    return ret;
+    return m_private->GetSlaveTypes();
 }
 
 
@@ -408,11 +390,7 @@ dsb::net::SlaveLocator Controller::InstantiateSlave(
     std::chrono::milliseconds timeout,
     const std::string& provider)
 {
-    return dsb::inproc_rpc::CallInstantiateSlave(
-        *m_rpcSocket,
-        slaveTypeUUID,
-        timeout,
-        provider);
+    return m_private->InstantiateSlave(slaveTypeUUID, timeout, provider);
 }
 
 

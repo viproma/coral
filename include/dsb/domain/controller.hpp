@@ -8,16 +8,11 @@
 #include <chrono>
 #include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "dsb/config.h"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
-
-
-// Forward declaration to avoid dependency on ZMQ headers
-namespace zmq { class socket_t; }
 
 
 namespace dsb
@@ -53,14 +48,17 @@ public:
     /// Constructor.
     explicit Controller(const dsb::net::DomainLocator& locator);
 
-    /// Move constructor.
-    Controller(Controller&& other) DSB_NOEXCEPT;
-
-    /// Move assignment operator.
-    Controller& operator=(Controller&& other) DSB_NOEXCEPT;
-
     /// Destructor.
-    ~Controller();
+    ~Controller() DSB_NOEXCEPT;
+
+    Controller(const Controller&) = delete;
+    Controller& operator=(const Controller&) = delete;
+
+    /// Move constructor
+    Controller(Controller&&) DSB_NOEXCEPT;
+
+    /// Move assignment operator
+    Controller& operator=(Controller&&) DSB_NOEXCEPT;
 
     /**
     \brief  Returns available slave types.
@@ -86,12 +84,8 @@ public:
         const std::string& provider = std::string());
 
 private:
-    // NOTE: When adding members here, remember to update the move constructor
-    // and the move assignment operator!
-    std::unique_ptr<zmq::socket_t> m_rpcSocket;
-    std::unique_ptr<zmq::socket_t> m_destroySocket; // for sending termination command from destructor.
-    bool m_active;
-    std::thread m_thread;
+    class Private;
+    std::unique_ptr<Private> m_private;
 };
 
 

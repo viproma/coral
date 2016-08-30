@@ -2,9 +2,7 @@
 set (protoFiles
     "broker.proto"
     "domain.proto"
-    "domain_controller.proto"
     "execution.proto"
-    "execution_controller.proto"
     "exe_data.proto"
     "model.proto"
     "net.proto"

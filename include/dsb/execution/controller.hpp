@@ -10,16 +10,11 @@
 #include <iterator>
 #include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "dsb/config.h"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
-
-
-// Forward declaration to avoid dependency on ZMQ headers
-namespace zmq { class socket_t; }
 
 
 namespace dsb
@@ -60,14 +55,17 @@ public:
     /// Constructor.
     explicit Controller(const dsb::net::ExecutionLocator& locator);
 
-    /// Move constructor.
-    Controller(Controller&& other) DSB_NOEXCEPT;
+    /// Destructor
+    ~Controller() DSB_NOEXCEPT;
 
-    /// Move assignment operator.
-    Controller& operator=(Controller&& other) DSB_NOEXCEPT;
+    Controller(const Controller&) = delete;
+    Controller& operator=(const Controller&) = delete;
 
-    /// Destructor which terminates the simulation.
-    ~Controller();
+    /// Move constructor
+    Controller(Controller&&) DSB_NOEXCEPT;
+
+    /// Move assignment operator
+    Controller& operator=(Controller&&) DSB_NOEXCEPT;
 
     /**
     \brief  Terminates the execution.
@@ -249,11 +247,8 @@ public:
     void AcceptStep(std::chrono::milliseconds timeout);
 
 private:
-    // NOTE: When adding members here, remember to update the move constructor
-    // and the move assignment operator!
-    std::unique_ptr<zmq::socket_t> m_rpcSocket;
-    bool m_active;
-    std::thread m_thread;
+    class Private;
+    std::unique_ptr<Private> m_private;
 };
 
 
