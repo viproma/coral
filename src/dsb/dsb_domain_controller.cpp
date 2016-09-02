@@ -284,6 +284,7 @@ void HandleGetSlaveTypes(
     std::chrono::milliseconds timeout,
     SlaveProviderMap& slaveProviders,
     std::promise<std::vector<dsb::domain::Controller::SlaveType>> promise)
+    DSB_NOEXCEPT
 {
     if (slaveProviders.empty()) {
         promise.set_value(std::vector<dsb::domain::Controller::SlaveType>{});

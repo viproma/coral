@@ -65,7 +65,7 @@ struct CommThreadTask
     and `promise` is the std::promise object which the task function should
     use to return its result (or throw an exception).
     */
-    using Type = typedef std::function<void(
+    using Type = std::function<void(
         dsb::comm::Reactor&,
         StackData&,
         std::promise<Result>)>;
@@ -338,7 +338,7 @@ namespace detail
 
                 // Now, the foreground thread is blocked waiting for our
                 // reply, so we can freely access `nextTask`.
-                CommThreadAnyTask<StackData>::Type myTask;
+                typename CommThreadAnyTask<StackData>::Type myTask;
                 swap(*nextTask, myTask);
 
                 // Unblock foreground thread again and then run the task.
@@ -572,7 +572,7 @@ namespace detail
 
 
 template<typename StackData>
-void CommThread<typename StackData>::Shutdown()
+void CommThread<StackData>::Shutdown()
 {
     Execute<void>(detail::CommThreadShutdownTask<StackData>());
     WaitForThreadTermination();
@@ -580,14 +580,14 @@ void CommThread<typename StackData>::Shutdown()
 
 
 template<typename StackData>
-bool CommThread<typename StackData>::Active() const DSB_NOEXCEPT
+bool CommThread<StackData>::Active() const DSB_NOEXCEPT
 {
     return m_active;
 }
 
 
 template<typename StackData>
-void CommThread<typename StackData>::WaitForThreadTermination()
+void CommThread<StackData>::WaitForThreadTermination()
     {
         assert(m_active);
         assert(m_threadStatus.valid());
@@ -654,7 +654,7 @@ void CommThread<typename StackData>::WaitForThreadTermination()
 #endif
 
 template<typename StackData>
-void CommThread<typename StackData>::DestroySilently() DSB_NOEXCEPT
+void CommThread<StackData>::DestroySilently() DSB_NOEXCEPT
 {
     if (Active()) {
         try {
@@ -674,7 +674,7 @@ void CommThread<typename StackData>::DestroySilently() DSB_NOEXCEPT
         }
     }
     assert(!Active());
-    assert(!m_socket);
+    assert(!static_cast<void*>(m_socket));
     assert(!m_threadStatus.valid());
 }
 

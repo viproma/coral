@@ -212,7 +212,7 @@ std::uint16_t InetPort::ToNumber() const
 }
 
 
-std::string InetPort::ToString() const
+std::string InetPort::ToString() const DSB_NOEXCEPT
 {
     if (m_port == ANY_PORT) {
         return "*";
