@@ -3,8 +3,6 @@
 #include <cassert>
 #include <unordered_map>
 
-#include "boost/optional.hpp"
-
 #include "zmq.hpp"
 
 #include "dsb/async.hpp"
@@ -76,11 +74,12 @@ public:
             (dsb::comm::Reactor& reactor, BgData& bgData, std::promise<void> status)
         {
             try {
-                bgData.serviceTracker.emplace(
-                    reactor,
-                    0,
-                    networkInterface,
-                    discoveryPort);
+                bgData.serviceTracker =
+                    std::make_unique<dsb::protocol::ServiceTracker>(
+                        reactor,
+                        0,
+                        networkInterface,
+                        discoveryPort);
                 SetupSlaveProviderTracking(
                     *bgData.serviceTracker,
                     bgData.slaveProviders,
@@ -143,7 +142,10 @@ private:
     struct BgData
     {
         SlaveProviderMap slaveProviders;
-        boost::optional<dsb::protocol::ServiceTracker> serviceTracker;
+        // TODO: Replace std::unique_ptr with boost::optional (when we no longer
+        //       need to support Boost < 1.56) or std::optional (when all our
+        //       compilers support it).
+        std::unique_ptr<dsb::protocol::ServiceTracker> serviceTracker;
     };
     dsb::async::CommThread<BgData> m_thread;
 };

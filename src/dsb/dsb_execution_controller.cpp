@@ -4,7 +4,6 @@
 #include <stdexcept>
 #include <utility>
 
-#include "boost/optional.hpp"
 #include "zmq.hpp"
 
 #include "dsb/async.hpp"
@@ -62,7 +61,11 @@ public:
                 std::promise<void> status)
             {
                 try {
-                    execMgr.emplace(reactor, executionName, startTime, maxTime);
+                    execMgr = std::make_unique<dsb::bus::ExecutionManager>(
+                        reactor,
+                        executionName,
+                        startTime,
+                        maxTime);
                     status.set_value();
                 } catch (...) {
                     status.set_exception(std::current_exception());
@@ -260,7 +263,10 @@ public:
     }
 
 private:
-    using ExecMgr = boost::optional<dsb::bus::ExecutionManager>;
+    // TODO: Replace std::unique_ptr with boost::optional (when we no longer
+    //       need to support Boost < 1.56) or std::optional (when all our
+    //       compilers support it).
+    using ExecMgr = std::unique_ptr<dsb::bus::ExecutionManager>;
     dsb::async::CommThread<ExecMgr> m_thread;
 };
 
