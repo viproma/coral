@@ -13,7 +13,6 @@
 #include "boost/thread/latch.hpp"
 #include "gtest/gtest.h"
 
-#include "dsb/comm/proxy.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/execution/variable_io.hpp"
 #include "dsb/util.hpp"
