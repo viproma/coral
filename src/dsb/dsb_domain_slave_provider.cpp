@@ -124,14 +124,14 @@ SlaveProvider::SlaveProvider(
 
     bg.server = std::make_shared<dsb::protocol::RRServer>(
         *bg.reactor,
-        "tcp://" + networkInterface + ":*");
+        dsb::net::Endpoint{"tcp", networkInterface + ":*"});
     dsb::bus::MakeSlaveProviderServer(
         *bg.server,
         std::make_shared<MySlaveProviderOps>(std::move(slaveTypes)));
 
     char beaconPayload[2];
     dsb::util::EncodeUint16(
-        dsb::comm::EndpointPort(bg.server->BoundEndpoint().Endpoint()),
+        dsb::comm::EndpointPort(bg.server->BoundEndpoint().URL()),
         beaconPayload);
     bg.beacon = std::make_shared<dsb::protocol::ServiceBeacon>(
         0,

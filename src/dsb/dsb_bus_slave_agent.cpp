@@ -60,7 +60,7 @@ SlaveAgent::SlaveAgent(
       m_id(dsb::model::INVALID_SLAVE_ID),
       m_currentStepID(dsb::model::INVALID_STEP_ID)
 {
-    m_control.Bind(dsb::comm::P2PEndpoint(controlEndpoint.URL()));
+    m_control.Bind(controlEndpoint);
     DSB_LOG_TRACE("Slave bound to control endpoint: " + BoundControlEndpoint().URL());
 
     m_publisher.Bind(dataPubEndpoint);

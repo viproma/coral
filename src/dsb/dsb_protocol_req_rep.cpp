@@ -1,6 +1,8 @@
 #include "dsb/protocol/req_rep.hpp"
 
 #include "dsb/comm/messaging.hpp"
+#include "dsb/comm/socket.hpp"
+#include "dsb/comm/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/util.hpp"
 
@@ -28,7 +30,7 @@ namespace
 RRClient::RRClient(
     dsb::comm::Reactor& reactor,
     const std::string& protocolIdentifier,
-    const dsb::comm::P2PEndpoint& serverEndpoint)
+    const dsb::net::Endpoint& serverEndpoint)
     : m_reactor{reactor}
     , m_protocolIdentifier(protocolIdentifier)
     , m_serverEndpoint{serverEndpoint}
@@ -252,7 +254,7 @@ class RRServer::Private
 public:
     Private(
         dsb::comm::Reactor& reactor,
-        const dsb::comm::P2PEndpoint& endpoint)
+        const dsb::net::Endpoint& endpoint)
         : m_reactor{reactor}
     {
         m_socket.Bind(endpoint);
@@ -293,7 +295,7 @@ public:
         m_handlers[protocolIdentifier][protocolVersion] = handler;
     }
 
-    dsb::comm::P2PEndpoint BoundEndpoint() const
+    dsb::net::Endpoint BoundEndpoint() const
     {
         return m_socket.BoundEndpoint();
     }
@@ -304,7 +306,7 @@ private:
         std::vector<zmq::message_t> msg;
         m_socket.Receive(msg);
         if (msg.size() < 2 || msg[0].size() < 3) {
-            m_socket.Ignore();
+            // Ignore request
             return;
         }
         const auto protocolIdentifier = std::string{
@@ -339,9 +341,7 @@ private:
                 msg.resize(2);
             }
             m_socket.Send(msg);
-        } else {
-            m_socket.Ignore();
-        }
+        } // else ignore request
     }
 
     bool DispatchRequest(
@@ -410,7 +410,7 @@ private:
     }
 
     dsb::comm::Reactor& m_reactor;
-    dsb::comm::P2PRepSocket m_socket;
+    dsb::comm::RepSocket m_socket;
     std::unordered_map<
             std::string,
             std::map<std::uint16_t, std::shared_ptr<RRServerProtocolHandler>>>
@@ -423,7 +423,7 @@ private:
 
 RRServer::RRServer(
     dsb::comm::Reactor& reactor,
-    const dsb::comm::P2PEndpoint& endpoint)
+    const dsb::net::Endpoint& endpoint)
     : m_private{std::make_unique<Private>(reactor, endpoint)}
 {
 }
@@ -460,7 +460,7 @@ void RRServer::AddProtocolHandler(
 }
 
 
-dsb::comm::P2PEndpoint RRServer::BoundEndpoint() const
+dsb::net::Endpoint RRServer::BoundEndpoint() const
 {
     return m_private->BoundEndpoint();
 }

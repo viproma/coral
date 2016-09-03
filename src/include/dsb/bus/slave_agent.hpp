@@ -14,9 +14,9 @@
 #include "boost/bimap/multiset_of.hpp"
 #include "zmq.hpp"
 
-#include "dsb/comm/p2p.hpp"
-#include "dsb/comm/reactor.hpp"
 #include "dsb/config.h"
+#include "dsb/comm/reactor.hpp"
+#include "dsb/comm/socket.hpp"
 #include "dsb/execution/slave.hpp"
 #include "dsb/execution/variable_io.hpp"
 #include "dsb/model.hpp"
@@ -172,7 +172,7 @@ private:
     dsb::execution::ISlaveInstance& m_slaveInstance;
     std::chrono::milliseconds m_commTimeout;
 
-    dsb::comm::P2PRepSocket m_control;
+    dsb::comm::RepSocket m_control;
     dsb::execution::VariablePublisher m_publisher;
     Connections m_connections;
     dsb::model::SlaveID m_id; // The slave's ID number in the current execution

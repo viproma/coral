@@ -39,8 +39,7 @@ public:
     */
     SlaveProviderClient(
         dsb::comm::Reactor& reactor,
-        const std::string& address,
-        std::uint16_t port);
+        const dsb::net::InetEndpoint& endpoint);
 
     /// Destructor
     ~SlaveProviderClient() DSB_NOEXCEPT;

@@ -57,7 +57,7 @@ namespace
     void RunTestServer(const char* endpoint)
     {
         dsb::comm::Reactor reactor;
-        dp::RRServer server{reactor, dsb::comm::P2PEndpoint{endpoint}};
+        dp::RRServer server{reactor, dsb::net::Endpoint{endpoint}};
         server.AddProtocolHandler(
             MY_PROTOCOL_ID,
             MY_PROTOCOL_VER,
@@ -78,7 +78,7 @@ TEST(dsb_protocol, ReqRep)
     dp::RRClient client{
         reactor,
         MY_PROTOCOL_ID,
-        dsb::comm::P2PEndpoint{endpoint}};
+        dsb::net::Endpoint{endpoint}};
 
     const auto timeout = std::chrono::milliseconds(100);
     std::function<void()> runTest1;
@@ -219,7 +219,7 @@ TEST(dsb_protocol, ReqRepMoreErrors)
     auto client = std::make_unique<dp::RRClient>(
         reactor,
         "SOME_UNKNOWN_PROTOCOL",
-        dsb::comm::P2PEndpoint{endpoint});
+        dsb::net::Endpoint{endpoint});
 
     runTest1 = [&] ()
     {
@@ -255,7 +255,7 @@ TEST(dsb_protocol, ReqRepMoreErrors)
         client = std::make_unique<dp::RRClient>(
             reactor,
             MY_PROTOCOL_ID,
-            dsb::comm::P2PEndpoint{endpoint});
+            dsb::net::Endpoint{endpoint});
         // Shut the server down in preparation for the next test.
         client->Request(
             MY_PROTOCOL_VER,

@@ -228,7 +228,9 @@ void SetupSlaveProviderTracking(
             const auto port = dsb::util::DecodeUint16(payload);
             slaveProviderMapPtr->insert(std::make_pair(
                 serviceID,
-                dsb::bus::SlaveProviderClient(*reactorPtr, address, port)));
+                dsb::bus::SlaveProviderClient{
+                    *reactorPtr,
+                    dsb::net::InetEndpoint{address, port}}));
             DSB_LOG_TRACE(
                 boost::format("Slave provider discovered: %s @ %s:%d")
                 % serviceID % address % port);
@@ -249,7 +251,9 @@ void SetupSlaveProviderTracking(
             slaveProviderMapPtr->erase(serviceID);
             slaveProviderMapPtr->insert(std::make_pair(
                 serviceID,
-                dsb::bus::SlaveProviderClient(*reactorPtr, address, port)));
+                dsb::bus::SlaveProviderClient{
+                    *reactorPtr,
+                    dsb::net::InetEndpoint{address, port}}));
             DSB_LOG_TRACE(
                 boost::format("Slave provider updated: %s @ %s:%d")
                 % serviceID % address % port);

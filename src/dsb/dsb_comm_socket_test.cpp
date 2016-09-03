@@ -1,46 +1,24 @@
 #include "gtest/gtest.h"
 
 #include <chrono>
+#include <cstring>
 #include <string>
 #include <thread>
 #include <vector>
+
 #include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"
 
-#include "dsb/comm/p2p.hpp"
+#include "dsb/comm/socket.hpp"
 
 using namespace dsb::comm;
 
 
-TEST(dsb_comm, P2PEndpoint)
-{
-    P2PEndpoint e0;
-    EXPECT_TRUE(e0.Endpoint().empty());
-    EXPECT_FALSE(e0.IsBehindProxy());
-    EXPECT_TRUE(e0.Identity().empty());
-
-    auto e1 = P2PEndpoint("tcp://localhost");
-    EXPECT_EQ("tcp://localhost", e1.Endpoint());
-    EXPECT_FALSE(e1.IsBehindProxy());
-    EXPECT_TRUE(e1.Identity().empty());
-
-    auto e2 = P2PEndpoint("ipc://myproxy$myid");
-    EXPECT_EQ("ipc://myproxy", e2.Endpoint());
-    EXPECT_TRUE(e2.IsBehindProxy());
-    EXPECT_EQ("myid", e2.Identity());
-
-    auto e3 = P2PEndpoint("inproc://foo", "bar");
-    EXPECT_EQ("inproc://foo", e3.Endpoint());
-    EXPECT_TRUE(e3.IsBehindProxy());
-    EXPECT_EQ("bar", e3.Identity());
-}
-
-
 namespace
 {
-    void RequestReplyTest(P2PReqSocket& cli, P2PRepSocket& svr)
+    void RequestReplyTest(ReqSocket& cli, RepSocket& svr)
     {
         std::vector<zmq::message_t> m;
         m.push_back(zmq::message_t(5));
@@ -71,52 +49,54 @@ namespace
     }
 }
 
-TEST(dsb_comm, P2PReqRepSocketDirect)
+TEST(dsb_comm, ReqRepSocketDirect)
 {
-    P2PReqSocket cli;
-    P2PRepSocket svr;
-    svr.Bind(P2PEndpoint("tcp://*:12345"));
-    cli.Connect(P2PEndpoint("tcp://localhost:12345"));
+    ReqSocket cli;
+    RepSocket svr;
+    svr.Bind(dsb::net::Endpoint{"tcp://*:12345"});
+    EXPECT_EQ("tcp://0.0.0.0:12345", svr.BoundEndpoint().URL());
+    cli.Connect(dsb::net::Endpoint{"tcp://localhost:12345"});
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
     svr.Close();
     cli.Close();
     // ...and do it again
-    svr.Bind(P2PEndpoint("tcp://*:12346"));
-    cli.Connect(P2PEndpoint("tcp://localhost:12346"));
+    svr.Bind(dsb::net::Endpoint{"tcp://*:12346"});
+    EXPECT_EQ("tcp://0.0.0.0:12346", svr.BoundEndpoint().URL());
+    cli.Connect(dsb::net::Endpoint{"tcp://localhost:12346"});
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
 }
 
 
-TEST(dsb_comm, P2PReqRepSocketDirectReverse)
+TEST(dsb_comm, ReqRepSocketDirectReverse)
 {
-    P2PReqSocket cli;
-    P2PRepSocket svr;
-    cli.Bind("tcp://*:12345");
-    svr.Connect("tcp://localhost:12345");
+    ReqSocket cli;
+    RepSocket svr;
+    cli.Bind(dsb::net::Endpoint{"tcp://*:12345"});
+    svr.Connect(dsb::net::Endpoint{"tcp://localhost:12345"});
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
     svr.Close();
     cli.Close();
     // ...and do it again
-    cli.Bind("tcp://*:12346");
-    svr.Connect("tcp://localhost:12346");
+    cli.Bind(dsb::net::Endpoint{"tcp://*:12346"});
+    svr.Connect(dsb::net::Endpoint{"tcp://localhost:12346"});
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     RequestReplyTest(cli, svr);
     RequestReplyTest(cli, svr);
 }
 
 
-TEST(dsb_comm, P2PReqRepSocketOutOfOrder)
+TEST(dsb_comm, ReqRepSocketOutOfOrder)
 {
-    P2PReqSocket cli;
-    P2PRepSocket svr;
-    svr.Bind(P2PEndpoint("tcp://*:12345"));
-    cli.Connect(P2PEndpoint("tcp://localhost:12345"));
+    ReqSocket cli;
+    RepSocket svr;
+    svr.Bind(dsb::net::Endpoint{"tcp://*:12345"});
+    cli.Connect(dsb::net::Endpoint{"tcp://localhost:12345"});
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::vector<zmq::message_t> m;

@@ -1,20 +1,19 @@
 /**
 \file
-\brief  Functions and classes for point-to-point REQ-REP communication,
-        optionally via a broker.
+\brief  Socket types and fundamental communication patterns built on top
+        of ZeroMQ sockets.
 */
-#ifndef DSB_COMM_P2P_HPP
-#define DSB_COMM_P2P_HPP
+#ifndef DSB_COMM_SOCKET_HPP
+#define DSB_COMM_SOCKET_HPP
 
 #include <chrono>
-#include <cstdint>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "zmq.hpp"
 
 #include "dsb/config.h"
+#include "dsb/net.hpp"
 
 
 namespace dsb
@@ -24,54 +23,20 @@ namespace comm
 
 
 /**
-\brief  An endpoint description which may refer to an endpoint which is
-        accessed via a P2P proxy.
+\brief  A client socket for communication with a single server node.
+
+This is similar to a ZeroMQ REQ socket, except that it is not limited to a
+strict alternating send/receive sequence.
 */
-class P2PEndpoint
-{
-public:
-    P2PEndpoint();
-
-    P2PEndpoint(const std::string& url);
-
-    P2PEndpoint(const std::string& endpoint, const std::string& identity);
-
-    const std::string& Endpoint() const;
-
-    bool IsBehindProxy() const;
-
-    const std::string& Identity() const;
-
-    std::string URL() const;
-
-private:
-    std::string m_endpoint;
-    std::string m_identity;
-};
-
-
-/**
-\brief  A client socket for communication with a single server node in a
-        request-reply pattern, either directly or via a P2P proxy.
-
-The purpose of this class is to communicate with one other node, the "server",
-in a request-reply pattern.  The server may be connected directly, socket to
-socket, or it may be connected via a P2P proxy.  After connection, the presence
-of the proxy (or lack thereof) does not affect client code.
-
-\see P2PRepSocket, which is the corresponding server socket.
-\see SpawnP2PProxy, which sets up a P2P proxy.
-*/
-class P2PReqSocket
+class ReqSocket
 {
 public:
     /// Constructs a new, unconnected socket.
-    P2PReqSocket();
+    ReqSocket();
 
-    DSB_DEFINE_DEFAULT_MOVE(P2PReqSocket,
-        m_connectedState, m_socket, m_serverIdentity)
+    DSB_DEFINE_DEFAULT_MOVE(ReqSocket, m_socket)
 
-    ~P2PReqSocket() DSB_NOEXCEPT;
+    ~ReqSocket() DSB_NOEXCEPT;
 
     /**
     \brief  Connects to a server.
@@ -79,7 +44,7 @@ public:
     This function may only be called if the socket is not already connected or
     bound.
     */
-    void Connect(const P2PEndpoint& server);
+    void Connect(const dsb::net::Endpoint& server);
 
     /**
     \brief  Binds to an endpoint to accept an incoming direct connection from
@@ -88,7 +53,7 @@ public:
     This function may only be called if the socket is not already connected or
     bound.
     */
-    void Bind(const std::string& localEndpoint);
+    void Bind(const dsb::net::Endpoint& localEndpoint);
 
     /**
     \brief  Disconnects and/or unbinds the socket.
@@ -115,57 +80,44 @@ public:
     \brief  The underlying ZMQ socket.
 
     This reference is only valid after the socket has been connected/bound.
-    The socket is of type REQ.
+    The socket is of type DEALER.
     */
     zmq::socket_t& Socket();
     const zmq::socket_t& Socket() const;
 
 private:
-    enum State
-    {
-        DISCONNECTED,
-        CONNECTED,
-        PROXY_CONNECTED,
-        BOUND,
-    };
-    State m_connectedState;
     std::unique_ptr<zmq::socket_t> m_socket;
-    zmq::message_t m_serverIdentity;
 };
 
 
 /**
-\brief  A server socket for communication with client nodes in a
-        request-reply pattern, either directly or via a P2P proxy.
+\brief  A server socket for communication with one or more client nodes in a
+        request-reply pattern.
 
-The purpose of this class is to communicate with one or more other nodes, the
-"clients", in a request-reply pattern.  The clients may be connected directly,
-socket to socket, or they may be connected via a P2P proxy.  (These two methods
-cannot be used at once by different clients.)  After connection, the presence
-of the proxy (or lack thereof) does not affect code that uses this class.
-
-\see P2PReqSocket, which is the corresponding client socket.
-\see SpawnP2PProxy, which sets up a P2P proxy.
+This is similar to a ZeroMQ REP socket, except that it is not limited to a
+strict alternating receive/send sequence:  The Receive() function may be
+called again without an intervening Send(), which will cause the previous
+request to be ignored.
 */
-class P2PRepSocket
+class RepSocket
 {
 public:
     /// Constructs a new, unconnected socket.
-    P2PRepSocket();
+    RepSocket();
 
-    DSB_DEFINE_DEFAULT_MOVE(P2PRepSocket,
-        m_connectedState, m_socket, m_boundEndpoint, m_clientEnvelope)
+    DSB_DEFINE_DEFAULT_MOVE(RepSocket,
+        m_socket, m_boundEndpoint, m_clientEnvelope)
 
-    ~P2PRepSocket() DSB_NOEXCEPT;
+    ~RepSocket() DSB_NOEXCEPT;
 
     /**
-    \brief  Binds to a local endpoint or connects to a proxy and waits for
-            incoming requests from clients.
+    \brief  Binds to a local endpoint and waits for incoming requests from
+            clients.
 
     This function may only be called if the socket is not already connected or
     bound.
     */
-    void Bind(const P2PEndpoint& bindpoint);
+    void Bind(const dsb::net::Endpoint& localEndpoint);
 
     /**
     \brief  Connects to a single client and waits for incoming requests from it.
@@ -173,7 +125,7 @@ public:
     This function may only be called if the socket is not already connected or
     bound.
     */
-    void Connect(const std::string& clientEndpoint);
+    void Connect(const dsb::net::Endpoint& clientEndpoint);
 
     /**
     \brief  Disconnects and/or unbinds the socket.
@@ -186,7 +138,7 @@ public:
     \brief  Returns the endpoint this socket has been bound to, or the endpoint
             of the proxy it is connected to along with the socket identity.
     */
-    const P2PEndpoint& BoundEndpoint() const;
+    const dsb::net::Endpoint& BoundEndpoint() const;
 
     /**
     \brief  Receives a request.
@@ -225,25 +177,14 @@ public:
     \brief  The underlying ZMQ socket.
 
     This reference is only valid after the socket has been connected/bound.
-    If ProxyBind() has been called, the socket is of type DEALER, otherwise it
-    has type REP.
+    The socket is of type ROUTER.
     */
     zmq::socket_t& Socket();
     const zmq::socket_t& Socket() const;
 
 private:
-    void EnforceConnected() const;
-    void EnforceDisconnected() const;
-    enum State
-    {
-        DISCONNECTED,
-        BOUND,
-        PROXY_BOUND,
-        CONNECTED
-    };
-    State m_connectedState;
     std::unique_ptr<zmq::socket_t> m_socket;
-    P2PEndpoint m_boundEndpoint;
+    dsb::net::Endpoint m_boundEndpoint;
     std::vector<zmq::message_t> m_clientEnvelope;
 };
 
@@ -257,7 +198,7 @@ Existing message content will be overwritten.
 \throws zmq::error_t on failure to receive a message frame.
 */
 bool Receive(
-    P2PRepSocket& socket,
+    RepSocket& socket,
     std::vector<zmq::message_t>& message,
     std::chrono::milliseconds timeout);
 

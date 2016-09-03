@@ -17,8 +17,9 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/comm/p2p.hpp"
 #include "dsb/comm/reactor.hpp"
+#include "dsb/comm/socket.hpp"
+#include "dsb/net.hpp"
 
 
 namespace dsb
@@ -50,7 +51,7 @@ public:
     RRClient(
         dsb::comm::Reactor& reactor,
         const std::string& protocolIdentifier,
-        const dsb::comm::P2PEndpoint& serverEndpoint);
+        const dsb::net::Endpoint& serverEndpoint);
 
     // This class is not copyable or movable because it leaks its `this`
     // pointer to the reactor.
@@ -202,8 +203,8 @@ private:
 
     dsb::comm::Reactor& m_reactor;
     std::string m_protocolIdentifier;
-    dsb::comm::P2PEndpoint m_serverEndpoint;
-    dsb::comm::P2PReqSocket m_socket;
+    dsb::net::Endpoint m_serverEndpoint;
+    dsb::comm::ReqSocket m_socket;
 
     int m_timeoutTimerID;
     std::uint16_t m_requestProtocolVersion;
@@ -322,7 +323,7 @@ public:
     */
     RRServer(
         dsb::comm::Reactor& reactor,
-        const dsb::comm::P2PEndpoint& endpoint);
+        const dsb::net::Endpoint& endpoint);
 
     ~RRServer() DSB_NOEXCEPT;
 
@@ -356,7 +357,7 @@ public:
       - If the port was specified as `*` (i.e., ask the OS for an available
         emphemeral port), then the actual port will be returned.
     */
-    dsb::comm::P2PEndpoint BoundEndpoint() const;
+    dsb::net::Endpoint BoundEndpoint() const;
 
 private:
     class Private;

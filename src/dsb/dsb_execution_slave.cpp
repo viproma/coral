@@ -8,7 +8,6 @@
 #include "dsb/bus/slave_agent.hpp"
 #include "dsb/comm/messaging.hpp"
 #include "dsb/comm/util.hpp"
-#include "dsb/comm/p2p.hpp"
 #include "dsb/util.hpp"
 
 

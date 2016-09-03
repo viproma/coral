@@ -72,13 +72,9 @@ class SlaveProviderClient::Private
 public:
     Private(
         dsb::comm::Reactor& reactor,
-        const std::string& address,
-        std::uint16_t port)
-        : m_address(address)
-        , m_client{
-            reactor,
-            PROTOCOL_IDENTIFIER,
-            "tcp://" + address + ":" + std::to_string(port)}
+        const dsb::net::InetEndpoint& endpoint)
+        : m_address(endpoint.Address().ToString())
+        , m_client{reactor, PROTOCOL_IDENTIFIER, endpoint.ToEndpoint("tcp")}
     {
     }
 
@@ -224,9 +220,8 @@ private:
 
 SlaveProviderClient::SlaveProviderClient(
     dsb::comm::Reactor& reactor,
-    const std::string& address,
-    std::uint16_t port)
-    : m_private(std::make_unique<Private>(reactor, address, port))
+    const dsb::net::InetEndpoint& endpoint)
+    : m_private(std::make_unique<Private>(reactor, endpoint))
 {
 }
 

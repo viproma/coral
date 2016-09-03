@@ -12,7 +12,6 @@
 #include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
-#include "dsb/comm/p2p.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/domain/slave_provider.hpp"
 #include "dsb/fmi/fmu.hpp"
