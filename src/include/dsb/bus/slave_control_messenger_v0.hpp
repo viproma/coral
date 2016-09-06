@@ -11,8 +11,8 @@
 #include "dsb/config.h"
 #include "dsb/bus/slave_control_messenger.hpp"
 #include "dsb/bus/slave_setup.hpp"
-#include "dsb/comm/p2p.hpp"
 #include "dsb/comm/reactor.hpp"
+#include "dsb/comm/socket.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
 
@@ -38,7 +38,7 @@ class SlaveControlMessengerV0 : public ISlaveControlMessenger
 public:
     SlaveControlMessengerV0(
         dsb::comm::Reactor& reactor,
-        dsb::comm::P2PReqSocket socket,
+        dsb::comm::ReqSocket socket,
         dsb::model::SlaveID slaveID,
         const std::string& slaveName,
         const SlaveSetup& setup,
@@ -59,6 +59,11 @@ public:
         const std::vector<dsb::model::VariableSetting>& settings,
         std::chrono::milliseconds timeout,
         SetVariablesHandler onComplete) override;
+
+    void SetPeers(
+        const std::vector<dsb::net::Endpoint>& peers,
+        std::chrono::milliseconds timeout,
+        SetPeersHandler onComplete) override;
 
     void Step(
         dsb::model::StepID stepID,
@@ -108,6 +113,9 @@ private:
     void DescribeReplyReceived(
         const std::vector<zmq::message_t>& msg,
         GetDescriptionHandler onComplete);
+    void SetPeersReplyReceived(
+        const std::vector<zmq::message_t>& msg,
+        VoidHandler onComplete);
     void SetVarsReplyReceived(
         const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
@@ -129,7 +137,7 @@ private:
     void CheckInvariant() const;
 
     dsb::comm::Reactor& m_reactor;
-    dsb::comm::P2PReqSocket m_socket;
+    dsb::comm::ReqSocket m_socket;
 
     // State information
     SlaveState m_state;

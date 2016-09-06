@@ -181,34 +181,6 @@ dsb::model::SlaveTypeDescription dsb::protocol::FromProto(
 }
 
 
-dsbproto::net::ExecutionLocator dsb::protocol::ToProto(
-    const dsb::net::ExecutionLocator& executionLocator)
-{
-    dsbproto::net::ExecutionLocator el;
-    el.set_master_endpoint(executionLocator.MasterEndpoint());
-    el.set_slave_endpoint(executionLocator.SlaveEndpoint());
-    el.set_variable_pub_endpoint(executionLocator.VariablePubEndpoint());
-    el.set_variable_sub_endpoint(executionLocator.VariableSubEndpoint());
-    el.set_execution_name(executionLocator.ExecName());
-    el.set_comm_timeout_seconds(executionLocator.CommTimeout().count());
-    return el;
-}
-
-
-dsb::net::ExecutionLocator dsb::protocol::FromProto(
-    const dsbproto::net::ExecutionLocator& executionLocator)
-{
-    return dsb::net::ExecutionLocator(
-        executionLocator.master_endpoint(),
-        executionLocator.slave_endpoint(),
-        executionLocator.variable_pub_endpoint(),
-        executionLocator.variable_sub_endpoint(),
-        "",
-        executionLocator.execution_name(),
-        std::chrono::seconds(executionLocator.comm_timeout_seconds()));
-}
-
-
 namespace
 {
     class ScalarValueConverterVisitor : public boost::static_visitor<>
@@ -269,13 +241,15 @@ void dsb::protocol::ConvertToProto(
     dsbproto::net::SlaveLocator& target)
 {
     target.Clear();
-    target.set_endpoint(source.Endpoint());
-    if (source.HasIdentity()) target.set_identity(source.Identity());
+    target.set_control_endpoint(source.ControlEndpoint().URL());
+    target.set_data_pub_endpoint(source.DataPubEndpoint().URL());
 }
 
 
 dsb::net::SlaveLocator dsb::protocol::FromProto(
     const dsbproto::net::SlaveLocator& source)
 {
-    return dsb::net::SlaveLocator(source.endpoint(), source.identity());
+    return dsb::net::SlaveLocator(
+        dsb::net::Endpoint(source.control_endpoint()),
+        dsb::net::Endpoint(source.data_pub_endpoint()));
 }

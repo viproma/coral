@@ -1,11 +1,14 @@
+#define NOMINMAX
 #include "dsb/bus/execution_manager_private.hpp"
 
 #include <cassert>
+#include <typeinfo>
 #include <utility>
 
 #include "boost/numeric/conversion/cast.hpp"
 
 #include "dsb/bus/execution_state.hpp"
+#include "dsb/log.hpp"
 #include "dsb/util.hpp"
 
 
@@ -16,13 +19,12 @@ namespace bus
 
 
 ExecutionManagerPrivate::ExecutionManagerPrivate(
-    const dsb::net::ExecutionLocator& execLoc)
-    : slaveSetup(
-        0,
-        dsb::model::ETERNITY,
-        execLoc.VariablePubEndpoint(),
-        execLoc.VariableSubEndpoint(),
-        execLoc.ExecName()),
+        dsb::comm::Reactor& reactor_,
+        const std::string& executionName,
+        dsb::model::TimePoint startTime,
+        dsb::model::TimePoint maxTime)
+    : reactor(reactor_),
+      slaveSetup(startTime, maxTime, executionName),
       lastSlaveID(0),
       slaves(),
       m_state(), // created below
@@ -30,7 +32,7 @@ ExecutionManagerPrivate::ExecutionManagerPrivate(
       m_allSlaveOpsCompleteHandler(),
       m_currentStepID(-1)
 {
-    SwapState(std::make_unique<ConfigExecutionState>());
+    SwapState(std::make_unique<ReadyExecutionState>());
 }
 
 
@@ -42,53 +44,33 @@ ExecutionManagerPrivate::~ExecutionManagerPrivate()
 }
 
 
-void ExecutionManagerPrivate::Terminate()
+void ExecutionManagerPrivate::Reconstitute(
+    const std::vector<AddedSlave>& slavesToAdd,
+    std::chrono::milliseconds commTimeout,
+    ExecutionManager::ReconstituteHandler onComplete,
+    ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
 {
-    m_state->Terminate(*this);
+    if (std::numeric_limits<dsb::model::SlaveID>::max() - lastSlaveID
+            < (long long) slavesToAdd.size()) {
+        throw std::length_error{"Maximum number of slaves reached"};
+    }
+    DSB_INPUT_CHECK(onComplete);
+    DSB_INPUT_CHECK(onSlaveComplete);
+    m_state->Reconstitute(
+        *this, slavesToAdd, commTimeout,
+        std::move(onComplete), std::move(onSlaveComplete));
 }
 
 
-void ExecutionManagerPrivate::BeginConfig(
-    ExecutionManager::BeginConfigHandler onComplete)
+void ExecutionManagerPrivate::Reconfigure(
+    const std::vector<SlaveConfig>& slaveConfigs,
+    std::chrono::milliseconds commTimeout,
+    ExecutionManager::ReconfigureHandler onComplete,
+    ExecutionManager::SlaveReconfigureHandler onSlaveComplete)
 {
-    m_state->BeginConfig(*this, std::move(onComplete));
-}
-
-
-void ExecutionManagerPrivate::EndConfig(
-    ExecutionManager::EndConfigHandler onComplete)
-{
-    m_state->EndConfig(*this, std::move(onComplete));
-}
-
-
-void ExecutionManagerPrivate::SetSimulationTime(
-    dsb::model::TimePoint startTime,
-    dsb::model::TimePoint stopTime)
-{
-    m_state->SetSimulationTime(*this, startTime, stopTime);
-}
-
-
-dsb::model::SlaveID ExecutionManagerPrivate::AddSlave(
-    const dsb::net::SlaveLocator& slaveLocator,
-    const std::string& slaveName,
-    dsb::comm::Reactor& reactor,
-    std::chrono::milliseconds timeout,
-    ExecutionManager::AddSlaveHandler onComplete)
-{
-    return m_state->AddSlave(
-        *this, slaveLocator, slaveName, reactor, timeout, std::move(onComplete));
-}
-
-
-void ExecutionManagerPrivate::SetVariables(
-    dsb::model::SlaveID slave,
-    const std::vector<dsb::model::VariableSetting>& settings,
-    std::chrono::milliseconds timeout,
-    ExecutionManager::SetVariablesHandler onComplete)
-{
-    m_state->SetVariables(*this, slave, settings, timeout, std::move(onComplete));
+    m_state->Reconfigure(
+        *this, slaveConfigs, commTimeout,
+        std::move(onComplete), std::move(onSlaveComplete));
 }
 
 
@@ -117,6 +99,12 @@ void ExecutionManagerPrivate::AcceptStep(
         timeout,
         std::move(onComplete),
         std::move(onSlaveStepComplete));
+}
+
+
+void ExecutionManagerPrivate::Terminate()
+{
+    m_state->Terminate(*this);
 }
 
 
@@ -187,6 +175,9 @@ std::unique_ptr<ExecutionState> ExecutionManagerPrivate::SwapState(
     std::unique_ptr<ExecutionState> next)
 {
     AbortSlaveOpWaiting();
+    DSB_LOG_TRACE(boost::format("ExecutionManager state change: %s -> %s")
+        % (m_state ? typeid(*m_state).name() : "none")
+        % (next    ? typeid(*next).name()    : "none"));
     std::swap(m_state, next);
     m_state->StateEntered(*this);
     return next;
@@ -208,9 +199,11 @@ void ExecutionManagerPrivate::AbortSlaveOpWaiting() DSB_NOEXCEPT
 
 ExecutionManagerPrivate::Slave::Slave(
     std::unique_ptr<dsb::bus::SlaveController> slave_,
+    dsb::net::SlaveLocator locator_,
     const dsb::model::SlaveDescription& description_)
-    : slave(std::move(slave_)),
-      description(description_)
+    : slave(std::move(slave_))
+    , locator(std::move(locator_))
+    , description(description_)
 { }
 
 

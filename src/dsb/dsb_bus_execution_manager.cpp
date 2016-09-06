@@ -9,8 +9,13 @@ namespace bus
 {
 
 
-ExecutionManager::ExecutionManager(const dsb::net::ExecutionLocator& execLoc)
-    : m_private(std::make_unique<ExecutionManagerPrivate>(execLoc))
+ExecutionManager::ExecutionManager(
+    dsb::comm::Reactor& reactor,
+    const std::string& executionName,
+    dsb::model::TimePoint startTime,
+    dsb::model::TimePoint maxTime)
+    : m_private(std::make_unique<ExecutionManagerPrivate>(
+        reactor, executionName, startTime, maxTime))
 {
 }
 
@@ -23,51 +28,27 @@ ExecutionManager::~ExecutionManager()
 }
 
 
-void ExecutionManager::BeginConfig(BeginConfigHandler onComplete)
-{
-    m_private->BeginConfig(std::move(onComplete));
-}
-
-
-void ExecutionManager::EndConfig(BeginConfigHandler onComplete)
-{
-    m_private->EndConfig(std::move(onComplete));
-}
-
-
-void ExecutionManager::Terminate()
-{
-    m_private->Terminate();
-}
-
-
-void ExecutionManager::SetSimulationTime(
-    dsb::model::TimePoint startTime,
-    dsb::model::TimePoint stopTime)
-{
-    m_private->SetSimulationTime(startTime, stopTime);
-}
-
-
-dsb::model::SlaveID ExecutionManager::AddSlave(
-    const dsb::net::SlaveLocator& slaveLocator,
-    const std::string& slaveName,
-    dsb::comm::Reactor& reactor,
+void ExecutionManager::Reconstitute(
+    const std::vector<AddedSlave>& slavesToAdd,
     std::chrono::milliseconds commTimeout,
-    AddSlaveHandler onComplete)
+    ReconstituteHandler onComplete,
+    SlaveReconstituteHandler onSlaveComplete)
 {
-    return m_private->AddSlave(
-        slaveLocator, slaveName, reactor, commTimeout, std::move(onComplete));
+    m_private->Reconstitute(
+        slavesToAdd, commTimeout,
+        std::move(onComplete), std::move(onSlaveComplete));
 }
 
 
-void ExecutionManager::SetVariables(
-    dsb::model::SlaveID slave,
-    const std::vector<dsb::model::VariableSetting>& settings,
-    std::chrono::milliseconds timeout,
-    SetVariablesHandler onComplete)
+void ExecutionManager::Reconfigure(
+    const std::vector<SlaveConfig>& slaveConfigs,
+    std::chrono::milliseconds commTimeout,
+    ReconfigureHandler onComplete,
+    SlaveReconfigureHandler onSlaveComplete)
 {
-    m_private->SetVariables(slave, settings, timeout, std::move(onComplete));
+    m_private->Reconfigure(
+        slaveConfigs, commTimeout,
+        std::move(onComplete), std::move(onSlaveComplete));
 }
 
 
@@ -94,6 +75,12 @@ void ExecutionManager::AcceptStep(
         timeout,
         std::move(onComplete),
         std::move(onSlaveAcceptStepComplete));
+}
+
+
+void ExecutionManager::Terminate()
+{
+    m_private->Terminate();
 }
 
 

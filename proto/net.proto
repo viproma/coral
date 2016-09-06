@@ -1,18 +1,7 @@
 package dsbproto.net;
 
-
-message ExecutionLocator
-{
-    required string master_endpoint = 1;
-    required string slave_endpoint = 2;
-    required string variable_pub_endpoint = 3;
-    required string variable_sub_endpoint = 4;
-    required string execution_name = 5;
-    required int64 comm_timeout_seconds = 6;
-}
-
 message SlaveLocator
 {
-    required string endpoint = 1;
-    optional string identity = 2;
+    required string control_endpoint = 1;
+    required string data_pub_endpoint = 2;
 }

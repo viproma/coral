@@ -1,5 +1,7 @@
 #include "dsb/model.hpp"
 
+#include <cctype>
+
 #include "dsb/error.hpp"
 #include "dsb/util.hpp"
 
@@ -268,6 +270,20 @@ const dsb::model::Variable& VariableSetting::ConnectedOutput() const
 {
     DSB_PRECONDITION_CHECK(IsConnected());
     return m_connectedOutput;
+}
+
+
+// =============================================================================
+// Free functions
+// =============================================================================
+
+
+bool IsValidSlaveName(const std::string& s)
+{
+    if (s.empty()) return false;
+    if (!std::isalpha(s.front())) return false;
+    for (char c : s) if (!std::isalnum(c) && c != '_') return false;
+    return true;
 }
 
 

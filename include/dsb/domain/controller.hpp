@@ -6,6 +6,7 @@
 #define DSB_DOMAIN_CONTROLLER_HPP
 
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -45,12 +46,24 @@ public:
         std::vector<std::string> providers;
     };
 
-    /// Constructor.
-    explicit Controller(const dsb::net::DomainLocator& locator);
+    /**
+    \brief  Constructor.
+
+    \param [in] networkInterface
+        The name or IP address (in dot-decimal format) of the network
+        interface that should be used, or "*" for all available interfaces.
+    \param [in] discoveryPort
+        The UDP port used for discovering other entities such as slave
+        providers.
+    */
+    Controller(
+        const std::string& networkInterface,
+        std::uint16_t discoveryPort);
 
     /// Destructor.
     ~Controller() DSB_NOEXCEPT;
 
+    // Disable copying
     Controller(const Controller&) = delete;
     Controller& operator=(const Controller&) = delete;
 
@@ -62,26 +75,37 @@ public:
 
     /**
     \brief  Returns available slave types.
+
+    \param [in] timeout
+        Maximum time to wait for replies from known slave providers.
     */
-    std::vector<SlaveType> GetSlaveTypes();
+    std::vector<SlaveType> GetSlaveTypes(std::chrono::milliseconds timeout);
 
     /**
-    \brief  Instantiates a slave and connects it to an execution.
+    \brief  Instantiates a slave.
 
-    If no slave provider is specified, and the specified slave type is offered
-    by more than one slave provider, an arbitrary one of them will be used.
+    `timeout` specifies how long the slave provider should wait for the
+    slave to start up before assuming it has crashed or frozen.  The master
+    will wait twice as long as this for the slave provider to report that the
+    slave has been successfully instantiated before it assumes the slave
+    provider itself has crashed or the connection has been lost.
+    In both cases, an exception is thrown.
 
-    `timeout` specifies both how long the slave provider should wait for the
-    slave to start up before assuming it has crashed or frozen, as well as how
-    long the master should wait for the slave provider to report that the slave
-    has been successfully instantiated before it assumes the slave provider
-    itself has crashed or the connection has been lost.  In any case, an
-    exception is thrown if this timeout is reached.
+    \param [in] slaveProviderID
+        The ID of the slave provider that should instantiate the slave.
+    \param [in] slaveTypeUUID
+        The UUID that identifies the type of the slave that is to be
+        instantiated.
+    \param [in] timeout
+        How much time the slave gets to start up.
+
+    \returns
+        An object that contains the information needed to locate the slave.
     */
     dsb::net::SlaveLocator InstantiateSlave(
+        const std::string& slaveProviderID,
         const std::string& slaveTypeUUID,
-        std::chrono::milliseconds timeout,
-        const std::string& provider = std::string());
+        std::chrono::milliseconds timeout);
 
 private:
     class Private;

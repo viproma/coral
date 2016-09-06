@@ -40,6 +40,37 @@ void Reactor::RemoveSocket(zmq::socket_t& socket) DSB_NOEXCEPT
 }
 
 
+void Reactor::AddNativeSocket(NativeSocket socket, NativeSocketHandler handler)
+{
+    m_nativeSockets.push_back(
+        std::make_pair(
+            socket,
+            std::make_unique<NativeSocketHandler>(std::move(handler))));
+    m_needsRebuild = true;
+}
+
+
+namespace
+{
+#ifdef _WIN32
+    const SOCKET NULL_NATIVE_SOCKET = INVALID_SOCKET;
+#else
+    const int NULL_NATIVE_SOCKET = -1;
+#endif
+}
+
+
+void Reactor::RemoveNativeSocket(NativeSocket socket) DSB_NOEXCEPT
+{
+    // Actual removal is deferred to the next rebuild.  At this stage, we just
+    // replace the file descriptor with an invalid value.
+    for (auto& s : m_nativeSockets) {
+        if (s.first == socket) s.first = NULL_NATIVE_SOCKET;
+    }
+    m_needsRebuild = true;
+}
+
+
 namespace
 {
     // We use templates to work around the fact that Reactor::Timer is private.
@@ -111,13 +142,30 @@ void Reactor::Run()
     m_continuePolling = true;
     do {
         if (m_needsRebuild) Rebuild();
+
+        // More sockets may be added by the handler functions, so we
+        // need to store the current sizes for use in the loops below.
+        const auto socketCount = m_sockets.size();
+        const auto nativeSocketCount = m_nativeSockets.size();
+        assert(m_pollItems.size() == socketCount + nativeSocketCount);
+
         zmq::poll(m_pollItems.data(), m_pollItems.size(),
                   m_timers.empty() ? -1 : static_cast<long>(TimeToNextEvent().count()));
-        for (size_t i = 0; i < m_pollItems.size(); ++i) {
-            if ((m_pollItems[i].revents & ZMQ_POLLIN) && m_sockets[i].first != nullptr) {
+        std::size_t j = 0;
+        for (std::size_t i = 0; i < socketCount; ++i, ++j) {
+            assert(j < m_pollItems.size());
+            if ((m_pollItems[j].revents & ZMQ_POLLIN) && m_sockets[i].first != nullptr) {
                 (*m_sockets[i].second)(*this, *m_sockets[i].first);
             }
         }
+        for (std::size_t i = 0; i < nativeSocketCount; ++i, ++j) {
+            assert(j < m_pollItems.size());
+            if ((m_pollItems[j].revents & ZMQ_POLLIN) && m_nativeSockets[i].first != NULL_NATIVE_SOCKET) {
+                (*m_nativeSockets[i].second)(*this, m_nativeSockets[i].first);
+            }
+        }
+        assert(j == m_pollItems.size());
+
         while (!m_timers.empty()
                && std::chrono::system_clock::now() >= m_timers.front().nextEventTime) {
             PerformNextEvent();
@@ -189,10 +237,19 @@ void Reactor::Rebuild()
         [](const SocketHandlerPair& a) { return a.first == nullptr; });
     m_sockets.erase(newEnd, m_sockets.end());
 
+    // Remove null sockets from m_nativeSockets
+    auto newEnd2 = std::remove_if(m_nativeSockets.begin(), m_nativeSockets.end(),
+        [](const NativeSocketHandlerPair& a) { return a.first == NULL_NATIVE_SOCKET; });
+    m_nativeSockets.erase(newEnd2, m_nativeSockets.end());
+
     // Rebuild m_pollItems
     m_pollItems.clear();
-    for (auto it = m_sockets.begin(); it != m_sockets.end(); ++it) {
-        zmq::pollitem_t pi = { static_cast<void*>(*it->first), 0, ZMQ_POLLIN, 0 };
+    for (const auto& s : m_sockets) {
+        zmq::pollitem_t pi = { static_cast<void*>(*s.first), 0, ZMQ_POLLIN, 0 };
+        m_pollItems.push_back(pi);
+    }
+    for (const auto& s : m_nativeSockets) {
+        zmq::pollitem_t pi = { nullptr, s.first, ZMQ_POLLIN, 0 };
         m_pollItems.push_back(pi);
     }
     m_needsRebuild = false;

@@ -34,40 +34,20 @@ public:
         ExecutionManagerPrivate& self)
     { }
 
-    virtual void Terminate(ExecutionManagerPrivate& self)
+    virtual void Reconstitute(
+        ExecutionManagerPrivate& self,
+        const std::vector<AddedSlave>& slavesToAdd,
+        std::chrono::milliseconds commTimeout,
+        ExecutionManager::ReconstituteHandler onComplete,
+        ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
     { NotAllowed(__FUNCTION__); }
 
-    virtual void BeginConfig(
+    virtual void Reconfigure(
         ExecutionManagerPrivate& self,
-        ExecutionManager::BeginConfigHandler onComplete)
-    { NotAllowed(__FUNCTION__); }
-
-    virtual void EndConfig(
-        ExecutionManagerPrivate& self,
-        ExecutionManager::BeginConfigHandler onComplete)
-    { NotAllowed(__FUNCTION__); }
-
-    virtual void SetSimulationTime(
-        ExecutionManagerPrivate& self,
-        dsb::model::TimePoint startTime,
-        dsb::model::TimePoint stopTime)
-    { NotAllowed(__FUNCTION__); }
-
-    virtual dsb::model::SlaveID AddSlave(
-        ExecutionManagerPrivate& self,
-        const dsb::net::SlaveLocator& slaveLocator,
-        const std::string& slaveName,
-        dsb::comm::Reactor& reactor,
-        std::chrono::milliseconds timeout,
-        ExecutionManager::AddSlaveHandler onComplete)
-    { NotAllowed(__FUNCTION__); }
-
-    virtual void SetVariables(
-        ExecutionManagerPrivate& self,
-        dsb::model::SlaveID slave,
-        const std::vector<dsb::model::VariableSetting>& settings,
-        std::chrono::milliseconds timeout,
-        ExecutionManager::SetVariablesHandler onComplete)
+        const std::vector<SlaveConfig>& slaveConfigs,
+        std::chrono::milliseconds commTimeout,
+        ExecutionManager::ReconstituteHandler onComplete,
+        ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
     { NotAllowed(__FUNCTION__); }
 
     virtual void Step(
@@ -85,6 +65,9 @@ public:
         ExecutionManager::SlaveAcceptStepHandler onSlaveAcceptStepComplete)
     { NotAllowed(__FUNCTION__); }
 
+    virtual void Terminate(ExecutionManagerPrivate& self)
+    { NotAllowed(__FUNCTION__); }
+
     virtual ~ExecutionState() DSB_NOEXCEPT { }
 
 private:
@@ -96,60 +79,21 @@ private:
 };
 
 
-class ConfigExecutionState : public ExecutionState
-{
-    void Terminate(ExecutionManagerPrivate& self) override;
-
-    void BeginConfig(
-        ExecutionManagerPrivate& self,
-        ExecutionManager::BeginConfigHandler onComplete) override;
-
-    void EndConfig(
-        ExecutionManagerPrivate& self,
-        ExecutionManager::BeginConfigHandler onComplete) override;
-
-    void SetSimulationTime(
-        ExecutionManagerPrivate& self,
-        dsb::model::TimePoint startTime,
-        dsb::model::TimePoint stopTime) override;
-
-    dsb::model::SlaveID AddSlave(
-        ExecutionManagerPrivate& self,
-        const dsb::net::SlaveLocator& slaveLocator,
-        const std::string& slaveName,
-        dsb::comm::Reactor& reactor,
-        std::chrono::milliseconds timeout,
-        ExecutionManager::AddSlaveHandler onComplete) override;
-
-    void SetVariables(
-        ExecutionManagerPrivate& self,
-        dsb::model::SlaveID slave,
-        const std::vector<dsb::model::VariableSetting>& settings,
-        std::chrono::milliseconds timeout,
-        ExecutionManager::SetVariablesHandler onComplete) override;
-};
-
-
-// This class is so named in anticipation of issue VIPROMA-46 getting fixed.
-class PrimingExecutionState : public ExecutionState
-{
-public:
-    PrimingExecutionState(ExecutionManager::EndConfigHandler onComplete);
-
-private:
-    void StateEntered(ExecutionManagerPrivate& self) override;
-
-    ExecutionManager::EndConfigHandler m_onComplete;
-};
-
-
 class ReadyExecutionState : public ExecutionState
 {
-    void Terminate(ExecutionManagerPrivate& self) override;
-
-    void BeginConfig(
+    void Reconstitute(
         ExecutionManagerPrivate& self,
-        ExecutionManager::BeginConfigHandler onComplete) override;
+        const std::vector<AddedSlave>& slavesToAdd,
+        std::chrono::milliseconds commTimeout,
+        ExecutionManager::ReconstituteHandler onComplete,
+        ExecutionManager::SlaveReconstituteHandler onSlaveComplete) override;
+
+    void Reconfigure(
+        ExecutionManagerPrivate& self,
+        const std::vector<SlaveConfig>& slaveConfigs,
+        std::chrono::milliseconds commTimeout,
+        ExecutionManager::ReconstituteHandler onComplete,
+        ExecutionManager::SlaveReconstituteHandler onSlaveComplete) override;
 
     void Step(
         ExecutionManagerPrivate& self,
@@ -157,6 +101,54 @@ class ReadyExecutionState : public ExecutionState
         std::chrono::milliseconds timeout,
         ExecutionManager::StepHandler onComplete,
         ExecutionManager::SlaveStepHandler onSlaveStepComplete) override;
+
+    void Terminate(ExecutionManagerPrivate& self) override;
+};
+
+
+class ReconstitutingExecutionState : public ExecutionState
+{
+public:
+    ReconstitutingExecutionState(
+        const std::vector<AddedSlave>& slavesToAdd,
+        std::chrono::milliseconds commTimeout,
+        ExecutionManager::ReconstituteHandler onComplete,
+        ExecutionManager::SlaveReconstituteHandler onSlaveComplete);
+
+private:
+    void StateEntered(ExecutionManagerPrivate& self) override;
+    void AllSlavesAdded(ExecutionManagerPrivate& self);
+    void Completed(ExecutionManagerPrivate& self);
+    void Failed(ExecutionManagerPrivate& self);
+
+    // Input parameters to this state
+    const std::vector<AddedSlave> m_slavesToAdd;
+    const std::chrono::milliseconds m_commTimeout;
+    const ExecutionManager::ReconstituteHandler m_onComplete;
+    const ExecutionManager::SlaveReconstituteHandler m_onSlaveComplete;
+
+    // Local variables of this state
+    std::vector<dsb::model::SlaveID> m_addedSlaves;
+};
+
+
+class ReconfiguringExecutionState : public ExecutionState
+{
+public:
+    ReconfiguringExecutionState(
+        const std::vector<SlaveConfig>& slaveConfigs,
+        std::chrono::milliseconds commTimeout,
+        ExecutionManager::ReconstituteHandler onComplete,
+        ExecutionManager::SlaveReconstituteHandler onSlaveComplete);
+
+private:
+    void StateEntered(ExecutionManagerPrivate& self) override;
+
+    // Input parameters to this state
+    const std::vector<SlaveConfig> m_slaveConfigs;
+    const std::chrono::milliseconds m_commTimeout;
+    const ExecutionManager::ReconstituteHandler m_onComplete;
+    const ExecutionManager::SlaveReconstituteHandler m_onSlaveComplete;
 };
 
 

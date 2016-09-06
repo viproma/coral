@@ -345,6 +345,15 @@ private:
 };
 
 
+/**
+\brief  Returns whether `s` contains a valid slave name.
+
+Basically, this checks that `s` matches the regular expression
+`[a-zA-Z][0-9a-zA-Z_]*`.
+*/
+bool IsValidSlaveName(const std::string& s);
+
+
 // =============================================================================
 // Function template definitions
 // =============================================================================

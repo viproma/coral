@@ -12,7 +12,6 @@
 #include "zmq.hpp"
 
 #include "dsb/comm/messaging.hpp"
-#include "dsb/comm/p2p.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/domain/slave_provider.hpp"
 #include "dsb/fmi/fmu.hpp"
@@ -28,13 +27,13 @@ public:
     DSBSlaveType(
         dsb::fmi::Importer& importer,
         const boost::filesystem::path& fmuPath,
-        const std::string& proxyEndpoint,
+        const std::string& networkInterface,
         const std::string& slaveExe,
         std::chrono::seconds commTimeout,
         const std::string& outputDir)
         : m_fmuPath{fmuPath}
         , m_fmu{importer.Import(fmuPath)}
-        , m_proxyEndpoint(proxyEndpoint)
+        , m_networkInterface(networkInterface)
         , m_slaveExe(slaveExe)
         , m_commTimeout{commTimeout}
         , m_outputDir(outputDir.empty() ? "." : outputDir)
@@ -56,14 +55,10 @@ public:
             const auto slaveStatusPort = dsb::comm::BindToEphemeralPort(slaveStatusSocket);
             const auto slaveStatusEp = "tcp://localhost:" + boost::lexical_cast<std::string>(slaveStatusPort);
 
-            const auto slaveBindEndpoint = dsb::comm::P2PEndpoint(
-                m_proxyEndpoint,
-                dsb::util::RandomString(6, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"));
-
             std::vector<std::string> args;
             args.push_back(slaveStatusEp);
             args.push_back(m_fmuPath.string());
-            args.push_back(slaveBindEndpoint.URL());
+            args.push_back(m_networkInterface);
             args.push_back(std::to_string(m_commTimeout.count()));
             args.push_back(m_outputDir);
 
@@ -74,36 +69,37 @@ public:
 
             std::clog << "Waiting for verification..." << std::flush;
             std::vector<zmq::message_t> slaveStatus;
-            const auto feedbackTimedOut = !dsb::comm::Receive(
+            const auto feedbackTimedOut = !dsb::comm::WaitForIncoming(
                 slaveStatusSocket,
-                slaveStatus,
                 timeout);
             if (feedbackTimedOut) {
                 throw std::runtime_error(
                     "Slave took more than "
                     + boost::lexical_cast<std::string>(timeout.count())
                     + " milliseconds to start; presumably it has failed altogether");
-            } else if (slaveStatus.size() != 2) {
-                throw std::runtime_error("Invalid data received from slave executable");
-            } else if (dsb::comm::ToString(slaveStatus[0]) == "ERROR") {
-                throw std::runtime_error(dsb::comm::ToString(slaveStatus.at(1)));
-            } else if (dsb::comm::ToString(slaveStatus[0]) != "OK") {
+            }
+            dsb::comm::Receive(slaveStatusSocket, slaveStatus);
+            if (dsb::comm::ToString(slaveStatus[0]) == "ERROR" &&
+                    slaveStatus.size() == 2) {
+                throw std::runtime_error(dsb::comm::ToString(slaveStatus[1]));
+            } else if (dsb::comm::ToString(slaveStatus[0]) != "OK" ||
+                    slaveStatus.size() < 3 ||
+                    slaveStatus[1].size() == 0 ||
+                    slaveStatus[2].size() == 0) {
                 throw std::runtime_error("Invalid data received from slave executable");
             }
-            std::clog << "OK" << std::endl;
-            // At this point, we know that slaveStatus contains two frames, where
+            // At this point, we know that slaveStatus contains three frames, where
             // the first one is "OK", signifying that the slave seems to be up and
-            // running.  The second one contains the bound endpoint for the slave.
-            const auto slaveBoundEndpoint = dsb::comm::P2PEndpoint(
-                dsb::comm::ToString(slaveStatus[1]));
-            // Later, slaveBoundEndpoint may be different (e.g. if the slave binds
-            // locally to a different port or endpoint than the slave provider, but
-            // for now we only support the proxy solution.
-            assert(slaveBoundEndpoint.Endpoint() == slaveBindEndpoint.Endpoint());
-            assert(slaveBoundEndpoint.Identity() == slaveBindEndpoint.Identity());
-            slaveLocator = dsb::net::SlaveLocator(
-                std::string(), // signifying that we use same proxy as provider
-                slaveBoundEndpoint.Identity());
+            // running.  The following two contains the endpoints to which the slave
+            // is bound.
+            slaveLocator = dsb::net::SlaveLocator{
+                dsb::net::InetEndpoint{dsb::comm::ToString(slaveStatus[1])}
+                    .ToEndpoint("tcp"),
+                dsb::net::InetEndpoint{dsb::comm::ToString(slaveStatus[2])}
+                    .ToEndpoint("tcp")
+            };
+
+            std::clog << "OK" << std::endl;
             return true;
         } catch (const std::exception& e) {
             m_instantiationFailureDescription = e.what();
@@ -119,7 +115,7 @@ public:
 private:
     boost::filesystem::path m_fmuPath;
     std::shared_ptr<dsb::fmi::FMU> m_fmu;
-    std::string m_proxyEndpoint;
+    std::string m_networkInterface;
     std::string m_slaveExe;
     std::chrono::seconds m_commTimeout;
     std::string m_outputDir;
@@ -192,6 +188,7 @@ try {
     if (!optionValues->count("fmu")) throw std::runtime_error("No FMUs specified");
 
     const auto domainAddress = (*optionValues)["domain"].as<std::string>();
+    const auto networkInterface = std::string("*"); // TODO: Make cmdline switch
     const auto outputDir = (*optionValues)["output-dir"].as<std::string>();
     const auto timeout = std::chrono::seconds((*optionValues)["timeout"].as<unsigned int>());
 
@@ -215,8 +212,6 @@ try {
     }
     assert (!slaveExe.empty());
 
-    const auto domainLoc = dsb::net::GetDomainEndpoints(domainAddress);
-
     std::vector<std::string> fmuPaths;
     for (const auto& fmuSpec :
             (*optionValues)["fmu"].as<std::vector<std::string>>()) {
@@ -232,7 +227,7 @@ try {
         fmus.push_back(std::make_unique<DSBSlaveType>(
             *importer,
             p,
-            domainLoc.InfoSlavePEndpoint(),
+            networkInterface,
             slaveExe,
             timeout,
             outputDir));
@@ -241,8 +236,10 @@ try {
     std::cout << fmus.size() << " FMUs loaded" << std::endl;
 
     dsb::domain::SlaveProvider slaveProvider{
-        domainLoc,
+        dsb::util::RandomUUID(),
         std::move(fmus),
+        networkInterface,
+        10272,
         [](std::exception_ptr e) {
             try { std::rethrow_exception(e); }
             catch (const std::exception& e) {

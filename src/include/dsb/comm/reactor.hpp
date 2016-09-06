@@ -36,8 +36,15 @@ active when the messaging loop is running, i.e. between Run() and Stop().
 class Reactor
 {
 public:
+#ifdef _WIN32
+    typedef SOCKET NativeSocket;
+#else
+    typedef int NativeSocket;
+#endif
+
     typedef std::chrono::system_clock::time_point TimePoint;
     typedef std::function<void(Reactor&, zmq::socket_t&)> SocketHandler;
+    typedef std::function<void(Reactor&, NativeSocket)> NativeSocketHandler;
     typedef std::function<void(Reactor&, int)> TimerHandler;
 
     Reactor();
@@ -56,6 +63,21 @@ public:
     simply returns without doing anything.
     */
     void RemoveSocket(zmq::socket_t& socket) DSB_NOEXCEPT;
+
+    /// Adds a handler for the given native socket.
+    void AddNativeSocket(NativeSocket socket, NativeSocketHandler handler);
+
+    /**
+    \brief  Removes all handlers for the given native socket.
+
+    If this function is called by a socket handler, no more handlers will be
+    called for the removed socket, even if the last poll indicated that it has
+    incoming messages.
+
+    If the given socket was never registered with AddNativeSocket(), this
+    function simply returns without doing anything.
+    */
+    void RemoveNativeSocket(NativeSocket socket) DSB_NOEXCEPT;
 
     /**
     \brief  Adds a timer.
@@ -113,7 +135,9 @@ private:
     void Rebuild();
 
     typedef std::pair<zmq::socket_t*, std::unique_ptr<SocketHandler>> SocketHandlerPair;
+    typedef std::pair<NativeSocket, std::unique_ptr<NativeSocketHandler>> NativeSocketHandlerPair;
     std::vector<SocketHandlerPair> m_sockets;
+    std::vector<NativeSocketHandlerPair> m_nativeSockets;
     std::vector<zmq::pollitem_t> m_pollItems;
 
     int m_nextTimerID;

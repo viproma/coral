@@ -51,7 +51,8 @@ namespace bus
 SlaveAgent::SlaveAgent(
     dsb::comm::Reactor& reactor,
     dsb::execution::ISlaveInstance& slaveInstance,
-    const dsb::comm::P2PEndpoint& bindpoint,
+    const dsb::net::Endpoint& controlEndpoint,
+    const dsb::net::Endpoint& dataPubEndpoint,
     std::chrono::milliseconds commTimeout)
     : m_stateHandler(&SlaveAgent::NotConnectedHandler),
       m_slaveInstance(slaveInstance),
@@ -59,10 +60,11 @@ SlaveAgent::SlaveAgent(
       m_id(dsb::model::INVALID_SLAVE_ID),
       m_currentStepID(dsb::model::INVALID_STEP_ID)
 {
-    m_control.Bind(bindpoint);
-    DSB_LOG_TRACE(boost::format("Slave bound to %s with identity %s")
-        % bindpoint.Endpoint()
-        % bindpoint.Identity());
+    m_control.Bind(controlEndpoint);
+    DSB_LOG_TRACE("Slave bound to control endpoint: " + BoundControlEndpoint().URL());
+
+    m_publisher.Bind(dataPubEndpoint);
+    DSB_LOG_TRACE("Slave bound to data publisher endpoint: " + BoundControlEndpoint().URL());
 
     reactor.AddSocket(
         m_control.Socket(),
@@ -91,9 +93,15 @@ SlaveAgent::SlaveAgent(
 }
 
 
-const dsb::comm::P2PEndpoint& SlaveAgent::BoundEndpoint() const
+dsb::net::Endpoint SlaveAgent::BoundControlEndpoint() const
 {
-    return m_control.BoundEndpoint();
+    return dsb::net::Endpoint{m_control.BoundEndpoint().URL()};
+}
+
+
+dsb::net::Endpoint SlaveAgent::BoundDataPubEndpoint() const
+{
+    return m_publisher.BoundEndpoint();
 }
 
 
@@ -135,8 +143,6 @@ void SlaveAgent::ConnectedHandler(std::vector<zmq::message_t>& msg)
         data.execution_name(),
         data.slave_name());
 
-    m_publisher.Connect(data.variable_pub_endpoint(), m_id);
-    m_connections.Connect(data.variable_sub_endpoint());
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }
@@ -163,6 +169,9 @@ void SlaveAgent::ReadyHandler(std::vector<zmq::message_t>& msg)
             break; }
         case dsbproto::execution::MSG_SET_VARS:
             HandleSetVars(msg);
+            break;
+        case dsbproto::execution::MSG_SET_PEERS:
+            HandleSetPeers(msg);
             break;
         case dsbproto::execution::MSG_DESCRIBE:
             HandleDescribe(msg);
@@ -266,6 +275,25 @@ void SlaveAgent::HandleSetVars(std::vector<zmq::message_t>& msg)
 }
 
 
+void SlaveAgent::HandleSetPeers(std::vector<zmq::message_t>& msg)
+{
+    if (msg.size() != 2) {
+        throw dsb::error::ProtocolViolationException(
+            "Wrong number of frames in SET_PEERS message");
+    }
+    DSB_LOG_DEBUG("Reconnecting to peers");
+    dsbproto::execution::SetPeersData data;
+    dsb::protobuf::ParseFromFrame(msg[1], data);
+    std::vector<dsb::net::Endpoint> m_endpoints;
+    for (const auto& peer : data.peer()) {
+        m_endpoints.emplace_back(peer);
+    }
+    m_connections.Connect(m_endpoints.data(), m_endpoints.size());
+    DSB_LOG_TRACE("Done reconnecting to peers");
+    dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_READY);
+}
+
+
 namespace
 {
     dsb::model::ScalarValue GetVariable(
@@ -299,6 +327,7 @@ bool SlaveAgent::Step(const dsbproto::execution::StepData& stepInfo)
         if (varInfo.Causality() != dsb::model::OUTPUT_CAUSALITY) continue;
         m_publisher.Publish(
             m_currentStepID,
+            m_id,
             varInfo.ID(),
             GetVariable(m_slaveInstance, varInfo));
     }
@@ -310,9 +339,11 @@ bool SlaveAgent::Step(const dsbproto::execution::StepData& stepInfo)
 // class SlaveAgent::Connections
 // =============================================================================
 
-void SlaveAgent::Connections::Connect(const std::string& endpoint)
+void SlaveAgent::Connections::Connect(
+    const dsb::net::Endpoint* endpoints,
+    std::size_t endpointsSize)
 {
-    m_subscriber.Connect(endpoint);
+    m_subscriber.Connect(endpoints, endpointsSize);
 }
 
 

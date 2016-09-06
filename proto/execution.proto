@@ -17,6 +17,7 @@ enum MessageType
     MSG_ACCEPT_STEP  = 13;
     MSG_TERMINATE    = 14;
     MSG_DESCRIBE     = 15;
+    MSG_SET_PEERS    = 16;
 
     // Responses
     MSG_ERROR        = 30;
@@ -58,10 +59,8 @@ message SetupData
     required uint32 slave_id = 1;
     required double start_time = 2;
     optional double stop_time = 3;
-    required string variable_pub_endpoint = 4;
-    required string variable_sub_endpoint = 5;
-    optional string execution_name = 6;
-    optional string slave_name = 7;
+    optional string execution_name = 4;
+    optional string slave_name = 5;
 }
 
 // A message that is sent by the master to a slave to set some of its variables.
@@ -76,4 +75,10 @@ message StepData
     required int32 step_id = 1;
     required double timepoint = 2;
     required double stepsize = 3;
+}
+
+// The body of a SET_PEERS message
+message SetPeersData
+{
+    repeated string peer = 1;
 }

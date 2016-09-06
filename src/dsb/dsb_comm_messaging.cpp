@@ -6,30 +6,65 @@
 
 namespace
 {
+    bool PollSingleSocket(
+        zmq::socket_t& socket,
+        short events,
+        std::chrono::milliseconds timeout)
+    {
+        assert(timeout >= std::chrono::milliseconds(0));
+        auto pollItem = zmq::pollitem_t{static_cast<void*>(socket), 0, events, 0};
+        return zmq::poll(&pollItem, 1, static_cast<long>(timeout.count())) == 1;
+    }
+}
+
+
+bool dsb::comm::WaitForOutgoing(
+    zmq::socket_t& socket,
+    std::chrono::milliseconds timeout)
+{
+    DSB_INPUT_CHECK(timeout >= std::chrono::milliseconds(0));
+    return PollSingleSocket(socket, ZMQ_POLLOUT, timeout);
+}
+
+
+bool dsb::comm::WaitForIncoming(
+    zmq::socket_t& socket,
+    std::chrono::milliseconds timeout)
+{
+    DSB_INPUT_CHECK(timeout >= std::chrono::milliseconds(0));
+    return PollSingleSocket(socket, ZMQ_POLLIN, timeout);
+}
+
+
+namespace
+{
     void SendFrames(
         zmq::socket_t& socket,
         std::vector<zmq::message_t>& message,
-        bool moreComing)
+        dsb::comm::SendFlag flags)
     {
         assert (!message.empty());
-        for (auto it = message.begin(); ; ) {
-            auto m = it++;
-            if (it == message.end()) {
-                if (moreComing) socket.send(*m, ZMQ_SNDMORE);
-                else            socket.send(*m);
-                break;
-            } else {
-                socket.send(*m, ZMQ_SNDMORE);
-            }
+        const auto last = --message.end();
+        for (auto it = begin(message); it != last; ++it) {
+            socket.send(*it, ZMQ_SNDMORE);
         }
+        socket.send(
+            *last,
+            (flags & dsb::comm::SendFlag::more) != dsb::comm::SendFlag::none
+                ? ZMQ_SNDMORE
+                : 0);
         message.clear();
     }
 }
 
-void dsb::comm::Send(zmq::socket_t& socket, std::vector<zmq::message_t>& message)
+
+void dsb::comm::Send(
+    zmq::socket_t& socket,
+    std::vector<zmq::message_t>& message,
+    SendFlag flags)
 {
     DSB_INPUT_CHECK(!message.empty());
-    SendFrames(socket, message, false);
+    SendFrames(socket, message, flags);
     assert (message.empty());
 }
 
@@ -41,9 +76,9 @@ void dsb::comm::AddressedSend(
 {
     DSB_INPUT_CHECK(!envelope.empty());
     DSB_INPUT_CHECK(!body.empty());
-    SendFrames(socket, envelope, true);
+    SendFrames(socket, envelope, SendFlag::more);
     socket.send("", 0, ZMQ_SNDMORE);
-    SendFrames(socket, body, false);
+    SendFrames(socket, body, SendFlag::none);
     assert (envelope.empty());
     assert (body.empty());
 }
@@ -58,22 +93,6 @@ void dsb::comm::Receive(
         message.emplace_back();
         socket.recv(&message.back());
     } while (message.back().more());
-}
-
-
-bool dsb::comm::Receive(
-    zmq::socket_t& socket,
-    std::vector<zmq::message_t>& message,
-    std::chrono::milliseconds timeout)
-{
-    zmq::pollitem_t pollItem = { static_cast<void*>(socket), 0, ZMQ_POLLIN, 0 };
-    if (zmq::poll(&pollItem, 1, static_cast<long>(timeout.count())) == 0) {
-        return false;
-    } else {
-        assert (pollItem.revents == ZMQ_POLLIN);
-        dsb::comm::Receive(socket, message);
-        return true;
-    }
 }
 
 

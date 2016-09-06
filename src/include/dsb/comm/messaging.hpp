@@ -12,12 +12,49 @@
 #include <vector>
 
 #include "zmq.hpp"
+#include "dsb/config.h"
 
 
 namespace dsb
 {
 namespace comm
 {
+
+
+/**
+\brief  Waits up to `timeout` milliseconds to see if a message may be enqueued
+        on `socket`.
+
+\returns whether a message may be immediately enqueued on `socket`.
+\throws std::invalid_argument if `timeout` is negative.
+\throws zmq::error_t on communications error.
+*/
+bool WaitForOutgoing(zmq::socket_t& socket, std::chrono::milliseconds timeout);
+
+
+/**
+\brief  Waits up to `timeout` milliseconds for incoming messages on `socket`.
+
+\returns whether there are incoming messages on `socket`.
+\throws std::invalid_argument if `timeout` is negative.
+\throws zmq::error_t on communications error.
+*/
+bool WaitForIncoming(zmq::socket_t& socket, std::chrono::milliseconds timeout);
+
+
+/// Flags for the Send() function
+enum class SendFlag : int
+{
+    /// No flags are set.
+    none = 0,
+
+    /**
+    \brief  The frames being sent are part of a multiframe message, and more
+            frames are coming.
+    */
+    more = 1
+};
+DSB_DEFINE_BITWISE_ENUM_OPERATORS(SendFlag)
 
 
 /**
@@ -28,7 +65,10 @@ The message content will be cleared on return.
 \throws std::invalid_argument if `message` is empty.
 \throws zmq::error_t on failure to send a message frame.
 */
-void Send(zmq::socket_t& socket, std::vector<zmq::message_t>& message);
+void Send(
+    zmq::socket_t& socket,
+    std::vector<zmq::message_t>& message,
+    SendFlag flags = SendFlag::none);
 
 
 /**
@@ -58,20 +98,6 @@ Existing message content will be overwritten.
 void Receive(
     zmq::socket_t& socket,
     std::vector<zmq::message_t>& message);
-
-
-/**
-\brief Receives a message, assuming one arrives before the timeout is reached.
-
-Existing message content will be overwritten.
-
-\returns `true` if a message was received, or `false` if the function timed out.
-\throws zmq::error_t on failure to receive a message frame.
-*/
-bool Receive(
-    zmq::socket_t& socket,
-    std::vector<zmq::message_t>& message,
-    std::chrono::milliseconds timeout);
 
 
 /**

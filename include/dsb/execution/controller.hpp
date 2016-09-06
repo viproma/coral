@@ -23,6 +23,7 @@ namespace execution
 {
 
 
+/// Constants used to indicate the result of `Controller::Step()`
 enum StepResult
 {
     STEP_FAILED     = 0,
@@ -31,29 +32,106 @@ enum StepResult
 
 
 /**
+\brief  Used in `Controller::Reconstitute()` to specify a slave which should
+        be added to the simulation.
+
+This class is used to supply information about the slave which is to be
+added, and to obtain information about the slave after it has been added
+(including any errors that may have occurred in the process).
+
+Before an object of this type is passed to `Reconstitute()`, the `#locator`
+and `#name` fields must be set.  After `Reconstitute()` has completed
+successfully, the `#id` field contains the ID number of the new slave.
+If the function throws, the `#error` field may be queried to figure out
+whether this particular slave is the source of the failure, and if so, why.
+*/
+struct AddedSlave
+{
+    /// [Input] The slave's network location
+    dsb::net::SlaveLocator locator;
+
+    /// [Input] A name for the slave, unique in the execution
+    std::string name;
+
+    /// [Output] The slave's unique ID number
+    dsb::model::SlaveID id = dsb::model::INVALID_SLAVE_ID;
+
+    /// [Output] The error reported by the slave, if any
+    std::error_code error;
+
+    /// Default constructor
+    AddedSlave() DSB_NOEXCEPT { }
+
+    /// Constructor which sets the `#locator` and `#name` fields.
+    AddedSlave(dsb::net::SlaveLocator locator_, std::string name_)
+        : locator{std::move(locator_)}, name(std::move(name_))
+    { }
+};
+
+
+/**
+\brief  Used in `Controller::Reconfigure()` to specify variable value
+        and connection changes.
+
+This class is used to supply information about the changes which are to
+be effected for one particular slave, and to obtain information about any
+failures the slave might have reported.
+
+Before an object of this type is passed to `Reconfigure()`, the `#slaveID`
+and `#variableSettings` fields must be set.  If `Reconfigure()` throws,
+the `#error` field may be queried to figure out whether this particular
+slave contributed to the failure, and if so, why.
+*/
+struct SlaveConfig
+{
+    /// [Input] The ID number of the slave whose variables are to be configured
+    dsb::model::SlaveID slaveID = dsb::model::INVALID_SLAVE_ID;
+
+    /// [Input] The variable value/connection changes
+    std::vector<dsb::model::VariableSetting> variableSettings;
+
+    /// [Output] The error reported by the slave, if any
+    std::error_code error;
+
+    /// Default constructor
+    SlaveConfig() DSB_NOEXCEPT { }
+
+    /// Constructor which sets the `#slaveID` and `#variableSettings` fields
+    SlaveConfig(
+        dsb::model::SlaveID slaveID_,
+        std::vector<dsb::model::VariableSetting> variableSettings_)
+        : slaveID(slaveID_)
+        , variableSettings(std::move(variableSettings_))
+    { }
+};
+
+
+
+/**
 \brief  Master execution controller.
 
-This class represents the master entity in an execution, and is used to
-initialize, run and shut down the simulation.
-Use SpawnExecution() to spawn an execution, and then create a Controller object
-for it.
-
-Objects of this class are movable, but not copyable, thus ensuring that exactly
-one Controller object is attached to an execution at any time.
-
-This class is actually just a frontend for a background thread in which all
-communication with the slaves takes place.  If the background thread dies due
-to an unexpected error, `std::terminate()` will be called to terminate the
-whole program, as this is (for the time being) an unrecoverable situation.
-An error message will be printed to the standard error stream with a
-description of the failure.
-In the future, this may be handled better.
+This class is used by the master entity in an execution to initialize,
+run and shut down the simulation.
 */
 class Controller
 {
 public:
-    /// Constructor.
-    explicit Controller(const dsb::net::ExecutionLocator& locator);
+    /**
+    \brief  Constructor.
+
+    \param [in] executionName
+        A (preferably unique) name for the execution.
+    \param [in] startTime
+        The start time of the simulation.
+    \param [in] maxTime
+        The maximum simulation time point.  This may be dsb::model::ETERNITY
+        (the default), signifying that there is no predefined maximum time.
+        Otherwise, it must be greater than `startTime`.
+    */
+    explicit Controller(
+        const std::string& executionName,
+        dsb::model::TimePoint startTime = 0.0,
+        dsb::model::TimePoint maxTime = dsb::model::ETERNITY);
 
     /// Destructor
     ~Controller() DSB_NOEXCEPT;
@@ -68,123 +146,58 @@ public:
     Controller& operator=(Controller&&) DSB_NOEXCEPT;
 
     /**
-    \brief  Terminates the execution.
+    \brief  Adds new slaves to the execution.
 
-    This function will tell all participants to terminate, and then return
-    immediately.  It does not (and can not) verify that the participants do
-    in fact terminate.  Once all participants have been notified, the execution
-    itself, and the thread it is running in, will terminate.
+    On input, the `slavesToAdd` vector must contain a list of slaves to add,
+    the name and location of each specified in an `AddedSlave` object.
+    When the function returns successfully, these objects will have been
+    updated with the ID numbers assigned to the respective slaves.
 
-    No other methods may be called after a successful Terminate() call.
-    */
-    void Terminate();
+    If the function throws an exception, and the error is related to
+    one or more of the slaves, the corresponding `AddedSlave` objects
+    will contain information about the errors.
 
-    /**
-    \brief  Enters configuration mode.
+    The naming of this function reflects the fact that, in a future version,
+    it is intended to also support *removing* slaves from an execution, and
+    not just adding.
 
-    In configuration mode, slaves may be added and connections may be made.
-    */
-    void BeginConfig();
-
-    /**
-    \brief  Leaves configuration mode and enters simulation mode.
-
-    Note that it is possible to leave configuration mode even if a previous
-    AddSlave() or SetVariables() call failed.  Use the returned futures from
-    those functions to detect any errors.
-    */
-    void EndConfig();
-
-    /**
-    \brief  Sets the start time and, optionally, the stop time of the
-            simulation.
-
-    This function must be called in configuration mode, before any AddSlave()
-    calls are made.  The reason is that this information must be transmitted
-    to the slaves as they connect and initialize, to allow them to report
-    whether their model is valid within the given boundaries and/or to allocate
-    memory for their internal state.
-
-    If this function is never called, a default start time of 0.0 and an
-    undefined stop time is used.
-
-    \param [in] startTime
-        The start time of the simulation.
-    \param [in] stopTime
-        The stop time of the simulation.  This may be dsb::model::ETERNITY
-        (the default), signifying that no particular stop time is defined.
-        Otherwise, it must be greater than `startTime`.
-    */
-    void SetSimulationTime(
-        dsb::model::TimePoint startTime,
-        dsb::model::TimePoint stopTime = dsb::model::ETERNITY);
-
-    /**
-    \brief  Adds a slave to the execution.
-
-    This function will connect to the slave whose network location is given
-    by `slaveLocator` and assign a numeric ID to it.  This happens
-    asynchronously, meaning that this function returns immediately so that
-    other slaves may be added in parallel.
-
-    The function returns a `std::future` object which, upon success, will
-    refer to the ID of the added slave.  If the connection fails for some
-    reason, an exception will be associated with the future instead.
-
-    \param [in] slaveLocator
-        Information by which the slave may be located.
-    \param [in] slaveName
-        A user-defined name for the slave, which must be unique in the context
-        of the present execution.  Valid names may only contain alphanumeric
-        characters and underscores, and must start with a letter.  An empty
-        string may be given, in which case a default name will be chosen.
+    \param [in, out] slavesToAdd
+        A list of slaves to add.  If empty, the function returns vacuously.
+        Contains information about the slaves on output.
     \param [in] commTimeout
-        The maximum time to wait for replies for commands sent to the slave.
-        If this time is exceeded, the operation is considered to have failed.
-
-    \returns a future slave ID, which is used to refer to this slave in other
-        functions.
+        The communications timeout used to detect loss of communication
+        with the slaves.
     */
-    std::future<dsb::model::SlaveID> AddSlave(
-        dsb::net::SlaveLocator slaveLocator,
-        const std::string& slaveName,
+    void Reconstitute(
+        std::vector<AddedSlave>& slavesToAdd,
         std::chrono::milliseconds commTimeout);
 
     /**
-    \brief  Sets the values of and/or connects one or more of a slave's
-            variables.
+    \brief  Sets the values of and/or connects variables.
 
-    `VariableValueRange` may be any type for which std::begin and std::end
-    yield a pair of iterators that can be used to access a sequence of elements
-    of type dsb::model::VariableSetting (e.g. a container).
+    On input`, the `slaveConfigs` vector must contain a list of slaves whose
+    variables are to be modified, (re)connected and/or disconnected.
+    It must contain exactly one `SlaveConfig` object for each slave whose
+    configuration is to be changed.
 
-    This function returns a `std::future` object which does not contain any
-    value, but which may be queried to verify that the operation succeeded.
-    If it failed, `std::future::get()` will throw an exception.
+    When a connection is made between an output variable and an input
+    variable, or such a connection is to be broken, this is specified in
+    the `SlaveConfig` object for the slave which owns the *input* variable.
 
-    \param [in] slave
-        The ID of a slave which is part of the execution (i.e., has been
-        successfully added with AddSlave()).
-    \param [in] variableSettings
-        Variable values and connections.
-    \param [in] timeout
-        The maximum time to wait for a confirmation from the slave.
-        If this time is exceeded, the operation is considered to have failed.
+    If the function throws an exception, and the error originates in one
+    or more of the slaves, the `error` fields of the corresponding
+    `SlaveConfig` objects will be set to values that describe the errors.
 
-    \throws std::logic_error if the ID does not correspond to a slave which
-        is part of this execution.
+    \param [in, out] slaveConfigs
+        A list of slave configuration change specifications, at most one
+        entry per slave.
+    \param [in] commTimeout
+        The communications timeout used to detect loss of communication
+        with the slaves.
     */
-    template<typename VariableSettingRange>
-    std::future<void> SetVariables(
-        dsb::model::SlaveID slave,
-        const VariableSettingRange& variableSettings,
-        std::chrono::milliseconds timeout);
-
-    // Specialisation of the above for std::vector.
-    std::future<void> SetVariables(
-        dsb::model::SlaveID slave,
-        const std::vector<dsb::model::VariableSetting>& variableSettings,
-        std::chrono::milliseconds timeout);
+    void Reconfigure(
+        std::vector<SlaveConfig>& slaveConfigs,
+        std::chrono::milliseconds commTimeout);
 
     /**
     \brief  Steps the simulation forward.
@@ -246,47 +259,22 @@ public:
     */
     void AcceptStep(std::chrono::milliseconds timeout);
 
+    /**
+    \brief  Terminates the execution.
+
+    This function will tell all participants to terminate, and then return
+    immediately.  It does not (and can not) verify that the participants do
+    in fact terminate.  Once all participants have been notified, the
+    execution itself, and the thread it is running in, will terminate.
+
+    No other methods may be called after a successful Terminate() call.
+    */
+    void Terminate();
+
 private:
     class Private;
     std::unique_ptr<Private> m_private;
 };
-
-
-/**
-\brief  Spawns a new execution.
-
-This will start a new execution on the domain, and return a locator which can
-be used to connect to it.
-
-\param [in] domainLocator   The domain in which the execution should run.
-\param [in] executionName   A unique name for the execution.
-\param [in] commTimeout     A time after which the execution broker and the
-                            slaves should self-terminate if communication is
-                            lost.
-
-\throws std::invalid_argument if commTimeout is nonpositive.
-*/
-dsb::net::ExecutionLocator SpawnExecution(
-    const dsb::net::DomainLocator& domainLocator,
-    const std::string& executionName = std::string(),
-    std::chrono::seconds commTimeout = std::chrono::seconds(3600));
-
-
-// =============================================================================
-// Template definitions
-// =============================================================================
-
-template<typename VariableSettingRange>
-std::future<void> Controller::SetVariables(
-    dsb::model::SlaveID slave,
-    const VariableSettingRange& variableSettings,
-    std::chrono::milliseconds timeout)
-{
-    return SetVariables(
-        slave,
-        std::vector<dsb::model::VariableSetting>(begin(variableSettings), end(variableSettings)),
-        timeout);
-}
 
 
 }}      //namespace

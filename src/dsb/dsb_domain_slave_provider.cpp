@@ -2,21 +2,16 @@
 
 #include <algorithm>
 #include <cassert>
-#include <chrono>
 
 #include "boost/numeric/conversion/cast.hpp"
 #include "zmq.hpp"
 
-#include "dsb/comm/messaging.hpp"
+#include "dsb/bus/slave_provider_comm.hpp"
+#include "dsb/comm/reactor.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/error.hpp"
-#include "dsb/protocol/glue.hpp"
-#include "dsb/protobuf.hpp"
-#include "dsb/protocol/domain.hpp"
+#include "dsb/protocol/discovery.hpp"
 #include "dsb/util.hpp"
-#include "domain.pb.h"
-
-namespace dp = dsb::protocol::domain;
 
 
 namespace dsb
@@ -27,64 +22,69 @@ namespace domain
 
 namespace
 {
-    // Defined below MessagingLoop();
-    void HandleRequest(
-        std::vector<zmq::message_t>& msg,
-        const std::vector<std::unique_ptr<dsb::domain::ISlaveType>>& slaveTypes);
+    class MySlaveProviderOps : public dsb::bus::SlaveProviderOps
+    {
+    public:
+        MySlaveProviderOps(
+            std::vector<std::unique_ptr<dsb::domain::ISlaveType>>&& slaveTypes)
+            : m_slaveTypes(std::move(slaveTypes))
+        {
+        }
 
-    // Slave provider messaging loop
-    void MessagingLoop(
-        std::shared_ptr<zmq::socket_t> killSocket,
-        std::shared_ptr<zmq::socket_t> controlSocket,
-        std::shared_ptr<zmq::socket_t> beaconSocket,
-        std::shared_ptr<std::vector<std::unique_ptr<dsb::domain::ISlaveType>>> slaveTypesPtr,
+        int GetSlaveTypeCount() const DSB_NOEXCEPT override
+        {
+            return boost::numeric_cast<int>(m_slaveTypes.size());
+        }
+
+        dsb::model::SlaveTypeDescription GetSlaveType(int index) const override
+        {
+            return m_slaveTypes.at(index)->Description();
+        }
+
+        dsb::net::SlaveLocator InstantiateSlave(
+            const std::string& slaveTypeUUID,
+            std::chrono::milliseconds timeout) override
+        {
+            const auto st = std::find_if(
+                begin(m_slaveTypes),
+                end(m_slaveTypes),
+                [&] (const decltype(m_slaveTypes)::value_type& e) {
+                    return e->Description().UUID() == slaveTypeUUID;
+                });
+            if (st == end(m_slaveTypes)) {
+                throw std::runtime_error("Unknown slave type");
+            }
+            dsb::net::SlaveLocator loc;
+            if (!(*st)->Instantiate(timeout, loc)) {
+                throw std::runtime_error((*st)->InstantiationFailureDescription());
+            }
+            return loc;
+        }
+
+    private:
+        const std::vector<std::unique_ptr<dsb::domain::ISlaveType>> m_slaveTypes;
+    };
+
+
+    // Ok, this is all a bit ugly, but it's for a good cause, namely to handle
+    // as many errors as possible in the foreground thread (see below).
+    struct BackgroundThreadData
+    {
+        // Note that the order of declarations matters here, because the
+        // other members depend on the reactor being kept alive.
+        std::shared_ptr<dsb::comm::Reactor> reactor;
+        std::shared_ptr<zmq::socket_t> killSocket;
+        std::shared_ptr<dsb::protocol::RRServer> server;
+        std::shared_ptr<dsb::protocol::ServiceBeacon> beacon;
+    };
+
+    void BackgroundThreadFunction(
+        BackgroundThreadData objects,
         std::function<void(std::exception_ptr)> exceptionHandler)
     {
-        auto& slaveTypes = *slaveTypesPtr;
         try {
-            char slaveProviderIDBuffer[255];
-            std::size_t slaveProviderIDSize = 255;
-            controlSocket->getsockopt(
-                ZMQ_IDENTITY, slaveProviderIDBuffer, &slaveProviderIDSize);
-            const auto slaveProviderID =
-                std::string(slaveProviderIDBuffer, slaveProviderIDSize);
-
-            const std::size_t POLLITEM_COUNT = 2;
-            zmq::pollitem_t pollItems[POLLITEM_COUNT] = {
-                { static_cast<void*>(*killSocket),    0, ZMQ_POLLIN, 0 },
-                { static_cast<void*>(*controlSocket), 0, ZMQ_POLLIN, 0 }
-            };
-
-            namespace bc = std::chrono;
-            const auto HELLO_INTERVAL = bc::milliseconds(1000);
-            auto nextHelloTime = bc::steady_clock::now() + HELLO_INTERVAL;
-            for (;;) {
-                const auto timeout = bc::duration_cast<bc::milliseconds>
-                                     (nextHelloTime - bc::steady_clock::now());
-                zmq::poll(pollItems, POLLITEM_COUNT, boost::numeric_cast<long>(timeout.count()));
-
-                if (pollItems[0].revents & ZMQ_POLLIN) {
-                    break;
-                }
-
-                if (pollItems[1].revents & ZMQ_POLLIN) {
-                    std::vector<zmq::message_t> msg;
-                    dsb::comm::Receive(*controlSocket, msg);
-                    // TODO: Resolve this bug. See:
-                    // http://stackoverflow.com/questions/23281405/how-to-use-a-stdvectorunique-ptrt-as-default-parameter
-                    HandleRequest(msg, slaveTypes);
-                    dsb::comm::Send(*controlSocket, msg);
-                }
-
-                if (bc::steady_clock::now() >= nextHelloTime) {
-                    std::vector<zmq::message_t> msg;
-                    msg.push_back(dp::CreateHeader(dp::MSG_SLAVEPROVIDER_HELLO,
-                                                   dp::MAX_PROTOCOL_VERSION));
-                    msg.push_back(dsb::comm::ToFrame(slaveProviderID));
-                    dsb::comm::Send(*beaconSocket, msg);
-                    nextHelloTime = bc::steady_clock::now() + HELLO_INTERVAL;
-                }
-            }
+            objects.reactor->Run();
+            objects.beacon->Stop();
         } catch (...) {
             if (exceptionHandler) {
                 exceptionHandler(std::current_exception());
@@ -93,103 +93,57 @@ namespace
             }
         }
     }
-
-    void HandleRequest(
-        std::vector<zmq::message_t>& msg,
-        const std::vector<std::unique_ptr<dsb::domain::ISlaveType>>& slaveTypes)
-    {
-        if (msg.size() < 4 || msg[0].size() > 0 || msg[2].size() > 0) {
-            throw dsb::error::ProtocolViolationException("Wrong message format");
-        }
-        namespace dp = dsb::protocol::domain;
-        const auto header = dp::ParseHeader(msg[3]);
-        switch (header.messageType) {
-            case dp::MSG_GET_SLAVE_LIST: {
-                msg[3] = dp::CreateHeader(dp::MSG_SLAVE_LIST, header.protocol);
-                dsbproto::domain::SlaveTypeList stList;
-                for (const auto& slaveType : slaveTypes) {
-                    auto stInfo = stList.add_slave_type();
-                    *stInfo->mutable_description() =
-                        dsb::protocol::ToProto(slaveType->Description());
-                }
-                msg.push_back(zmq::message_t());
-                dsb::protobuf::SerializeToFrame(stList, msg.back());
-                break; }
-
-            case dp::MSG_INSTANTIATE_SLAVE: {
-                if (msg.size() != 5) {
-                    throw dsb::error::ProtocolViolationException(
-                        "Wrong INSTANTIATE_SLAVE message format");
-                }
-                dsbproto::domain::InstantiateSlaveData data;
-                dsb::protobuf::ParseFromFrame(msg[4], data);
-                const auto stIt = std::find_if(
-                    slaveTypes.begin(),
-                    slaveTypes.end(),
-                    [&](const std::unique_ptr<dsb::domain::ISlaveType>& s) {
-                        return s->Description().UUID() == data.slave_type_uuid();
-                    });
-
-                const auto instantiationTimeout = std::chrono::milliseconds(data.timeout_ms());
-                dsb::net::SlaveLocator slaveLocator;
-                if (stIt != slaveTypes.end()
-                    && (*stIt)->Instantiate(instantiationTimeout, slaveLocator))
-                {
-                    msg[3] = dp::CreateHeader(
-                        dp::MSG_INSTANTIATE_SLAVE_OK, header.protocol);
-                    dsbproto::net::SlaveLocator slaveLocPb;
-                    slaveLocPb.set_endpoint(slaveLocator.Endpoint());
-                    slaveLocPb.set_identity(slaveLocator.Identity());
-                    dsb::protobuf::SerializeToFrame(slaveLocPb, msg[4]);
-                } else {
-                    msg[3] = dp::CreateHeader(
-                        dp::MSG_INSTANTIATE_SLAVE_FAILED,
-                        header.protocol);
-                    dsbproto::domain::Error errorPb;
-                    errorPb.set_message((*stIt)->InstantiationFailureDescription());
-                    dsb::protobuf::SerializeToFrame(errorPb, msg[4]);
-                }
-                break; }
-
-            default:
-                assert (false);
-        }
-    }
 }
 
 
 SlaveProvider::SlaveProvider(
-    const dsb::net::DomainLocator& domainLocator,
+    const std::string& slaveProviderID,
     std::vector<std::unique_ptr<dsb::domain::ISlaveType>>&& slaveTypes,
+    const std::string& networkInterface,
+    std::uint16_t discoveryPort,
     std::function<void(std::exception_ptr)> exceptionHandler)
 {
-    // We set up all the sockets in the "foreground" thread so that any
-    // exceptions (e.g. due to invalid endpoints) are thrown there.
+    DSB_INPUT_CHECK(!slaveProviderID.empty());
+    DSB_INPUT_CHECK(!networkInterface.empty());
+
+    // We do as much as setup as possible in the "foreground" thread,
+    // so that exceptions are most likely to be thrown here.
+    BackgroundThreadData bg;
+    bg.reactor = std::make_shared<dsb::comm::Reactor>();
+
     const auto killEndpoint = "inproc://" + dsb::util::RandomUUID();
     m_killSocket = std::make_unique<zmq::socket_t>(
         dsb::comm::GlobalContext(), ZMQ_PAIR);
     m_killSocket->bind(killEndpoint);
-    auto otherKillSocket = std::make_shared<zmq::socket_t>(
+    bg.killSocket = std::make_shared<zmq::socket_t>(
         dsb::comm::GlobalContext(), ZMQ_PAIR);
-    otherKillSocket->connect(killEndpoint);
+    bg.killSocket->connect(killEndpoint);
+    bg.reactor->AddSocket(
+        *bg.killSocket,
+        [] (dsb::comm::Reactor& r, zmq::socket_t&) { r.Stop(); });
 
-    const auto slaveProviderID = dsb::util::RandomUUID();
-    auto controlSocket = std::make_shared<zmq::socket_t>(
-        dsb::comm::GlobalContext(), ZMQ_DEALER);
-    controlSocket->setsockopt(
-        ZMQ_IDENTITY, slaveProviderID.data(), slaveProviderID.size());
-    controlSocket->connect(domainLocator.InfoSlavePEndpoint());
+    bg.server = std::make_shared<dsb::protocol::RRServer>(
+        *bg.reactor,
+        dsb::net::Endpoint{"tcp", networkInterface + ":*"});
+    dsb::bus::MakeSlaveProviderServer(
+        *bg.server,
+        std::make_shared<MySlaveProviderOps>(std::move(slaveTypes)));
 
-    auto beaconSocket = std::make_shared<zmq::socket_t>(
-        dsb::comm::GlobalContext(), ZMQ_PUB);
-    beaconSocket->connect(domainLocator.ReportSlavePEndpoint());
+    char beaconPayload[2];
+    dsb::util::EncodeUint16(
+        dsb::comm::EndpointPort(bg.server->BoundEndpoint().URL()),
+        beaconPayload);
+    bg.beacon = std::make_shared<dsb::protocol::ServiceBeacon>(
+        0,
+        "no.sintef.viproma.dsb.slave_provider",
+        slaveProviderID,
+        beaconPayload,
+        sizeof(beaconPayload),
+        std::chrono::seconds(1),
+        networkInterface,
+        discoveryPort);
 
-    m_thread = std::thread{&MessagingLoop,
-        otherKillSocket,
-        controlSocket,
-        beaconSocket,
-        std::make_shared<std::vector<std::unique_ptr<dsb::domain::ISlaveType>>>(std::move(slaveTypes)),
-        exceptionHandler};
+    m_thread = std::thread{&BackgroundThreadFunction, bg, exceptionHandler};
 }
 
 

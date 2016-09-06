@@ -60,7 +60,7 @@ namespace
 
 SlaveControlMessengerV0::SlaveControlMessengerV0(
     dsb::comm::Reactor& reactor,
-    dsb::comm::P2PReqSocket socket,
+    dsb::comm::ReqSocket socket,
     dsb::model::SlaveID slaveID,
     const std::string& slaveName,
     const SlaveSetup& setup,
@@ -167,6 +167,23 @@ void SlaveControlMessengerV0::SetVariables(
 }
 
 
+void SlaveControlMessengerV0::SetPeers(
+    const std::vector<dsb::net::Endpoint>& peers,
+    std::chrono::milliseconds timeout,
+    SetPeersHandler onComplete)
+{
+    DSB_PRECONDITION_CHECK(State() == SLAVE_READY);
+    DSB_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
+    DSB_INPUT_CHECK(onComplete);
+    CheckInvariant();
+
+    dsbproto::execution::SetPeersData data;
+    for (const auto peer: peers) data.add_peer(peer.URL());
+    SendCommand(dsbproto::execution::MSG_SET_PEERS, &data, timeout, std::move(onComplete));
+    assert(State() == SLAVE_BUSY);
+}
+
+
 void SlaveControlMessengerV0::Step(
     dsb::model::StepID stepID,
     dsb::model::TimePoint currentT,
@@ -213,12 +230,7 @@ void SlaveControlMessengerV0::Terminate()
         % this);
     std::vector<zmq::message_t> msg;
     dsb::protocol::execution::CreateMessage(msg, dsbproto::execution::MSG_TERMINATE);
-    m_socket.Send(msg, dsb::comm::SEND_OUT_OF_ORDER);
-    // ---
-    // Workaround for ZeroMQ issue 1264, https://github.com/zeromq/libzmq/issues/1264
-    char temp;
-    m_socket.Socket().recv(&temp, 1, ZMQ_DONTWAIT);
-    // ---
+    m_socket.Send(msg);
     DSB_LOG_TRACE(boost::format("SlaveControlMessengerV0 %x: Send complete") % this);
     Close();
 }
@@ -240,8 +252,6 @@ void SlaveControlMessengerV0::Setup(
     if (setup.stopTime != dsb::model::ETERNITY) {
         data.set_stop_time(setup.stopTime);
     }
-    data.set_variable_pub_endpoint(setup.variablePubEndpoint);
-    data.set_variable_sub_endpoint(setup.variableSubEndpoint);
     data.set_execution_name(setup.executionName);
     data.set_slave_name(slaveName);
     SendCommand(dsbproto::execution::MSG_SETUP, &data, timeout, std::move(onComplete));
@@ -360,6 +370,11 @@ void SlaveControlMessengerV0::OnReply()
                 msg,
                 std::move(boost::get<VoidHandler>(onComplete)));
             break;
+        case dsbproto::execution::MSG_SET_PEERS:
+            SetPeersReplyReceived(
+                msg,
+                std::move(boost::get<VoidHandler>(onComplete)));
+            break;
         case dsbproto::execution::MSG_STEP:
             StepReplyReceived(
                 msg,
@@ -423,6 +438,15 @@ void SlaveControlMessengerV0::DescribeReplyReceived(
 
 
 void SlaveControlMessengerV0::SetVarsReplyReceived(
+    const std::vector<zmq::message_t>& msg,
+    VoidHandler onComplete)
+{
+    assert (m_state == SLAVE_BUSY);
+    HandleExpectedReadyReply(msg, std::move(onComplete));
+}
+
+
+void SlaveControlMessengerV0::SetPeersReplyReceived(
     const std::vector<zmq::message_t>& msg,
     VoidHandler onComplete)
 {

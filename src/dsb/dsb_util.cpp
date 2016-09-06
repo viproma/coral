@@ -21,14 +21,14 @@
 #include "boost/uuid/uuid_io.hpp"
 
 
-void dsb::util::EncodeUint16(uint16_t source, char target[2])
+void dsb::util::EncodeUint16(std::uint16_t source, char target[2])
 {
     target[0] = source & 0xFF;
     target[1] = (source >> 8) & 0xFF;
 }
 
 
-void dsb::util::EncodeUint32(uint32_t source, char target[4])
+void dsb::util::EncodeUint32(std::uint32_t source, char target[4])
 {
     target[0] = source & 0xFF;
     target[1] = (source >> 8) & 0xFF;
@@ -37,19 +37,57 @@ void dsb::util::EncodeUint32(uint32_t source, char target[4])
 }
 
 
-uint16_t dsb::util::DecodeUint16(const char source[2])
+void dsb::util::EncodeUint64(std::uint64_t source, char target[8])
 {
-    return static_cast<unsigned char>(source[0])
-        | (static_cast<unsigned char>(source[1]) << 8);
+    target[0] = source & 0xFF;
+    target[1] = (source >> 8) & 0xFF;
+    target[2] = (source >> 16) & 0xFF;
+    target[3] = (source >> 24) & 0xFF;
+    target[4] = (source >> 32) & 0xFF;
+    target[5] = (source >> 40) & 0xFF;
+    target[6] = (source >> 48) & 0xFF;
+    target[7] = (source >> 56) & 0xFF;
 }
 
 
-uint32_t dsb::util::DecodeUint32(const char source[4])
+std::uint16_t dsb::util::DecodeUint16(const char source[2])
 {
-    return static_cast<unsigned char>(source[0])
-        | (static_cast<unsigned char>(source[1]) << 8)
-        | (static_cast<unsigned char>(source[2]) << 16)
-        | (static_cast<unsigned char>(source[3]) << 24);
+    return static_cast<std::uint16_t>(static_cast<unsigned char>(source[0]))
+        | (static_cast<std::uint16_t>(static_cast<unsigned char>(source[1])) << 8);
+}
+
+
+std::uint32_t dsb::util::DecodeUint32(const char source[4])
+{
+    return static_cast<std::uint32_t>(static_cast<unsigned char>(source[0]))
+        | (static_cast<std::uint32_t>(static_cast<unsigned char>(source[1])) << 8)
+        | (static_cast<std::uint32_t>(static_cast<unsigned char>(source[2])) << 16)
+        | (static_cast<std::uint32_t>(static_cast<unsigned char>(source[3])) << 24);
+}
+
+
+std::uint64_t dsb::util::DecodeUint64(const char source[8])
+{
+    return static_cast<std::uint64_t>(static_cast<unsigned char>(source[0]))
+        | (static_cast<std::uint64_t>(static_cast<unsigned char>(source[1])) << 8)
+        | (static_cast<std::uint64_t>(static_cast<unsigned char>(source[2])) << 16)
+        | (static_cast<std::uint64_t>(static_cast<unsigned char>(source[3])) << 24)
+        | (static_cast<std::uint64_t>(static_cast<unsigned char>(source[4])) << 32)
+        | (static_cast<std::uint64_t>(static_cast<unsigned char>(source[5])) << 40)
+        | (static_cast<std::uint64_t>(static_cast<unsigned char>(source[6])) << 48)
+        | (static_cast<std::uint64_t>(static_cast<unsigned char>(source[7])) << 56);
+}
+
+
+int dsb::util::ArrayStringCmp(
+    const char* array, size_t length, const char* stringz)
+{
+    for (size_t i = 0; ; ++i) {
+        if (i == length) return -static_cast<int>(stringz[i] != '\0');
+        if (stringz[i] == '\0') return 1;
+        if (array[i] < stringz[i]) return -1;
+        if (array[i] > stringz[i]) return 1;
+    }
 }
 
 

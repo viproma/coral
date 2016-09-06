@@ -45,34 +45,27 @@ and maintained across different states.
 class ExecutionManagerPrivate : boost::noncopyable
 {
 public:
-    ExecutionManagerPrivate(const dsb::net::ExecutionLocator& execLoc);
+    ExecutionManagerPrivate(
+        dsb::comm::Reactor& reactor,
+        const std::string& executionName,
+        dsb::model::TimePoint startTime,
+        dsb::model::TimePoint maxTime);
 
     ~ExecutionManagerPrivate();
 
     // External methods, i.e. those that forward to state-specific objects.
     // =========================================================================
-    void Terminate();
+    void Reconstitute(
+        const std::vector<AddedSlave>& slavesToAdd,
+        std::chrono::milliseconds commTimeout,
+        ExecutionManager::ReconstituteHandler onComplete,
+        ExecutionManager::SlaveReconstituteHandler onSlaveComplete);
 
-    void BeginConfig(ExecutionManager::BeginConfigHandler onComplete);
-
-    void EndConfig(ExecutionManager::EndConfigHandler onComplete);
-
-    void SetSimulationTime(
-        dsb::model::TimePoint startTime,
-        dsb::model::TimePoint stopTime);
-
-    dsb::model::SlaveID AddSlave(
-        const dsb::net::SlaveLocator& slaveLocator,
-        const std::string& slaveName,
-        dsb::comm::Reactor& reactor,
-        std::chrono::milliseconds timeout,
-        ExecutionManager::AddSlaveHandler onComplete);
-
-    void SetVariables(
-        dsb::model::SlaveID slave,
-        const std::vector<dsb::model::VariableSetting>& settings,
-        std::chrono::milliseconds timeout,
-        ExecutionManager::SetVariablesHandler onComplete);
+    void Reconfigure(
+        const std::vector<SlaveConfig>& slaveConfigs,
+        std::chrono::milliseconds commTimeout,
+        ExecutionManager::ReconfigureHandler onComplete,
+        ExecutionManager::SlaveReconfigureHandler onSlaveComplete);
 
     void Step(
         dsb::model::TimeDuration stepSize,
@@ -85,6 +78,8 @@ public:
         ExecutionManager::AcceptStepHandler onComplete,
         ExecutionManager::SlaveAcceptStepHandler onSlaveAcceptStepComplete);
 
+    void Terminate();
+
     // Internal methods, i.e. those that are used by the state-specific objects.
     // =========================================================================
 
@@ -93,7 +88,7 @@ public:
     // this function, possibly after doing state-specific cleanup.
     // This function will enter the TERMINATED state before its return, so
     // the calling state object (which will now be deleted) should not use its
-    // member variables afterwords.
+    // member variables afterwards.
     void DoTerminate();
 
     // Functions for retrieving and updating the current simulation time and ID.
@@ -136,18 +131,21 @@ public:
     {
         Slave(
             std::unique_ptr<dsb::bus::SlaveController> slave,
+            dsb::net::SlaveLocator locator,
             const dsb::model::SlaveDescription& description);
 
         Slave(const Slave&) = delete;
         Slave& operator=(const Slave&) = delete;
 
-        DSB_DEFINE_DEFAULT_MOVE(Slave, slave, description)
+        DSB_DEFINE_DEFAULT_MOVE(Slave, slave, locator, description)
 
         std::unique_ptr<dsb::bus::SlaveController> slave;
+        dsb::net::SlaveLocator locator;
         dsb::model::SlaveDescription description;
     };
 
     // Data which is available to the state objects
+    dsb::comm::Reactor& reactor;
     dsb::bus::SlaveSetup slaveSetup;
     dsb::model::SlaveID lastSlaveID;
     std::map<dsb::model::SlaveID, Slave> slaves;

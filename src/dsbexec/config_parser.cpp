@@ -13,6 +13,8 @@
 #include "boost/property_tree/info_parser.hpp"
 #include "boost/property_tree/ptree.hpp"
 
+#include "dsb/log.hpp"
+
 
 SimulationEvent::SimulationEvent(
     dsb::model::TimePoint t,
@@ -65,7 +67,7 @@ namespace
     SlaveTypeMap SlaveTypesByName(dsb::domain::Controller& domain)
     {
         SlaveTypeMap types;
-        BOOST_FOREACH (const auto& st, domain.GetSlaveTypes()) {
+        BOOST_FOREACH (const auto& st, domain.GetSlaveTypes(std::chrono::seconds(1))) {
             types.insert(std::make_pair(st.description.Name(), st));
         }
         return types;
@@ -360,7 +362,6 @@ void ParseSystemConfig(
     const std::string& path,
     dsb::domain::Controller& domain,
     dsb::execution::Controller& execution,
-    const dsb::net::ExecutionLocator& executionLocator,
     std::vector<SimulationEvent>& scenarioOut,
     std::chrono::milliseconds commTimeout,
     std::chrono::milliseconds instantiationTimeout,
@@ -383,60 +384,93 @@ void ParseSystemConfig(
 
     // Add all the slaves to the execution and map their names to their
     // numeric IDs.
-    std::map<std::string, std::shared_future<dsb::model::SlaveID>> slaveIDs;
+    std::vector<dsb::execution::AddedSlave> slavesToAdd;
     BOOST_FOREACH (const auto& slave, slaves) {
-        auto slaveLoc = domain.InstantiateSlave(
-            slave.second->description.UUID(), instantiationTimeout);
-        slaveIDs[slave.first] = execution.AddSlave(slaveLoc, slave.first, commTimeout).share();
+        slavesToAdd.emplace_back();
+        slavesToAdd.back().locator = domain.InstantiateSlave(
+            slave.second->providers.front(),
+            slave.second->description.UUID(),
+            instantiationTimeout);
+        slavesToAdd.back().name = slave.first;
+    }
+    try {
+        execution.Reconstitute(slavesToAdd, commTimeout);
+    } catch (const std::runtime_error&) {
+        for (const auto& addedSlave : slavesToAdd) {
+            if (addedSlave.error) {
+                dsb::log::Log(dsb::log::error,
+                    boost::format("Error adding slave '%s': %s")
+                        % addedSlave.name
+                        % addedSlave.error.message());
+            }
+        }
+        throw;
+    }
+    std::map<std::string, dsb::model::SlaveID> slaveIDs;
+    std::map<dsb::model::SlaveID, std::string> slaveNames;
+    for (const auto& addedSlave : slavesToAdd) {
+        slaveIDs[addedSlave.name] = addedSlave.id;
+        slaveNames[addedSlave.id] = addedSlave.name;
     }
 
     // Using the name-ID mapping, build lists of variable settings from the
     // lists of initial values and connections, and execute "set variables"
     // commands for each slave.
-    std::map<std::string, std::vector<dsb::model::VariableSetting>>
-        varSettings;
-    BOOST_FOREACH (const auto& slaveVars, variables) {
+    std::vector<dsb::execution::SlaveConfig> slaveConfigs;
+    std::map<std::string, std::size_t> slaveConfigsIndexes;
+    for (const auto& slaveVars : variables) {
         const auto& slaveName = slaveVars.first;
-        BOOST_FOREACH (const auto& varValue, slaveVars.second) {
-            varSettings[slaveName].push_back(dsb::model::VariableSetting(
-                varValue.id,
-                varValue.value));
+        auto index = slaveConfigsIndexes.find(slaveName);
+        if (index == end(slaveConfigsIndexes)) {
+            index = slaveConfigsIndexes.insert(std::make_pair(
+                    slaveName,
+                    slaveConfigs.size()
+                )).first;
+            slaveConfigs.emplace_back();
+            slaveConfigs.back().slaveID = slaveIDs.at(slaveName);
+        }
+        auto& sc = slaveConfigs[index->second];
+        for (const auto& varValue : slaveVars.second) {
+            sc.variableSettings.emplace_back(varValue.id, varValue.value);
         }
     }
-    BOOST_FOREACH (const auto& slaveConns, connections) {
+    for (const auto& slaveConns : connections) {
         const auto& slaveName = slaveConns.first;
-        BOOST_FOREACH (const auto& conn, slaveConns.second) {
-            varSettings[slaveName].push_back(dsb::model::VariableSetting(
+        auto index = slaveConfigsIndexes.find(slaveName);
+        if (index == end(slaveConfigsIndexes)) {
+            index = slaveConfigsIndexes.insert(std::make_pair(
+                    slaveName,
+                    slaveConfigs.size()
+                )).first;
+            slaveConfigs.emplace_back();
+            slaveConfigs.back().slaveID = slaveIDs.at(slaveName);
+        }
+        auto& sc = slaveConfigs[index->second];
+        for (const auto& conn : slaveConns.second) {
+            sc.variableSettings.emplace_back(
                 conn.inputId,
-                dsb::model::Variable(slaveIDs.at(conn.otherSlaveName).get(), conn.otherOutputId)));
+                dsb::model::Variable(
+                    slaveIDs.at(conn.otherSlaveName),
+                    conn.otherOutputId));
         }
     }
-    std::vector<std::pair<std::string, std::future<void>>> futureResults;
-    BOOST_FOREACH (const auto& varSetting, varSettings) {
-        const auto& slaveName = varSetting.first;
-        const auto slaveID = slaveIDs.at(slaveName).get();
-        futureResults.push_back(std::make_pair(
-            slaveName,
-            execution.SetVariables(slaveID, varSetting.second, commTimeout)));
-    }
-
-    // Check that all operations succeeded, build a list of errors for those
-    // that didn't.
-    bool anyErrors = false;
-    SetVariablesException svEx;
-    BOOST_FOREACH (auto& result, futureResults)
-    {
-        try { result.second.get(); }
-        catch (const std::exception& e) {
-            anyErrors = true;
-            svEx.AddSlaveError(result.first, e.what());
+    try {
+        execution.Reconfigure(slaveConfigs, commTimeout);
+    } catch (const std::exception&) {
+        for (const auto& sc : slaveConfigs) {
+            if (sc.error) {
+                dsb::log::Log(dsb::log::error,
+                    boost::format("Error configuring variables of slave '%s': %s")
+                    % slaveNames.at(sc.slaveID)
+                    % sc.error.message());
+            }
         }
+        throw;
     }
-    if (anyErrors) throw svEx;
 
     // Update the scenario with the correct numeric slave IDs.
     for (size_t i = 0; i < scenario.size(); ++i) {
-        scenario[i].slave = slaveIDs[scenarioEventSlaveName[i]].get();
+        scenario[i].slave = slaveIDs[scenarioEventSlaveName[i]];
     }
     scenarioOut.swap(scenario);
 }

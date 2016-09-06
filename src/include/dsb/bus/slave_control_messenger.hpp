@@ -272,6 +272,56 @@ public:
         SetVariablesHandler onComplete) = 0;
 
 
+    /// Completion handler type for SetPeers()
+    typedef VoidHandler SetPeersHandler;
+
+    /**
+    \brief  Sets or resets the list of peers to which the slave should be
+            connected for the purpose of subscribing to variable data.
+
+    On return, the slave state is `SLAVE_BUSY`.  When the operation completes
+    (or fails), `onComplete` is called.  Before `onComplete` is called, the
+    slave state is updated to one of the following:
+
+      - `SLAVE_READY` on success or non-fatal failure
+      - `SLAVE_NOT_CONNECTED` on fatal failure
+
+    `onComplete` must have the following signature:
+    ~~~{.cpp}
+    void f(const std::error_code&);
+    ~~~
+    Possible error conditions are:
+
+      - `std::errc::bad_message`: The slave sent invalid data.
+      - `std::errc::timed_out`: The slave did not reply in time.
+      - `dsb::error::generic_error::aborted`: The operation was aborted
+            (e.g. by Close()).
+      - `dsb::error::generic_error::failed`: The operation failed (e.g. due to
+            an error in the slave).
+
+    All error conditions are fatal unless otherwise specified.
+
+    \note
+        At the moment, there are no non-fatal failures.  In the future, errors
+        such as "invalid variable value" will be non-fatal, but none such are
+        implemented yet.
+
+    \param [in] peers           A list of peer endpoints
+    \param [in] timeout         Max. allowed time for the operation to complete
+    \param [in] onComplete      Completion handler
+
+    \throws std::invalid_argument if `timeout` is less than 1 ms or
+        if `onComplete` is empty.
+
+    \pre  `State() == SLAVE_READY`
+    \post `State() == SLAVE_BUSY`.
+    */
+    virtual void SetPeers(
+        const std::vector<dsb::net::Endpoint>& peer,
+        std::chrono::milliseconds timeout,
+        SetPeersHandler onComplete) = 0;
+
+
     /// Completion handler type for Step()
     typedef VoidHandler StepHandler;
 

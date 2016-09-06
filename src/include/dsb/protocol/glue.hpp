@@ -35,14 +35,6 @@ dsbproto::model::SlaveTypeDescription ToProto(
 dsb::model::SlaveTypeDescription FromProto(
     const dsbproto::model::SlaveTypeDescription& src);
 
-/// Converts an execution locator to a protocol buffer.
-dsbproto::net::ExecutionLocator ToProto(
-    const dsb::net::ExecutionLocator& executionLocator);
-
-/// Converts a protocol buffer to an execution locator.
-dsb::net::ExecutionLocator FromProto(
-    const dsbproto::net::ExecutionLocator& executionLocator);
-
 /// Converts a ScalarValue to a protocol buffer (in place).
 void ConvertToProto(
     const dsb::model::ScalarValue& source,

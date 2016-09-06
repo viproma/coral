@@ -13,7 +13,6 @@
 #include "boost/thread/latch.hpp"
 #include "gtest/gtest.h"
 
-#include "dsb/comm/proxy.hpp"
 #include "dsb/comm/util.hpp"
 #include "dsb/execution/variable_io.hpp"
 #include "dsb/util.hpp"
@@ -34,10 +33,6 @@ namespace
 
 TEST(dsb_execution, VariablePublishSubscribe)
 {
-    const auto ep = EndpointPair();
-    auto proxy = dsb::comm::SpawnProxy(ZMQ_XSUB, ep.first, ZMQ_XPUB, ep.second);
-    auto stopProxy = dsb::util::OnScopeExit([&]() { proxy.Stop(); });
-
     const dsb::model::SlaveID slaveID = 1;
     const dsb::model::VariableID varXID = 100;
     const dsb::model::VariableID varYID = 200;
@@ -45,10 +40,14 @@ TEST(dsb_execution, VariablePublishSubscribe)
     const auto varY = dsb::model::Variable(slaveID, varYID);
 
     auto pub = dsb::execution::VariablePublisher();
-    pub.Connect(ep.first, slaveID);
+    pub.Bind(dsb::net::Endpoint{"tcp://*:*"});
+
+    auto inetEndpoint = dsb::net::InetEndpoint{pub.BoundEndpoint().Address()};
+    inetEndpoint.SetAddress(dsb::net::InetAddress{"localhost"});
+    const auto endpoint = inetEndpoint.ToEndpoint("tcp");
 
     auto sub = dsb::execution::VariableSubscriber();
-    sub.Connect(ep.second);
+    sub.Connect(&endpoint, 1);
     sub.Subscribe(varX);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -56,7 +55,7 @@ TEST(dsb_execution, VariablePublishSubscribe)
     // Verify that Update() times out if it doesn't receive data
     EXPECT_THROW(sub.Update(t, std::chrono::milliseconds(1)), std::runtime_error);
     // Test transferring one variable
-    pub.Publish(t, varXID, 123);
+    pub.Publish(t, slaveID, varXID, 123);
     sub.Update(t, std::chrono::seconds(1));
     EXPECT_EQ(123, boost::get<int>(sub.Value(varX)));
     // Verify that Value() throws on a variable which is not subscribed to
@@ -65,9 +64,9 @@ TEST(dsb_execution, VariablePublishSubscribe)
     // Verify that the current value is used, old values are discarded, and
     // future values are queued.
     ++t;
-    pub.Publish(t-1, varXID, 123);
-    pub.Publish(t,   varXID, 456);
-    pub.Publish(t+1, varXID, 789);
+    pub.Publish(t-1, slaveID, varXID, 123);
+    pub.Publish(t,   slaveID, varXID, 456);
+    pub.Publish(t+1, slaveID, varXID, 789);
     sub.Update(t, std::chrono::seconds(1));
     EXPECT_EQ(456, boost::get<int>(sub.Value(varX)));
 
@@ -76,16 +75,16 @@ TEST(dsb_execution, VariablePublishSubscribe)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     ++t;
-    pub.Publish(t, varYID, std::string("Hello World"));
+    pub.Publish(t, slaveID, varYID, std::string("Hello World"));
     sub.Update(t, std::chrono::seconds(1));
     EXPECT_EQ(789, boost::get<int>(sub.Value(varX)));
     EXPECT_EQ("Hello World", boost::get<std::string>(sub.Value(varY)));
 
-    pub.Publish(t, varXID, 1.0);
+    pub.Publish(t, slaveID, varXID, 1.0);
     ++t;
-    pub.Publish(t, varYID, true);
+    pub.Publish(t, slaveID, varYID, true);
     EXPECT_THROW(sub.Update(t, std::chrono::milliseconds(1)), std::runtime_error);
-    pub.Publish(t, varXID, 2.0);
+    pub.Publish(t, slaveID, varXID, 2.0);
     sub.Update(t, std::chrono::seconds(1));
     EXPECT_EQ(2.0, boost::get<double>(sub.Value(varX)));
     EXPECT_TRUE(boost::get<bool>(sub.Value(varY)));
@@ -93,8 +92,8 @@ TEST(dsb_execution, VariablePublishSubscribe)
     // Unsubscribe to one variable
     ++t;
     sub.Unsubscribe(varX);
-    pub.Publish(t, varXID, 100);
-    pub.Publish(t, varYID, false);
+    pub.Publish(t, slaveID, varXID, 100);
+    pub.Publish(t, slaveID, varYID, false);
     sub.Update(t, std::chrono::seconds(1));
     EXPECT_THROW(sub.Value(varX), std::logic_error);
     EXPECT_FALSE(boost::get<bool>(sub.Value(varY)));
@@ -105,20 +104,7 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
 {
     const int VAR_COUNT = 5000;
     const int STEP_COUNT = 50;
-
-    // Fire up the proxy
-    auto proxySocket1 = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_XSUB);
-    auto proxySocket2 = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_XPUB);
-    int zero = 0;
-    proxySocket1.setsockopt(ZMQ_SNDHWM, &zero, sizeof(zero));
-    proxySocket1.setsockopt(ZMQ_RCVHWM, &zero, sizeof(zero));
-    proxySocket2.setsockopt(ZMQ_SNDHWM, &zero, sizeof(zero));
-    proxySocket2.setsockopt(ZMQ_RCVHWM, &zero, sizeof(zero));
-    const auto proxyPort1 = dsb::comm::BindToEphemeralPort(proxySocket1);
-    const auto proxyPort2 = dsb::comm::BindToEphemeralPort(proxySocket2);
-    const auto proxyEndpoint1 = "tcp://localhost:" + std::to_string(proxyPort1);
-    const auto proxyEndpoint2 = "tcp://localhost:" + std::to_string(proxyPort2);
-    auto proxy = dsb::comm::SpawnProxy(std::move(proxySocket1), std::move(proxySocket2));
+    const std::uint16_t PORT = 59264;
 
     // Prepare the list of variables
     const dsb::model::SlaveID publisherID = 1;
@@ -131,30 +117,31 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
     boost::barrier stepBarrier(2);
 
     auto pubThread = std::thread(
-        [STEP_COUNT, proxyEndpoint1, publisherID, &vars, &primeLatch, &stepBarrier] ()
+        [STEP_COUNT, PORT, publisherID, &vars, &primeLatch, &stepBarrier] ()
         {
             dsb::execution::VariablePublisher pub;
-            pub.Connect(proxyEndpoint1, publisherID);
+            pub.Bind(dsb::net::InetEndpoint{"*", PORT}.ToEndpoint("tcp"));
             do {
                 for (size_t i = 0; i < vars.size(); ++i) {
-                    pub.Publish(0, vars[i].ID(), i*1.0);
+                    pub.Publish(0, publisherID, vars[i].ID(), i*1.0);
                 }
             } while (primeLatch.wait_for(boost::chrono::milliseconds(100)) == boost::cv_status::timeout);
             for (int stepID = 1; stepID <= STEP_COUNT; ++stepID) {
                 for (size_t i = 0; i < vars.size(); ++i) {
-                    pub.Publish(stepID, vars[i].ID(), i*1.0*stepID);
+                    pub.Publish(stepID, publisherID, vars[i].ID(), i*1.0*stepID);
                 }
                 stepBarrier.wait();
             }
         });
 
     dsb::execution::VariableSubscriber sub;
-    sub.Connect(proxyEndpoint2);
+    const auto endpoint = dsb::net::InetEndpoint{"localhost", PORT}.ToEndpoint("tcp");
+    sub.Connect(&endpoint, 1);
 
-    //const auto tSub = std::chrono::steady_clock::now();
+//    const auto tSub = std::chrono::steady_clock::now();
     for (const auto& var : vars) sub.Subscribe(var);
 
-    //const auto tPrime = std::chrono::steady_clock::now();
+//    const auto tPrime = std::chrono::steady_clock::now();
     for (;;) {
         try {
             sub.Update(0, std::chrono::milliseconds(10000));
@@ -182,7 +169,6 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
     const auto tStop = std::chrono::steady_clock::now();
 
     pubThread.join();
-    proxy.Stop(true);
 
     // Throughput = average number of variable values transferred per second
     const auto throughput = STEP_COUNT * VAR_COUNT
@@ -190,11 +176,11 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
     EXPECT_GT(throughput, 50000.0);
 /*
     std::cout
-        << "\nSubscription time: " << std::chrono::duration_cast<std::chrono::milliseconds>(tPrime-tSub)
-        << "\nPriming time     : " << std::chrono::duration_cast<std::chrono::milliseconds>(tSim-tPrime)
-        << "\nTotal sim time   : " << std::chrono::duration_cast<std::chrono::milliseconds>(tStop-tSim)
-        << "\nStep time        : " << (std::chrono::duration_cast<std::chrono::microseconds>(tStop-tSim)/STEP_COUNT) << " (" << STEP_COUNT << " steps)"
-        << "\nPer-var time     : " <<  (std::chrono::duration_cast<std::chrono::nanoseconds>(tStop-tSim)/(STEP_COUNT*VAR_COUNT)) << " (" << VAR_COUNT << " vars)"
+        << "\nSubscription time: " << std::chrono::duration_cast<std::chrono::milliseconds>(tPrime-tSub).count() << " ms"
+        << "\nPriming time     : " << std::chrono::duration_cast<std::chrono::milliseconds>(tSim-tPrime).count() << " ms"
+        << "\nTotal sim time   : " << std::chrono::duration_cast<std::chrono::milliseconds>(tStop-tSim).count() << " ms"
+        << "\nStep time        : " << (std::chrono::duration_cast<std::chrono::microseconds>(tStop-tSim)/STEP_COUNT).count() << " us (" << STEP_COUNT << " steps)"
+        << "\nPer-var time     : " <<  (std::chrono::duration_cast<std::chrono::nanoseconds>(tStop-tSim)/(STEP_COUNT*VAR_COUNT)).count() << " us (" << VAR_COUNT << " vars)"
         << "\nThroughput       : " << throughput << " vars/second"
         << std::endl;
 */

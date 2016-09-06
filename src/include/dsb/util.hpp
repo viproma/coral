@@ -24,19 +24,37 @@ namespace util
 
 
 /// Encodes a 16-bit unsigned integer using little-endian byte order.
-void EncodeUint16(uint16_t source, char target[2]);
+void EncodeUint16(std::uint16_t source, char target[2]);
 
 
 /// Encodes a 32-bit unsigned integer using little-endian byte order.
-void EncodeUint32(uint32_t source, char target[4]);
+void EncodeUint32(std::uint32_t source, char target[4]);
+
+
+/// Encodes a 64-bit unsigned integer using little-endian byte order.
+void EncodeUint64(std::uint64_t source, char target[8]);
 
 
 /// Decodes a 16-bit unsigned integer using little-endian byte order.
-uint16_t DecodeUint16(const char source[2]);
+std::uint16_t DecodeUint16(const char source[2]);
 
 
 /// Decodes a 32-bit unsigned integer using little-endian byte order.
-uint32_t DecodeUint32(const char source[4]);
+std::uint32_t DecodeUint32(const char source[4]);
+
+
+/// Decodes a 64-bit unsigned integer using little-endian byte order.
+std::uint64_t DecodeUint64(const char source[8]);
+
+
+/**
+\brief  Given a character array and its length, compares it lexicographically
+        to a zero-terminated string.
+
+This is equivalent to std::strcmp, except that it only requires one of the
+arrays (`stringz`) to be null-terminated.
+*/
+int ArrayStringCmp(const char* array, size_t length, const char* stringz);
 
 
 /// Returns a string that contains a random UUID.
@@ -115,12 +133,12 @@ void LastCall(F& f)
     tmp();
 }
 
-template<typename F, typename A0>
-void LastCall(F& f, A0&& a0)
+template<typename F, typename... Args>
+void LastCall(F& f, Args&&... args)
 {
     F tmp;
     swap(f, tmp);
-    tmp(std::forward<A0>(a0));
+    tmp(std::forward<Args>(args)...);
 }
 
 

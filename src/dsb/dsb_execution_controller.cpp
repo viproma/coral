@@ -9,19 +9,7 @@
 #include "dsb/async.hpp"
 #include "dsb/bus/execution_manager.hpp"
 #include "dsb/comm/reactor.hpp"
-
-// For SpawnExecution() only
-#include "dsb/comm/messaging.hpp"
-#include "dsb/comm/util.hpp"
-#include "dsb/protobuf.hpp"
-#include "dsb/util.hpp"
-
-#include "broker.pb.h"
-
-
-// =============================================================================
-// Controller
-// =============================================================================
+#include "dsb/log.hpp"
 
 
 namespace
@@ -60,179 +48,122 @@ class dsb::execution::Controller::Private
 {
 public:
     /// Constructor.
-    explicit Private(const dsb::net::ExecutionLocator& locator)
-        : m_execLocator(locator)
-        , m_execMgr{locator}
-        , m_thread{}
+    Private(
+        const std::string& executionName,
+        dsb::model::TimePoint startTime,
+        dsb::model::TimePoint maxTime)
+        : m_thread{}
     {
+        m_thread.Execute<void>(
+            [&] (
+                dsb::comm::Reactor& reactor,
+                ExecMgr& execMgr,
+                std::promise<void> status)
+            {
+                try {
+                    execMgr = std::make_unique<dsb::bus::ExecutionManager>(
+                        reactor,
+                        executionName,
+                        startTime,
+                        maxTime);
+                    status.set_value();
+                } catch (...) {
+                    status.set_exception(std::current_exception());
+                }
+            }).get();
     }
-
-
-    ~Private() DSB_NOEXCEPT { }
-
 
     Private(const Private&) = delete;
     Private& operator=(const Private&) = delete;
     Private(Private&&) = delete;
     Private& operator=(Private&&) = delete;
 
-
-    void Terminate()
-    {
-        m_thread.Execute<void>(
-            [this] (dsb::comm::Reactor&, std::promise<void> promise)
-            {
-                try {
-                    m_execMgr.Terminate();
-                    promise.set_value();
-                } catch (...) {
-                    promise.set_exception(std::current_exception());
-                }
-            }
-        ).get();
-        m_thread.Shutdown();
-
-        // Terminate the execution broker
-        auto execTerminationSocket = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
-        execTerminationSocket.connect(m_execLocator.ExecTerminationEndpoint().c_str());
-        std::vector<zmq::message_t> termMsg;
-        termMsg.push_back(dsb::comm::ToFrame("TERMINATE_EXECUTION"));
-        termMsg.push_back(zmq::message_t());
-        dsbproto::broker::TerminateExecutionData teData;
-        teData.set_execution_name(m_execLocator.ExecName());
-        dsb::protobuf::SerializeToFrame(teData, termMsg.back());
-        dsb::comm::Send(execTerminationSocket, termMsg);
-        // TODO: The following receive was just added to force ZMQ to send the
-        // message. We don't really care about the reply.  We've tried closing
-        // the socket and even the context manually, but then the message just
-        // appears to be dropped altoghether.  This sucks, and we need to figure
-        // out what is going on at some point.  See ZeroMQ issue 1264,
-        // https://github.com/zeromq/libzmq/issues/1264
-        char temp;
-        execTerminationSocket.recv(&temp, 1);
-    }
-
-
-    void BeginConfig()
-    {
-        m_thread.Execute<void>(
-            [this] (dsb::comm::Reactor&, std::promise<void> promise)
-            {
-                try {
-                    m_execMgr.BeginConfig(
-                        SimpleHandler(
-                            std::move(promise),
-                            "Failed to enter configuration mode"));
-                } catch (...) {
-                    promise.set_exception(std::current_exception());
-                }
-            }
-        ).get();
-    }
-
-
-    void EndConfig()
-    {
-        m_thread.Execute<void>(
-            [this] (dsb::comm::Reactor&, std::promise<void> promise)
-            {
-                try {
-                    m_execMgr.EndConfig(
-                        SimpleHandler(
-                            std::move(promise),
-                            "Failed to leave configuration mode"));
-                } catch (...) {
-                    promise.set_exception(std::current_exception());
-                }
-            }
-        ).get();
-    }
-
-
-    void SetSimulationTime(
-        dsb::model::TimePoint startTime,
-        dsb::model::TimePoint stopTime)
-    {
-        m_thread.Execute<void>(
-            [=] (dsb::comm::Reactor&, std::promise<void> promise)
-            {
-                try {
-                    m_execMgr.SetSimulationTime(startTime, stopTime);
-                    promise.set_value();
-                } catch (...) {
-                    promise.set_exception(std::current_exception());
-                }
-            }
-        ).get();
-    }
-
-
-    std::future<dsb::model::SlaveID> AddSlave(
-        dsb::net::SlaveLocator slaveLocator,
-        const std::string& slaveName,
-        std::chrono::milliseconds commTimeout)
-    {
-        return m_thread.Execute<dsb::model::SlaveID>(
-            [=] (
-                dsb::comm::Reactor& reactor,
-                std::promise<dsb::model::SlaveID> promise)
-            {
-                auto sharedPromise =
-                    std::make_shared<decltype(promise)>(std::move(promise));
-                m_execMgr.AddSlave(
-                    slaveLocator,
-                    slaveName,
-                    reactor,
-                    commTimeout,
-                    [slaveName, sharedPromise]
-                        (const std::error_code& ec, dsb::model::SlaveID id)
-                    {
-                        if (!ec) {
-                            sharedPromise->set_value(id);
-                        } else {
-                            SetException(
-                                *sharedPromise,
-                                std::runtime_error(ErrMsg(
-                                    "Failed to add slave: " + slaveName,
-                                    ec)));
-                        }
-                    });
-            }
-        );
-    }
-
-
-    std::future<void> SetVariables(
-        dsb::model::SlaveID slave,
-        const std::vector<dsb::model::VariableSetting>& variableSettings,
+    void Reconstitute(
+        std::vector<AddedSlave>& slavesToAdd,
         std::chrono::milliseconds timeout)
     {
-        return m_thread.Execute<void>(
-            [=] (
-                dsb::comm::Reactor& reactor,
+        m_thread.Execute<void>(
+            [&slavesToAdd, timeout] (
+                dsb::comm::Reactor&,
+                ExecMgr& execMgr,
                 std::promise<void> promise)
             {
-                auto sharedPromise =
+                const auto sharedPromise =
                     std::make_shared<decltype(promise)>(std::move(promise));
-                m_execMgr.SetVariables(
-                    slave,
-                    variableSettings,
-                    timeout,
-                    [slave, sharedPromise, this] (const std::error_code& ec)
-                    {
-                        if (!ec) {
-                            sharedPromise->set_value();
-                        } else {
-                            SetException(
-                                *sharedPromise,
-                                std::runtime_error(ErrMsg(
-                                    "Failed to set/connect variables for slave: "
-                                    + m_execMgr.SlaveName(slave),
-                                    ec)));
-                        }
-                    });
+                try {
+                    std::vector<dsb::bus::AddedSlave> slavesToAdd2;
+                    for (const auto& sta : slavesToAdd) {
+                        slavesToAdd2.emplace_back(sta.locator, sta.name);
+                    }
+                    execMgr->Reconstitute(
+                        slavesToAdd2,
+                        timeout,
+                        [sharedPromise] (const std::error_code& ec) {
+                            if (!ec) {
+                                sharedPromise->set_value();
+                            } else {
+                                SetException(
+                                    *sharedPromise,
+                                    std::runtime_error(
+                                        ErrMsg("Failed to perform reconstitution", ec)));
+                            }
+                        },
+                        [&slavesToAdd]
+                            (const std::error_code& ec, dsb::model::SlaveID id, std::size_t index)
+                        {
+                            slavesToAdd[index].error = ec;
+                            slavesToAdd[index].id = id;
+                        });
+                } catch (...) {
+                    sharedPromise->set_exception(std::current_exception());
+                }
             }
-        );
+        ).get();
+    }
+
+    void Reconfigure(
+        std::vector<SlaveConfig>& slaveConfigs,
+        std::chrono::milliseconds timeout)
+    {
+        m_thread.Execute<void>(
+            [&slaveConfigs, timeout] (
+                dsb::comm::Reactor&,
+                ExecMgr& execMgr,
+                std::promise<void> promise)
+            {
+                const auto sharedPromise =
+                    std::make_shared<decltype(promise)>(std::move(promise));
+                try {
+                    std::vector<dsb::bus::SlaveConfig> slaveConfigs2;
+                    for (const auto& sc : slaveConfigs) {
+                        slaveConfigs2.emplace_back(
+                            sc.slaveID,
+                            sc.variableSettings);
+                    }
+                    execMgr->Reconfigure(
+                        slaveConfigs2,
+                        timeout,
+                        [sharedPromise] (const std::error_code& ec) {
+                            if (!ec) {
+                                sharedPromise->set_value();
+                            } else {
+                                SetException(
+                                    *sharedPromise,
+                                    std::runtime_error(
+                                        ErrMsg("Failed to perform reconfiguration", ec)));
+                            }
+                        },
+                        [&slaveConfigs]
+                            (const std::error_code& ec, dsb::model::SlaveID id, std::size_t index)
+                        {
+                            assert(slaveConfigs[index].slaveID = id);
+                            slaveConfigs[index].error = ec;
+                        });
+                } catch (...) {
+                    sharedPromise->set_exception(std::current_exception());
+                }
+            }
+        ).get();
     }
 
 
@@ -242,29 +173,36 @@ public:
         std::vector<std::pair<dsb::model::SlaveID, StepResult>>* slaveResults)
     {
         return m_thread.Execute<StepResult>(
-            [=] (dsb::comm::Reactor&, std::promise<StepResult> promise)
+            [=] (
+                dsb::comm::Reactor&,
+                ExecMgr& execMgr,
+                std::promise<StepResult> promise)
             {
-                // Only define a per-slave handler if we have somewhere to
-                // put the results.
                 std::function<void(const std::error_code&, dsb::model::SlaveID)>
-                    perSlaveHandler;
-                if (slaveResults) {
                     perSlaveHandler = [slaveResults]
                         (const std::error_code& ec, dsb::model::SlaveID slaveID)
                     {
                         if (!ec) {
-                            slaveResults->push_back(
-                                std::make_pair(slaveID, STEP_COMPLETE));
-                        } else if (ec == dsb::error::sim_error::cannot_perform_timestep) {
+                            if (slaveResults) {
+                                slaveResults->push_back(
+                                    std::make_pair(slaveID, STEP_COMPLETE));
+                            }
+                        } else if (ec == dsb::error::sim_error::cannot_perform_timestep
+                                && slaveResults) {
                             slaveResults->push_back(
                                 std::make_pair(slaveID, STEP_FAILED));
+                        } else {
+                            dsb::log::Log(
+                                dsb::log::error,
+                                boost::format("Slave %d failed to perform time step (%s)")
+                                    % slaveID
+                                    % ec.message());
                         }
                     };
-                }
 
                 auto sharedPromise =
                     std::make_shared<decltype(promise)>(std::move(promise));
-                m_execMgr.Step(
+                execMgr->Step(
                     stepSize,
                     timeout,
                     [sharedPromise] (const std::error_code& ec)
@@ -289,10 +227,13 @@ public:
     void AcceptStep(std::chrono::milliseconds timeout)
     {
         m_thread.Execute<void>(
-            [=] (dsb::comm::Reactor&, std::promise<void> promise)
+            [timeout] (
+                dsb::comm::Reactor&,
+                ExecMgr& execMgr,
+                std::promise<void> promise)
             {
                 try {
-                    m_execMgr.AcceptStep(
+                    execMgr->AcceptStep(
                         timeout,
                         SimpleHandler(
                             std::move(promise),
@@ -304,21 +245,38 @@ public:
         ).get();
     }
 
+
+    void Terminate()
+    {
+        m_thread.Execute<void>(
+            [] (dsb::comm::Reactor&, ExecMgr& execMgr, std::promise<void> promise)
+            {
+                try {
+                    execMgr->Terminate();
+                    promise.set_value();
+                } catch (...) {
+                    promise.set_exception(std::current_exception());
+                }
+            }
+        ).get();
+        m_thread.Shutdown();
+    }
+
 private:
-    dsb::net::ExecutionLocator m_execLocator;
-
-    // For use in background thread
-    dsb::bus::ExecutionManager m_execMgr;
-
-    // Background thread
-    dsb::async::CommThread m_thread;
+    // TODO: Replace std::unique_ptr with boost::optional (when we no longer
+    //       need to support Boost < 1.56) or std::optional (when all our
+    //       compilers support it).
+    using ExecMgr = std::unique_ptr<dsb::bus::ExecutionManager>;
+    dsb::async::CommThread<ExecMgr> m_thread;
 };
 
 
 
 dsb::execution::Controller::Controller(
-    const dsb::net::ExecutionLocator& locator)
-    : m_private{std::make_unique<Private>(locator)}
+    const std::string& executionName,
+    dsb::model::TimePoint startTime,
+    dsb::model::TimePoint maxTime)
+    : m_private{std::make_unique<Private>(executionName, startTime, maxTime)}
 {
 }
 
@@ -342,47 +300,19 @@ dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& o
 }
 
 
-void dsb::execution::Controller::Terminate()
-{
-    m_private->Terminate();
-}
-
-
-void dsb::execution::Controller::BeginConfig()
-{
-    m_private->BeginConfig();
-}
-
-
-void dsb::execution::Controller::EndConfig()
-{
-    m_private->EndConfig();
-}
-
-
-void dsb::execution::Controller::SetSimulationTime(
-    dsb::model::TimePoint startTime,
-    dsb::model::TimePoint stopTime)
-{
-    m_private->SetSimulationTime(startTime, stopTime);
-}
-
-
-std::future<dsb::model::SlaveID> dsb::execution::Controller::AddSlave(
-    dsb::net::SlaveLocator slaveLocator,
-    const std::string& slaveName,
+void dsb::execution::Controller::Reconstitute(
+    std::vector<AddedSlave>& slavesToAdd,
     std::chrono::milliseconds commTimeout)
 {
-    return m_private->AddSlave(slaveLocator, slaveName, commTimeout);
+    m_private->Reconstitute(slavesToAdd, commTimeout);
 }
 
 
-std::future<void> dsb::execution::Controller::SetVariables(
-    dsb::model::SlaveID slave,
-    const std::vector<dsb::model::VariableSetting>& variableSettings,
-    std::chrono::milliseconds timeout)
+void dsb::execution::Controller::Reconfigure(
+    std::vector<SlaveConfig>& slaveConfigs,
+    std::chrono::milliseconds commTimeout)
 {
-    return m_private->SetVariables(slave, variableSettings, timeout);
+    m_private->Reconfigure(slaveConfigs, commTimeout);
 }
 
 
@@ -401,60 +331,7 @@ void dsb::execution::Controller::AcceptStep(std::chrono::milliseconds timeout)
 }
 
 
-// =============================================================================
-// SpawnExecution()
-// =============================================================================
-
-
-dsb::net::ExecutionLocator dsb::execution::SpawnExecution(
-    const dsb::net::DomainLocator& domainLocator,
-    const std::string& executionName,
-    std::chrono::seconds commTimeout)
+void dsb::execution::Controller::Terminate()
 {
-    if (commTimeout <= std::chrono::seconds(0)) {
-        throw std::invalid_argument("Communications timeout interval is nonpositive");
-    }
-    const auto actualExecName = executionName.empty()
-        ? dsb::util::Timestamp()
-        : executionName;
-
-    auto sck = zmq::socket_t(dsb::comm::GlobalContext(), ZMQ_REQ);
-    sck.connect(domainLocator.ExecReqEndpoint().c_str());
-
-    std::vector<zmq::message_t> msg;
-    msg.push_back(dsb::comm::ToFrame("SPAWN_EXECUTION"));
-    msg.push_back(zmq::message_t());
-    dsbproto::broker::SpawnExecutionData seData;
-    seData.set_execution_name(actualExecName);
-    seData.set_comm_timeout_seconds(commTimeout.count());
-    dsb::protobuf::SerializeToFrame(seData, msg.back());
-
-    dsb::comm::Send(sck, msg);
-    if (!dsb::comm::Receive(sck, msg, std::chrono::seconds(10))) {
-        throw std::runtime_error("Failed to spawn execution (domain connection timed out)");
-    }
-    const auto reply = dsb::comm::ToString(msg.front());
-    if (reply == "SPAWN_EXECUTION_OK" && msg.size() == 2) {
-        dsbproto::broker::SpawnExecutionOkData seOkData;
-        dsb::protobuf::ParseFromFrame(msg.back(), seOkData);
-
-        const auto endpointBase = domainLocator.ExecReqEndpoint().substr(
-            0,
-            domainLocator.ExecReqEndpoint().rfind(':'));
-        return dsb::net::ExecutionLocator(
-            endpointBase + ':' + std::to_string(seOkData.master_port()),
-            endpointBase + ':' + std::to_string(seOkData.slave_port()),
-            endpointBase + ':' + std::to_string(seOkData.variable_pub_port()),
-            endpointBase + ':' + std::to_string(seOkData.variable_sub_port()),
-            domainLocator.ExecReqEndpoint(),
-            actualExecName,
-            commTimeout);
-    } else if (reply == "SPAWN_EXECUTION_FAIL" && msg.size() == 2) {
-        dsbproto::broker::SpawnExecutionFailData seFailData;
-        dsb::protobuf::ParseFromFrame(msg.back(), seFailData);
-        throw std::runtime_error(
-            "Failed to spawn execution (" + seFailData.reason() + ')');
-    } else {
-        throw std::runtime_error("Failed to spawn execution (invalid response from domain)");
-    }
+    m_private->Terminate();
 }

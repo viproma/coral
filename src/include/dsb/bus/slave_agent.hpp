@@ -14,12 +14,13 @@
 #include "boost/bimap/multiset_of.hpp"
 #include "zmq.hpp"
 
-#include "dsb/comm/p2p.hpp"
-#include "dsb/comm/reactor.hpp"
 #include "dsb/config.h"
+#include "dsb/comm/reactor.hpp"
+#include "dsb/comm/socket.hpp"
 #include "dsb/execution/slave.hpp"
 #include "dsb/execution/variable_io.hpp"
 #include "dsb/model.hpp"
+#include "dsb/net.hpp"
 #include "execution.pb.h"
 
 
@@ -43,9 +44,12 @@ public:
         The Reactor which should be used to listen for incoming messages.
     \param [in] slaveInstance
         The slave itself.
-    \param [in] bindpoint
-        The endpoint on which the slave should listen for incoming messages
-        from the master.
+    \param [in] controlEndpoint
+        The endpoint to which the slave should bind to receive an incoming
+        connection from a master.
+    \param [in] dataPubEndpoint
+        The endpoint to which the slave should bind and publish its output
+        data.
     \param [in] commTimeout
         A time after which communication with the master is assumed to be
         broken.  When this happens, a dsb::execution::TimeoutException will
@@ -55,18 +59,28 @@ public:
     SlaveAgent(
         dsb::comm::Reactor& reactor,
         dsb::execution::ISlaveInstance& slaveInstance,
-        const dsb::comm::P2PEndpoint& bindpoint,
+        const dsb::net::Endpoint& controlEndpoint,
+        const dsb::net::Endpoint& dataPubEndpoint,
         std::chrono::milliseconds commTimeout);
 
     /**
     \brief  The endpoint on which the slave is listening for incoming messages
             from the master.
 
-    This is useful if the `bindpoint` argument passed to the constructor
+    This is useful if the `controlEndpoint` argument passed to the constructor
     contains a wildcard port number, in which case this function will return
     the actual port used.
     */
-    const dsb::comm::P2PEndpoint& BoundEndpoint() const;
+    dsb::net::Endpoint BoundControlEndpoint() const;
+
+    /**
+    \brief  The endpoint to which the slave is publishing its output data.
+
+    This is useful if the `dataPubEndpoint` argument passed to the constructor
+    contains a wildcard port number, in which case this function will return
+    the actual port used.
+    */
+    dsb::net::Endpoint BoundDataPubEndpoint() const;
 
 private:
     /*
@@ -97,6 +111,10 @@ private:
     // filling `msg` with a reply message.
     void HandleSetVars(std::vector<zmq::message_t>& msg);
 
+    // Performs the "set peers" operation for ReadyHandler(), including,
+    // filling `msg` with a reply message.
+    void HandleSetPeers(std::vector<zmq::message_t>& msg);
+
     // Performs the time step for ReadyHandler()
     bool Step(const dsbproto::execution::StepData& stepData);
 
@@ -119,8 +137,10 @@ private:
     class Connections
     {
     public:
-        // Connects to the broker endpoint
-        void Connect(const std::string& endpoint);
+        // Connects to the publisher endpoints
+        void Connect(
+            const dsb::net::Endpoint* endpoints,
+            std::size_t endpointsSize);
 
         // Establishes a connection between a remote output variable and one of
         // our input variables, breaking any existing connections to that input.
@@ -152,7 +172,7 @@ private:
     dsb::execution::ISlaveInstance& m_slaveInstance;
     std::chrono::milliseconds m_commTimeout;
 
-    dsb::comm::P2PRepSocket m_control;
+    dsb::comm::RepSocket m_control;
     dsb::execution::VariablePublisher m_publisher;
     Connections m_connections;
     dsb::model::SlaveID m_id; // The slave's ID number in the current execution

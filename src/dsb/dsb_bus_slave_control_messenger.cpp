@@ -4,7 +4,7 @@
 #include <utility>
 
 #include "dsb/bus/slave_control_messenger_v0.hpp"
-#include "dsb/comm/p2p.hpp"
+#include "dsb/comm/socket.hpp"
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
 #include "dsb/protocol/execution.hpp"
@@ -65,14 +65,14 @@ private:
 
     ConnectToSlaveHandler m_onComplete;
     int m_timeoutTimer;
-    dsb::comm::P2PReqSocket m_socket;
+    dsb::comm::ReqSocket m_socket;
 };
 
 
 struct SlaveControlConnectionPrivate
 {
     dsb::comm::Reactor* reactor;
-    dsb::comm::P2PReqSocket socket;
+    dsb::comm::ReqSocket socket;
     std::chrono::milliseconds timeout;
     int protocol;
 };
@@ -107,7 +107,7 @@ void PendingSlaveControlConnectionPrivate::Destroy() DSB_NOEXCEPT
     if (Active()) {
         CancelTimeoutTimer();
         m_reactor.RemoveSocket(m_socket.Socket());
-        m_socket = dsb::comm::P2PReqSocket();
+        m_socket = dsb::comm::ReqSocket{};
         m_onComplete = nullptr;
     }
 }
@@ -127,13 +127,11 @@ void PendingSlaveControlConnectionPrivate::Close()
 void PendingSlaveControlConnectionPrivate::TryConnect(int remainingAttempts)
 {
     // Connect and send HELLO
-    m_socket = dsb::comm::P2PReqSocket(); // reset to a fresh socket
-    m_socket.Connect(dsb::comm::P2PEndpoint(
-        m_slaveLocator.Endpoint(),
-        m_slaveLocator.Identity()));
+    m_socket = dsb::comm::ReqSocket{}; // reset to a fresh socket
+    m_socket.Connect(m_slaveLocator.ControlEndpoint());
     DSB_LOG_TRACE(boost::format("PendingSlaveControlConnectionPrivate  %x: "
-            "Connecting to endpoint %s, identity %s")
-        % this % m_slaveLocator.Endpoint() % m_slaveLocator.Identity());
+            "Connecting to endpoint %s")
+        % this % m_slaveLocator.ControlEndpoint().URL());
 
     std::vector<zmq::message_t> msg;
     dsb::protocol::execution::CreateHelloMessage(msg, 0);
@@ -311,7 +309,6 @@ PendingSlaveControlConnection ConnectToSlave(
     std::chrono::milliseconds timeout,
     ConnectToSlaveHandler onComplete)
 {
-    DSB_INPUT_CHECK(!slaveLocator.Empty());
     DSB_INPUT_CHECK(maxAttempts > 0);
     DSB_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     DSB_INPUT_CHECK(onComplete);

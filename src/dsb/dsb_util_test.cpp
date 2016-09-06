@@ -60,6 +60,19 @@ TEST(dsb_util, EncodeUint32) {
     EXPECT_EQ('\x78', b[3]);
 }
 
+TEST(dsb_util, EncodeUint64) {
+    char b[8] = { '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0' };
+    EncodeUint64(7460587310468789241UL, b);
+    EXPECT_EQ('\xF9', b[0]);
+    EXPECT_EQ('\x73', b[1]);
+    EXPECT_EQ('\x47', b[2]);
+    EXPECT_EQ('\x88', b[3]);
+    EXPECT_EQ('\xA1', b[4]);
+    EXPECT_EQ('\x54', b[5]);
+    EXPECT_EQ('\x89', b[6]);
+    EXPECT_EQ('\x67', b[7]);
+}
+
 TEST(dsb_util, DecodeUint16) {
     EXPECT_EQ(    0u, DecodeUint16("\x00\x00"));
     EXPECT_EQ(65535u, DecodeUint16("\xFF\xFF"));
@@ -73,6 +86,21 @@ TEST(dsb_util, DecodeUint32) {
     EXPECT_EQ(     65535u, DecodeUint32("\xFF\xFF\x00\x00"));
     EXPECT_EQ(4294967295u, DecodeUint32("\xFF\xFF\xFF\xFF"));
     EXPECT_EQ(2018915346u, DecodeUint32("\x12\x34\x56\x78"));
+}
+
+TEST(dsb_util, DecodeUint64) {
+    EXPECT_EQ(
+        7460587310468789241UL,
+        DecodeUint64("\xF9\x73\x47\x88\xA1\x54\x89\x67"));
+}
+
+TEST(dsb_util, ArrayStringCmp) {
+    char test[3] = { 'a', 'b', 'c' };
+    EXPECT_EQ(0, ArrayStringCmp(test, 3, "abc"));
+    EXPECT_GT(0, ArrayStringCmp(test, 3, "abcd"));
+    EXPECT_GT(0, ArrayStringCmp(test, 3, "abd"));
+    EXPECT_LT(0, ArrayStringCmp(test, 3, "ab"));
+    EXPECT_LT(0, ArrayStringCmp(test, 3, "abb"));
 }
 
 TEST(dsb_util, RandomUUID)

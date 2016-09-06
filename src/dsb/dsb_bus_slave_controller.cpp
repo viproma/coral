@@ -93,6 +93,19 @@ void SlaveController::SetVariables(
 }
 
 
+void SlaveController::SetPeers(
+    const std::vector<dsb::net::Endpoint>& peers,
+    std::chrono::milliseconds timeout,
+    SetPeersHandler onComplete)
+{
+    if (m_messenger) {
+        m_messenger->SetPeers(peers, timeout, std::move(onComplete));
+    } else {
+        onComplete(std::make_error_code(std::errc::not_connected));
+    }
+}
+
+
 void SlaveController::Step(
     dsb::model::StepID stepID,
     dsb::model::TimePoint currentT,

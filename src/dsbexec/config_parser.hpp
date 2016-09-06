@@ -42,7 +42,6 @@ void ParseSystemConfig(
     const std::string& path,
     dsb::domain::Controller& domain,
     dsb::execution::Controller& execution,
-    const dsb::net::ExecutionLocator& executionLocator,
     std::vector<SimulationEvent>& scenario,
     std::chrono::milliseconds commTimeout,
     std::chrono::milliseconds instantiationTimeout,
