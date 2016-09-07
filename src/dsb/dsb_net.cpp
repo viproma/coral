@@ -14,9 +14,9 @@
 #include <utility>
 #include "zmq.hpp"
 
-#include "dsb/comm/ip.hpp"
-#include "dsb/comm/messaging.hpp"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/ip.hpp"
+#include "dsb/net/messaging.hpp"
+#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 
 
@@ -131,7 +131,7 @@ std::string InetAddress::ToString() const DSB_NOEXCEPT
         if (m_inAddr.s_addr == INADDR_ANY) {
             return "*";
         } else {
-            return dsb::comm::IPAddressToString(m_inAddr);
+            return dsb::net::IPAddressToString(m_inAddr);
         }
     } else {
         return m_strAddr;

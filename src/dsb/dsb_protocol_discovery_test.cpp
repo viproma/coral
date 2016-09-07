@@ -39,7 +39,7 @@ TEST(dsb_protocol, ServiceListener)
     int serviceType2Count = 0;
     int bugCount = 0;
 
-    dsb::comm::Reactor reactor;
+    dsb::net::Reactor reactor;
     auto listener = dsb::protocol::ServiceListener(reactor, 100, "*", port,
         [&] (const std::string& addr, const std::string& st, const std::string& si, const char* pl, std::size_t pls)
         {
@@ -56,7 +56,7 @@ TEST(dsb_protocol, ServiceListener)
     reactor.AddTimer(
         std::chrono::seconds(2),
         1,
-        [] (dsb::comm::Reactor& r, int) { r.Stop(); });
+        [] (dsb::net::Reactor& r, int) { r.Stop(); });
     reactor.Run();
 
     // Note that beacon1 broadcasts on all available interfaces, and we
@@ -97,10 +97,10 @@ TEST(dsb_protocol, ServiceTracker)
     const std::string service21Payload = "ccc";
     const std::string service31Payload = "ddd";
 
-    dsb::comm::Reactor reactor;
+    dsb::net::Reactor reactor;
     reactor.AddTimer(
         service11StartTime, 1,
-        [&] (dsb::comm::Reactor&, int) {
+        [&] (dsb::net::Reactor&, int) {
             beacon11 = std::make_unique<dsb::protocol::ServiceBeacon>(
                 domainID,
                 "serviceType1",
@@ -112,7 +112,7 @@ TEST(dsb_protocol, ServiceTracker)
         });
     reactor.AddTimer(
         service12StartTime, 1,
-        [&] (dsb::comm::Reactor&, int) {
+        [&] (dsb::net::Reactor&, int) {
             beacon12 = std::make_unique<dsb::protocol::ServiceBeacon>(
                 domainID,
                 "serviceType1",
@@ -124,7 +124,7 @@ TEST(dsb_protocol, ServiceTracker)
         });
     reactor.AddTimer(
         service21StartTime, 1,
-        [&] (dsb::comm::Reactor&, int) {
+        [&] (dsb::net::Reactor&, int) {
             beacon21 = std::make_unique<dsb::protocol::ServiceBeacon>(
                 domainID,
                 "serviceType2",
@@ -136,7 +136,7 @@ TEST(dsb_protocol, ServiceTracker)
         });
     reactor.AddTimer(
         service31StartTime, 1,
-        [&] (dsb::comm::Reactor&, int) {
+        [&] (dsb::net::Reactor&, int) {
             beacon31 = std::make_unique<dsb::protocol::ServiceBeacon>(
                 domainID,
                 "serviceType3",
@@ -148,7 +148,7 @@ TEST(dsb_protocol, ServiceTracker)
         });
     reactor.AddTimer(
         service11ChangeTime, 1,
-        [&] (dsb::comm::Reactor&, int) {
+        [&] (dsb::net::Reactor&, int) {
             beacon11 = std::make_unique<dsb::protocol::ServiceBeacon>(
                 domainID,
                 "serviceType1",
@@ -160,7 +160,7 @@ TEST(dsb_protocol, ServiceTracker)
         });
     reactor.AddTimer(
         serviceStopTime, 1,
-        [&] (dsb::comm::Reactor&, int) {
+        [&] (dsb::net::Reactor&, int) {
             beacon11->Stop();
             beacon12->Stop();
             beacon21->Stop();
@@ -168,7 +168,7 @@ TEST(dsb_protocol, ServiceTracker)
         });
     reactor.AddTimer(
         testStopTime, 1,
-        [&] (dsb::comm::Reactor&, int) { reactor.Stop(); });
+        [&] (dsb::net::Reactor&, int) { reactor.Stop(); });
 
     bool service11DiscoveredOnTime = false;
     bool service12DiscoveredOnTime = false;

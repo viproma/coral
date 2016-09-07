@@ -3,8 +3,8 @@
 \brief  Helper functions for creating, sending, receiving and interpreting
         ZMQ messages.
 */
-#ifndef DSB_COMM_MESSAGING_HPP
-#define DSB_COMM_MESSAGING_HPP
+#ifndef DSB_NET_MESSAGING_HPP
+#define DSB_NET_MESSAGING_HPP
 
 #include <chrono>
 #include <cstring>
@@ -17,7 +17,7 @@
 
 namespace dsb
 {
-namespace comm
+namespace net
 {
 
 

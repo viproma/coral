@@ -71,7 +71,7 @@ class SlaveProviderClient::Private
 {
 public:
     Private(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         const dsb::net::InetEndpoint& endpoint)
         : m_address(endpoint.Address().ToString())
         , m_client{reactor, PROTOCOL_IDENTIFIER, endpoint.ToEndpoint("tcp")}
@@ -219,7 +219,7 @@ private:
 
 
 SlaveProviderClient::SlaveProviderClient(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     const dsb::net::InetEndpoint& endpoint)
     : m_private(std::make_unique<Private>(reactor, endpoint))
 {

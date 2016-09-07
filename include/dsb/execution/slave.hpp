@@ -18,7 +18,7 @@ namespace dsb
 
 // Forward declarations to avoid dependencies on internal classes.
 namespace bus { class SlaveAgent; }
-namespace comm { class Reactor; }
+namespace net { class Reactor; }
 
 namespace execution
 {
@@ -158,7 +158,7 @@ public:
 
 private:
     std::shared_ptr<ISlaveInstance> m_slaveInstance;
-    std::unique_ptr<dsb::comm::Reactor> m_reactor;
+    std::unique_ptr<dsb::net::Reactor> m_reactor;
     std::unique_ptr<dsb::bus::SlaveAgent> m_slaveAgent;
 };
 

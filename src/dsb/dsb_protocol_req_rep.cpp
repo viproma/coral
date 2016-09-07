@@ -1,8 +1,8 @@
 #include "dsb/protocol/req_rep.hpp"
 
-#include "dsb/comm/messaging.hpp"
-#include "dsb/comm/socket.hpp"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/messaging.hpp"
+#include "dsb/net/socket.hpp"
+#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/util.hpp"
 
@@ -28,7 +28,7 @@ namespace
 // =============================================================================
 
 RRClient::RRClient(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     const std::string& protocolIdentifier,
     const dsb::net::Endpoint& serverEndpoint)
     : m_reactor{reactor}
@@ -44,7 +44,7 @@ RRClient::RRClient(
     m_socket.Connect(m_serverEndpoint);
     m_reactor.AddSocket(
         m_socket.Socket(),
-        [this] (dsb::comm::Reactor&, zmq::socket_t&) {
+        [this] (dsb::net::Reactor&, zmq::socket_t&) {
             ReceiveReply();
         });
 }
@@ -124,7 +124,7 @@ void RRClient::SendRequest(
     msg.emplace_back(requestHeader, requestHeaderSize);
     if (requestBody != nullptr) msg.emplace_back(requestBody, requestBodySize);
 
-    if (!dsb::comm::WaitForOutgoing(m_socket.Socket(), timeout)) {
+    if (!dsb::net::WaitForOutgoing(m_socket.Socket(), timeout)) {
         throw std::runtime_error("Send timed out");
     }
     m_socket.Send(msg);
@@ -143,7 +143,7 @@ namespace
         RRClient::MaxProtocolReplyHandler& handler)
     {
         assert(handler);
-        const auto h = dsb::comm::ToString(header);
+        const auto h = dsb::net::ToString(header);
         if (h == META_REP_OK && body != nullptr && body->size() == 2) {
             dsb::util::LastCall(handler,
                 std::error_code(),
@@ -220,7 +220,7 @@ void RRClient::SetTimer(std::chrono::milliseconds timeout)
 {
     assert(m_timeoutTimerID == NO_TIMER);
     m_timeoutTimerID = m_reactor.AddTimer(timeout, 1,
-        [this] (dsb::comm::Reactor&, int) {
+        [this] (dsb::net::Reactor&, int) {
             m_timeoutTimerID = NO_TIMER;
             CompleteWithError(make_error_code(std::errc::timed_out));
         });
@@ -253,14 +253,14 @@ class RRServer::Private
 {
 public:
     Private(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         const dsb::net::Endpoint& endpoint)
         : m_reactor{reactor}
     {
         m_socket.Bind(endpoint);
         m_reactor.AddSocket(
             m_socket.Socket(),
-            [this] (dsb::comm::Reactor&, zmq::socket_t&) {
+            [this] (dsb::net::Reactor&, zmq::socket_t&) {
                 HandleRequest();
             });
     }
@@ -409,8 +409,8 @@ private:
         return true;
     }
 
-    dsb::comm::Reactor& m_reactor;
-    dsb::comm::RepSocket m_socket;
+    dsb::net::Reactor& m_reactor;
+    dsb::net::RepSocket m_socket;
     std::unordered_map<
             std::string,
             std::map<std::uint16_t, std::shared_ptr<RRServerProtocolHandler>>>
@@ -422,7 +422,7 @@ private:
 
 
 RRServer::RRServer(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     const dsb::net::Endpoint& endpoint)
     : m_private{std::make_unique<Private>(reactor, endpoint)}
 {

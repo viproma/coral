@@ -8,7 +8,7 @@
 
 #include "dsb/async.hpp"
 #include "dsb/bus/execution_manager.hpp"
-#include "dsb/comm/reactor.hpp"
+#include "dsb/net/reactor.hpp"
 #include "dsb/log.hpp"
 
 
@@ -56,7 +56,7 @@ public:
     {
         m_thread.Execute<void>(
             [&] (
-                dsb::comm::Reactor& reactor,
+                dsb::net::Reactor& reactor,
                 ExecMgr& execMgr,
                 std::promise<void> status)
             {
@@ -84,7 +84,7 @@ public:
     {
         m_thread.Execute<void>(
             [&slavesToAdd, timeout] (
-                dsb::comm::Reactor&,
+                dsb::net::Reactor&,
                 ExecMgr& execMgr,
                 std::promise<void> promise)
             {
@@ -127,7 +127,7 @@ public:
     {
         m_thread.Execute<void>(
             [&slaveConfigs, timeout] (
-                dsb::comm::Reactor&,
+                dsb::net::Reactor&,
                 ExecMgr& execMgr,
                 std::promise<void> promise)
             {
@@ -174,7 +174,7 @@ public:
     {
         return m_thread.Execute<StepResult>(
             [=] (
-                dsb::comm::Reactor&,
+                dsb::net::Reactor&,
                 ExecMgr& execMgr,
                 std::promise<StepResult> promise)
             {
@@ -228,7 +228,7 @@ public:
     {
         m_thread.Execute<void>(
             [timeout] (
-                dsb::comm::Reactor&,
+                dsb::net::Reactor&,
                 ExecMgr& execMgr,
                 std::promise<void> promise)
             {
@@ -249,7 +249,7 @@ public:
     void Terminate()
     {
         m_thread.Execute<void>(
-            [] (dsb::comm::Reactor&, ExecMgr& execMgr, std::promise<void> promise)
+            [] (dsb::net::Reactor&, ExecMgr& execMgr, std::promise<void> promise)
             {
                 try {
                     execMgr->Terminate();

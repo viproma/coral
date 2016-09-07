@@ -9,7 +9,7 @@
 #include <system_error>
 
 #include "dsb/config.h"
-#include "dsb/comm/reactor.hpp"
+#include "dsb/net/reactor.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
 #include "dsb/protocol/req_rep.hpp"
@@ -38,7 +38,7 @@ public:
         The port on which the slave provider is accepting connections.
     */
     SlaveProviderClient(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         const dsb::net::InetEndpoint& endpoint);
 
     /// Destructor

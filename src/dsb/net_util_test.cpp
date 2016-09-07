@@ -3,12 +3,12 @@
 #include <typeinfo> // std::bad_cast
 
 #include "gtest/gtest.h"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/util.hpp"
 
-using namespace dsb::comm;
+using namespace dsb::net;
 
 
-TEST(dsb_comm, GlobalContext)
+TEST(dsb_net, GlobalContext)
 {
     auto& c1 = GlobalContext();
     auto& c2 = GlobalContext();
@@ -16,7 +16,7 @@ TEST(dsb_comm, GlobalContext)
 }
 
 
-TEST(dsb_comm, BindToEphemeralPort)
+TEST(dsb_net, BindToEphemeralPort)
 {
     zmq::context_t ctx;
     auto srv = zmq::socket_t(ctx, ZMQ_REP);
@@ -39,17 +39,17 @@ TEST(dsb_comm, BindToEphemeralPort)
 }
 
 
-TEST(dsb_comm, LastEndpoint)
+TEST(dsb_net, LastEndpoint)
 {
     zmq::context_t ctx;
     zmq::socket_t sck(ctx, ZMQ_REP);
     EXPECT_TRUE(LastEndpoint(sck).empty());
-    sck.bind("inproc://dsb_comm_LastEndpoint_test");
-    EXPECT_EQ("inproc://dsb_comm_LastEndpoint_test", LastEndpoint(sck));
+    sck.bind("inproc://dsb_net_LastEndpoint_test");
+    EXPECT_EQ("inproc://dsb_net_LastEndpoint_test", LastEndpoint(sck));
 }
 
 
-TEST(dsb_comm, EndpointPort)
+TEST(dsb_net, EndpointPort)
 {
     EXPECT_EQ(1234, EndpointPort("tcp://some.addr:1234"));
     EXPECT_THROW(EndpointPort("Hello World!"), std::invalid_argument);

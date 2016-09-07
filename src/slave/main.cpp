@@ -11,7 +11,7 @@
 #include "boost/filesystem.hpp"
 #include "zmq.hpp"
 
-#include "dsb/comm/util.hpp"
+#include "dsb/net/util.hpp"
 #include "dsb/execution/logging_slave.hpp"
 #include "dsb/execution/slave.hpp"
 #include "dsb/fmi/fmu.hpp"

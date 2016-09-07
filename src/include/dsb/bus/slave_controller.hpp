@@ -14,7 +14,7 @@
 #include "dsb/config.h"
 #include "dsb/bus/slave_control_messenger.hpp"
 #include "dsb/bus/slave_setup.hpp"
-#include "dsb/comm/reactor.hpp"
+#include "dsb/net/reactor.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
 
@@ -77,7 +77,7 @@ public:
         or if `maxConnectionAttempts < 1`.
     */
     SlaveController(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         const dsb::net::SlaveLocator& slaveLocator,
         dsb::model::SlaveID slaveID,
         const std::string& slaveName,

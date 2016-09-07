@@ -59,8 +59,8 @@ namespace
 
 
 SlaveControlMessengerV0::SlaveControlMessengerV0(
-    dsb::comm::Reactor& reactor,
-    dsb::comm::ReqSocket socket,
+    dsb::net::Reactor& reactor,
+    dsb::net::ReqSocket socket,
     dsb::model::SlaveID slaveID,
     const std::string& slaveName,
     const SlaveSetup& setup,
@@ -76,7 +76,7 @@ SlaveControlMessengerV0::SlaveControlMessengerV0(
 {
     DSB_LOG_TRACE(boost::format("SlaveControlMessengerV0 %x: connected to \"%s\" (ID = %d)")
         % this % slaveName % slaveID);
-    reactor.AddSocket(m_socket.Socket(), [=](dsb::comm::Reactor& r, zmq::socket_t& s) {
+    reactor.AddSocket(m_socket.Socket(), [=](dsb::net::Reactor& r, zmq::socket_t& s) {
         assert (&s == &m_socket.Socket());
         OnReply();
     });
@@ -306,7 +306,7 @@ void SlaveControlMessengerV0::RegisterTimeout(std::chrono::milliseconds timeout)
 {
     assert (m_replyTimeoutTimerId == NO_TIMER_ACTIVE);
     m_replyTimeoutTimerId = m_reactor.AddTimer(timeout, 1,
-        [=](dsb::comm::Reactor& r, int i) {
+        [=](dsb::net::Reactor& r, int i) {
             assert (i == m_replyTimeoutTimerId);
             OnReplyTimeout();
         });

@@ -7,8 +7,8 @@
 #include "zmq.hpp"
 
 #include "dsb/bus/slave_provider_comm.hpp"
-#include "dsb/comm/reactor.hpp"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protocol/discovery.hpp"
 #include "dsb/util.hpp"
@@ -72,7 +72,7 @@ namespace
     {
         // Note that the order of declarations matters here, because the
         // other members depend on the reactor being kept alive.
-        std::shared_ptr<dsb::comm::Reactor> reactor;
+        std::shared_ptr<dsb::net::Reactor> reactor;
         std::shared_ptr<zmq::socket_t> killSocket;
         std::shared_ptr<dsb::protocol::RRServer> server;
         std::shared_ptr<dsb::protocol::ServiceBeacon> beacon;
@@ -109,18 +109,18 @@ SlaveProvider::SlaveProvider(
     // We do as much as setup as possible in the "foreground" thread,
     // so that exceptions are most likely to be thrown here.
     BackgroundThreadData bg;
-    bg.reactor = std::make_shared<dsb::comm::Reactor>();
+    bg.reactor = std::make_shared<dsb::net::Reactor>();
 
     const auto killEndpoint = "inproc://" + dsb::util::RandomUUID();
     m_killSocket = std::make_unique<zmq::socket_t>(
-        dsb::comm::GlobalContext(), ZMQ_PAIR);
+        dsb::net::GlobalContext(), ZMQ_PAIR);
     m_killSocket->bind(killEndpoint);
     bg.killSocket = std::make_shared<zmq::socket_t>(
-        dsb::comm::GlobalContext(), ZMQ_PAIR);
+        dsb::net::GlobalContext(), ZMQ_PAIR);
     bg.killSocket->connect(killEndpoint);
     bg.reactor->AddSocket(
         *bg.killSocket,
-        [] (dsb::comm::Reactor& r, zmq::socket_t&) { r.Stop(); });
+        [] (dsb::net::Reactor& r, zmq::socket_t&) { r.Stop(); });
 
     bg.server = std::make_shared<dsb::protocol::RRServer>(
         *bg.reactor,
@@ -131,7 +131,7 @@ SlaveProvider::SlaveProvider(
 
     char beaconPayload[2];
     dsb::util::EncodeUint16(
-        dsb::comm::EndpointPort(bg.server->BoundEndpoint().URL()),
+        dsb::net::EndpointPort(bg.server->BoundEndpoint().URL()),
         beaconPayload);
     bg.beacon = std::make_shared<dsb::protocol::ServiceBeacon>(
         0,

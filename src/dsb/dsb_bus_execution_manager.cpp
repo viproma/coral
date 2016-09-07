@@ -10,7 +10,7 @@ namespace bus
 
 
 ExecutionManager::ExecutionManager(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     const std::string& executionName,
     dsb::model::TimePoint startTime,
     dsb::model::TimePoint maxTime)

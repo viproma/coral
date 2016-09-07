@@ -13,10 +13,10 @@
 
 #include "boost/numeric/conversion/cast.hpp"
 
-#include "dsb/comm/messaging.hpp"
-#include "dsb/comm/ip.hpp"
-#include "dsb/comm/udp.hpp"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/messaging.hpp"
+#include "dsb/net/ip.hpp"
+#include "dsb/net/udp.hpp"
+#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
 #include "dsb/util.hpp"
@@ -36,7 +36,7 @@ namespace
     void BeaconThread(
         std::chrono::milliseconds period,
         const std::vector<char>& message,
-        std::shared_ptr<dsb::comm::UDPBroadcastSocket> udpSocket,
+        std::shared_ptr<dsb::net::udp::BroadcastSocket> udpSocket,
         std::shared_ptr<zmq::socket_t> inprocSocket)
     {
         // Messaging loop
@@ -52,7 +52,7 @@ namespace
                 zmq::message_t msg;
                 inprocSocket->recv(&msg);
                 assert(!msg.more());
-                if (dsb::comm::ToString(msg) == "STOP") break;
+                if (dsb::net::ToString(msg) == "STOP") break;
             }
             if (std::chrono::steady_clock::now() >= nextBeacon) {
                 try {
@@ -100,7 +100,7 @@ ServiceBeacon::ServiceBeacon(
     std::chrono::milliseconds period,
     const std::string& networkInterface,
     std::uint16_t port)
-    : m_socket(dsb::comm::GlobalContext(), ZMQ_PAIR)
+    : m_socket(dsb::net::GlobalContext(), ZMQ_PAIR)
 {
     DSB_INPUT_CHECK(serviceType.size() < 256u);
     DSB_INPUT_CHECK(serviceIdentifier.size() < 256u);
@@ -112,14 +112,14 @@ ServiceBeacon::ServiceBeacon(
     const auto endpoint = "inproc://" + dsb::util::RandomUUID();
     m_socket.bind(endpoint);
     auto otherSocket = std::make_shared<zmq::socket_t>(
-        dsb::comm::GlobalContext(), ZMQ_PAIR);
+        dsb::net::GlobalContext(), ZMQ_PAIR);
     otherSocket->connect(endpoint);
 
     // Set up the UDP socket
-    auto udpSocket = std::make_shared<dsb::comm::UDPBroadcastSocket>(
+    auto udpSocket = std::make_shared<dsb::net::udp::BroadcastSocket>(
         networkInterface,
         port,
-        dsb::comm::UDPBroadcastSocket::onlySend);
+        dsb::net::udp::BroadcastSocket::onlySend);
 
     // Create the message to broadcast
     const auto messageSize =
@@ -178,7 +178,7 @@ class ServiceListener::Impl
 {
 public:
     Impl(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         std::uint64_t domainID,
         const std::string& networkInterface,
         std::uint16_t port,
@@ -192,15 +192,15 @@ public:
 private:
     void IncomingBeacon();
 
-    dsb::comm::Reactor& m_reactor;
+    dsb::net::Reactor& m_reactor;
     std::uint64_t m_domainID;
     NotificationHandler m_onNotification;
-    dsb::comm::UDPBroadcastSocket m_udpSocket;
+    dsb::net::udp::BroadcastSocket m_udpSocket;
 };
 
 
 ServiceListener::Impl::Impl(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     std::uint64_t domainID,
     const std::string& networkInterface,
     std::uint16_t port,
@@ -213,7 +213,7 @@ ServiceListener::Impl::Impl(
     DSB_INPUT_CHECK(onNotification != nullptr);
     reactor.AddNativeSocket(
         m_udpSocket.NativeHandle(),
-        [this] (dsb::comm::Reactor&, dsb::comm::Reactor::NativeSocket) {
+        [this] (dsb::net::Reactor&, dsb::net::Reactor::NativeSocket) {
             IncomingBeacon();
         });
 }
@@ -266,7 +266,7 @@ void ServiceListener::Impl::IncomingBeacon()
         return;
     }
     m_onNotification(
-        dsb::comm::IPAddressToString(peerAddress),
+        dsb::net::IPAddressToString(peerAddress),
         std::string(buffer + minMessageSize, serviceTypeSize),
         std::string(buffer + minMessageSize+serviceTypeSize, serviceIdentifierSize),
         payloadSize ? buffer + minMessageSize+serviceTypeSize+serviceIdentifierSize
@@ -276,7 +276,7 @@ void ServiceListener::Impl::IncomingBeacon()
 
 
 ServiceListener::ServiceListener(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     std::uint64_t domainID,
     const std::string& networkInterface,
     std::uint16_t port,
@@ -319,7 +319,7 @@ class ServiceTracker::Impl
 {
 public:
     Impl(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         std::uint64_t domainID,
         const std::string& networkInterface,
         std::uint16_t port)
@@ -368,7 +368,7 @@ public:
             m_timeoutID = m_reactor.AddTimer(
                 m_smallestTimeout,
                 -1,
-                [this] (dsb::comm::Reactor&, int) { CheckTimeouts(); });
+                [this] (dsb::net::Reactor&, int) { CheckTimeouts(); });
         }
     }
 
@@ -465,7 +465,7 @@ private:
         std::vector<char> payload;
     };
 
-    dsb::comm::Reactor& m_reactor;
+    dsb::net::Reactor& m_reactor;
     ServiceListener m_listener;
     std::unordered_map<std::string, TrackedServiceType> m_trackedServiceTypes;
     std::unordered_map<
@@ -479,7 +479,7 @@ private:
 
 
 ServiceTracker::ServiceTracker(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     std::uint64_t domainID,
     const std::string& networkInterface,
     std::uint16_t port)

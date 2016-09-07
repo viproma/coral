@@ -17,8 +17,8 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/comm/reactor.hpp"
-#include "dsb/comm/socket.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/socket.hpp"
 #include "dsb/net.hpp"
 
 
@@ -49,7 +49,7 @@ public:
     which requests will be made.
     */
     RRClient(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         const std::string& protocolIdentifier,
         const dsb::net::Endpoint& serverEndpoint);
 
@@ -201,10 +201,10 @@ private:
 
     void CancelTimer();
 
-    dsb::comm::Reactor& m_reactor;
+    dsb::net::Reactor& m_reactor;
     std::string m_protocolIdentifier;
     dsb::net::Endpoint m_serverEndpoint;
-    dsb::comm::ReqSocket m_socket;
+    dsb::net::ReqSocket m_socket;
 
     int m_timeoutTimerID;
     std::uint16_t m_requestProtocolVersion;
@@ -322,7 +322,7 @@ public:
             requests.
     */
     RRServer(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         const dsb::net::Endpoint& endpoint);
 
     ~RRServer() DSB_NOEXCEPT;

@@ -3,8 +3,8 @@
 \brief  Socket types and fundamental communication patterns built on top
         of ZeroMQ sockets.
 */
-#ifndef DSB_COMM_SOCKET_HPP
-#define DSB_COMM_SOCKET_HPP
+#ifndef DSB_NET_SOCKET_HPP
+#define DSB_NET_SOCKET_HPP
 
 #include <chrono>
 #include <memory>
@@ -18,7 +18,7 @@
 
 namespace dsb
 {
-namespace comm
+namespace net
 {
 
 

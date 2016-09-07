@@ -1,19 +1,19 @@
 #define NOMINMAX
-#include "dsb/comm/socket.hpp"
+#include "dsb/net/socket.hpp"
 
 #include <cassert>
 #include <stdexcept>
 #include <utility>
 
 #include "dsb/config.h"
-#include "dsb/comm/messaging.hpp"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/messaging.hpp"
+#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 
 
 namespace dsb
 {
-namespace comm
+namespace net
 {
 
 
@@ -117,7 +117,7 @@ void ReqSocket::Send(std::vector<zmq::message_t>& msg)
     }
     DSB_INPUT_CHECK(!msg.empty());
     m_socket->send("", 0, ZMQ_SNDMORE);
-    dsb::comm::Send(*m_socket, msg);
+    dsb::net::Send(*m_socket, msg);
 }
 
 
@@ -127,7 +127,7 @@ void ReqSocket::Receive(std::vector<zmq::message_t>& msg)
         throw std::logic_error("Socket not bound/connected");
     }
     ConsumeDelimiterFrame(*m_socket);
-    dsb::comm::Receive(*m_socket, msg);
+    dsb::net::Receive(*m_socket, msg);
 }
 
 
@@ -245,7 +245,7 @@ void RepSocket::Receive(std::vector<zmq::message_t>& msg)
     }
     std::vector<zmq::message_t> clientEnvelope;
     RecvEnvelope(*m_socket, clientEnvelope);
-    dsb::comm::Receive(*m_socket, msg);
+    dsb::net::Receive(*m_socket, msg);
     m_clientEnvelope = std::move(clientEnvelope);
 }
 
@@ -257,8 +257,8 @@ void RepSocket::Send(std::vector<zmq::message_t>& msg)
     }
     DSB_PRECONDITION_CHECK(!m_clientEnvelope.empty());
     DSB_INPUT_CHECK(!msg.empty());
-    dsb::comm::Send(*m_socket, m_clientEnvelope, dsb::comm::SendFlag::more);
-    dsb::comm::Send(*m_socket, msg);
+    dsb::net::Send(*m_socket, m_clientEnvelope, dsb::net::SendFlag::more);
+    dsb::net::Send(*m_socket, msg);
     assert(m_clientEnvelope.empty());
 }
 

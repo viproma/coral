@@ -20,12 +20,12 @@ TEST(dsb_async, CommThread)
 
     // Immediate return, void value (also, do setup for following tests)
     auto immediateReturn = thread.Execute<void>(
-        [] (dsb::comm::Reactor& reactor, MyData& data, std::promise<void> promise)
+        [] (dsb::net::Reactor& reactor, MyData& data, std::promise<void> promise)
         {
             reactor.AddTimer(
                 std::chrono::milliseconds(100),
                 -1, // run indefinitely
-                [&] (dsb::comm::Reactor&, int) { ++data.eventCount; });
+                [&] (dsb::net::Reactor&, int) { ++data.eventCount; });
             promise.set_value();
         });
     EXPECT_NO_THROW(immediateReturn.get());
@@ -33,7 +33,7 @@ TEST(dsb_async, CommThread)
 
     // Delayed return, int value
     auto delayedReturn = thread.Execute<int>(
-        [] (dsb::comm::Reactor& reactor, MyData& data, std::promise<int> promise)
+        [] (dsb::net::Reactor& reactor, MyData& data, std::promise<int> promise)
         {
             // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
@@ -43,7 +43,7 @@ TEST(dsb_async, CommThread)
                 std::chrono::milliseconds(10),
                 -1,
                 [&data, promisePtr]
-                    (dsb::comm::Reactor& reactor, int self) mutable
+                    (dsb::net::Reactor& reactor, int self) mutable
                 {
                     if (data.eventCount > 5) {
                         reactor.RemoveTimer(self);
@@ -56,7 +56,7 @@ TEST(dsb_async, CommThread)
 
     // Delayed throw
     auto delayedThrow = thread.Execute<int>(
-        [] (dsb::comm::Reactor& reactor, MyData& data, std::promise<int> promise)
+        [] (dsb::net::Reactor& reactor, MyData& data, std::promise<int> promise)
         {
             // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
@@ -66,7 +66,7 @@ TEST(dsb_async, CommThread)
                 std::chrono::milliseconds(10),
                 -1,
                 [&data, promisePtr]
-                    (dsb::comm::Reactor& reactor, int self) mutable
+                    (dsb::net::Reactor& reactor, int self) mutable
                 {
                     if (data.eventCount > 10) {
                         reactor.RemoveTimer(self);
@@ -80,7 +80,7 @@ TEST(dsb_async, CommThread)
 
     // Immediate throw
     auto immediateThrow = thread.Execute<int>(
-        [] (dsb::comm::Reactor&, MyData&, std::promise<int> promise)
+        [] (dsb::net::Reactor&, MyData&, std::promise<int> promise)
         {
             promise.set_exception(
                 std::make_exception_ptr(std::out_of_range{""}));
@@ -96,7 +96,7 @@ TEST(dsb_async, CommThread)
     thread = dsb::async::CommThread<MyData>();
     ASSERT_TRUE(thread.Active());
     auto brokenFuture = thread.Execute<void>(
-        [] (dsb::comm::Reactor&, MyData&, std::promise<void>)
+        [] (dsb::net::Reactor&, MyData&, std::promise<void>)
         {
             throw std::underflow_error{""};
         });
@@ -111,7 +111,7 @@ TEST(dsb_async, CommThread)
 #endif
     ASSERT_TRUE(thread.Active());
     try {
-        thread.Execute<void>([] (dsb::comm::Reactor&, MyData&, std::promise<void>) { });
+        thread.Execute<void>([] (dsb::net::Reactor&, MyData&, std::promise<void>) { });
         ADD_FAILURE();
     } catch (const dsb::async::CommThreadDead& e) {
         EXPECT_THROW(
@@ -125,13 +125,13 @@ TEST(dsb_async, CommThread)
     // Rvalue construction + unexpected delayed thread death during execution
     thread = dsb::async::CommThread<MyData>();
     EXPECT_NO_THROW(thread.Execute<void>(
-        [] (dsb::comm::Reactor& reactor, MyData&, std::promise<void> promise)
+        [] (dsb::net::Reactor& reactor, MyData&, std::promise<void> promise)
         {
             // Throw an exception after 100 ms
             reactor.AddTimer(
                 std::chrono::milliseconds(100),
                 1,
-                [] (dsb::comm::Reactor&, int) { throw std::overflow_error{""}; });
+                [] (dsb::net::Reactor&, int) { throw std::overflow_error{""}; });
             promise.set_value();
         }).get());
     ASSERT_TRUE(thread.Active());
@@ -140,7 +140,7 @@ TEST(dsb_async, CommThread)
     ASSERT_TRUE(thread2.Active());
     std::this_thread::sleep_for(std::chrono::milliseconds(200)); // time to die
     try {
-        thread2.Execute<void>([] (dsb::comm::Reactor&, MyData&, std::promise<void>) { });
+        thread2.Execute<void>([] (dsb::net::Reactor&, MyData&, std::promise<void>) { });
         ADD_FAILURE();
     } catch (const dsb::async::CommThreadDead& e) {
         EXPECT_THROW(
@@ -153,7 +153,7 @@ TEST(dsb_async, CommThread)
 
     // Attempts to call functions on an inactive thread object
     EXPECT_THROW(
-        thread2.Execute<void>([] (dsb::comm::Reactor&, MyData&, std::promise<void>) { }),
+        thread2.Execute<void>([] (dsb::net::Reactor&, MyData&, std::promise<void>) { }),
         std::logic_error);
     EXPECT_THROW(thread2.Shutdown(), std::logic_error);
 }
@@ -169,12 +169,12 @@ TEST(dsb_async, CommThread_void)
 
     // Immediate return, void value (also, do setup for following tests)
     auto immediateReturn = thread.Execute<void>(
-        [&eventCount] (dsb::comm::Reactor& reactor, std::promise<void> promise)
+        [&eventCount] (dsb::net::Reactor& reactor, std::promise<void> promise)
         {
             reactor.AddTimer(
                 std::chrono::milliseconds(100),
                 -1, // run indefinitely
-                [&] (dsb::comm::Reactor&, int) { ++eventCount; });
+                [&] (dsb::net::Reactor&, int) { ++eventCount; });
             promise.set_value();
         });
     EXPECT_NO_THROW(immediateReturn.get());
@@ -182,7 +182,7 @@ TEST(dsb_async, CommThread_void)
 
     // Delayed return, int value
     auto delayedReturn = thread.Execute<int>(
-        [&eventCount] (dsb::comm::Reactor& reactor, std::promise<int> promise)
+        [&eventCount] (dsb::net::Reactor& reactor, std::promise<int> promise)
         {
             // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
@@ -192,7 +192,7 @@ TEST(dsb_async, CommThread_void)
                 std::chrono::milliseconds(10),
                 -1,
                 [&eventCount, promisePtr]
-                    (dsb::comm::Reactor& reactor, int self) mutable
+                    (dsb::net::Reactor& reactor, int self) mutable
                 {
                     if (eventCount > 5) {
                         reactor.RemoveTimer(self);
@@ -205,7 +205,7 @@ TEST(dsb_async, CommThread_void)
 
     // Delayed throw
     auto delayedThrow = thread.Execute<int>(
-        [&eventCount] (dsb::comm::Reactor& reactor, std::promise<int> promise)
+        [&eventCount] (dsb::net::Reactor& reactor, std::promise<int> promise)
         {
             // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
@@ -215,7 +215,7 @@ TEST(dsb_async, CommThread_void)
                 std::chrono::milliseconds(10),
                 -1,
                 [&eventCount, promisePtr]
-                    (dsb::comm::Reactor& reactor, int self) mutable
+                    (dsb::net::Reactor& reactor, int self) mutable
                 {
                     if (eventCount > 10) {
                         reactor.RemoveTimer(self);
@@ -229,7 +229,7 @@ TEST(dsb_async, CommThread_void)
 
     // Immediate throw
     auto immediateThrow = thread.Execute<int>(
-        [] (dsb::comm::Reactor&, std::promise<int> promise)
+        [] (dsb::net::Reactor&, std::promise<int> promise)
         {
             promise.set_exception(
                 std::make_exception_ptr(std::out_of_range{""}));
@@ -245,7 +245,7 @@ TEST(dsb_async, CommThread_void)
     thread = dsb::async::CommThread<void>();
     ASSERT_TRUE(thread.Active());
     auto brokenFuture = thread.Execute<void>(
-        [] (dsb::comm::Reactor&, std::promise<void>)
+        [] (dsb::net::Reactor&, std::promise<void>)
         {
             throw std::underflow_error{""};
         });
@@ -260,7 +260,7 @@ TEST(dsb_async, CommThread_void)
 #endif
     ASSERT_TRUE(thread.Active());
     try {
-        thread.Execute<void>([] (dsb::comm::Reactor&, std::promise<void>) { });
+        thread.Execute<void>([] (dsb::net::Reactor&, std::promise<void>) { });
         ADD_FAILURE();
     } catch (const dsb::async::CommThreadDead& e) {
         EXPECT_THROW(
@@ -274,13 +274,13 @@ TEST(dsb_async, CommThread_void)
     // Rvalue construction + unexpected delayed thread death during execution
     thread = dsb::async::CommThread<void>();
     EXPECT_NO_THROW(thread.Execute<void>(
-        [] (dsb::comm::Reactor& reactor, std::promise<void> promise)
+        [] (dsb::net::Reactor& reactor, std::promise<void> promise)
         {
             // Throw an exception after 100 ms
             reactor.AddTimer(
                 std::chrono::milliseconds(100),
                 1,
-                [] (dsb::comm::Reactor&, int) { throw std::overflow_error{""}; });
+                [] (dsb::net::Reactor&, int) { throw std::overflow_error{""}; });
             promise.set_value();
         }).get());
     ASSERT_TRUE(thread.Active());
@@ -289,7 +289,7 @@ TEST(dsb_async, CommThread_void)
     ASSERT_TRUE(thread2.Active());
     std::this_thread::sleep_for(std::chrono::milliseconds(200)); // time to die
     try {
-        thread2.Execute<void>([] (dsb::comm::Reactor&, std::promise<void>) { });
+        thread2.Execute<void>([] (dsb::net::Reactor&, std::promise<void>) { });
         ADD_FAILURE();
     } catch (const dsb::async::CommThreadDead& e) {
         EXPECT_THROW(
@@ -302,7 +302,7 @@ TEST(dsb_async, CommThread_void)
 
     // Attempts to call functions on an inactive thread object
     EXPECT_THROW(
-        thread2.Execute<void>([] (dsb::comm::Reactor&, std::promise<void>) { }),
+        thread2.Execute<void>([] (dsb::net::Reactor&, std::promise<void>) { }),
         std::logic_error);
     EXPECT_THROW(thread2.Shutdown(), std::logic_error);
 }
@@ -323,7 +323,7 @@ TEST(dsb_async, CommThread_BadData)
     ASSERT_TRUE(thread.Active());
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // time to die
     try {
-        thread.Execute<void>([] (dsb::comm::Reactor&, BadData&, std::promise<void>) { });
+        thread.Execute<void>([] (dsb::net::Reactor&, BadData&, std::promise<void>) { });
         ADD_FAILURE();
     } catch (const dsb::async::CommThreadDead& e) {
         EXPECT_THROW(

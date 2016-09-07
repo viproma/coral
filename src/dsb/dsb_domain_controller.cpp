@@ -7,9 +7,9 @@
 
 #include "dsb/async.hpp"
 #include "dsb/bus/slave_provider_comm.hpp"
-#include "dsb/comm/messaging.hpp"
-#include "dsb/comm/reactor.hpp"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/messaging.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
 #include "dsb/protocol/discovery.hpp"
@@ -40,7 +40,7 @@ namespace
     void SetupSlaveProviderTracking(
         dsb::protocol::ServiceTracker& tracker,
         SlaveProviderMap& slaveProviderMap,
-        dsb::comm::Reactor& reactor);
+        dsb::net::Reactor& reactor);
     void HandleGetSlaveTypes(
         std::chrono::milliseconds timeout,
         SlaveProviderMap& slaveProviders,
@@ -71,7 +71,7 @@ public:
         : m_thread{}
     {
         m_thread.Execute<void>([&]
-            (dsb::comm::Reactor& reactor, BgData& bgData, std::promise<void> status)
+            (dsb::net::Reactor& reactor, BgData& bgData, std::promise<void> status)
         {
             try {
                 bgData.serviceTracker =
@@ -102,7 +102,7 @@ public:
     {
         return m_thread.Execute<std::vector<SlaveType>>(
             [=] (
-                dsb::comm::Reactor&,
+                dsb::net::Reactor&,
                 BgData& bgData,
                 std::promise<std::vector<SlaveType>> result)
             {
@@ -123,7 +123,7 @@ public:
         // the present thread is blocked waiting for the operation to complete.
         return m_thread.Execute<dsb::net::SlaveLocator>(
             [&] (
-                dsb::comm::Reactor&,
+                dsb::net::Reactor&,
                 BgData& bgData,
                 std::promise<dsb::net::SlaveLocator> result)
             {
@@ -205,7 +205,7 @@ namespace // Internal functions
 void SetupSlaveProviderTracking(
     dsb::protocol::ServiceTracker& tracker,
     SlaveProviderMap& slaveProviderMap,
-    dsb::comm::Reactor& reactor)
+    dsb::net::Reactor& reactor)
 {
     const auto slaveProviderMapPtr = &slaveProviderMap;
     const auto reactorPtr = &reactor;

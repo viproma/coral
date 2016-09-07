@@ -19,7 +19,7 @@ namespace bus
 
 
 ExecutionManagerPrivate::ExecutionManagerPrivate(
-        dsb::comm::Reactor& reactor_,
+        dsb::net::Reactor& reactor_,
         const std::string& executionName,
         dsb::model::TimePoint startTime,
         dsb::model::TimePoint maxTime)

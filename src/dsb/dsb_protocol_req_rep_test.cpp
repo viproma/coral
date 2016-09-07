@@ -15,7 +15,7 @@ namespace
     class MyProtocolHandler : public dp::RRServerProtocolHandler
     {
     public:
-        MyProtocolHandler(dsb::comm::Reactor& reactor)
+        MyProtocolHandler(dsb::net::Reactor& reactor)
             : m_reactor{reactor}
         { }
 
@@ -50,13 +50,13 @@ namespace
         }
 
     private:
-        dsb::comm::Reactor& m_reactor;
+        dsb::net::Reactor& m_reactor;
         std::string m_replyBody;
     };
 
     void RunTestServer(const char* endpoint)
     {
-        dsb::comm::Reactor reactor;
+        dsb::net::Reactor reactor;
         dp::RRServer server{reactor, dsb::net::Endpoint{endpoint}};
         server.AddProtocolHandler(
             MY_PROTOCOL_ID,
@@ -74,7 +74,7 @@ TEST(dsb_protocol, ReqRep)
         serverThread.join();
     });
 
-    dsb::comm::Reactor reactor;
+    dsb::net::Reactor reactor;
     dp::RRClient client{
         reactor,
         MY_PROTOCOL_ID,
@@ -215,7 +215,7 @@ TEST(dsb_protocol, ReqRepMoreErrors)
     dp::RRClient::ReplyHandler onTest2Reply;
     dp::RRClient::ReplyHandler onTest3Reply;
 
-    dsb::comm::Reactor reactor;
+    dsb::net::Reactor reactor;
     auto client = std::make_unique<dp::RRClient>(
         reactor,
         "SOME_UNKNOWN_PROTOCOL",

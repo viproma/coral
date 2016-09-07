@@ -1,4 +1,4 @@
-#include "dsb/comm/udp.hpp"
+#include "dsb/net/udp.hpp"
 
 #ifdef _WIN32
 #   include <ws2tcpip.h>
@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-#include "dsb/comm/ip.hpp"
+#include "dsb/net/ip.hpp"
 #include "dsb/log.hpp"
 #include "dsb/util.hpp"
 
@@ -31,11 +31,13 @@ namespace
 
 namespace dsb
 {
-namespace comm
+namespace net
+{
+namespace udp
 {
 
 
-class UDPBroadcastSocket::Private
+class BroadcastSocket::Private
 {
 public:
     Private(
@@ -53,7 +55,7 @@ public:
             for (const auto& iface : GetNetworkInterfaces()) {
                 m_broadcastAddrs.push_back(iface.broadcastAddress);
                 DSB_LOG_TRACE(
-                    boost::format("UDPBroadcastSocket: Adding broadcast address %s.")
+                    boost::format("BroadcastSocket: Adding broadcast address %s.")
                         % IPAddressToString(iface.broadcastAddress));
             }
         } else {
@@ -85,7 +87,7 @@ public:
             listenAddress = iface->address;
             m_broadcastAddrs.push_back(iface->broadcastAddress);
             DSB_LOG_TRACE(
-                boost::format("UDPBroadcastSocket: Adding broadcast address %s.")
+                boost::format("BroadcastSocket: Adding broadcast address %s.")
                     % IPAddressToString(iface->broadcastAddress));
         }
 
@@ -137,7 +139,7 @@ public:
             if (0 != bind(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address))) {
                 throw std::runtime_error("Failed to bind UDP socket to local port");
             }
-            DSB_LOG_TRACE(boost::format("UDPBroadcastSocket: Bound to %s:%d")
+            DSB_LOG_TRACE(boost::format("BroadcastSocket: Bound to %s:%d")
                 % IPAddressToString(listenAddress)
                 % port);
         }
@@ -223,7 +225,7 @@ private:
 };
 
 
-UDPBroadcastSocket::UDPBroadcastSocket(
+BroadcastSocket::BroadcastSocket(
     const std::string& interfaceAddress,
     std::uint16_t port,
     int flags)
@@ -232,19 +234,19 @@ UDPBroadcastSocket::UDPBroadcastSocket(
 }
 
 
-UDPBroadcastSocket::~UDPBroadcastSocket() DSB_NOEXCEPT
+BroadcastSocket::~BroadcastSocket() DSB_NOEXCEPT
 {
 }
 
 
-UDPBroadcastSocket::UDPBroadcastSocket(UDPBroadcastSocket&& other)
+BroadcastSocket::BroadcastSocket(BroadcastSocket&& other)
     DSB_NOEXCEPT
     : m_private(std::move(other.m_private))
 {
 }
 
 
-UDPBroadcastSocket& UDPBroadcastSocket::operator=(UDPBroadcastSocket&& other)
+BroadcastSocket& BroadcastSocket::operator=(BroadcastSocket&& other)
     DSB_NOEXCEPT
 {
     m_private = std::move(other.m_private);
@@ -252,13 +254,13 @@ UDPBroadcastSocket& UDPBroadcastSocket::operator=(UDPBroadcastSocket&& other)
 }
 
 
-void UDPBroadcastSocket::Send(const char* buffer, std::size_t bufferSize)
+void BroadcastSocket::Send(const char* buffer, std::size_t bufferSize)
 {
     m_private->Send(buffer, bufferSize);
 }
 
 
-std::size_t UDPBroadcastSocket::Receive(
+std::size_t BroadcastSocket::Receive(
     char* buffer,
     std::size_t bufferSize,
     in_addr* sender)
@@ -267,11 +269,11 @@ std::size_t UDPBroadcastSocket::Receive(
 }
 
 
-UDPBroadcastSocket::NativeSocket UDPBroadcastSocket::NativeHandle()
+BroadcastSocket::NativeSocket BroadcastSocket::NativeHandle()
     const DSB_NOEXCEPT
 {
     return m_private->NativeHandle();
 }
 
 
-}} // namespace
+}}} // namespace

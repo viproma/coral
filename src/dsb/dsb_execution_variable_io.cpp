@@ -3,8 +3,8 @@
 #include <utility>
 #include "zmq.hpp"
 
-#include "dsb/comm/messaging.hpp"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/messaging.hpp"
+#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protocol/exe_data.hpp"
 
@@ -37,7 +37,7 @@ VariablePublisher::VariablePublisher()
 void VariablePublisher::Bind(const dsb::net::Endpoint& endpoint)
 {
     EnforceConnected(m_socket, false);
-    m_socket = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PUB);
+    m_socket = std::make_unique<zmq::socket_t>(dsb::net::GlobalContext(), ZMQ_PUB);
     try {
         m_socket->setsockopt(ZMQ_SNDHWM, 0);
         m_socket->setsockopt(ZMQ_RCVHWM, 0);
@@ -53,7 +53,7 @@ void VariablePublisher::Bind(const dsb::net::Endpoint& endpoint)
 dsb::net::Endpoint VariablePublisher::BoundEndpoint() const
 {
     EnforceConnected(m_socket, true);
-    return dsb::net::Endpoint{dsb::comm::LastEndpoint(*m_socket)};
+    return dsb::net::Endpoint{dsb::net::LastEndpoint(*m_socket)};
 }
 
 
@@ -71,7 +71,7 @@ void VariablePublisher::Publish(
     };
     std::vector<zmq::message_t> d;
     dsb::protocol::exe_data::CreateMessage(m, d);
-    dsb::comm::Send(*m_socket, d);
+    dsb::net::Send(*m_socket, d);
 }
 
 
@@ -89,7 +89,7 @@ void VariableSubscriber::Connect(
     const dsb::net::Endpoint* endpoints,
     std::size_t endpointsSize)
 {
-    m_socket = std::make_unique<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_SUB);
+    m_socket = std::make_unique<zmq::socket_t>(dsb::net::GlobalContext(), ZMQ_SUB);
     try {
         m_socket->setsockopt(ZMQ_SNDHWM, 0);
         m_socket->setsockopt(ZMQ_RCVHWM, 0);
@@ -141,13 +141,13 @@ void VariableSubscriber::Update(
         }
         // If necessary, wait for new data
         while (valQueue.empty()) {
-            if (!dsb::comm::WaitForIncoming(*m_socket, timeout)) {
+            if (!dsb::net::WaitForIncoming(*m_socket, timeout)) {
                 // TODO: Create dedicated exception type
                 throw std::runtime_error(
                     "Timeout waiting for variable " + std::to_string(var.ID())
                     + " from slave " + std::to_string(var.Slave()));
             }
-            dsb::comm::Receive(*m_socket, rawMsg);
+            dsb::net::Receive(*m_socket, rawMsg);
             const auto msg = dsb::protocol::exe_data::ParseMessage(rawMsg);
             // Queue the variable value iff it is from the current (or a newer)
             // timestep and it is one we're listening for. (Wrt. the latter,

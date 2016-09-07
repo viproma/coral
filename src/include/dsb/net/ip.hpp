@@ -2,8 +2,8 @@
 \file
 \brief  General IP networking functionality
 */
-#ifndef DSB_COMM_IP_HPP
-#define DSB_COMM_IP_HPP
+#ifndef DSB_NET_IP_HPP
+#define DSB_NET_IP_HPP
 
 #ifdef _WIN32
 #   include <winsock2.h>
@@ -17,7 +17,7 @@
 
 namespace dsb
 {
-namespace comm
+namespace net
 {
 
 

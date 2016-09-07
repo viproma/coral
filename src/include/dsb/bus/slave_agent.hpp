@@ -15,8 +15,8 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/comm/reactor.hpp"
-#include "dsb/comm/socket.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/socket.hpp"
 #include "dsb/execution/slave.hpp"
 #include "dsb/execution/variable_io.hpp"
 #include "dsb/model.hpp"
@@ -54,10 +54,10 @@ public:
         A time after which communication with the master is assumed to be
         broken.  When this happens, a dsb::execution::TimeoutException will
         be thrown from the "incoming message" handler, and will propagate
-        out through dsb::comm::Reactor::Run().
+        out through dsb::net::Reactor::Run().
     */
     SlaveAgent(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         dsb::execution::ISlaveInstance& slaveInstance,
         const dsb::net::Endpoint& controlEndpoint,
         const dsb::net::Endpoint& dataPubEndpoint,
@@ -172,7 +172,7 @@ private:
     dsb::execution::ISlaveInstance& m_slaveInstance;
     std::chrono::milliseconds m_commTimeout;
 
-    dsb::comm::RepSocket m_control;
+    dsb::net::RepSocket m_control;
     dsb::execution::VariablePublisher m_publisher;
     Connections m_connections;
     dsb::model::SlaveID m_id; // The slave's ID number in the current execution

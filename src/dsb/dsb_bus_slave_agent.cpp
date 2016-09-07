@@ -4,8 +4,8 @@
 #include <limits>
 #include <utility>
 
-#include "dsb/comm/messaging.hpp"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/messaging.hpp"
+#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
 #include "dsb/protobuf.hpp"
@@ -49,7 +49,7 @@ namespace bus
 
 
 SlaveAgent::SlaveAgent(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     dsb::execution::ISlaveInstance& slaveInstance,
     const dsb::net::Endpoint& controlEndpoint,
     const dsb::net::Endpoint& dataPubEndpoint,
@@ -68,10 +68,10 @@ SlaveAgent::SlaveAgent(
 
     reactor.AddSocket(
         m_control.Socket(),
-        [this](dsb::comm::Reactor& r, zmq::socket_t& s) {
+        [this](dsb::net::Reactor& r, zmq::socket_t& s) {
             assert(&s == &m_control.Socket());
             std::vector<zmq::message_t> msg;
-            if (!dsb::comm::Receive(m_control, msg, m_commTimeout)) {
+            if (!dsb::net::Receive(m_control, msg, m_commTimeout)) {
                 throw dsb::execution::TimeoutException(
                     std::chrono::duration_cast<std::chrono::seconds>(m_commTimeout));
             }

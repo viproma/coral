@@ -1,9 +1,9 @@
 /**
 \file
-\brief Contains the dsb::comm::Reactor class and related functionality.
+\brief Contains the dsb::net::Reactor class and related functionality.
 */
-#ifndef DSB_COMM_REACTOR_HPP
-#define DSB_COMM_REACTOR_HPP
+#ifndef DSB_NET_REACTOR_HPP
+#define DSB_NET_REACTOR_HPP
 
 #include <chrono>
 #include <functional>
@@ -17,7 +17,7 @@
 
 namespace dsb
 {
-namespace comm
+namespace net
 {
 
 

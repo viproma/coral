@@ -1,7 +1,7 @@
 #ifdef _WIN32
 #   define NOMINMAX
 #endif
-#include "dsb/comm/reactor.hpp"
+#include "dsb/net/reactor.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -10,7 +10,7 @@
 
 namespace dsb
 {
-namespace comm
+namespace net
 {
 
 

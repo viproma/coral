@@ -1,7 +1,7 @@
 #include "dsb/protocol/domain.hpp"
 
 #include <cstring>
-#include "dsb/comm/messaging.hpp"
+#include "dsb/net/messaging.hpp"
 #include "dsb/error.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/util.hpp"
@@ -41,7 +41,7 @@ void dp::CreateAddressedMessage(
     uint16_t protocolVersion)
 {
     message.clear();
-    message.push_back(dsb::comm::ToFrame(recipient));
+    message.push_back(dsb::net::ToFrame(recipient));
     message.push_back(zmq::message_t(0));
     message.push_back(CreateHeader(messageType, protocolVersion));
 }

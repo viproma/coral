@@ -1,22 +1,22 @@
 #include <thread>
 #include "gtest/gtest.h"
-#include "dsb/comm/reactor.hpp"
+#include "dsb/net/reactor.hpp"
 
-using namespace dsb::comm;
+using namespace dsb::net;
 
 
 
-TEST(dsb_comm, Reactor)
+TEST(dsb_net, Reactor)
 {
     zmq::context_t ctx;
     zmq::socket_t svr1(ctx, ZMQ_PULL);
-    svr1.bind("inproc://dsb_comm_Reactor_test_1");
+    svr1.bind("inproc://dsb_net_Reactor_test_1");
     zmq::socket_t svr2(ctx, ZMQ_PULL);
-    svr2.bind("inproc://dsb_comm_Reactor_test_2");
+    svr2.bind("inproc://dsb_net_Reactor_test_2");
 
     std::thread([&ctx]() {
         zmq::socket_t cli1(ctx, ZMQ_PUSH);
-        cli1.connect("inproc://dsb_comm_Reactor_test_1");
+        cli1.connect("inproc://dsb_net_Reactor_test_1");
         cli1.send("hello", 5);
         std::this_thread::sleep_for(std::chrono::milliseconds(13));
         cli1.send("world", 5);
@@ -24,7 +24,7 @@ TEST(dsb_comm, Reactor)
 
     std::thread([&ctx]() {
         zmq::socket_t cli2(ctx, ZMQ_PUSH);
-        cli2.connect("inproc://dsb_comm_Reactor_test_2");
+        cli2.connect("inproc://dsb_net_Reactor_test_2");
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         cli2.send("foo", 3);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -102,12 +102,12 @@ TEST(dsb_comm, Reactor)
 
 
 // Regression test for issue VIPROMA-39
-TEST(dsb_comm, Reactor_bug39)
+TEST(dsb_net, Reactor_bug39)
 {
     Reactor reactor;
     zmq::context_t ctx;
     auto sck1 = zmq::socket_t(ctx, ZMQ_PAIR);
-    sck1.bind("inproc://dsb_comm_Reactor_bug39");
+    sck1.bind("inproc://dsb_net_Reactor_bug39");
 
     int canary = 87634861;
     reactor.AddSocket(sck1, [canary](Reactor& r, zmq::socket_t& s) {
@@ -130,7 +130,7 @@ TEST(dsb_comm, Reactor_bug39)
 
     std::thread([&ctx]() {
         auto sck2 = zmq::socket_t(ctx, ZMQ_PAIR);
-        sck2.connect("inproc://dsb_comm_Reactor_bug39");
+        sck2.connect("inproc://dsb_net_Reactor_bug39");
         sck2.send("hello", 5);
     }).detach();
 

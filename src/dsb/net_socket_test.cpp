@@ -8,12 +8,12 @@
 
 #include "zmq.hpp"
 
-#include "dsb/comm/messaging.hpp"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/messaging.hpp"
+#include "dsb/net/util.hpp"
 
-#include "dsb/comm/socket.hpp"
+#include "dsb/net/socket.hpp"
 
-using namespace dsb::comm;
+using namespace dsb::net;
 
 
 namespace
@@ -49,7 +49,7 @@ namespace
     }
 }
 
-TEST(dsb_comm, ReqRepSocketDirect)
+TEST(dsb_net, ReqRepSocketDirect)
 {
     ReqSocket cli;
     RepSocket svr;
@@ -71,7 +71,7 @@ TEST(dsb_comm, ReqRepSocketDirect)
 }
 
 
-TEST(dsb_comm, ReqRepSocketDirectReverse)
+TEST(dsb_net, ReqRepSocketDirectReverse)
 {
     ReqSocket cli;
     RepSocket svr;
@@ -91,7 +91,7 @@ TEST(dsb_comm, ReqRepSocketDirectReverse)
 }
 
 
-TEST(dsb_comm, ReqRepSocketOutOfOrder)
+TEST(dsb_net, ReqRepSocketOutOfOrder)
 {
     ReqSocket cli;
     RepSocket svr;

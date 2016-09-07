@@ -2,8 +2,8 @@
 \file
 \brief Misc. utility functions for communication-related purposes.
 */
-#ifndef DSB_COMM_UTIL_HPP
-#define DSB_COMM_UTIL_HPP
+#ifndef DSB_NET_UTIL_HPP
+#define DSB_NET_UTIL_HPP
 
 #include <cstdint>
 #include <string>
@@ -12,7 +12,7 @@
 
 namespace dsb
 {
-namespace comm
+namespace net
 {
 
 

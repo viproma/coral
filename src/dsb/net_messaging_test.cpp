@@ -1,12 +1,12 @@
 #include <chrono>
 #include <cstring>
 #include "gtest/gtest.h"
-#include "dsb/comm/messaging.hpp"
+#include "dsb/net/messaging.hpp"
 
-using namespace dsb::comm;
+using namespace dsb::net;
 
 
-TEST(dsb_comm, WaitForIncomingOutgoing)
+TEST(dsb_net, WaitForIncomingOutgoing)
 {
     auto ctx = zmq::context_t();
     auto sender = zmq::socket_t(ctx, ZMQ_PUSH);
@@ -36,7 +36,7 @@ TEST(dsb_comm, WaitForIncomingOutgoing)
     EXPECT_EQ("foo", ToString(msg));
 }
 
-TEST(dsb_comm, SendReceiveMessage)
+TEST(dsb_net, SendReceiveMessage)
 {
     auto ctx = zmq::context_t();
     auto sender = zmq::socket_t(ctx, ZMQ_PUSH);
@@ -62,7 +62,7 @@ TEST(dsb_comm, SendReceiveMessage)
     EXPECT_EQ(321U, tgtMsg[2].size());
 }
 
-TEST(dsb_comm, SendReceiveAddressedMessage)
+TEST(dsb_net, SendReceiveAddressedMessage)
 {
     auto ctx = zmq::context_t();
     auto sender = zmq::socket_t(ctx, ZMQ_PUSH);
@@ -90,7 +90,7 @@ TEST(dsb_comm, SendReceiveAddressedMessage)
     EXPECT_EQ(321U, tgtMsg[3].size());
 }
 
-TEST(dsb_comm, PopMessageEnvelope)
+TEST(dsb_net, PopMessageEnvelope)
 {
     std::vector<zmq::message_t> msg;
     msg.push_back(zmq::message_t(123));
@@ -108,7 +108,7 @@ TEST(dsb_comm, PopMessageEnvelope)
     EXPECT_EQ( 97U, msg[0].size());
 }
 
-TEST(dsb_comm, PopMessageEnvelope_emptyEnvelope)
+TEST(dsb_net, PopMessageEnvelope_emptyEnvelope)
 {
     std::vector<zmq::message_t> msg;
     msg.push_back(zmq::message_t());
@@ -126,7 +126,7 @@ TEST(dsb_comm, PopMessageEnvelope_emptyEnvelope)
     EXPECT_EQ( 97U, msg[2].size());
 }
 
-TEST(dsb_comm, PopMessageEnvelope_noEnvelope)
+TEST(dsb_net, PopMessageEnvelope_noEnvelope)
 {
     std::vector<zmq::message_t> msg;
     msg.push_back(zmq::message_t(123));
@@ -143,7 +143,7 @@ TEST(dsb_comm, PopMessageEnvelope_noEnvelope)
     EXPECT_EQ( 97U, msg[2].size());
 }
 
-TEST(dsb_comm, PopMessageEnvelope_dropEnvelope)
+TEST(dsb_net, PopMessageEnvelope_dropEnvelope)
 {
     std::vector<zmq::message_t> msg;
     msg.push_back(zmq::message_t(123));
@@ -156,7 +156,7 @@ TEST(dsb_comm, PopMessageEnvelope_dropEnvelope)
     EXPECT_EQ(97U, msg[0].size());
 }
 
-TEST(dsb_comm, CopyMessage_emptySource)
+TEST(dsb_net, CopyMessage_emptySource)
 {
     auto msg1 = std::vector<zmq::message_t>();
     auto msg2 = std::vector<zmq::message_t>();
@@ -169,7 +169,7 @@ TEST(dsb_comm, CopyMessage_emptySource)
     EXPECT_TRUE(msg2.empty());
 }
 
-TEST(dsb_comm, CopyMessage_emptyTarget)
+TEST(dsb_net, CopyMessage_emptyTarget)
 {
     auto msg1 = std::vector<zmq::message_t>();
     msg1.push_back(ToFrame("foo"));
@@ -186,7 +186,7 @@ TEST(dsb_comm, CopyMessage_emptyTarget)
     EXPECT_EQ("bar", ToString(msg2[1]));
 }
 
-TEST(dsb_comm, CopyMessage_nonEmptyTarget)
+TEST(dsb_net, CopyMessage_nonEmptyTarget)
 {
     auto msg1 = std::vector<zmq::message_t>();
     msg1.push_back(ToFrame("foo"));
@@ -210,7 +210,7 @@ namespace
     template<typename T> const T& Const(T& ref) { return ref; }
 }
 
-TEST(dsb_comm, CopyMessage_const_emptySource)
+TEST(dsb_net, CopyMessage_const_emptySource)
 {
     auto msg1 = std::vector<zmq::message_t>();
     auto msg2 = std::vector<zmq::message_t>();
@@ -223,7 +223,7 @@ TEST(dsb_comm, CopyMessage_const_emptySource)
     EXPECT_TRUE(msg2.empty());
 }
 
-TEST(dsb_comm, CopyMessage_const_emptyTarget)
+TEST(dsb_net, CopyMessage_const_emptyTarget)
 {
     auto msg1 = std::vector<zmq::message_t>();
     msg1.push_back(ToFrame("foo"));
@@ -240,7 +240,7 @@ TEST(dsb_comm, CopyMessage_const_emptyTarget)
     EXPECT_EQ("bar", ToString(msg2[1]));
 }
 
-TEST(dsb_comm, CopyMessage_const_nonEmptyTarget)
+TEST(dsb_net, CopyMessage_const_nonEmptyTarget)
 {
     auto msg1 = std::vector<zmq::message_t>();
     msg1.push_back(ToFrame("foo"));
@@ -258,7 +258,7 @@ TEST(dsb_comm, CopyMessage_const_nonEmptyTarget)
     EXPECT_EQ("bar", ToString(msg2[1]));
 }
 
-TEST(dsb_comm, ToFrame_ToString)
+TEST(dsb_net, ToFrame_ToString)
 {
     auto msg = ToFrame("foo");
     EXPECT_EQ("foo", ToString(msg));

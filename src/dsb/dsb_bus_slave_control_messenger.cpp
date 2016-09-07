@@ -4,7 +4,7 @@
 #include <utility>
 
 #include "dsb/bus/slave_control_messenger_v0.hpp"
-#include "dsb/comm/socket.hpp"
+#include "dsb/net/socket.hpp"
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
 #include "dsb/protocol/execution.hpp"
@@ -25,7 +25,7 @@ class PendingSlaveControlConnectionPrivate
 {
 public:
     PendingSlaveControlConnectionPrivate(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         const dsb::net::SlaveLocator& slaveLocator,
         int maxAttempts,
         std::chrono::milliseconds timeout,
@@ -59,27 +59,27 @@ private:
     void OnComplete(const std::error_code& ec, SlaveControlConnection scc);
     void CancelTimeoutTimer() DSB_NOEXCEPT;
 
-    dsb::comm::Reactor& m_reactor;
+    dsb::net::Reactor& m_reactor;
     const dsb::net::SlaveLocator m_slaveLocator;
     const std::chrono::milliseconds m_timeout;
 
     ConnectToSlaveHandler m_onComplete;
     int m_timeoutTimer;
-    dsb::comm::ReqSocket m_socket;
+    dsb::net::ReqSocket m_socket;
 };
 
 
 struct SlaveControlConnectionPrivate
 {
-    dsb::comm::Reactor* reactor;
-    dsb::comm::ReqSocket socket;
+    dsb::net::Reactor* reactor;
+    dsb::net::ReqSocket socket;
     std::chrono::milliseconds timeout;
     int protocol;
 };
 
 
 PendingSlaveControlConnectionPrivate::PendingSlaveControlConnectionPrivate(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     const dsb::net::SlaveLocator& slaveLocator,
     int maxAttempts,
     std::chrono::milliseconds timeout,
@@ -107,7 +107,7 @@ void PendingSlaveControlConnectionPrivate::Destroy() DSB_NOEXCEPT
     if (Active()) {
         CancelTimeoutTimer();
         m_reactor.RemoveSocket(m_socket.Socket());
-        m_socket = dsb::comm::ReqSocket{};
+        m_socket = dsb::net::ReqSocket{};
         m_onComplete = nullptr;
     }
 }
@@ -127,7 +127,7 @@ void PendingSlaveControlConnectionPrivate::Close()
 void PendingSlaveControlConnectionPrivate::TryConnect(int remainingAttempts)
 {
     // Connect and send HELLO
-    m_socket = dsb::comm::ReqSocket{}; // reset to a fresh socket
+    m_socket = dsb::net::ReqSocket{}; // reset to a fresh socket
     m_socket.Connect(m_slaveLocator.ControlEndpoint());
     DSB_LOG_TRACE(boost::format("PendingSlaveControlConnectionPrivate  %x: "
             "Connecting to endpoint %s")
@@ -144,7 +144,7 @@ void PendingSlaveControlConnectionPrivate::TryConnect(int remainingAttempts)
     // Both of these cancel the other if triggered.
     assert(m_timeoutTimer == NO_TIMER);
     m_timeoutTimer = m_reactor.AddTimer(m_timeout, 1,
-        [remainingAttempts, this](dsb::comm::Reactor& r, int id)
+        [remainingAttempts, this](dsb::net::Reactor& r, int id)
         {
             m_timeoutTimer = NO_TIMER;
             r.RemoveSocket(m_socket.Socket());
@@ -156,7 +156,7 @@ void PendingSlaveControlConnectionPrivate::TryConnect(int remainingAttempts)
         });
     m_reactor.AddSocket(
         m_socket.Socket(),
-        [this] (dsb::comm::Reactor& r, zmq::socket_t& s) {
+        [this] (dsb::net::Reactor& r, zmq::socket_t& s) {
             CancelTimeoutTimer();
             r.RemoveSocket(s);
             HandleHelloReply();
@@ -303,7 +303,7 @@ SlaveControlConnectionPrivate& SlaveControlConnection::Private()
 // === Free functions ===
 
 PendingSlaveControlConnection ConnectToSlave(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     const dsb::net::SlaveLocator& slaveLocator,
     int maxAttempts,
     std::chrono::milliseconds timeout,

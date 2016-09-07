@@ -6,8 +6,8 @@
 #include "zmq.hpp"
 
 #include "dsb/bus/slave_agent.hpp"
-#include "dsb/comm/messaging.hpp"
-#include "dsb/comm/util.hpp"
+#include "dsb/net/messaging.hpp"
+#include "dsb/net/util.hpp"
 #include "dsb/util.hpp"
 
 
@@ -23,7 +23,7 @@ SlaveRunner::SlaveRunner(
     const dsb::net::Endpoint& dataPubEndpoint,
     std::chrono::seconds commTimeout)
     : m_slaveInstance(slaveInstance),
-      m_reactor(std::make_unique<dsb::comm::Reactor>()),
+      m_reactor(std::make_unique<dsb::net::Reactor>()),
       m_slaveAgent(std::make_unique<dsb::bus::SlaveAgent>(
         *m_reactor,
         *slaveInstance,

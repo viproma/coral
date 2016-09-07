@@ -2,8 +2,8 @@
 \file
 \brief  Communication over the UDP protocol.
 */
-#ifndef DSB_COMM_UDP_HPP
-#define DSB_COMM_UDP_HPP
+#ifndef DSB_NET_UDP_HPP
+#define DSB_NET_UDP_HPP
 
 #ifdef _WIN32
 #   include <winsock2.h>
@@ -20,12 +20,16 @@
 
 namespace dsb
 {
-namespace comm
+namespace net
+{
+
+/// Facilities for communication over the User Datagram Protocol (UDP)
+namespace udp
 {
 
 
 /// A class for sending and receiving UDP broadcast messages.
-class UDPBroadcastSocket
+class BroadcastSocket
 {
 public:
     /// The native socket handle type (`SOCKET` on Windows, `int` on *NIX).
@@ -59,21 +63,21 @@ public:
 
     \throws std::runtime_error on failure.
     */
-    UDPBroadcastSocket(
+    BroadcastSocket(
         const std::string& networkInterface,
         std::uint16_t port,
         int flags = 0);
 
     /// Destructor
-    ~UDPBroadcastSocket() DSB_NOEXCEPT;
+    ~BroadcastSocket() DSB_NOEXCEPT;
 
-    UDPBroadcastSocket(const UDPBroadcastSocket&) = delete;
-    UDPBroadcastSocket& operator=(const UDPBroadcastSocket&) = delete;
+    BroadcastSocket(const BroadcastSocket&) = delete;
+    BroadcastSocket& operator=(const BroadcastSocket&) = delete;
 
     /// Move constructor
-    UDPBroadcastSocket(UDPBroadcastSocket&&) DSB_NOEXCEPT;
+    BroadcastSocket(BroadcastSocket&&) DSB_NOEXCEPT;
     /// Move assignment operator
-    UDPBroadcastSocket& operator=(UDPBroadcastSocket&&) DSB_NOEXCEPT;
+    BroadcastSocket& operator=(BroadcastSocket&&) DSB_NOEXCEPT;
 
     /**
     \brief  Broadcasts a message.
@@ -116,5 +120,5 @@ private:
 };
 
 
-}} // namespace
+}}} // namespace
 #endif // header guard

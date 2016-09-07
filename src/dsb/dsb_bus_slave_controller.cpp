@@ -12,7 +12,7 @@ namespace bus
 
 
 SlaveController::SlaveController(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     const dsb::net::SlaveLocator& slaveLocator,
     dsb::model::SlaveID slaveID,
     const std::string& slaveName,

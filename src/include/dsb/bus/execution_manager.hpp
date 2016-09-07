@@ -20,7 +20,7 @@
 
 #include "dsb/bus/slave_controller.hpp"
 #include "dsb/bus/slave_setup.hpp"
-#include "dsb/comm/reactor.hpp"
+#include "dsb/net/reactor.hpp"
 
 
 namespace dsb
@@ -81,7 +81,7 @@ public:
     \brief  Constructs an object which manages an execution.
 
     \param [in] reactor
-        The dsb::comm::Reactor object used for communication.
+        The dsb::net::Reactor object used for communication.
     \param [in] executionName
         A (preferably unique) name for the execution.
     \param [in] startTime
@@ -90,7 +90,7 @@ public:
         The maximum simulation time.
     */
     ExecutionManager(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         const std::string& executionName,
         dsb::model::TimePoint startTime = 0.0,
         dsb::model::TimePoint maxTime = dsb::model::ETERNITY);

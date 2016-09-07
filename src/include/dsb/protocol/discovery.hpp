@@ -14,7 +14,7 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/comm/reactor.hpp"
+#include "dsb/net/reactor.hpp"
 
 
 namespace dsb
@@ -117,7 +117,7 @@ broadcast by one or more ServiceBeacon instances.  (It is recommended
 to read the documentation for that class too.)
 
 Unlike ServiceBeacon, this class does not create a background thread;
-rather it uses the reactor pattern (specifically, dsb::comm::Reactor) to
+rather it uses the reactor pattern (specifically, dsb::net::Reactor) to
 deal with incoming data in the current thread.
 */
 class ServiceListener
@@ -167,7 +167,7 @@ public:
     \throws std::runtime_error on network error.
     */
     ServiceListener(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         std::uint64_t domainID,
         const std::string& networkInterface,
         std::uint16_t port,
@@ -201,7 +201,7 @@ events that indicate whether a new service has appeared on the network,
 whether one has disappeared, or whether one has changed its data payload.
 
 Unlike ServiceBeacon, this class does not create a background thread;
-rather it uses the reactor pattern (specifically, dsb::comm::Reactor) to
+rather it uses the reactor pattern (specifically, dsb::net::Reactor) to
 deal with incoming data in the current thread.
 */
 class ServiceTracker
@@ -279,7 +279,7 @@ public:
     \throws std::runtime_error on network error.
     */
     ServiceTracker(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         std::uint64_t domainID,
         const std::string& networkInterface,
         std::uint16_t port);

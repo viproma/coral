@@ -1,4 +1,4 @@
-#include "dsb/comm/ip.hpp"
+#include "dsb/net/ip.hpp"
 
 #ifdef _WIN32
 #   define WIN32_LEAN_AND_MEAN
@@ -26,7 +26,7 @@
 
 namespace dsb
 {
-namespace comm
+namespace net
 {
 
 
