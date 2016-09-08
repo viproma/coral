@@ -1,6 +1,6 @@
 /**
 \file
-\brief  General IP networking functionality
+\brief  Internal module header for dsb::net::ip.
 */
 #ifndef DSB_NET_IP_HPP
 #define DSB_NET_IP_HPP
@@ -18,6 +18,8 @@
 namespace dsb
 {
 namespace net
+{
+namespace ip
 {
 
 
@@ -57,5 +59,5 @@ std::string IPAddressToString(in_addr address);
 in_addr StringToIPAddress(const std::string& address);
 
 
-}} // namespace
+}}} // namespace
 #endif // header guard

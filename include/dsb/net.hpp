@@ -20,7 +20,7 @@
 
 namespace dsb
 {
-/// Network addressing
+/// Networking, communication and general-purpose protocols
 namespace net
 {
 
@@ -54,200 +54,210 @@ private:
 
 
 /**
-\brief  An object which identifies an internet host or network interface as
-        either an IPv4 address or a textual name.
-
-If the address is specified as a string, it may either be an IPv4 address in
-dotted-decimal format, or, depending on the context in which the address is
-used, a host name or an (OS-defined) local network interface name.
-
-The special name "*" may be used in certain contexts to refer to *all*
-available network interfaces, and corresponds to the POSIX/WinSock constant
-INADDR_ANY and the IPv4 address 0.0.0.0.
+\brief  Functions and classes used for communication over the
+        Internet Protocol.
 */
-class InetAddress
+namespace ip
 {
-public:
-    /// Default constructor which sets the address to "*".
-    InetAddress() DSB_NOEXCEPT;
 
     /**
-    \brief  Constructor which takes an address in string form.
+    \brief  An object which identifies an internet host or network interface as
+            either an IPv4 address or a textual name.
 
-    The validity of the address is not checked, and no host name resolution
-    or interface-IP lookup is performed.
+    If the address is specified as a string, it may either be an IPv4 address in
+    dotted-decimal format, or, depending on the context in which the address is
+    used, a host name or an (OS-defined) local network interface name.
 
-    \throws std::invalid_argument   If `address` is empty.
+    The special name "*" may be used in certain contexts to refer to *all*
+    available network interfaces, and corresponds to the POSIX/WinSock constant
+    INADDR_ANY and the IPv4 address 0.0.0.0.
     */
-    /* implicit */ InetAddress(const std::string& address);
+    class Address
+    {
+    public:
+        /// Default constructor which sets the address to "*".
+        Address() DSB_NOEXCEPT;
 
-    // C-style version of the above.
-    /* implicit */ InetAddress(const char* address);
+        /**
+        \brief  Constructor which takes an address in string form.
 
-    /// Constructor which takes an IP address as an in_addr.
-    /* implicit */ InetAddress(in_addr address) DSB_NOEXCEPT;
+        The validity of the address is not checked, and no host name resolution
+        or interface-IP lookup is performed.
 
-    /// Returns whether this address is the special "any address" value.
-    bool IsAnyAddress() const DSB_NOEXCEPT;
+        \throws std::invalid_argument   If `address` is empty.
+        */
+        /* implicit */ Address(const std::string& address);
 
-    /// Returns a string representation of the address.
-    std::string ToString() const DSB_NOEXCEPT;
+        // C-style version of the above.
+        /* implicit */ Address(const char* address);
+
+        /// Constructor which takes an IP address as an in_addr.
+        /* implicit */ Address(in_addr address) DSB_NOEXCEPT;
+
+        /// Returns whether this address is the special "any address" value.
+        bool IsAnyAddress() const DSB_NOEXCEPT;
+
+        /// Returns a string representation of the address.
+        std::string ToString() const DSB_NOEXCEPT;
+
+        /**
+        \brief  Returns the address as an in_addr object.
+
+        If the address was specified as "*", this returns an `in_addr` whose
+        `s_addr` member is equal to `INADDR_ANY`.  Otherwise, this function
+        requires that the address was specified as an IPv4 address in the first
+        place.  No host name resolution or interface lookup is performed.
+
+        \throws std::logic_error    If the address could not be converted.
+        */
+        in_addr ToInAddr() const;
+
+    private:
+        std::string m_strAddr;
+        in_addr m_inAddr;
+    };
+
 
     /**
-    \brief  Returns the address as an in_addr object.
+    \brief  An object which represents an internet port number.
 
-    If the address was specified as "*", this returns an `in_addr` whose
-    `s_addr` member is equal to `INADDR_ANY`.  Otherwise, this function
-    requires that the address was specified as an IPv4 address in the first
-    place.  No host name resolution or interface lookup is performed.
-
-    \throws std::logic_error    If the address could not be converted.
+    This object may contain a port number in the range 0 through 65535, or
+    it may, depending on the context in which it is used, contain the special
+    value "*", which means "any port" or "OS-assigned (ephemeral) port".
     */
-    in_addr ToInAddr() const;
+    class Port
+    {
+    public:
+        /// Constructor which takes a port number.
+        /* implicit */ Port(std::uint16_t port = 0u) DSB_NOEXCEPT;
 
-private:
-    std::string m_strAddr;
-    in_addr m_inAddr;
-};
+        /**
+        \brief  Constructor which takes a port number in string form, or the
+                special value "*".
 
+        \throws std::invalid_argument
+            If the string does not contain a number.
+        \throws std::out_of_range
+            If the number is out of the valid port range.
+        */
+        /* implicit */ Port(const std::string& port);
 
-/**
-\brief  An object which represents an internet port number.
+        // C-style version of the above.
+        /* implicit */ Port(const char* port);
 
-This object may contain a port number in the range 0 through 65535, or
-it may, depending on the context in which it is used, contain the special
-value "*", which means "any port" or "OS-assigned (ephemeral) port".
-*/
-class InetPort
-{
-public:
-    /// Constructor which takes a port number.
-    /* implicit */ InetPort(std::uint16_t port = 0u) DSB_NOEXCEPT;
+        /// Returns whether this is a normal port number in the range 0-65535.
+        bool IsNumber() const DSB_NOEXCEPT;
+
+        /// Returns whether the object was initialised with the special value "*".
+        bool IsAnyPort() const DSB_NOEXCEPT;
+
+        /**
+        \brief  Returns the port number.
+        \pre IsNumber() must return `true`.
+        */
+        std::uint16_t ToNumber() const;
+
+        /// Returns a string representation of the port number.
+        std::string ToString() const DSB_NOEXCEPT;
+
+        /**
+        \brief  Returns the port number in network byte order.
+        \pre IsNumber() must return `true`.
+        */
+        std::uint16_t ToNetworkByteOrder() const;
+
+        /// Constructs a Port from a port number in network byte order.
+        static Port FromNetworkByteOrder(std::uint16_t nPort) DSB_NOEXCEPT;
+
+    private:
+        std::int32_t m_port;
+    };
+
 
     /**
-    \brief  Constructor which takes a port number in string form, or the
-            special value "*".
-
-    \throws std::invalid_argument
-        If the string does not contain a number.
-    \throws std::out_of_range
-        If the number is out of the valid port range.
+    \brief  An object which identifies an endpoint for Internet communication
+            as a combination of an address and a port number.
     */
-    /* implicit */ InetPort(const std::string& port);
+    class Endpoint
+    {
+    public:
+        /// Constructs an Endpoint with address "*" and port zero.
+        Endpoint() DSB_NOEXCEPT;
 
-    // C-style version of the above.
-    /* implicit */ InetPort(const char* port);
+        /// Constructs an Endpoint from an Address and a Port.
+        Endpoint(
+            const ip::Address& address,
+            const ip::Port& port)
+            DSB_NOEXCEPT;
 
-    /// Returns whether this is a normal port number in the range 0-65535.
-    bool IsNumber() const DSB_NOEXCEPT;
+        /**
+        \brief  Constructs an Endpoint from a string on the form "address:port",
+                where the ":port" part is optional and defaults to port zero.
 
-    /// Returns whether the object was initialised with the special value "*".
-    bool IsAnyPort() const DSB_NOEXCEPT;
+        \throws std::out_of_range
+            If the number is out of the valid port range.
+        \throws std::invalid_argument
+            If the specification is otherwise invalid.
+        */
+        explicit Endpoint(const std::string& specification);
 
-    /**
-    \brief  Returns the port number.
-    \pre IsNumber() must return `true`.
-    */
-    std::uint16_t ToNumber() const;
+        /// Constructs an Endpoint from a `sockaddr_in` object.
+        explicit Endpoint(const sockaddr_in& sin);
 
-    /// Returns a string representation of the port number.
-    std::string ToString() const DSB_NOEXCEPT;
+        /**
+        \brief  Constructs an Endpoint from a `sockaddr` object.
 
-    /**
-    \brief  Returns the port number in network byte order.
-    \pre IsNumber() must return `true`.
-    */
-    std::uint16_t ToNetworkByteOrder() const;
+        \throws std::invalid_argument
+            If the address family of `sa` is not `AF_INET`.
+        */
+        explicit Endpoint(const sockaddr& sa);
 
-    /// Constructs an InetPort from a port number in network byte order.
-    static InetPort FromNetworkByteOrder(std::uint16_t nPort) DSB_NOEXCEPT;
+        /// Returns the address.
+        const ip::Address& Address() const DSB_NOEXCEPT;
 
-private:
-    std::int32_t m_port;
-};
+        /// Sets the address.
+        void SetAddress(const ip::Address& value) DSB_NOEXCEPT;
 
+        /// Returns the port.
+        const ip::Port& Port() const DSB_NOEXCEPT;
 
-/**
-\brief  An object which identifies an endpoint for Internet communication
-        as a combination of an address and a port number.
-*/
-class InetEndpoint
-{
-public:
-    /// Constructs an InetEndpoint with address "*" and port zero.
-    InetEndpoint() DSB_NOEXCEPT;
+        /**
+        \brief  Sets the port.
+        \note
+            The underscore in the name of this function is due to a name
+            collision with a macro in the Windows system headers.
+        */
+        void SetPort_(const ip::Port& value) DSB_NOEXCEPT;
 
-    /// Constructs an InetEndpoint from an InetAddress and an InetPort.
-    InetEndpoint(
-        const InetAddress& address,
-        const InetPort& port)
-        DSB_NOEXCEPT;
+        /// Returns a string on the form "address:port".
+        std::string ToString() const DSB_NOEXCEPT;
 
-    /**
-    \brief  Constructs an InetEndpoint from a string on the form "address:port",
-            where the ":port" part is optional and defaults to port zero.
+        /**
+        \brief  Returns a dsb::net::Endpoint object which refers to the
+                same endpoint.
 
-    \throws std::out_of_range
-        If the number is out of the valid port range.
-    \throws std::invalid_argument
-        If the specification is otherwise invalid.
-    */
-    explicit InetEndpoint(const std::string& specification);
+        The transport must be specified.  Currently, DSB only supports the
+        "tcp" transport.
 
-    /// Constructs an InetEndpoint from a `sockaddr_in` object.
-    explicit InetEndpoint(const sockaddr_in& sin);
+        \throws std::invalid_argument   If `transport` is empty.
+        */
+        dsb::net::Endpoint ToEndpoint(const std::string& transport) const;
 
-    /**
-    \brief  Constructs an InetEndpoint from a `sockaddr` object.
+        /**
+        \brief  Returns the endpoint address as a `sockaddr_in` object.
 
-    \throws std::invalid_argument
-        If the address family of `sa` is not `AF_INET`.
-    */
-    explicit InetEndpoint(const sockaddr& sa);
+        \throws std::logic_error
+            If the address is not an IPv4 address or the port is not a normal
+            port number.
+        */
+        sockaddr_in ToSockaddrIn() const;
 
-    /// Returns the address.
-    const InetAddress& Address() const DSB_NOEXCEPT;
+    private:
+        ip::Address m_address;
+        ip::Port m_port;
+    };
 
-    /// Sets the address.
-    void SetAddress(const InetAddress& value) DSB_NOEXCEPT;
-
-    /// Returns the port.
-    const InetPort& Port() const DSB_NOEXCEPT;
-
-    /**
-    \brief  Sets the port.
-    \note
-        The underscore in the name of this function is due to a name collision
-        with a macro in the Windows headers.
-    */
-    void SetPort_(const InetPort& value) DSB_NOEXCEPT;
-
-    /// Returns a string on the form "address:port".
-    std::string ToString() const DSB_NOEXCEPT;
-
-    /**
-    \brief  Returns an Endpoint object which refers to the same endpoint.
-
-    The transport must be specified.  Currently, DSB only supports the "tcp"
-    transport.
-
-    \throws std::invalid_argument   If `transport` is empty.
-    */
-    Endpoint ToEndpoint(const std::string& transport) const;
-
-    /**
-    \brief  Returns the endpoint address as a `sockaddr_in` object.
-
-    \throws std::logic_error
-        If the address is not an IPv4 address or the port is not a normal port
-        number.
-    */
-    sockaddr_in ToSockaddrIn() const;
-
-private:
-    InetAddress m_address;
-    InetPort m_port;
-};
+} // namespace ip
 
 
 /// Class which represents the network location(s) of a slave.

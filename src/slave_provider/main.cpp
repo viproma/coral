@@ -92,9 +92,9 @@ public:
             // running.  The following two contains the endpoints to which the slave
             // is bound.
             slaveLocator = dsb::net::SlaveLocator{
-                dsb::net::InetEndpoint{dsb::net::zmqx::ToString(slaveStatus[1])}
+                dsb::net::ip::Endpoint{dsb::net::zmqx::ToString(slaveStatus[1])}
                     .ToEndpoint("tcp"),
-                dsb::net::InetEndpoint{dsb::net::zmqx::ToString(slaveStatus[2])}
+                dsb::net::ip::Endpoint{dsb::net::zmqx::ToString(slaveStatus[2])}
                     .ToEndpoint("tcp")
             };
 

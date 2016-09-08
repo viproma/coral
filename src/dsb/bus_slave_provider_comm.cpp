@@ -53,7 +53,7 @@ namespace
     {
         const auto ep = dsb::net::Endpoint{slaveEndpointURL};
         if (ep.Transport() == "tcp") {
-            auto inEp = dsb::net::InetEndpoint{ep.Address()};
+            auto inEp = dsb::net::ip::Endpoint{ep.Address()};
             if (inEp.Address().IsAnyAddress()) {
                 inEp.SetAddress(slaveProviderAddress);
             }
@@ -72,7 +72,7 @@ class SlaveProviderClient::Private
 public:
     Private(
         dsb::net::Reactor& reactor,
-        const dsb::net::InetEndpoint& endpoint)
+        const dsb::net::ip::Endpoint& endpoint)
         : m_address(endpoint.Address().ToString())
         , m_client{reactor, PROTOCOL_IDENTIFIER, endpoint.ToEndpoint("tcp")}
     {
@@ -220,7 +220,7 @@ private:
 
 SlaveProviderClient::SlaveProviderClient(
     dsb::net::Reactor& reactor,
-    const dsb::net::InetEndpoint& endpoint)
+    const dsb::net::ip::Endpoint& endpoint)
     : m_private(std::make_unique<Private>(reactor, endpoint))
 {
 }

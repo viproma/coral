@@ -90,7 +90,7 @@ try {
     }
 
     const auto bindpoint =
-        dsb::net::InetEndpoint(networkInterface, "*").ToEndpoint("tcp");
+        dsb::net::ip::Endpoint(networkInterface, "*").ToEndpoint("tcp");
     auto slaveRunner = dsb::execution::SlaveRunner(
         slave,
         bindpoint,
@@ -98,11 +98,11 @@ try {
         commTimeout);
 
     const auto controlEndpoint =
-        dsb::net::InetEndpoint{
+        dsb::net::ip::Endpoint{
             slaveRunner.BoundControlEndpoint().Address()
         }.ToString();
     const auto dataPubEndpoint =
-        dsb::net::InetEndpoint{
+        dsb::net::ip::Endpoint{
             slaveRunner.BoundDataPubEndpoint().Address()
         }.ToString();
 

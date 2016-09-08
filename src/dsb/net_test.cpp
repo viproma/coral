@@ -16,38 +16,38 @@ TEST(dsb_net, Endpoint)
 }
 
 
-TEST(dsb_net, InetAddress_any)
+TEST(dsb_net_ip, Address_any)
 {
-    const auto a = dsb::net::InetAddress{};
+    const auto a = dsb::net::ip::Address{};
     EXPECT_TRUE(a.IsAnyAddress());
     EXPECT_EQ("*", a.ToString());
     EXPECT_EQ(INADDR_ANY, a.ToInAddr().s_addr);
 
-    const auto b = dsb::net::InetAddress{"*"};
+    const auto b = dsb::net::ip::Address{"*"};
     EXPECT_TRUE(b.IsAnyAddress());
     EXPECT_EQ("*", b.ToString());
     EXPECT_EQ(INADDR_ANY, b.ToInAddr().s_addr);
 
     in_addr ci;
     ci.s_addr = INADDR_ANY;
-    const auto c = dsb::net::InetAddress{ci};
+    const auto c = dsb::net::ip::Address{ci};
     EXPECT_TRUE(c.IsAnyAddress());
     EXPECT_EQ("*", c.ToString());
     EXPECT_EQ(INADDR_ANY, c.ToInAddr().s_addr);
 
-    const auto d = dsb::net::InetAddress{"0.0.0.0"};
+    const auto d = dsb::net::ip::Address{"0.0.0.0"};
     EXPECT_TRUE(d.IsAnyAddress());
     EXPECT_EQ("*", d.ToString());
     EXPECT_EQ(INADDR_ANY, d.ToInAddr().s_addr);
 }
 
 
-TEST(dsb_net, InetAddress_IPv4)
+TEST(dsb_net_ip, Address_IPv4)
 {
     const std::string ipText = "10.0.213.45";
     const std::uint8_t ipBinary[4] = { 0x0A, 0x00, 0xD5, 0x2D};
 
-    const auto a = dsb::net::InetAddress{ipText};
+    const auto a = dsb::net::ip::Address{ipText};
     EXPECT_FALSE(a.IsAnyAddress());
     EXPECT_EQ(ipText, a.ToString());
     EXPECT_EQ(
@@ -56,7 +56,7 @@ TEST(dsb_net, InetAddress_IPv4)
 
     in_addr bi;
     bi.s_addr = *reinterpret_cast<const std::uint32_t*>(ipBinary);
-    const auto b = dsb::net::InetAddress{bi};
+    const auto b = dsb::net::ip::Address{bi};
     EXPECT_FALSE(b.IsAnyAddress());
     EXPECT_EQ(ipText, b.ToString());
     EXPECT_EQ(
@@ -65,20 +65,20 @@ TEST(dsb_net, InetAddress_IPv4)
 }
 
 
-TEST(dsb_net, InetAddress_textual)
+TEST(dsb_net_ip, Address_textual)
 {
-    const auto a = dsb::net::InetAddress("foo.com");
+    const auto a = dsb::net::ip::Address("foo.com");
     EXPECT_FALSE(a.IsAnyAddress());
     EXPECT_EQ("foo.com", a.ToString());
     EXPECT_THROW(a.ToInAddr(), std::logic_error);
 }
 
 
-TEST(dsb_net, InetPort_integer)
+TEST(dsb_net_ip, Port_integer)
 {
     const std::uint8_t portBinary[2] = { 0x12, 0x6F };
 
-    const auto p = dsb::net::InetPort{4719};
+    const auto p = dsb::net::ip::Port{4719};
     EXPECT_TRUE(p.IsNumber());
     EXPECT_FALSE(p.IsAnyPort());
     EXPECT_EQ(4719, p.ToNumber());
@@ -87,7 +87,7 @@ TEST(dsb_net, InetPort_integer)
         *reinterpret_cast<const std::uint16_t*>(portBinary),
         p.ToNetworkByteOrder());
 
-    const auto q = dsb::net::InetPort::FromNetworkByteOrder(
+    const auto q = dsb::net::ip::Port::FromNetworkByteOrder(
         *reinterpret_cast<const std::uint16_t*>(portBinary));
     EXPECT_TRUE(q.IsNumber());
     EXPECT_FALSE(q.IsAnyPort());
@@ -99,9 +99,9 @@ TEST(dsb_net, InetPort_integer)
 }
 
 
-TEST(dsb_net, InetPort_string)
+TEST(dsb_net_ip, Port_string)
 {
-    const auto p = dsb::net::InetPort{"4719"};
+    const auto p = dsb::net::ip::Port{"4719"};
     EXPECT_TRUE(p.IsNumber());
     EXPECT_FALSE(p.IsAnyPort());
     EXPECT_EQ(4719, p.ToNumber());
@@ -111,15 +111,15 @@ TEST(dsb_net, InetPort_string)
         *reinterpret_cast<const std::uint16_t*>(portBinary),
         p.ToNetworkByteOrder());
 
-    EXPECT_THROW(dsb::net::InetPort{"foo"}, std::invalid_argument);
-    EXPECT_THROW(dsb::net::InetPort{"-1"}, std::out_of_range);
-    EXPECT_THROW(dsb::net::InetPort{"65536"}, std::out_of_range);
+    EXPECT_THROW(dsb::net::ip::Port{"foo"}, std::invalid_argument);
+    EXPECT_THROW(dsb::net::ip::Port{"-1"}, std::out_of_range);
+    EXPECT_THROW(dsb::net::ip::Port{"65536"}, std::out_of_range);
 }
 
 
-TEST(dsb_net, InetPort_any)
+TEST(dsb_net_ip, Port_any)
 {
-    const auto p = dsb::net::InetPort{"*"};
+    const auto p = dsb::net::ip::Port{"*"};
     EXPECT_FALSE(p.IsNumber());
     EXPECT_TRUE(p.IsAnyPort());
     EXPECT_THROW(p.ToNumber(), std::logic_error);
@@ -128,14 +128,14 @@ TEST(dsb_net, InetPort_any)
 }
 
 
-TEST(dsb_net, InetEndpoint)
+TEST(dsb_net_ip, Endpoint)
 {
     const std::string address = "10.0.213.45";
     const std::uint8_t addressBin[4] = { 0x0A, 0x00, 0xD5, 0x2D};
     const std::uint16_t port = 4719;
     const std::uint8_t portBin[2] = { 0x12, 0x6F };
 
-    auto e = dsb::net::InetEndpoint{address, port};
+    auto e = dsb::net::ip::Endpoint{address, port};
     EXPECT_EQ(*reinterpret_cast<const std::uint32_t*>(addressBin), e.Address().ToInAddr().s_addr);
     EXPECT_EQ(*reinterpret_cast<const std::uint16_t*>(portBin), e.Port().ToNetworkByteOrder());
     EXPECT_EQ("tcp://10.0.213.45:4719", e.ToEndpoint("tcp").URL());
@@ -154,12 +154,12 @@ TEST(dsb_net, InetEndpoint)
 }
 
 
-TEST(dsb_net, InetEndpoint_stringSpec)
+TEST(dsb_net_ip, Endpoint_stringSpec)
 {
-    const auto e = dsb::net::InetEndpoint{"foo:321"};
+    const auto e = dsb::net::ip::Endpoint{"foo:321"};
     EXPECT_EQ("foo", e.Address().ToString());
     EXPECT_EQ(321, e.Port().ToNumber());
 
-    EXPECT_THROW(dsb::net::InetEndpoint{"foo:bar"}, std::invalid_argument);
-    EXPECT_THROW(dsb::net::InetEndpoint{"foo:-10"}, std::out_of_range);
+    EXPECT_THROW(dsb::net::ip::Endpoint{"foo:bar"}, std::invalid_argument);
+    EXPECT_THROW(dsb::net::ip::Endpoint{"foo:-10"}, std::out_of_range);
 }

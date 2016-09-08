@@ -229,7 +229,7 @@ void SetupSlaveProviderTracking(
                 serviceID,
                 dsb::bus::SlaveProviderClient{
                     *reactorPtr,
-                    dsb::net::InetEndpoint{address, port}}));
+                    dsb::net::ip::Endpoint{address, port}}));
             DSB_LOG_TRACE(
                 boost::format("Slave provider discovered: %s @ %s:%d")
                 % serviceID % address % port);
@@ -252,7 +252,7 @@ void SetupSlaveProviderTracking(
                 serviceID,
                 dsb::bus::SlaveProviderClient{
                     *reactorPtr,
-                    dsb::net::InetEndpoint{address, port}}));
+                    dsb::net::ip::Endpoint{address, port}}));
             DSB_LOG_TRACE(
                 boost::format("Slave provider updated: %s @ %s:%d")
                 % serviceID % address % port);

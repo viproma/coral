@@ -28,6 +28,8 @@ namespace dsb
 {
 namespace net
 {
+namespace ip
+{
 
 
 #ifdef _WIN32
@@ -158,4 +160,4 @@ in_addr StringToIPAddress(const std::string& address)
 }
 
 
-}} // namespace
+}}} // namespace

@@ -268,7 +268,7 @@ void Listener::Impl::IncomingBeacon()
         return;
     }
     m_onNotification(
-        dsb::net::IPAddressToString(peerAddress),
+        dsb::net::ip::IPAddressToString(peerAddress),
         std::string(buffer + minMessageSize, serviceTypeSize),
         std::string(buffer + minMessageSize+serviceTypeSize, serviceIdentifierSize),
         payloadSize ? buffer + minMessageSize+serviceTypeSize+serviceIdentifierSize

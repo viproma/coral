@@ -52,23 +52,23 @@ public:
         in_addr listenAddress;
         if (networkInterface == "*") {
             listenAddress.s_addr = htonl(INADDR_ANY);
-            for (const auto& iface : GetNetworkInterfaces()) {
+            for (const auto& iface : ip::GetNetworkInterfaces()) {
                 m_broadcastAddrs.push_back(iface.broadcastAddress);
                 DSB_LOG_TRACE(
                     boost::format("BroadcastSocket: Adding broadcast address %s.")
-                        % IPAddressToString(iface.broadcastAddress));
+                        % ip::IPAddressToString(iface.broadcastAddress));
             }
         } else {
             in_addr addr;
             const auto rc = inet_pton(AF_INET, networkInterface.c_str(), &addr);
             assert (rc != -1);
-            const auto ifaces = GetNetworkInterfaces();
+            const auto ifaces = ip::GetNetworkInterfaces();
             auto iface = decltype(ifaces)::const_iterator{};
             if (rc == 1) {
                 // interfaceAddress is a valid IP address, now stored in addr
                 iface = std::find_if(
                     begin(ifaces), end(ifaces),
-                    [&](const NetworkInterfaceInfo& nii) {
+                    [&](const ip::NetworkInterfaceInfo& nii) {
                         return nii.address.s_addr == addr.s_addr;
                     });
             } else {
@@ -76,7 +76,7 @@ public:
                 // is an interface *name*.
                 iface = std::find_if(
                     begin(ifaces), end(ifaces),
-                    [&](const NetworkInterfaceInfo& nii) {
+                    [&](const ip::NetworkInterfaceInfo& nii) {
                         return nii.name == networkInterface;
                     });
             }
@@ -88,7 +88,7 @@ public:
             m_broadcastAddrs.push_back(iface->broadcastAddress);
             DSB_LOG_TRACE(
                 boost::format("BroadcastSocket: Adding broadcast address %s.")
-                    % IPAddressToString(iface->broadcastAddress));
+                    % ip::IPAddressToString(iface->broadcastAddress));
         }
 
         bool constructionComplete = false;
@@ -140,7 +140,7 @@ public:
                 throw std::runtime_error("Failed to bind UDP socket to local port");
             }
             DSB_LOG_TRACE(boost::format("BroadcastSocket: Bound to %s:%d")
-                % IPAddressToString(listenAddress)
+                % ip::IPAddressToString(listenAddress)
                 % port);
         }
         constructionComplete = true;

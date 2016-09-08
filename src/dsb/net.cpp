@@ -26,7 +26,7 @@ namespace net
 {
 
 // =============================================================================
-// InetEndpoint
+// Endpoint
 // =============================================================================
 
 Endpoint::Endpoint() DSB_NOEXCEPT { }
@@ -69,7 +69,7 @@ std::string Endpoint::URL() const DSB_NOEXCEPT
 
 
 // =============================================================================
-// InetAddress
+// ip::Address
 // =============================================================================
 
 // NOTE:
@@ -95,43 +95,46 @@ namespace
     }
 }
 
-InetAddress::InetAddress() DSB_NOEXCEPT
+namespace ip
+{
+
+Address::Address() DSB_NOEXCEPT
 {
     ParseAddressString("*", m_strAddr, m_inAddr);
 }
 
 
-InetAddress::InetAddress(const std::string& address)
+Address::Address(const std::string& address)
 {
     ParseAddressString(address, m_strAddr, m_inAddr);
 }
 
 
-InetAddress::InetAddress(const char* address)
+Address::Address(const char* address)
 {
     ParseAddressString(address, m_strAddr, m_inAddr);
 }
 
 
-InetAddress::InetAddress(in_addr address) DSB_NOEXCEPT
+Address::Address(in_addr address) DSB_NOEXCEPT
     : m_inAddr(address)
 {
 }
 
 
-bool InetAddress::IsAnyAddress() const DSB_NOEXCEPT
+bool Address::IsAnyAddress() const DSB_NOEXCEPT
 {
     return m_strAddr.empty() && m_inAddr.s_addr == INADDR_ANY;
 }
 
 
-std::string InetAddress::ToString() const DSB_NOEXCEPT
+std::string Address::ToString() const DSB_NOEXCEPT
 {
     if (m_strAddr.empty()) {
         if (m_inAddr.s_addr == INADDR_ANY) {
             return "*";
         } else {
-            return dsb::net::IPAddressToString(m_inAddr);
+            return dsb::net::ip::IPAddressToString(m_inAddr);
         }
     } else {
         return m_strAddr;
@@ -139,7 +142,7 @@ std::string InetAddress::ToString() const DSB_NOEXCEPT
 }
 
 
-in_addr InetAddress::ToInAddr() const
+in_addr Address::ToInAddr() const
 {
     if (m_strAddr.empty()) {
         return m_inAddr;
@@ -148,9 +151,11 @@ in_addr InetAddress::ToInAddr() const
     }
 }
 
+} // namespace ip
+
 
 // =============================================================================
-// InetPort
+// ip::Port
 // =============================================================================
 
 namespace
@@ -174,45 +179,47 @@ namespace
     }
 }
 
+namespace ip
+{
 
-InetPort::InetPort(std::uint16_t port) DSB_NOEXCEPT
+Port::Port(std::uint16_t port) DSB_NOEXCEPT
     : m_port{port}
 {
 }
 
 
-InetPort::InetPort(const std::string& port)
+Port::Port(const std::string& port)
     : m_port{ParsePortString(port)}
 {
 }
 
 
-InetPort::InetPort(const char* port)
+Port::Port(const char* port)
     : m_port{ParsePortString(port)}
 {
 }
 
 
-bool InetPort::IsNumber() const DSB_NOEXCEPT
+bool Port::IsNumber() const DSB_NOEXCEPT
 {
     return IsInternetPortNumber(m_port);
 }
 
 
-bool InetPort::IsAnyPort() const DSB_NOEXCEPT
+bool Port::IsAnyPort() const DSB_NOEXCEPT
 {
     return m_port == ANY_PORT;
 }
 
 
-std::uint16_t InetPort::ToNumber() const
+std::uint16_t Port::ToNumber() const
 {
     DSB_PRECONDITION_CHECK(IsNumber());
     return static_cast<std::uint16_t>(m_port);
 }
 
 
-std::string InetPort::ToString() const DSB_NOEXCEPT
+std::string Port::ToString() const DSB_NOEXCEPT
 {
     if (m_port == ANY_PORT) {
         return "*";
@@ -222,29 +229,33 @@ std::string InetPort::ToString() const DSB_NOEXCEPT
 }
 
 
-std::uint16_t InetPort::ToNetworkByteOrder() const
+std::uint16_t Port::ToNetworkByteOrder() const
 {
     return htons(ToNumber());
 }
 
 
-InetPort InetPort::FromNetworkByteOrder(std::uint16_t nPort) DSB_NOEXCEPT
+Port Port::FromNetworkByteOrder(std::uint16_t nPort) DSB_NOEXCEPT
 {
-    return InetPort(ntohs(nPort));
+    return Port(ntohs(nPort));
 }
+
+} // namespace ip
 
 
 // =============================================================================
-// InetEndpoint
+// ip::Endpoint
 // =============================================================================
 
+namespace ip
+{
 
-InetEndpoint::InetEndpoint() DSB_NOEXCEPT
+Endpoint::Endpoint() DSB_NOEXCEPT
 {
 }
 
 
-InetEndpoint::InetEndpoint(const InetAddress& address, const InetPort& port)
+Endpoint::Endpoint(const ip::Address& address, const ip::Port& port)
     DSB_NOEXCEPT
     : m_address{address}
     , m_port{port}
@@ -252,71 +263,74 @@ InetEndpoint::InetEndpoint(const InetAddress& address, const InetPort& port)
 }
 
 
-InetEndpoint::InetEndpoint(const std::string& specification)
+Endpoint::Endpoint(const std::string& specification)
 {
     const auto colonPos = specification.find(':');
-    m_address = InetAddress{specification.substr(0, colonPos)};
+    m_address = ip::Address{specification.substr(0, colonPos)};
     if (colonPos < specification.size() - 1) {
-        m_port = InetPort{specification.substr(colonPos+1)};
+        m_port = ip::Port{specification.substr(colonPos+1)};
     }
 }
 
 
-InetEndpoint::InetEndpoint(const sockaddr_in& sin)
+Endpoint::Endpoint(const sockaddr_in& sin)
 {
     DSB_INPUT_CHECK(sin.sin_family == AF_INET);
-    m_address = InetAddress{sin.sin_addr};
-    m_port = InetPort::FromNetworkByteOrder(sin.sin_port);
+    m_address = ip::Address{sin.sin_addr};
+    m_port = ip::Port::FromNetworkByteOrder(sin.sin_port);
 }
 
 
-InetEndpoint::InetEndpoint(const sockaddr& sa)
+Endpoint::Endpoint(const sockaddr& sa)
 {
     DSB_INPUT_CHECK(sa.sa_family == AF_INET);
     const auto sin = reinterpret_cast<const sockaddr_in*>(&sa);
-    m_address = InetAddress{sin->sin_addr};
-    m_port = InetPort::FromNetworkByteOrder(sin->sin_port);
+    m_address = ip::Address{sin->sin_addr};
+    m_port = ip::Port::FromNetworkByteOrder(sin->sin_port);
 }
 
 
-const InetAddress& InetEndpoint::Address() const DSB_NOEXCEPT
+const ip::Address& Endpoint::Address() const DSB_NOEXCEPT
 {
     return m_address;
 }
 
 
-void InetEndpoint::SetAddress(const InetAddress& value) DSB_NOEXCEPT
+void Endpoint::SetAddress(const ip::Address& value) DSB_NOEXCEPT
 {
     m_address = value;
 }
 
 
-const InetPort& InetEndpoint::Port() const DSB_NOEXCEPT
+const ip::Port& Endpoint::Port() const DSB_NOEXCEPT
 {
     return m_port;
 }
 
 
-void InetEndpoint::SetPort_(const InetPort& value) DSB_NOEXCEPT
+void Endpoint::SetPort_(const ip::Port& value) DSB_NOEXCEPT
 {
     m_port = value;
 }
 
 
-std::string InetEndpoint::ToString() const DSB_NOEXCEPT
+std::string Endpoint::ToString() const DSB_NOEXCEPT
 {
     return m_address.ToString() + ':' + m_port.ToString();
 }
 
 
-Endpoint InetEndpoint::ToEndpoint(const std::string& transport) const
+dsb::net::Endpoint Endpoint::ToEndpoint(const std::string& transport) const
 {
     DSB_INPUT_CHECK(!transport.empty());
-    return Endpoint{transport, m_address.ToString() + ':' + m_port.ToString()};
+    return dsb::net::Endpoint{
+        transport,
+        m_address.ToString() + ':' + m_port.ToString()
+    };
 }
 
 
-sockaddr_in InetEndpoint::ToSockaddrIn() const
+sockaddr_in Endpoint::ToSockaddrIn() const
 {
     sockaddr_in result;
     std::memset(&result, 0, sizeof(result));
@@ -325,6 +339,8 @@ sockaddr_in InetEndpoint::ToSockaddrIn() const
     result.sin_addr = m_address.ToInAddr();
     return result;
 }
+
+} // namespace ip
 
 
 // =============================================================================

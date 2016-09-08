@@ -39,7 +39,7 @@ public:
     */
     SlaveProviderClient(
         dsb::net::Reactor& reactor,
-        const dsb::net::InetEndpoint& endpoint);
+        const dsb::net::ip::Endpoint& endpoint);
 
     /// Destructor
     ~SlaveProviderClient() DSB_NOEXCEPT;

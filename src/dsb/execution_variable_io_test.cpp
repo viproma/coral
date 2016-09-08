@@ -42,8 +42,8 @@ TEST(dsb_execution, VariablePublishSubscribe)
     auto pub = dsb::execution::VariablePublisher();
     pub.Bind(dsb::net::Endpoint{"tcp://*:*"});
 
-    auto inetEndpoint = dsb::net::InetEndpoint{pub.BoundEndpoint().Address()};
-    inetEndpoint.SetAddress(dsb::net::InetAddress{"localhost"});
+    auto inetEndpoint = dsb::net::ip::Endpoint{pub.BoundEndpoint().Address()};
+    inetEndpoint.SetAddress(dsb::net::ip::Address{"localhost"});
     const auto endpoint = inetEndpoint.ToEndpoint("tcp");
 
     auto sub = dsb::execution::VariableSubscriber();
@@ -120,7 +120,7 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
         [STEP_COUNT, PORT, publisherID, &vars, &primeLatch, &stepBarrier] ()
         {
             dsb::execution::VariablePublisher pub;
-            pub.Bind(dsb::net::InetEndpoint{"*", PORT}.ToEndpoint("tcp"));
+            pub.Bind(dsb::net::ip::Endpoint{"*", PORT}.ToEndpoint("tcp"));
             do {
                 for (size_t i = 0; i < vars.size(); ++i) {
                     pub.Publish(0, publisherID, vars[i].ID(), i*1.0);
@@ -135,7 +135,7 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
         });
 
     dsb::execution::VariableSubscriber sub;
-    const auto endpoint = dsb::net::InetEndpoint{"localhost", PORT}.ToEndpoint("tcp");
+    const auto endpoint = dsb::net::ip::Endpoint{"localhost", PORT}.ToEndpoint("tcp");
     sub.Connect(&endpoint, 1);
 
 //    const auto tSub = std::chrono::steady_clock::now();
