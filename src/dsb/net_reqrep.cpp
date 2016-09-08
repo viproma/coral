@@ -1,4 +1,4 @@
-#include "dsb/protocol/req_rep.hpp"
+#include "dsb/net/reqrep.hpp"
 
 #include "dsb/error.hpp"
 #include "dsb/net/zmqx.hpp"
@@ -7,8 +7,11 @@
 
 namespace dsb
 {
-namespace protocol
+namespace net
 {
+namespace reqrep
+{
+
 
 namespace
 {
@@ -22,10 +25,10 @@ namespace
 
 
 // =============================================================================
-// RRClient
+// Client
 // =============================================================================
 
-RRClient::RRClient(
+Client::Client(
     dsb::net::Reactor& reactor,
     const std::string& protocolIdentifier,
     const dsb::net::Endpoint& serverEndpoint)
@@ -48,14 +51,14 @@ RRClient::RRClient(
 }
 
 
-RRClient::~RRClient() DSB_NOEXCEPT
+Client::~Client() DSB_NOEXCEPT
 {
     m_reactor.RemoveSocket(m_socket.Socket());
     if (m_timeoutTimerID != NO_TIMER) CancelTimer();
 }
 
 
-void RRClient::Request(
+void Client::Request(
     std::uint16_t protocolVersion,
     const char* requestHeader, size_t requestHeaderSize,
     const char* requestBody, size_t requestBodySize,
@@ -81,7 +84,7 @@ void RRClient::Request(
 }
 
 
-void RRClient::RequestMaxProtocol(
+void Client::RequestMaxProtocol(
     std::chrono::milliseconds timeout,
     MaxProtocolReplyHandler onComplete)
 {
@@ -101,7 +104,7 @@ void RRClient::RequestMaxProtocol(
 }
 
 
-void RRClient::SendRequest(
+void Client::SendRequest(
     const std::string& protocolIdentifier, std::uint16_t protocolVersion,
     const char* requestHeader, size_t requestHeaderSize,
     const char* requestBody, size_t requestBodySize,
@@ -138,7 +141,7 @@ namespace
     void HandleMetaMaxProtocolReply(
         const zmq::message_t& header,
         const zmq::message_t* body,
-        RRClient::MaxProtocolReplyHandler& handler)
+        Client::MaxProtocolReplyHandler& handler)
     {
         assert(handler);
         const auto h = dsb::net::zmqx::ToString(header);
@@ -160,7 +163,7 @@ namespace
 }
 
 
-void RRClient::ReceiveReply()
+void Client::ReceiveReply()
 {
     // Receive message, but if we didn't expect one (no handlers = no request
     // in progress), just ignore it and return.
@@ -201,7 +204,7 @@ void RRClient::ReceiveReply()
 }
 
 
-void RRClient::CompleteWithError(const std::error_code& ec)
+void Client::CompleteWithError(const std::error_code& ec)
 {
     assert(ec);
     if (m_onComplete) {
@@ -214,7 +217,7 @@ void RRClient::CompleteWithError(const std::error_code& ec)
 }
 
 
-void RRClient::SetTimer(std::chrono::milliseconds timeout)
+void Client::SetTimer(std::chrono::milliseconds timeout)
 {
     assert(m_timeoutTimerID == NO_TIMER);
     m_timeoutTimerID = m_reactor.AddTimer(timeout, 1,
@@ -225,7 +228,7 @@ void RRClient::SetTimer(std::chrono::milliseconds timeout)
 }
 
 
-void RRClient::CancelTimer()
+void Client::CancelTimer()
 {
     assert(m_timeoutTimerID != NO_TIMER);
     m_reactor.RemoveTimer(m_timeoutTimerID);
@@ -234,7 +237,7 @@ void RRClient::CancelTimer()
 
 
 // =============================================================================
-// RRServer
+// Server
 // =============================================================================
 
 namespace
@@ -247,7 +250,7 @@ namespace
 }
 
 
-class RRServer::Private
+class Server::Private
 {
 public:
     Private(
@@ -276,7 +279,7 @@ public:
     void AddProtocolHandler(
         const std::string& protocolIdentifier,
         std::uint16_t protocolVersion,
-        std::shared_ptr<RRServerProtocolHandler> handler)
+        std::shared_ptr<ServerProtocolHandler> handler)
     {
         if (protocolIdentifier.empty()) {
             throw std::invalid_argument("Protocol identifier is empty");
@@ -411,7 +414,7 @@ private:
     dsb::net::zmqx::RepSocket m_socket;
     std::unordered_map<
             std::string,
-            std::map<std::uint16_t, std::shared_ptr<RRServerProtocolHandler>>>
+            std::map<std::uint16_t, std::shared_ptr<ServerProtocolHandler>>>
         m_handlers;
 
     std::string m_metaReplyHeader;
@@ -419,7 +422,7 @@ private:
 };
 
 
-RRServer::RRServer(
+Server::Server(
     dsb::net::Reactor& reactor,
     const dsb::net::Endpoint& endpoint)
     : m_private{std::make_unique<Private>(reactor, endpoint)}
@@ -427,29 +430,29 @@ RRServer::RRServer(
 }
 
 
-RRServer::~RRServer() DSB_NOEXCEPT
+Server::~Server() DSB_NOEXCEPT
 {
     // Do nothing, rely on ~Private().
 }
 
 
-RRServer::RRServer(RRServer&& other) DSB_NOEXCEPT
+Server::Server(Server&& other) DSB_NOEXCEPT
     : m_private(std::move(other.m_private))
 {
 }
 
 
-RRServer& RRServer::operator=(RRServer&& other) DSB_NOEXCEPT
+Server& Server::operator=(Server&& other) DSB_NOEXCEPT
 {
     m_private = std::move(other.m_private);
     return *this;
 }
 
 
-void RRServer::AddProtocolHandler(
+void Server::AddProtocolHandler(
     const std::string& protocolIdentifier,
     std::uint16_t protocolVersion,
-    std::shared_ptr<RRServerProtocolHandler> handler)
+    std::shared_ptr<ServerProtocolHandler> handler)
 {
     m_private->AddProtocolHandler(
         protocolIdentifier,
@@ -458,10 +461,10 @@ void RRServer::AddProtocolHandler(
 }
 
 
-dsb::net::Endpoint RRServer::BoundEndpoint() const
+dsb::net::Endpoint Server::BoundEndpoint() const
 {
     return m_private->BoundEndpoint();
 }
 
 
-}} // namespace
+}}} // namespace

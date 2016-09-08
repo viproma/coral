@@ -9,10 +9,10 @@
 #include <system_error>
 
 #include "dsb/config.h"
-#include "dsb/net/reactor.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
-#include "dsb/protocol/req_rep.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/reqrep.hpp"
 
 
 namespace dsb
@@ -139,7 +139,7 @@ public:
     The object that will carry out any incoming requests.
 */
 void MakeSlaveProviderServer(
-    dsb::protocol::RRServer& server,
+    dsb::net::reqrep::Server& server,
     std::shared_ptr<SlaveProviderOps> slaveProvider);
 
 

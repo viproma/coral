@@ -1,9 +1,9 @@
 /**
 \file
-\brief  Classes that implement a generic request-reply meta-protocol.
+\brief  Module header for dsb::net::reqrep.
 */
-#ifndef DSB_PROTOCOL_REQ_REP_HPP
-#define DSB_PROTOCOL_REQ_REP_HPP
+#ifndef DSB_NET_REQREP_HPP
+#define DSB_NET_REQREP_HPP
 
 #include <chrono>
 #include <cstdint>
@@ -24,20 +24,24 @@
 
 namespace dsb
 {
-namespace protocol
+namespace net
+{
+
+/// Classes that implement a generic request-reply meta-protocol.
+namespace reqrep
 {
 
 
 /**
-\brief  A backend class for clients that communicate with an RRServer.
+\brief  A backend class for clients that communicate with a Server.
 
 This class represents the client side of the generic request-reply protocol.
 An instance of this class may only connect to one server at a time.
 
-\see RRServer
+\see Server
     For the server-side class and more information about the protocol.
 */
-class RRClient
+class Client
 {
 public:
     /**
@@ -48,19 +52,19 @@ public:
     `protocolIdentifier` must contain the identifier for the protocol with
     which requests will be made.
     */
-    RRClient(
+    Client(
         dsb::net::Reactor& reactor,
         const std::string& protocolIdentifier,
         const dsb::net::Endpoint& serverEndpoint);
 
     // This class is not copyable or movable because it leaks its `this`
     // pointer to the reactor.
-    RRClient(const RRClient&) = delete;
-    RRClient(RRClient&&) = delete;
-    RRClient& operator=(const RRClient&) = delete;
-    RRClient& operator=(RRClient&&) = delete;
+    Client(const Client&) = delete;
+    Client(Client&&) = delete;
+    Client& operator=(const Client&) = delete;
+    Client& operator=(Client&&) = delete;
 
-    ~RRClient() DSB_NOEXCEPT;
+    ~Client() DSB_NOEXCEPT;
 
     /**
     \brief  A callback type for Request().
@@ -97,7 +101,7 @@ public:
 
     This sends a request using the protocol whose identifier was given in the
     class constructor and whose version is given by `protocolVersion`.  The
-    RRServer on the other end must have a protocol handler associated with the
+    Server on the other end must have a protocol handler associated with the
     same identifier and version.
 
     \param [in] protocolVersion
@@ -122,7 +126,7 @@ public:
     \param [in] onComplete
         A callback that will be called when the server responds or the request
         times out.  This function is guaranteed to be called unless Request()
-        throws an exception or the RRClient is destroyed before a reply can be
+        throws an exception or the Client is destroyed before a reply can be
         received.
 
     \throws std::runtime_error
@@ -163,7 +167,7 @@ public:
             protocol version it supports.
 
     The server will respond with the greatest version number that has been
-    added with RRServer::AddProtocolHandler().
+    added with Server::AddProtocolHandler().
 
     \param [in] timeout
         How long to wait to be able to send the request before throwing an
@@ -172,7 +176,7 @@ public:
     \param [in] onComplete
         A callback that will be called when the server responds or the request
         times out.  This function is guaranteed to be called unless
-        RequestMaxProtocol() throws an exception or the RRClient is destroyed
+        RequestMaxProtocol() throws an exception or the Client is destroyed
         before a reply can be received.
 
     \throws std::runtime_error
@@ -215,18 +219,18 @@ private:
 
 /**
 \brief  An interface for classes that implement the server side of
-        request-reply protocols, to be used with RRServer.
+        request-reply protocols, to be used with Server.
 
-Objects of this type may be added to an RRServer and associated with
+Objects of this type may be added to a Server and associated with
 a particular protocol and a specific version of that protocol.  Whenever
-an RRServer receives an incoming request, it routes the request to the
+a Server receives an incoming request, it routes the request to the
 corresponding handler.
 
 One implementation may handle multiple protocols and/or multiple versions
-of the same protocol, by calling RRServer::AddProtocolHandler() several
+of the same protocol, by calling Server::AddProtocolHandler() several
 times with the same object.
 */
-class RRServerProtocolHandler
+class ServerProtocolHandler
 {
 public:
     /**
@@ -290,7 +294,7 @@ public:
         const char*& replyHeader, size_t& replyHeaderSize,
         const char*& replyBody, size_t& replyBodySize) = 0;
 
-    virtual ~RRServerProtocolHandler() = default;
+    virtual ~ServerProtocolHandler() = default;
 };
 
 
@@ -299,21 +303,21 @@ public:
 
 This class receives request messages consisting of 2 or 3 frames.  The first
 frame contains the protocol identifier and version.  This is used by the
-RRServer to select the appropriate protocol handler, implemented as a
-RRServerProtocolHandler.  The second frame is called the message header, while
+Server to select the appropriate protocol handler, implemented as a
+ServerProtocolHandler.  The second frame is called the message header, while
 the (optional) third frame is the message body.  These are simply forwarded
 to the protocol handler, whose job it is to formulate a reply message.
 The reply message has the same format.
-The RRServer class takes care of the actual receiving and sending of messages,
+The Server class takes care of the actual receiving and sending of messages,
 so the protocol handler only needs to deal with the actual header and body
 content, and not the details of the network communication.
 
 Multiple clients may connect and send requests to one server.
 
-\see RRClient
+\see Client
     The corresponding client side class.
 */
-class RRServer
+class Server
 {
 public:
     /**
@@ -321,17 +325,17 @@ public:
             and registers it with the given reactor to wait for incoming
             requests.
     */
-    RRServer(
+    Server(
         dsb::net::Reactor& reactor,
         const dsb::net::Endpoint& endpoint);
 
-    ~RRServer() DSB_NOEXCEPT;
+    ~Server() DSB_NOEXCEPT;
 
-    RRServer(const RRServer&) = delete;
-    RRServer& operator=(const RRServer&) = delete;
+    Server(const Server&) = delete;
+    Server& operator=(const Server&) = delete;
 
-    RRServer(RRServer&&) DSB_NOEXCEPT;
-    RRServer& operator=(RRServer&&) DSB_NOEXCEPT;
+    Server(Server&&) DSB_NOEXCEPT;
+    Server& operator=(Server&&) DSB_NOEXCEPT;
 
     /**
     \brief  Adds a protocol handler for the protocol with the given identifier
@@ -343,7 +347,7 @@ public:
     void AddProtocolHandler(
         const std::string& protocolIdentifier,
         std::uint16_t protocolVersion,
-        std::shared_ptr<RRServerProtocolHandler> handler);
+        std::shared_ptr<ServerProtocolHandler> handler);
 
     /**
     \brief  Returns the endpoint to which the server is bound.
@@ -365,5 +369,5 @@ private:
 };
 
 
-}} // namespace
+}}} // namespace
 #endif

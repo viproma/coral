@@ -9,8 +9,8 @@
 #include "dsb/bus/slave_provider_comm.hpp"
 #include "dsb/error.hpp"
 #include "dsb/net/reactor.hpp"
+#include "dsb/net/service.hpp"
 #include "dsb/net/zmqx.hpp"
-#include "dsb/protocol/discovery.hpp"
 #include "dsb/util.hpp"
 
 
@@ -74,8 +74,8 @@ namespace
         // other members depend on the reactor being kept alive.
         std::shared_ptr<dsb::net::Reactor> reactor;
         std::shared_ptr<zmq::socket_t> killSocket;
-        std::shared_ptr<dsb::protocol::RRServer> server;
-        std::shared_ptr<dsb::protocol::ServiceBeacon> beacon;
+        std::shared_ptr<dsb::net::reqrep::Server> server;
+        std::shared_ptr<dsb::net::service::Beacon> beacon;
     };
 
     void BackgroundThreadFunction(
@@ -122,7 +122,7 @@ SlaveProvider::SlaveProvider(
         *bg.killSocket,
         [] (dsb::net::Reactor& r, zmq::socket_t&) { r.Stop(); });
 
-    bg.server = std::make_shared<dsb::protocol::RRServer>(
+    bg.server = std::make_shared<dsb::net::reqrep::Server>(
         *bg.reactor,
         dsb::net::Endpoint{"tcp", networkInterface + ":*"});
     dsb::bus::MakeSlaveProviderServer(
@@ -133,7 +133,7 @@ SlaveProvider::SlaveProvider(
     dsb::util::EncodeUint16(
         dsb::net::zmqx::EndpointPort(bg.server->BoundEndpoint().URL()),
         beaconPayload);
-    bg.beacon = std::make_shared<dsb::protocol::ServiceBeacon>(
+    bg.beacon = std::make_shared<dsb::net::service::Beacon>(
         0,
         "no.sintef.viproma.dsb.slave_provider",
         slaveProviderID,

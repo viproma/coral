@@ -1,7 +1,7 @@
 #ifdef _WIN32
 #   define NOMINMAX
 #endif
-#include "dsb/protocol/discovery.hpp"
+#include "dsb/net/service.hpp"
 
 #include <algorithm> // std::copy
 #include <cassert>
@@ -23,11 +23,14 @@
 
 namespace dsb
 {
-namespace protocol
+namespace net
+{
+namespace service
 {
 
+
 // =============================================================================
-// ServiceBeacon
+// Beacon
 // =============================================================================
 
 namespace
@@ -58,7 +61,7 @@ namespace
                     udpSocket->Send(message.data(), message.size());
                 } catch (const std::exception& e) {
                     dsb::log::Log(dsb::log::error,
-                        boost::format("ServiceBeacon thread terminating due to error: %s ")
+                        boost::format("Beacon thread terminating due to error: %s ")
                             % e.what());
                     return;
                 }
@@ -90,7 +93,7 @@ namespace
         + 2; // payload size
 }
 
-ServiceBeacon::ServiceBeacon(
+Beacon::Beacon(
     std::uint64_t domainID,
     const std::string& serviceType,
     const std::string& serviceIdentifier,
@@ -129,7 +132,7 @@ ServiceBeacon::ServiceBeacon(
     if (messageSize > 1500) {
         // Source of the "1500 bytes" recommendation:
         // http://zguide.zeromq.org/page:all#Cooperative-Discovery-Using-UDP-Broadcasts
-        DSB_LOG_DEBUG("ServiceBeacon packet size exceeds 1500 bytes");
+        DSB_LOG_DEBUG("Beacon packet size exceeds 1500 bytes");
     }
     auto message = std::vector<char>(messageSize);
     std::memcpy(&message[0], protocolMagic, protocolMagicSize);
@@ -155,13 +158,13 @@ ServiceBeacon::ServiceBeacon(
 }
 
 
-ServiceBeacon::~ServiceBeacon() DSB_NOEXCEPT
+Beacon::~Beacon() DSB_NOEXCEPT
 {
     if (m_thread.joinable()) Stop();
 }
 
 
-void ServiceBeacon::Stop()
+void Beacon::Stop()
 {
     m_socket.send("STOP", 4);
     m_thread.join();
@@ -170,10 +173,10 @@ void ServiceBeacon::Stop()
 
 
 // =============================================================================
-// ServiceListener
+// Listener
 // =============================================================================
 
-class ServiceListener::Impl
+class Listener::Impl
 {
 public:
     Impl(
@@ -198,7 +201,7 @@ private:
 };
 
 
-ServiceListener::Impl::Impl(
+Listener::Impl::Impl(
     dsb::net::Reactor& reactor,
     std::uint64_t domainID,
     const std::string& networkInterface,
@@ -218,13 +221,13 @@ ServiceListener::Impl::Impl(
 }
 
 
-ServiceListener::Impl::~Impl() DSB_NOEXCEPT
+Listener::Impl::~Impl() DSB_NOEXCEPT
 {
     m_reactor.RemoveNativeSocket(m_udpSocket.NativeHandle());
 }
 
 
-void ServiceListener::Impl::IncomingBeacon()
+void Listener::Impl::IncomingBeacon()
 {
     char buffer[65535];
     in_addr peerAddress;
@@ -233,23 +236,23 @@ void ServiceListener::Impl::IncomingBeacon()
         sizeof(buffer),
         &peerAddress);
     if (msgSize < minMessageSize) {
-        DSB_LOG_TRACE("ServiceListener: Ignoring invalid message (too small)");
+        DSB_LOG_TRACE("Listener: Ignoring invalid message (too small)");
         return;
     }
     if (0 != std::memcmp(buffer, protocolMagic, protocolMagicSize)) {
-        DSB_LOG_TRACE("ServiceListener: Ignoring invalid message (bad format)");
+        DSB_LOG_TRACE("Listener: Ignoring invalid message (bad format)");
         return;
     }
     if (buffer[protocolMagicSize] != 0) {
         DSB_LOG_TRACE(
-            boost::format("ServiceListener: Ignoring message of version %d")
+            boost::format("Listener: Ignoring message of version %d")
             % static_cast<int>(buffer[protocolMagicSize]));
         return;
     }
     const auto domainID = dsb::util::DecodeUint64(buffer+protocolMagicSize+1);
     if (domainID != m_domainID) {
         DSB_LOG_TRACE(
-            boost::format("ServiceListener: Ignoring message from domain %d")
+            boost::format("Listener: Ignoring message from domain %d")
             % domainID);
         return;
     }
@@ -261,7 +264,7 @@ void ServiceListener::Impl::IncomingBeacon()
         dsb::util::DecodeUint16(buffer+protocolMagicSize+11);
     if (static_cast<std::size_t>(msgSize) !=
             minMessageSize + serviceTypeSize + serviceIdentifierSize + payloadSize) {
-        DSB_LOG_TRACE("ServiceListener: Ignoring invalid message (wrong size)");
+        DSB_LOG_TRACE("Listener: Ignoring invalid message (wrong size)");
         return;
     }
     m_onNotification(
@@ -274,7 +277,7 @@ void ServiceListener::Impl::IncomingBeacon()
 }
 
 
-ServiceListener::ServiceListener(
+Listener::Listener(
     dsb::net::Reactor& reactor,
     std::uint64_t domainID,
     const std::string& networkInterface,
@@ -290,18 +293,18 @@ ServiceListener::ServiceListener(
 }
 
 
-ServiceListener::~ServiceListener() DSB_NOEXCEPT
+Listener::~Listener() DSB_NOEXCEPT
 {
     // Do nothing.  This is only so we can use Impl anonymously
     // in the header.
 }
 
-ServiceListener::ServiceListener(ServiceListener&& other) DSB_NOEXCEPT
+Listener::Listener(Listener&& other) DSB_NOEXCEPT
     : m_impl(std::move(other.m_impl))
 {
 }
 
-ServiceListener& ServiceListener::operator=(ServiceListener&& other) DSB_NOEXCEPT
+Listener& Listener::operator=(Listener&& other) DSB_NOEXCEPT
 {
     m_impl = std::move(other.m_impl);
     return *this;
@@ -309,12 +312,12 @@ ServiceListener& ServiceListener::operator=(ServiceListener&& other) DSB_NOEXCEP
 
 
 // =============================================================================
-// ServiceTracker
+// Tracker
 // =============================================================================
 
 using namespace std::placeholders;
 
-class ServiceTracker::Impl
+class Tracker::Impl
 {
 public:
     Impl(
@@ -465,7 +468,7 @@ private:
     };
 
     dsb::net::Reactor& m_reactor;
-    ServiceListener m_listener;
+    Listener m_listener;
     std::unordered_map<std::string, TrackedServiceType> m_trackedServiceTypes;
     std::unordered_map<
             std::string,
@@ -477,7 +480,7 @@ private:
 };
 
 
-ServiceTracker::ServiceTracker(
+Tracker::Tracker(
     dsb::net::Reactor& reactor,
     std::uint64_t domainID,
     const std::string& networkInterface,
@@ -487,25 +490,25 @@ ServiceTracker::ServiceTracker(
 }
 
 
-ServiceTracker::~ServiceTracker() DSB_NOEXCEPT
+Tracker::~Tracker() DSB_NOEXCEPT
 {
 }
 
 
-ServiceTracker::ServiceTracker(ServiceTracker&& other) DSB_NOEXCEPT
+Tracker::Tracker(Tracker&& other) DSB_NOEXCEPT
     : m_impl(std::move(other.m_impl))
 {
 }
 
 
-ServiceTracker& ServiceTracker::operator=(ServiceTracker&& other) DSB_NOEXCEPT
+Tracker& Tracker::operator=(Tracker&& other) DSB_NOEXCEPT
 {
     m_impl = std::move(other.m_impl);
     return *this;
 }
 
 
-void ServiceTracker::AddTrackedServiceType(
+void Tracker::AddTrackedServiceType(
     const std::string& serviceType,
     std::chrono::milliseconds timeout,
     AppearedHandler onAppearance,
@@ -521,4 +524,4 @@ void ServiceTracker::AddTrackedServiceType(
 }
 
 
-}} // namespace
+}}} // namespace

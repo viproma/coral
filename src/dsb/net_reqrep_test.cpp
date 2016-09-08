@@ -1,18 +1,18 @@
 #include <memory>
 #include <thread>
 #include "gtest/gtest.h"
-#include "dsb/protocol/req_rep.hpp"
+#include "dsb/net/reqrep.hpp"
 #include "dsb/util.hpp"
 
 
-namespace dp = dsb::protocol;
+namespace dnr = dsb::net::reqrep;
 
 namespace
 {
     const std::string MY_PROTOCOL_ID = "CHEEZBURGER";
     const std::uint16_t MY_PROTOCOL_VER = 0;
 
-    class MyProtocolHandler : public dp::RRServerProtocolHandler
+    class MyProtocolHandler : public dnr::ServerProtocolHandler
     {
     public:
         MyProtocolHandler(dsb::net::Reactor& reactor)
@@ -57,7 +57,7 @@ namespace
     void RunTestServer(const char* endpoint)
     {
         dsb::net::Reactor reactor;
-        dp::RRServer server{reactor, dsb::net::Endpoint{endpoint}};
+        dnr::Server server{reactor, dsb::net::Endpoint{endpoint}};
         server.AddProtocolHandler(
             MY_PROTOCOL_ID,
             MY_PROTOCOL_VER,
@@ -66,16 +66,16 @@ namespace
     }
 }
 
-TEST(dsb_protocol, ReqRep)
+TEST(dsb_net_reqrep, ReqRep)
 {
-    const char* const endpoint = "inproc://dsb_protocol_req_rep_test";
+    const char* const endpoint = "inproc://dsb_net_reqrep_req_rep_test";
     auto serverThread = std::thread{&RunTestServer, endpoint};
     auto joinServerThread = dsb::util::OnScopeExit([&] () {
         serverThread.join();
     });
 
     dsb::net::Reactor reactor;
-    dp::RRClient client{
+    dnr::Client client{
         reactor,
         MY_PROTOCOL_ID,
         dsb::net::Endpoint{endpoint}};
@@ -87,12 +87,12 @@ TEST(dsb_protocol, ReqRep)
     std::function<void()> runErrorTest1;
     std::function<void()> runErrorTest2;
     std::function<void()> runShutdownTest;
-    dp::RRClient::MaxProtocolReplyHandler onTest1Reply;
-    dp::RRClient::ReplyHandler onTest2Reply;
-    dp::RRClient::ReplyHandler onTest3Reply;
-    dp::RRClient::ReplyHandler onErrorTest1Reply;
-    dp::RRClient::ReplyHandler onErrorTest2Reply;
-    dp::RRClient::ReplyHandler onShutdownTestReply;
+    dnr::Client::MaxProtocolReplyHandler onTest1Reply;
+    dnr::Client::ReplyHandler onTest2Reply;
+    dnr::Client::ReplyHandler onTest3Reply;
+    dnr::Client::ReplyHandler onErrorTest1Reply;
+    dnr::Client::ReplyHandler onErrorTest2Reply;
+    dnr::Client::ReplyHandler onShutdownTestReply;
 
     runTest1 = [&] ()
     {
@@ -198,9 +198,9 @@ TEST(dsb_protocol, ReqRep)
 }
 
 
-TEST(dsb_protocol, ReqRepMoreErrors)
+TEST(dsb_net_reqrep, ReqRepMoreErrors)
 {
-    const char* const endpoint = "inproc://dsb_protocol_req_rep_test2";
+    const char* const endpoint = "inproc://dsb_net_reqrep_req_rep_test2";
     auto serverThread = std::thread{&RunTestServer, endpoint};
     auto joinServerThread = dsb::util::OnScopeExit([&] () {
         serverThread.join();
@@ -211,12 +211,12 @@ TEST(dsb_protocol, ReqRepMoreErrors)
     std::function<void()> runTest2;
     std::function<void()> runTest3;
     std::function<void()> runTest4;
-    dp::RRClient::MaxProtocolReplyHandler onTest1Reply;
-    dp::RRClient::ReplyHandler onTest2Reply;
-    dp::RRClient::ReplyHandler onTest3Reply;
+    dnr::Client::MaxProtocolReplyHandler onTest1Reply;
+    dnr::Client::ReplyHandler onTest2Reply;
+    dnr::Client::ReplyHandler onTest3Reply;
 
     dsb::net::Reactor reactor;
-    auto client = std::make_unique<dp::RRClient>(
+    auto client = std::make_unique<dnr::Client>(
         reactor,
         "SOME_UNKNOWN_PROTOCOL",
         dsb::net::Endpoint{endpoint});
@@ -252,7 +252,7 @@ TEST(dsb_protocol, ReqRepMoreErrors)
 
     runTest3 = [&] () {
         // Switch to a valid protocol...
-        client = std::make_unique<dp::RRClient>(
+        client = std::make_unique<dnr::Client>(
             reactor,
             MY_PROTOCOL_ID,
             dsb::net::Endpoint{endpoint});
@@ -282,7 +282,7 @@ TEST(dsb_protocol, ReqRepMoreErrors)
             MY_PROTOCOL_VER,
             "PING", 4u,
             nullptr, 0u,
-            timeout, dp::RRClient::ReplyHandler{}), std::runtime_error);
+            timeout, dnr::Client::ReplyHandler{}), std::runtime_error);
         reactor.Stop();
     };
 

@@ -4,13 +4,13 @@
 #include <algorithm> // std::max
 #include <memory>
 #include "gtest/gtest.h"
-#include "dsb/protocol/discovery.hpp"
+#include "dsb/net/service.hpp"
 
 
-TEST(dsb_protocol, ServiceListener)
+TEST(dsb_net_service, Listener)
 {
     const std::uint16_t port = 63947;
-    auto beacon1 = dsb::protocol::ServiceBeacon(
+    auto beacon1 = dsb::net::service::Beacon(
         100,
         "serviceType1",
         "service1",
@@ -18,7 +18,7 @@ TEST(dsb_protocol, ServiceListener)
         std::chrono::milliseconds(100),
         "*",
         port);
-    auto beacon2 = dsb::protocol::ServiceBeacon(
+    auto beacon2 = dsb::net::service::Beacon(
         100,
         "serviceType2",
         "service2",
@@ -26,7 +26,7 @@ TEST(dsb_protocol, ServiceListener)
         std::chrono::milliseconds(200),
         "127.0.0.1",
         port);
-    auto beacon3 = dsb::protocol::ServiceBeacon(
+    auto beacon3 = dsb::net::service::Beacon(
         101,
         "serviceType1",
         "service3",
@@ -40,7 +40,7 @@ TEST(dsb_protocol, ServiceListener)
     int bugCount = 0;
 
     dsb::net::Reactor reactor;
-    auto listener = dsb::protocol::ServiceListener(reactor, 100, "*", port,
+    auto listener = dsb::net::service::Listener(reactor, 100, "*", port,
         [&] (const std::string& addr, const std::string& st, const std::string& si, const char* pl, std::size_t pls)
         {
             if (st == "serviceType1" && si == "service1" &&
@@ -70,13 +70,13 @@ TEST(dsb_protocol, ServiceListener)
 }
 
 
-TEST(dsb_protocol, ServiceTracker)
+TEST(dsb_net_service, Tracker)
 {
     namespace sc = std::chrono;
 
     const int domainID = 0;
     const std::uint16_t port = 63948;
-    std::unique_ptr<dsb::protocol::ServiceBeacon> beacon11, beacon12, beacon21, beacon31;
+    std::unique_ptr<dsb::net::service::Beacon> beacon11, beacon12, beacon21, beacon31;
     const auto service11StartTime = sc::milliseconds(300);
     const auto service12StartTime = sc::milliseconds(1200);
     const auto service21StartTime = sc::milliseconds(600);
@@ -101,7 +101,7 @@ TEST(dsb_protocol, ServiceTracker)
     reactor.AddTimer(
         service11StartTime, 1,
         [&] (dsb::net::Reactor&, int) {
-            beacon11 = std::make_unique<dsb::protocol::ServiceBeacon>(
+            beacon11 = std::make_unique<dsb::net::service::Beacon>(
                 domainID,
                 "serviceType1",
                 "service1.1",
@@ -113,7 +113,7 @@ TEST(dsb_protocol, ServiceTracker)
     reactor.AddTimer(
         service12StartTime, 1,
         [&] (dsb::net::Reactor&, int) {
-            beacon12 = std::make_unique<dsb::protocol::ServiceBeacon>(
+            beacon12 = std::make_unique<dsb::net::service::Beacon>(
                 domainID,
                 "serviceType1",
                 "service1.2",
@@ -125,7 +125,7 @@ TEST(dsb_protocol, ServiceTracker)
     reactor.AddTimer(
         service21StartTime, 1,
         [&] (dsb::net::Reactor&, int) {
-            beacon21 = std::make_unique<dsb::protocol::ServiceBeacon>(
+            beacon21 = std::make_unique<dsb::net::service::Beacon>(
                 domainID,
                 "serviceType2",
                 "service2.1",
@@ -137,7 +137,7 @@ TEST(dsb_protocol, ServiceTracker)
     reactor.AddTimer(
         service31StartTime, 1,
         [&] (dsb::net::Reactor&, int) {
-            beacon31 = std::make_unique<dsb::protocol::ServiceBeacon>(
+            beacon31 = std::make_unique<dsb::net::service::Beacon>(
                 domainID,
                 "serviceType3",
                 "service3.1",
@@ -149,7 +149,7 @@ TEST(dsb_protocol, ServiceTracker)
     reactor.AddTimer(
         service11ChangeTime, 1,
         [&] (dsb::net::Reactor&, int) {
-            beacon11 = std::make_unique<dsb::protocol::ServiceBeacon>(
+            beacon11 = std::make_unique<dsb::net::service::Beacon>(
                 domainID,
                 "serviceType1",
                 "service1.1",
@@ -189,7 +189,7 @@ TEST(dsb_protocol, ServiceTracker)
         return minimum <= actual && actual <= maximum;
     };
 
-    auto tracker = dsb::protocol::ServiceTracker(reactor, 0, "*", port);
+    auto tracker = dsb::net::service::Tracker(reactor, 0, "*", port);
     tracker.AddTrackedServiceType(
         "serviceType1", serviceType1Timeout,
         [&] (

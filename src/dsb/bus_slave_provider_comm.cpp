@@ -212,7 +212,7 @@ private:
     }
 
     const std::string m_address;
-    dsb::protocol::RRClient m_client;
+    dsb::net::reqrep::Client m_client;
     bool m_slaveTypesCached = false;
     std::vector<dsb::model::SlaveTypeDescription> m_slaveTypes;
 };
@@ -280,7 +280,7 @@ void SlaveProviderClient::InstantiateSlave(
 //       sense then.  Keeping it as it is for the time being, in case I want to
 //       move it back to the header.
 // TODO: Consider un-pimpl-ing it.
-class SlaveProviderServerHandler : public dsb::protocol::RRServerProtocolHandler
+class SlaveProviderServerHandler : public dsb::net::reqrep::ServerProtocolHandler
 {
 public:
     SlaveProviderServerHandler(std::shared_ptr<SlaveProviderOps> slaveProvider);
@@ -467,7 +467,7 @@ bool SlaveProviderServerHandler::HandleRequest(
 // =============================================================================
 
 void MakeSlaveProviderServer(
-    dsb::protocol::RRServer& server,
+    dsb::net::reqrep::Server& server,
     std::shared_ptr<SlaveProviderOps> slaveProvider)
 {
     server.AddProtocolHandler(

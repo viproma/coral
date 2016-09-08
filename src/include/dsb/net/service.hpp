@@ -1,9 +1,9 @@
 /**
 \file
-\brief  Dynamic network discovery.
+\brief  Module header for dsb::net::service
 */
-#ifndef DSB_PROTOCOL_DISCOVERY_HPP
-#define DSB_PROTOCOL_DISCOVERY_HPP
+#ifndef DSB_NET_SERVICE_HPP
+#define DSB_NET_SERVICE_HPP
 
 #include <chrono>
 #include <cstdint>
@@ -19,7 +19,11 @@
 
 namespace dsb
 {
-namespace protocol
+namespace net
+{
+
+/// Dynamic network service discovery.
+namespace service
 {
 
 
@@ -30,11 +34,11 @@ namespace protocol
 An object of this class will start broadcasting information about its service
 immediately upon construction.  This happens in a background thread.  It is a
 good idea to always call Stop() before the object is destroyed, so that errors
-are handled properly.  (See ~ServiceBeacon() for more information.)
+are handled properly.  (See ~Beacon() for more information.)
 
-To detect services that are announced with this class, use ServiceListener.
+To detect services that are announced with this class, use Listener.
 */
-class ServiceBeacon
+class Beacon
 {
 public:
     /**
@@ -42,11 +46,11 @@ public:
 
     \param [in] domainID
         This represents a way to divide the services on the same physical
-        network into distinct partitions.  A ServiceListener will only detect
-        services whose ServiceBeacon uses the same `domainID`.
+        network into distinct partitions.  A Listener will only detect
+        services whose Beacon uses the same `domainID`.
     \param [in] serviceType
         The name of the service type, which may be any string of at most
-        255 characters.  This is used to filter services in ServiceListener.
+        255 characters.  This is used to filter services in Listener.
     \param [in] serviceIdentifier
         A name which identifies a particular service-providing entity.
         Its length may be up to 255 characters.  Normally, this will be a
@@ -69,12 +73,12 @@ public:
         The name or IP address of the network interface to broadcast on,
         or "*" to broadcast on all interfaces.
     \param [in] port
-        Which UDP port to broadcast to.  The ServiceListener must use the
+        Which UDP port to broadcast to.  The Listener must use the
         same port.
 
     \throws std::runtime_error on error.
     */
-    ServiceBeacon(
+    Beacon(
         std::uint64_t domainID,
         const std::string& serviceType,
         const std::string& serviceIdentifier,
@@ -93,12 +97,12 @@ public:
     Stop() manually before destruction, so that errors may be handled
     properly.
     */
-    ~ServiceBeacon() DSB_NOEXCEPT;
+    ~Beacon() DSB_NOEXCEPT;
 
-    ServiceBeacon(const ServiceBeacon&) = delete;
-    ServiceBeacon& operator=(const ServiceBeacon&) = delete;
+    Beacon(const Beacon&) = delete;
+    Beacon& operator=(const Beacon&) = delete;
 
-    DSB_DEFINE_DEFAULT_MOVE(ServiceBeacon, m_thread, m_socket);
+    DSB_DEFINE_DEFAULT_MOVE(Beacon, m_thread, m_socket);
 
     /// Stops broadcasting service information.
     void Stop();
@@ -113,14 +117,14 @@ private:
 \brief  A class for detecting services on a network.
 
 An object of this class can be used to listen for service announcements
-broadcast by one or more ServiceBeacon instances.  (It is recommended
+broadcast by one or more Beacon instances.  (It is recommended
 to read the documentation for that class too.)
 
-Unlike ServiceBeacon, this class does not create a background thread;
+Unlike Beacon, this class does not create a background thread;
 rather it uses the reactor pattern (specifically, dsb::net::Reactor) to
 deal with incoming data in the current thread.
 */
-class ServiceListener
+class Listener
 {
 public:
     /**
@@ -130,8 +134,8 @@ public:
     ~~~{.cpp}
     void handler(
         const std::string& address,     // the service's IP address
-        const std::string& serviceType, // the service type (see ServiceBeacon)
-        const std::string& serviceID,   // the service name (see ServiceBeacon)
+        const std::string& serviceType, // the service type (see Beacon)
+        const std::string& serviceID,   // the service name (see Beacon)
         const char* payload,            // data payload (or null if none)
         std::size_t payloadSize);       // data payload size
     ~~~
@@ -152,21 +156,21 @@ public:
     \param [in] reactor
         Used to listen for incoming data.
     \param [in] domainID
-        This must match the domain ID of any ServiceBeacon one wishes to
+        This must match the domain ID of any Beacon one wishes to
         detect.
     \param [in] networkInterface
         The name or IP address of the network interface to listen on,
         or "*" to listen on all interfaces.
     \param [in] port
         Which UDP port to listen on.  This must match the port used in the
-        ServiceBeacon.
+        Beacon.
     \param [in] onNotification
         A function which will be called whenever a service notification
         is received.
 
     \throws std::runtime_error on network error.
     */
-    ServiceListener(
+    Listener(
         dsb::net::Reactor& reactor,
         std::uint64_t domainID,
         const std::string& networkInterface,
@@ -174,16 +178,16 @@ public:
         NotificationHandler onNotification);
 
     /// Destructor
-    ~ServiceListener() DSB_NOEXCEPT;
+    ~Listener() DSB_NOEXCEPT;
 
-    ServiceListener(const ServiceListener&) = delete;
-    ServiceListener& operator=(const ServiceListener&) = delete;
+    Listener(const Listener&) = delete;
+    Listener& operator=(const Listener&) = delete;
 
     /// Move constructor
-    ServiceListener(ServiceListener&&) DSB_NOEXCEPT;
+    Listener(Listener&&) DSB_NOEXCEPT;
 
     /// Move assignment operator
-    ServiceListener& operator=(ServiceListener&&) DSB_NOEXCEPT;
+    Listener& operator=(Listener&&) DSB_NOEXCEPT;
 
 private:
     class Impl;
@@ -195,16 +199,16 @@ private:
 \brief  A class for keeping track of services on a network.
 
 An object of this class can be used to keep track of services that announce
-their presence using ServiceBeacon.  It is built on top of ServiceListener,
+their presence using Beacon.  It is built on top of Listener,
 but rather than forwarding "raw" beacon pings, it translates these into
 events that indicate whether a new service has appeared on the network,
 whether one has disappeared, or whether one has changed its data payload.
 
-Unlike ServiceBeacon, this class does not create a background thread;
+Unlike Beacon, this class does not create a background thread;
 rather it uses the reactor pattern (specifically, dsb::net::Reactor) to
 deal with incoming data in the current thread.
 */
-class ServiceTracker
+class Tracker
 {
 public:
     /**
@@ -214,8 +218,8 @@ public:
     ~~~{.cpp}
     void handler(
         const std::string& address,     // the service's IP address
-        const std::string& serviceType, // the service type (see ServiceBeacon)
-        const std::string& serviceID,   // the service name (see ServiceBeacon)
+        const std::string& serviceType, // the service type (see Beacon)
+        const std::string& serviceID,   // the service name (see Beacon)
         const char* payload,            // data payload (or null if none)
         std::size_t payloadSize);       // data payload size
     ~~~
@@ -238,8 +242,8 @@ public:
     ~~~{.cpp}
     void handler(
         const std::string& address,     // the service's IP address
-        const std::string& serviceType, // the service type (see ServiceBeacon)
-        const std::string& serviceID,   // the service name (see ServiceBeacon)
+        const std::string& serviceType, // the service type (see Beacon)
+        const std::string& serviceID,   // the service name (see Beacon)
         const char* payload,            // data payload (or null if none)
         std::size_t payloadSize);       // data payload size
     ~~~
@@ -254,8 +258,8 @@ public:
     Such a function must have the following signature:
     ~~~{.cpp}
     void handler(
-        const std::string& serviceType, // the service type (see ServiceBeacon)
-        const std::string& serviceID);  // the service name (see ServiceBeacon)
+        const std::string& serviceType, // the service type (see Beacon)
+        const std::string& serviceID);  // the service name (see Beacon)
     ~~~
     */
     typedef std::function<void(const std::string&, const std::string&)>
@@ -267,34 +271,34 @@ public:
     \param [in] reactor
         Used to listen for incoming data.
     \param [in] domainID
-        This must match the domain ID of any ServiceBeacon one wishes to
+        This must match the domain ID of any Beacon one wishes to
         detect.
     \param [in] networkInterface
         The name or IP address of the network interface to listen on,
         or "*" to listen on all interfaces.
     \param [in] port
         Which UDP port to listen on.  This must match the port used in the
-        ServiceBeacon.
+        Beacon.
 
     \throws std::runtime_error on network error.
     */
-    ServiceTracker(
+    Tracker(
         dsb::net::Reactor& reactor,
         std::uint64_t domainID,
         const std::string& networkInterface,
         std::uint16_t port);
 
     /// Destructor.
-    ~ServiceTracker() DSB_NOEXCEPT;
+    ~Tracker() DSB_NOEXCEPT;
 
-    ServiceTracker(const ServiceTracker&) = delete;
-    ServiceTracker& operator=(const ServiceTracker&) = delete;
+    Tracker(const Tracker&) = delete;
+    Tracker& operator=(const Tracker&) = delete;
 
     /// Move constructor.
-    ServiceTracker(ServiceTracker&&) DSB_NOEXCEPT;
+    Tracker(Tracker&&) DSB_NOEXCEPT;
 
     /// Move assignment operator.
-    ServiceTracker& operator=(ServiceTracker&&) DSB_NOEXCEPT;
+    Tracker& operator=(Tracker&&) DSB_NOEXCEPT;
 
     /**
     \brief  Adds (or updates the settings for) a tracked service type.
@@ -331,5 +335,5 @@ private:
 };
 
 
-}} // namespace
+}}} // namespace
 #endif // header guard

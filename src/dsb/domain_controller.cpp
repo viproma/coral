@@ -10,8 +10,8 @@
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
 #include "dsb/net/reactor.hpp"
+#include "dsb/net/service.hpp"
 #include "dsb/net/zmqx.hpp"
-#include "dsb/protocol/discovery.hpp"
 #include "dsb/protocol/glue.hpp"
 #include "dsb/util.hpp"
 
@@ -37,7 +37,7 @@ namespace
     // Forward declarations of internal functions, definitions are
     // further down.
     void SetupSlaveProviderTracking(
-        dsb::protocol::ServiceTracker& tracker,
+        dsb::net::service::Tracker& tracker,
         SlaveProviderMap& slaveProviderMap,
         dsb::net::Reactor& reactor);
     void HandleGetSlaveTypes(
@@ -74,7 +74,7 @@ public:
         {
             try {
                 bgData.serviceTracker =
-                    std::make_unique<dsb::protocol::ServiceTracker>(
+                    std::make_unique<dsb::net::service::Tracker>(
                         reactor,
                         0,
                         networkInterface,
@@ -144,7 +144,7 @@ private:
         // TODO: Replace std::unique_ptr with boost::optional (when we no longer
         //       need to support Boost < 1.56) or std::optional (when all our
         //       compilers support it).
-        std::unique_ptr<dsb::protocol::ServiceTracker> serviceTracker;
+        std::unique_ptr<dsb::net::service::Tracker> serviceTracker;
     };
     dsb::async::CommThread<BgData> m_thread;
 };
@@ -202,7 +202,7 @@ namespace // Internal functions
 // Configures the service tracker to automatically add and remove
 // slave providers in the slave provider map.
 void SetupSlaveProviderTracking(
-    dsb::protocol::ServiceTracker& tracker,
+    dsb::net::service::Tracker& tracker,
     SlaveProviderMap& slaveProviderMap,
     dsb::net::Reactor& reactor)
 {
