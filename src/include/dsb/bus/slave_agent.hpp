@@ -15,12 +15,12 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/net/reactor.hpp"
-#include "dsb/net/socket.hpp"
 #include "dsb/execution/slave.hpp"
 #include "dsb/execution/variable_io.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "execution.pb.h"
 
 
@@ -172,7 +172,7 @@ private:
     dsb::execution::ISlaveInstance& m_slaveInstance;
     std::chrono::milliseconds m_commTimeout;
 
-    dsb::net::RepSocket m_control;
+    dsb::net::zmqx::RepSocket m_control;
     dsb::execution::VariablePublisher m_publisher;
     Connections m_connections;
     dsb::model::SlaveID m_id; // The slave's ID number in the current execution

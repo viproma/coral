@@ -4,10 +4,9 @@
 #include <limits>
 #include <utility>
 
-#include "dsb/net/messaging.hpp"
-#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/execution.hpp"
 #include "dsb/protocol/glue.hpp"
@@ -71,7 +70,7 @@ SlaveAgent::SlaveAgent(
         [this](dsb::net::Reactor& r, zmq::socket_t& s) {
             assert(&s == &m_control.Socket());
             std::vector<zmq::message_t> msg;
-            if (!dsb::net::Receive(m_control, msg, m_commTimeout)) {
+            if (!dsb::net::zmqx::Receive(m_control, msg, m_commTimeout)) {
                 throw dsb::execution::TimeoutException(
                     std::chrono::duration_cast<std::chrono::seconds>(m_commTimeout));
             }

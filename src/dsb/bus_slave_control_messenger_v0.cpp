@@ -60,7 +60,7 @@ namespace
 
 SlaveControlMessengerV0::SlaveControlMessengerV0(
     dsb::net::Reactor& reactor,
-    dsb::net::ReqSocket socket,
+    dsb::net::zmqx::ReqSocket socket,
     dsb::model::SlaveID slaveID,
     const std::string& slaveName,
     const SlaveSetup& setup,

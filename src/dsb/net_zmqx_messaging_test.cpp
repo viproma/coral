@@ -1,9 +1,9 @@
 #include <chrono>
 #include <cstring>
 #include "gtest/gtest.h"
-#include "dsb/net/messaging.hpp"
+#include "dsb/net/zmqx.hpp"
 
-using namespace dsb::net;
+using namespace dsb::net::zmqx;
 
 
 TEST(dsb_net, WaitForIncomingOutgoing)

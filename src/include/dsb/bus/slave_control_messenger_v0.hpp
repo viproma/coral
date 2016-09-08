@@ -11,10 +11,10 @@
 #include "dsb/config.h"
 #include "dsb/bus/slave_control_messenger.hpp"
 #include "dsb/bus/slave_setup.hpp"
-#include "dsb/net/reactor.hpp"
-#include "dsb/net/socket.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/zmqx.hpp"
 
 #include "boost/variant.hpp"
 
@@ -38,7 +38,7 @@ class SlaveControlMessengerV0 : public ISlaveControlMessenger
 public:
     SlaveControlMessengerV0(
         dsb::net::Reactor& reactor,
-        dsb::net::ReqSocket socket,
+        dsb::net::zmqx::ReqSocket socket,
         dsb::model::SlaveID slaveID,
         const std::string& slaveName,
         const SlaveSetup& setup,
@@ -137,7 +137,7 @@ private:
     void CheckInvariant() const;
 
     dsb::net::Reactor& m_reactor;
-    dsb::net::ReqSocket m_socket;
+    dsb::net::zmqx::ReqSocket m_socket;
 
     // State information
     SlaveState m_state;

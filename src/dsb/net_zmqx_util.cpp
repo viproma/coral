@@ -1,4 +1,4 @@
-#include "dsb/net/util.hpp"
+#include "dsb/net/zmqx.hpp"
 
 #include "boost/lexical_cast.hpp"
 
@@ -7,6 +7,9 @@ namespace dsb
 {
 namespace net
 {
+namespace zmqx
+{
+
 
 zmq::context_t& GlobalContext()
 {
@@ -29,7 +32,7 @@ std::uint16_t BindToEphemeralPort(
 {
     const auto endpoint = "tcp://" + networkInterface + ":*";
     socket.bind(endpoint.c_str());
-    return EndpointPort(dsb::net::LastEndpoint(socket));
+    return EndpointPort(dsb::net::zmqx::LastEndpoint(socket));
 }
 
 
@@ -57,4 +60,4 @@ std::uint16_t EndpointPort(const std::string& endpoint)
 }
 
 
-}} // namespace
+}}} // namespace

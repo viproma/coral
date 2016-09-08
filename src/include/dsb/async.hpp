@@ -16,10 +16,10 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/net/reactor.hpp"
-#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "dsb/util.hpp"
 
 
@@ -407,12 +407,12 @@ namespace detail
 template<typename StackData>
 CommThread<StackData>::CommThread()
     : m_active{true}
-    , m_socket{dsb::net::GlobalContext(), ZMQ_PAIR}
+    , m_socket{dsb::net::zmqx::GlobalContext(), ZMQ_PAIR}
     , m_threadStatus{}
     , m_nextTask{}
 {
     auto bgSocket =
-        std::make_shared<zmq::socket_t>(dsb::net::GlobalContext(), ZMQ_PAIR);
+        std::make_shared<zmq::socket_t>(dsb::net::zmqx::GlobalContext(), ZMQ_PAIR);
     bgSocket->setsockopt(ZMQ_LINGER, 0);
     m_socket.setsockopt(ZMQ_LINGER, 0);
     const auto endpoint = "inproc://" + dsb::util::RandomUUID();

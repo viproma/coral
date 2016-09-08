@@ -1,9 +1,7 @@
 #include "dsb/protocol/req_rep.hpp"
 
-#include "dsb/net/messaging.hpp"
-#include "dsb/net/socket.hpp"
-#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "dsb/util.hpp"
 
 
@@ -124,7 +122,7 @@ void RRClient::SendRequest(
     msg.emplace_back(requestHeader, requestHeaderSize);
     if (requestBody != nullptr) msg.emplace_back(requestBody, requestBodySize);
 
-    if (!dsb::net::WaitForOutgoing(m_socket.Socket(), timeout)) {
+    if (!dsb::net::zmqx::WaitForOutgoing(m_socket.Socket(), timeout)) {
         throw std::runtime_error("Send timed out");
     }
     m_socket.Send(msg);
@@ -143,7 +141,7 @@ namespace
         RRClient::MaxProtocolReplyHandler& handler)
     {
         assert(handler);
-        const auto h = dsb::net::ToString(header);
+        const auto h = dsb::net::zmqx::ToString(header);
         if (h == META_REP_OK && body != nullptr && body->size() == 2) {
             dsb::util::LastCall(handler,
                 std::error_code(),
@@ -410,7 +408,7 @@ private:
     }
 
     dsb::net::Reactor& m_reactor;
-    dsb::net::RepSocket m_socket;
+    dsb::net::zmqx::RepSocket m_socket;
     std::unordered_map<
             std::string,
             std::map<std::uint16_t, std::shared_ptr<RRServerProtocolHandler>>>

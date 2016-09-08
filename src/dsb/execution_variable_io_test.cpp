@@ -13,8 +13,8 @@
 #include "boost/thread/latch.hpp"
 #include "gtest/gtest.h"
 
-#include "dsb/net/util.hpp"
 #include "dsb/execution/variable_io.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "dsb/util.hpp"
 
 

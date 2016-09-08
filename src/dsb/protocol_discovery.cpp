@@ -13,12 +13,11 @@
 
 #include "boost/numeric/conversion/cast.hpp"
 
-#include "dsb/net/messaging.hpp"
-#include "dsb/net/ip.hpp"
-#include "dsb/net/udp.hpp"
-#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
+#include "dsb/net/ip.hpp"
+#include "dsb/net/udp.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "dsb/util.hpp"
 
 
@@ -52,7 +51,7 @@ namespace
                 zmq::message_t msg;
                 inprocSocket->recv(&msg);
                 assert(!msg.more());
-                if (dsb::net::ToString(msg) == "STOP") break;
+                if (dsb::net::zmqx::ToString(msg) == "STOP") break;
             }
             if (std::chrono::steady_clock::now() >= nextBeacon) {
                 try {
@@ -100,7 +99,7 @@ ServiceBeacon::ServiceBeacon(
     std::chrono::milliseconds period,
     const std::string& networkInterface,
     std::uint16_t port)
-    : m_socket(dsb::net::GlobalContext(), ZMQ_PAIR)
+    : m_socket(dsb::net::zmqx::GlobalContext(), ZMQ_PAIR)
 {
     DSB_INPUT_CHECK(serviceType.size() < 256u);
     DSB_INPUT_CHECK(serviceIdentifier.size() < 256u);
@@ -112,7 +111,7 @@ ServiceBeacon::ServiceBeacon(
     const auto endpoint = "inproc://" + dsb::util::RandomUUID();
     m_socket.bind(endpoint);
     auto otherSocket = std::make_shared<zmq::socket_t>(
-        dsb::net::GlobalContext(), ZMQ_PAIR);
+        dsb::net::zmqx::GlobalContext(), ZMQ_PAIR);
     otherSocket->connect(endpoint);
 
     // Set up the UDP socket

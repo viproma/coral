@@ -3,9 +3,9 @@
 #include <typeinfo> // std::bad_cast
 
 #include "gtest/gtest.h"
-#include "dsb/net/util.hpp"
+#include "dsb/net/zmqx.hpp"
 
-using namespace dsb::net;
+using namespace dsb::net::zmqx;
 
 
 TEST(dsb_net, GlobalContext)

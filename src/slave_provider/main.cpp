@@ -11,12 +11,11 @@
 
 #include "zmq.hpp"
 
-#include "dsb/net/messaging.hpp"
-#include "dsb/net/util.hpp"
 #include "dsb/domain/slave_provider.hpp"
 #include "dsb/fmi/fmu.hpp"
 #include "dsb/fmi/importer.hpp"
 #include "dsb/log.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "dsb/util.hpp"
 #include "dsb/util/console.hpp"
 
@@ -51,8 +50,8 @@ public:
     {
         m_instantiationFailureDescription.clear();
         try {
-            auto slaveStatusSocket = zmq::socket_t(dsb::net::GlobalContext(), ZMQ_PULL);
-            const auto slaveStatusPort = dsb::net::BindToEphemeralPort(slaveStatusSocket);
+            auto slaveStatusSocket = zmq::socket_t(dsb::net::zmqx::GlobalContext(), ZMQ_PULL);
+            const auto slaveStatusPort = dsb::net::zmqx::BindToEphemeralPort(slaveStatusSocket);
             const auto slaveStatusEp = "tcp://localhost:" + boost::lexical_cast<std::string>(slaveStatusPort);
 
             std::vector<std::string> args;
@@ -69,7 +68,7 @@ public:
 
             std::clog << "Waiting for verification..." << std::flush;
             std::vector<zmq::message_t> slaveStatus;
-            const auto feedbackTimedOut = !dsb::net::WaitForIncoming(
+            const auto feedbackTimedOut = !dsb::net::zmqx::WaitForIncoming(
                 slaveStatusSocket,
                 timeout);
             if (feedbackTimedOut) {
@@ -78,11 +77,11 @@ public:
                     + boost::lexical_cast<std::string>(timeout.count())
                     + " milliseconds to start; presumably it has failed altogether");
             }
-            dsb::net::Receive(slaveStatusSocket, slaveStatus);
-            if (dsb::net::ToString(slaveStatus[0]) == "ERROR" &&
+            dsb::net::zmqx::Receive(slaveStatusSocket, slaveStatus);
+            if (dsb::net::zmqx::ToString(slaveStatus[0]) == "ERROR" &&
                     slaveStatus.size() == 2) {
-                throw std::runtime_error(dsb::net::ToString(slaveStatus[1]));
-            } else if (dsb::net::ToString(slaveStatus[0]) != "OK" ||
+                throw std::runtime_error(dsb::net::zmqx::ToString(slaveStatus[1]));
+            } else if (dsb::net::zmqx::ToString(slaveStatus[0]) != "OK" ||
                     slaveStatus.size() < 3 ||
                     slaveStatus[1].size() == 0 ||
                     slaveStatus[2].size() == 0) {
@@ -93,9 +92,9 @@ public:
             // running.  The following two contains the endpoints to which the slave
             // is bound.
             slaveLocator = dsb::net::SlaveLocator{
-                dsb::net::InetEndpoint{dsb::net::ToString(slaveStatus[1])}
+                dsb::net::InetEndpoint{dsb::net::zmqx::ToString(slaveStatus[1])}
                     .ToEndpoint("tcp"),
-                dsb::net::InetEndpoint{dsb::net::ToString(slaveStatus[2])}
+                dsb::net::InetEndpoint{dsb::net::zmqx::ToString(slaveStatus[2])}
                     .ToEndpoint("tcp")
             };
 

@@ -1,4 +1,4 @@
-#include "dsb/net/messaging.hpp"
+#include "dsb/net/zmqx.hpp"
 
 #include "dsb/config.h"
 #include "dsb/error.hpp"
@@ -18,7 +18,7 @@ namespace
 }
 
 
-bool dsb::net::WaitForOutgoing(
+bool dsb::net::zmqx::WaitForOutgoing(
     zmq::socket_t& socket,
     std::chrono::milliseconds timeout)
 {
@@ -27,7 +27,7 @@ bool dsb::net::WaitForOutgoing(
 }
 
 
-bool dsb::net::WaitForIncoming(
+bool dsb::net::zmqx::WaitForIncoming(
     zmq::socket_t& socket,
     std::chrono::milliseconds timeout)
 {
@@ -41,7 +41,7 @@ namespace
     void SendFrames(
         zmq::socket_t& socket,
         std::vector<zmq::message_t>& message,
-        dsb::net::SendFlag flags)
+        dsb::net::zmqx::SendFlag flags)
     {
         assert (!message.empty());
         const auto last = --message.end();
@@ -50,7 +50,7 @@ namespace
         }
         socket.send(
             *last,
-            (flags & dsb::net::SendFlag::more) != dsb::net::SendFlag::none
+            (flags & dsb::net::zmqx::SendFlag::more) != dsb::net::zmqx::SendFlag::none
                 ? ZMQ_SNDMORE
                 : 0);
         message.clear();
@@ -58,7 +58,7 @@ namespace
 }
 
 
-void dsb::net::Send(
+void dsb::net::zmqx::Send(
     zmq::socket_t& socket,
     std::vector<zmq::message_t>& message,
     SendFlag flags)
@@ -69,7 +69,7 @@ void dsb::net::Send(
 }
 
 
-void dsb::net::AddressedSend(
+void dsb::net::zmqx::AddressedSend(
     zmq::socket_t& socket,
     std::vector<zmq::message_t>& envelope,
     std::vector<zmq::message_t>& body)
@@ -84,7 +84,7 @@ void dsb::net::AddressedSend(
 }
 
 
-void dsb::net::Receive(
+void dsb::net::zmqx::Receive(
     zmq::socket_t& socket,
     std::vector<zmq::message_t>& message)
 {
@@ -96,7 +96,7 @@ void dsb::net::Receive(
 }
 
 
-size_t dsb::net::PopMessageEnvelope(
+size_t dsb::net::zmqx::PopMessageEnvelope(
     std::vector<zmq::message_t>& message,
     std::vector<zmq::message_t>* envelope)
 {
@@ -116,7 +116,7 @@ size_t dsb::net::PopMessageEnvelope(
 }
 
 
-void dsb::net::CopyMessage(
+void dsb::net::zmqx::CopyMessage(
     std::vector<zmq::message_t>& source,
     std::vector<zmq::message_t>& target)
 {
@@ -127,7 +127,7 @@ void dsb::net::CopyMessage(
 }
 
 
-void dsb::net::CopyMessage(
+void dsb::net::zmqx::CopyMessage(
     const std::vector<zmq::message_t>& source,
     std::vector<zmq::message_t>& target)
 {
@@ -139,13 +139,13 @@ void dsb::net::CopyMessage(
 }
 
 
-std::string dsb::net::ToString(const zmq::message_t& frame)
+std::string dsb::net::zmqx::ToString(const zmq::message_t& frame)
 {
     return std::string(static_cast<const char*>(frame.data()), frame.size());
 }
 
 
-zmq::message_t dsb::net::ToFrame(const std::string& s)
+zmq::message_t dsb::net::zmqx::ToFrame(const std::string& s)
 {
     auto msg = zmq::message_t(s.size());
     std::memcpy(msg.data(), s.data(), s.size());

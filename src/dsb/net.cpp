@@ -12,12 +12,12 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <utility>
+
 #include "zmq.hpp"
 
-#include "dsb/net/ip.hpp"
-#include "dsb/net/messaging.hpp"
-#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
+#include "dsb/net/ip.hpp"
+#include "dsb/net/zmqx.hpp"
 
 
 namespace dsb

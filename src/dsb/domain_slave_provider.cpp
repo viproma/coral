@@ -7,9 +7,9 @@
 #include "zmq.hpp"
 
 #include "dsb/bus/slave_provider_comm.hpp"
-#include "dsb/net/reactor.hpp"
-#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "dsb/protocol/discovery.hpp"
 #include "dsb/util.hpp"
 
@@ -113,10 +113,10 @@ SlaveProvider::SlaveProvider(
 
     const auto killEndpoint = "inproc://" + dsb::util::RandomUUID();
     m_killSocket = std::make_unique<zmq::socket_t>(
-        dsb::net::GlobalContext(), ZMQ_PAIR);
+        dsb::net::zmqx::GlobalContext(), ZMQ_PAIR);
     m_killSocket->bind(killEndpoint);
     bg.killSocket = std::make_shared<zmq::socket_t>(
-        dsb::net::GlobalContext(), ZMQ_PAIR);
+        dsb::net::zmqx::GlobalContext(), ZMQ_PAIR);
     bg.killSocket->connect(killEndpoint);
     bg.reactor->AddSocket(
         *bg.killSocket,
@@ -131,7 +131,7 @@ SlaveProvider::SlaveProvider(
 
     char beaconPayload[2];
     dsb::util::EncodeUint16(
-        dsb::net::EndpointPort(bg.server->BoundEndpoint().URL()),
+        dsb::net::zmqx::EndpointPort(bg.server->BoundEndpoint().URL()),
         beaconPayload);
     bg.beacon = std::make_shared<dsb::protocol::ServiceBeacon>(
         0,

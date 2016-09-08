@@ -7,11 +7,10 @@
 
 #include "dsb/async.hpp"
 #include "dsb/bus/slave_provider_comm.hpp"
-#include "dsb/net/messaging.hpp"
-#include "dsb/net/reactor.hpp"
-#include "dsb/net/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "dsb/protocol/discovery.hpp"
 #include "dsb/protocol/glue.hpp"
 #include "dsb/util.hpp"

@@ -18,7 +18,7 @@
 
 #include "dsb/config.h"
 #include "dsb/net/reactor.hpp"
-#include "dsb/net/socket.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "dsb/net.hpp"
 
 
@@ -204,7 +204,7 @@ private:
     dsb::net::Reactor& m_reactor;
     std::string m_protocolIdentifier;
     dsb::net::Endpoint m_serverEndpoint;
-    dsb::net::ReqSocket m_socket;
+    dsb::net::zmqx::ReqSocket m_socket;
 
     int m_timeoutTimerID;
     std::uint16_t m_requestProtocolVersion;

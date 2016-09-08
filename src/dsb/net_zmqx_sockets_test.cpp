@@ -8,12 +8,10 @@
 
 #include "zmq.hpp"
 
-#include "dsb/net/messaging.hpp"
-#include "dsb/net/util.hpp"
+#include "dsb/net/zmqx.hpp"
 
-#include "dsb/net/socket.hpp"
 
-using namespace dsb::net;
+using namespace dsb::net::zmqx;
 
 
 namespace
