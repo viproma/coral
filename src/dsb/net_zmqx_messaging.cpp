@@ -69,21 +69,6 @@ void dsb::net::zmqx::Send(
 }
 
 
-void dsb::net::zmqx::AddressedSend(
-    zmq::socket_t& socket,
-    std::vector<zmq::message_t>& envelope,
-    std::vector<zmq::message_t>& body)
-{
-    DSB_INPUT_CHECK(!envelope.empty());
-    DSB_INPUT_CHECK(!body.empty());
-    SendFrames(socket, envelope, SendFlag::more);
-    socket.send("", 0, ZMQ_SNDMORE);
-    SendFrames(socket, body, SendFlag::none);
-    assert (envelope.empty());
-    assert (body.empty());
-}
-
-
 void dsb::net::zmqx::Receive(
     zmq::socket_t& socket,
     std::vector<zmq::message_t>& message)
@@ -93,49 +78,6 @@ void dsb::net::zmqx::Receive(
         message.emplace_back();
         socket.recv(&message.back());
     } while (message.back().more());
-}
-
-
-size_t dsb::net::zmqx::PopMessageEnvelope(
-    std::vector<zmq::message_t>& message,
-    std::vector<zmq::message_t>* envelope)
-{
-    auto delim = std::find_if(message.begin(), message.end(),
-                              [](const zmq::message_t& m) { return m.size() == 0; });
-    if (delim == message.end()) {
-        if (envelope) envelope->clear();
-        return 0;
-    }
-    const auto envSize = delim - message.begin();
-    if (envelope) {
-        envelope->resize(envSize);
-        std::move(message.begin(), delim, envelope->begin());
-    }
-    message.erase(message.begin(), ++delim);
-    return envSize + 1;
-}
-
-
-void dsb::net::zmqx::CopyMessage(
-    std::vector<zmq::message_t>& source,
-    std::vector<zmq::message_t>& target)
-{
-    target.resize(source.size());
-    for (size_t i = 0; i < source.size(); ++i) {
-        target[i].copy(&source[i]);
-    }
-}
-
-
-void dsb::net::zmqx::CopyMessage(
-    const std::vector<zmq::message_t>& source,
-    std::vector<zmq::message_t>& target)
-{
-    target.clear();
-    for (auto it = source.cbegin(); it != source.cend(); ++it) {
-        target.push_back(zmq::message_t(it->size()));
-        std::memcpy(target.back().data(), it->data(), it->size());
-    }
 }
 
 
