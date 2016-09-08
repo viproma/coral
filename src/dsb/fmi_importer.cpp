@@ -197,7 +197,7 @@ std::shared_ptr<FMU> Importer::Import(const boost::filesystem::path& fmuPath)
     auto pit = m_pathCache.find(fmuPath);
     if (pit != end(m_pathCache)) return pit->second.lock();
 
-    const auto zip = dsb::util::ZipArchive(fmuPath);
+    const auto zip = dsb::util::zip::Archive(fmuPath);
     const auto tempMdDir = m_workDir / dsb::util::RandomUUID();
     boost::filesystem::create_directories(tempMdDir);
     const auto removeTempMdDir = dsb::util::OnScopeExit([&](){
@@ -206,7 +206,7 @@ std::shared_ptr<FMU> Importer::Import(const boost::filesystem::path& fmuPath)
     });
 
     const auto modelDescriptionIndex = zip.FindEntry("modelDescription.xml");
-    if (modelDescriptionIndex == dsb::util::INVALID_ZIP_ENTRY_INDEX) {
+    if (modelDescriptionIndex == dsb::util::zip::INVALID_ENTRY_INDEX) {
         throw std::runtime_error(
             fmuPath.string() + " does not contain modelDescription.xml");
     }

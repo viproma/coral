@@ -17,6 +17,8 @@ namespace dsb
 {
 namespace util
 {
+namespace zip
+{
 
 
 namespace
@@ -25,11 +27,11 @@ namespace
     class ZipFile
     {
     public:
-        ZipFile(zip* archive, zip_uint64_t index, zip_flags_t flags = 0)
+        ZipFile(::zip* archive, zip_uint64_t index, zip_flags_t flags = 0)
             : m_file{zip_fopen_index(archive, index, flags)}
         {
             if (m_file == nullptr) {
-                throw ZipException(archive);
+                throw Exception(archive);
             }
         }
 
@@ -51,7 +53,7 @@ namespace
             assert(maxBytes > 0);
             const auto bytesRead = zip_fread(m_file, buffer, maxBytes);
             if (bytesRead < 0) {
-                throw ZipException(m_file);
+                throw Exception(m_file);
             }
             return static_cast<std::size_t>(bytesRead);
         }
@@ -62,27 +64,27 @@ namespace
 }
 
 
-ZipArchive::ZipArchive() DSB_NOEXCEPT
+Archive::Archive() DSB_NOEXCEPT
     : m_archive{nullptr}
 {
 }
 
 
-ZipArchive::ZipArchive(const boost::filesystem::path& path)
+Archive::Archive(const boost::filesystem::path& path)
     : m_archive{nullptr}
 {
     Open(path);
 }
 
 
-ZipArchive::ZipArchive(ZipArchive&& other) DSB_NOEXCEPT
+Archive::Archive(Archive&& other) DSB_NOEXCEPT
     : m_archive{other.m_archive}
 {
     other.m_archive = nullptr;
 }
 
 
-ZipArchive& ZipArchive::operator=(ZipArchive&& other) DSB_NOEXCEPT
+Archive& Archive::operator=(Archive&& other) DSB_NOEXCEPT
 {
     Discard();
     m_archive = other.m_archive;
@@ -91,13 +93,13 @@ ZipArchive& ZipArchive::operator=(ZipArchive&& other) DSB_NOEXCEPT
 }
 
 
-ZipArchive::~ZipArchive() DSB_NOEXCEPT
+Archive::~Archive() DSB_NOEXCEPT
 {
     Discard();
 }
 
 
-void ZipArchive::Open(const boost::filesystem::path& path)
+void Archive::Open(const boost::filesystem::path& path)
 {
     DSB_PRECONDITION_CHECK(!IsOpen());
     int errorCode;
@@ -107,7 +109,7 @@ void ZipArchive::Open(const boost::filesystem::path& path)
         auto msgBuf = std::vector<char>(
             zip_error_to_str(nullptr, 0, errorCode, errnoVal) + 1);
         zip_error_to_str(msgBuf.data(), msgBuf.size(), errorCode, errno);
-        throw ZipException(msgBuf.data());
+        throw Exception(msgBuf.data());
     }
     m_archive = archive;
 }
@@ -120,7 +122,7 @@ does not save changes.  Since this module currently only supports non-modifying
 operations, there would be no practical difference, but this way we keep the
 door open for adding this functionality in the future.
 */
-void ZipArchive::Discard() DSB_NOEXCEPT
+void Archive::Discard() DSB_NOEXCEPT
 {
     if (m_archive) {
         zip_discard(m_archive);
@@ -129,56 +131,56 @@ void ZipArchive::Discard() DSB_NOEXCEPT
 }
 
 
-bool ZipArchive::IsOpen() const DSB_NOEXCEPT
+bool Archive::IsOpen() const DSB_NOEXCEPT
 {
     return m_archive != nullptr;
 }
 
 
-std::uint64_t ZipArchive::EntryCount() const
+std::uint64_t Archive::EntryCount() const
 {
     DSB_PRECONDITION_CHECK(IsOpen());
     return zip_get_num_entries(m_archive, 0);
 }
 
 
-ZipEntryIndex ZipArchive::FindEntry(const std::string& name) const
+EntryIndex Archive::FindEntry(const std::string& name) const
 {
     DSB_PRECONDITION_CHECK(IsOpen());
     const auto n = zip_name_locate(m_archive, name.c_str(), ZIP_FL_ENC_GUESS);
     if (n < 0) {
         int code = 0;
         zip_error_get(m_archive, &code, nullptr);
-        if (code == ZIP_ER_NOENT) return INVALID_ZIP_ENTRY_INDEX;
-        else throw ZipException(m_archive);
+        if (code == ZIP_ER_NOENT) return INVALID_ENTRY_INDEX;
+        else throw Exception(m_archive);
     }
-    return static_cast<ZipEntryIndex>(n);
+    return static_cast<EntryIndex>(n);
 }
 
 
-std::string ZipArchive::EntryName(ZipEntryIndex index) const
+std::string Archive::EntryName(EntryIndex index) const
 {
     DSB_PRECONDITION_CHECK(IsOpen());
     const auto name = zip_get_name(m_archive, index, ZIP_FL_ENC_GUESS);
     if (name == nullptr) {
-        throw ZipException(m_archive);
+        throw Exception(m_archive);
     }
     return std::string(name);
 }
 
 
-bool ZipArchive::IsDirEntry(ZipEntryIndex index) const
+bool Archive::IsDirEntry(EntryIndex index) const
 {
     DSB_PRECONDITION_CHECK(IsOpen());
     struct zip_stat zs;
     if (zip_stat_index(m_archive, index, 0, &zs)) {
-        throw ZipException(m_archive);
+        throw Exception(m_archive);
     }
     if ((zs.valid & ZIP_STAT_NAME) && (zs.valid & ZIP_STAT_SIZE) && (zs.valid & ZIP_STAT_CRC)) {
         const auto nameLen = std::strlen(zs.name);
         return zs.name[nameLen-1] == '/' && zs.size == 0 && zs.crc == 0;
     } else {
-        throw ZipException("Cannot determine entry type");
+        throw Exception("Cannot determine entry type");
     }
 }
 
@@ -200,8 +202,8 @@ namespace
     }
 
     void ExtractFileAs(
-        zip* archive,
-        ZipEntryIndex index,
+        ::zip* archive,
+        EntryIndex index,
         const boost::filesystem::path& targetPath,
         std::vector<char>& buffer)
     {
@@ -230,7 +232,7 @@ namespace
 }
 
 
-void ZipArchive::ExtractAll(
+void Archive::ExtractAll(
     const boost::filesystem::path& targetDir) const
 {
     DSB_PRECONDITION_CHECK(IsOpen());
@@ -242,12 +244,12 @@ void ZipArchive::ExtractAll(
 
     auto buffer = std::vector<char>(4096*16);
     const auto entryCount = EntryCount();
-    for (ZipEntryIndex index = 0; index < entryCount; ++index) {
+    for (EntryIndex index = 0; index < entryCount; ++index) {
         const auto entryName = EntryName(index);
         if (!entryName.empty() && entryName.back() != '/') {
             const auto entryPath = boost::filesystem::path(entryName);
             if (entryPath.has_root_path()) {
-                throw ZipException(
+                throw Exception(
                     "Archive contains an entry with an absolute path: "
                     + entryName);
             }
@@ -259,8 +261,8 @@ void ZipArchive::ExtractAll(
 }
 
 
-boost::filesystem::path ZipArchive::ExtractFileTo(
-    ZipEntryIndex index,
+boost::filesystem::path Archive::ExtractFileTo(
+    EntryIndex index,
     const boost::filesystem::path& targetDir) const
 {
     DSB_PRECONDITION_CHECK(IsOpen());
@@ -273,23 +275,23 @@ boost::filesystem::path ZipArchive::ExtractFileTo(
 
 
 // =============================================================================
-// ZipException
+// Exception
 // =============================================================================
 
-ZipException::ZipException(const std::string& msg) DSB_NOEXCEPT
+Exception::Exception(const std::string& msg) DSB_NOEXCEPT
     : std::runtime_error{msg}
 {
 }
 
-ZipException::ZipException(zip* archive) DSB_NOEXCEPT
+Exception::Exception(::zip* archive) DSB_NOEXCEPT
     : std::runtime_error{zip_strerror(archive)}
 {
 }
 
-ZipException::ZipException(zip_file* file) DSB_NOEXCEPT
+Exception::Exception(zip_file* file) DSB_NOEXCEPT
     : std::runtime_error{zip_file_strerror(file)}
 {
 }
 
 
-}} // namespace
+}}} // namespace

@@ -1,3 +1,7 @@
+/**
+\file
+\brief  Module header for dsb::net::zmqx
+*/
 #ifndef DSB_NET_ZMQX_HPP
 #define DSB_NET_ZMQX_HPP
 

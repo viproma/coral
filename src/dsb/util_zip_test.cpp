@@ -8,9 +8,10 @@
 #include "dsb/util/zip.hpp"
 
 
-TEST(dsb_util, ZipArchive)
+TEST(dsb_util_zip, Archive)
 {
     namespace du = dsb::util;
+    namespace dz = dsb::util::zip;
     namespace fs = boost::filesystem;
 
     // Info about the test archive file and its contents
@@ -30,7 +31,7 @@ TEST(dsb_util, ZipArchive)
     const auto archivePath = boost::filesystem::path(testDataDir) / "ziptest.zip";
 
     // Open archive
-    auto archive = du::ZipArchive(archivePath);
+    auto archive = dz::Archive(archivePath);
     ASSERT_TRUE(archive.IsOpen());
 
     // Get entry info
@@ -39,21 +40,21 @@ TEST(dsb_util, ZipArchive)
     const auto binIndex = archive.FindEntry(binName);
     const auto txtIndex = archive.FindEntry(txtName);
     const auto invIndex = archive.FindEntry("no such entry");
-    ASSERT_NE(du::INVALID_ZIP_ENTRY_INDEX, dirIndex);
-    ASSERT_NE(du::INVALID_ZIP_ENTRY_INDEX, binIndex);
-    ASSERT_NE(du::INVALID_ZIP_ENTRY_INDEX, txtIndex);
-    ASSERT_EQ(du::INVALID_ZIP_ENTRY_INDEX, invIndex);
+    ASSERT_NE(dz::INVALID_ENTRY_INDEX, dirIndex);
+    ASSERT_NE(dz::INVALID_ENTRY_INDEX, binIndex);
+    ASSERT_NE(dz::INVALID_ENTRY_INDEX, txtIndex);
+    ASSERT_EQ(dz::INVALID_ENTRY_INDEX, invIndex);
     ASSERT_NE(dirIndex, binIndex);
     ASSERT_NE(dirIndex, txtIndex);
     ASSERT_NE(binIndex, txtIndex);
     ASSERT_EQ(dirName, archive.EntryName(dirIndex));
     ASSERT_EQ(binName, archive.EntryName(binIndex));
     ASSERT_EQ(txtName, archive.EntryName(txtIndex));
-    ASSERT_THROW(archive.EntryName(invIndex), du::ZipException);
+    ASSERT_THROW(archive.EntryName(invIndex), dz::Exception);
     ASSERT_TRUE(archive.IsDirEntry(dirIndex));
     ASSERT_FALSE(archive.IsDirEntry(binIndex));
     ASSERT_FALSE(archive.IsDirEntry(txtIndex));
-    ASSERT_THROW(archive.IsDirEntry(invIndex), du::ZipException);
+    ASSERT_THROW(archive.IsDirEntry(invIndex), dz::Exception);
 
     // Extract entire archive
     {
@@ -82,7 +83,7 @@ TEST(dsb_util, ZipArchive)
         ASSERT_EQ(0, txtExtracted.compare(tempDir.Path() / txtFilename));
         ASSERT_EQ(binSize, fs::file_size(binExtracted));
         ASSERT_EQ(txtSize, fs::file_size(txtExtracted));
-        ASSERT_THROW(archive.ExtractFileTo(invIndex, tempDir.Path()), du::ZipException);
+        ASSERT_THROW(archive.ExtractFileTo(invIndex, tempDir.Path()), dz::Exception);
         ASSERT_THROW(archive.ExtractFileTo(binIndex, tempDir.Path()/"nonexistent"), std::runtime_error);
     }
 

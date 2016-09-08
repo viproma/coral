@@ -1,6 +1,6 @@
 /**
 \file
-\brief  Communication over the UDP protocol.
+\brief  Module header for dsb::net::udp
 */
 #ifndef DSB_NET_UDP_HPP
 #define DSB_NET_UDP_HPP
