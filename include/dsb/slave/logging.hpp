@@ -1,3 +1,7 @@
+/**
+\file
+\brief  Defines the dsb::slave::LoggingInstance class.
+*/
 #ifndef DSB_SLAVE_LOGGING_HPP_INCLUDED
 #define DSB_SLAVE_LOGGING_HPP_INCLUDED
 
@@ -14,6 +18,7 @@ namespace slave
 {
 
 
+/// A slave instance wrapper that logs variable values to a file.
 class LoggingInstance : public Instance
 {
 public:

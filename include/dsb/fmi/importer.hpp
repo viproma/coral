@@ -1,3 +1,7 @@
+/**
+\file
+\brief FMU import functionality.
+*/
 #ifndef DSB_FMI_IMPORTER_HPP
 #define DSB_FMI_IMPORTER_HPP
 

@@ -1,3 +1,8 @@
+/**
+\file
+\brief  Defines the dsb::bus::VariablePublisher and dsb::bus::VariableSubscriber
+        classes.
+*/
 #ifndef DSB_BUS_VARIABLE_IO_HPP_INCLUDED
 #define DSB_BUS_VARIABLE_IO_HPP_INCLUDED
 

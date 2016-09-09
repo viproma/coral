@@ -1,3 +1,7 @@
+/**
+\file
+\brief Classes for dealing with FMI 1.0 FMUs.
+*/
 #ifndef DSB_FMI_FMU1_HPP
 #define DSB_FMI_FMU1_HPP
 

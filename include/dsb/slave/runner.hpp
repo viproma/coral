@@ -23,6 +23,7 @@ namespace slave
 {
 
 
+/// A class for running a slave instance
 class Runner
 {
 public:

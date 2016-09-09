@@ -1,3 +1,7 @@
+/**
+\file
+\brief  Slave provider client/server communication classes.
+*/
 #ifndef DSB_BUS_SP_INFO_CLIENT_HPP
 #define DSB_BUS_SP_INFO_CLIENT_HPP
 

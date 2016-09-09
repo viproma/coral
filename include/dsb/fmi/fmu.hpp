@@ -1,3 +1,7 @@
+/**
+\file
+\brief Defines a version-independent FMU interface.
+*/
 #ifndef DSB_FMI_FMU_HPP
 #define DSB_FMI_FMU_HPP
 

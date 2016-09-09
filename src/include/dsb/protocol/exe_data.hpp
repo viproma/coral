@@ -1,3 +1,7 @@
+/**
+\file
+\brief  Module header for dsb::protocol::exe_data
+*/
 #ifndef DSB_PROTOCOL_EXE_DATA_HPP
 #define DSB_PROTOCOL_EXE_DATA_HPP
 
