@@ -1,31 +1,21 @@
 /**
 \file
-\brief Slave (instance) functionality.
+\brief  Defines the dsb::slave::Instance interface.
 */
-#ifndef DSB_EXECUTION_SLAVE_HPP
-#define DSB_EXECUTION_SLAVE_HPP
+#ifndef DSB_SLAVE_INSTANCE_HPP
+#define DSB_SLAVE_INSTANCE_HPP
 
-#include <chrono>
-#include <memory>
-#include <stdexcept>
-#include "dsb/config.h"
+#include <string>
 #include "dsb/model.hpp"
-#include "dsb/net.hpp"
-
 
 namespace dsb
 {
-
-// Forward declarations to avoid dependencies on internal classes.
-namespace bus { class SlaveAgent; }
-namespace net { class Reactor; }
-
-namespace execution
+namespace slave
 {
 
 
 /// An interface for classes that represent slave instances.
-class ISlaveInstance
+class Instance
 {
 public:
     /**
@@ -132,52 +122,9 @@ public:
         dsb::model::TimeDuration deltaT) = 0;
 
     // Because it's an interface:
-    virtual ~ISlaveInstance() { }
+    virtual ~Instance() { }
 };
 
 
-class SlaveRunner
-{
-public:
-    SlaveRunner(
-        std::shared_ptr<ISlaveInstance> slaveInstance,
-        const dsb::net::Endpoint& controlEndpoint,
-        const dsb::net::Endpoint& dataPubEndpoint,
-        std::chrono::seconds commTimeout);
-
-    SlaveRunner(SlaveRunner&&) DSB_NOEXCEPT;
-
-    SlaveRunner& operator=(SlaveRunner&&) DSB_NOEXCEPT;
-
-    ~SlaveRunner();
-
-    dsb::net::Endpoint BoundControlEndpoint();
-    dsb::net::Endpoint BoundDataPubEndpoint();
-
-    void Run();
-
-private:
-    std::shared_ptr<ISlaveInstance> m_slaveInstance;
-    std::unique_ptr<dsb::net::Reactor> m_reactor;
-    std::unique_ptr<dsb::bus::SlaveAgent> m_slaveAgent;
-};
-
-
-class TimeoutException : public std::runtime_error
-{
-public:
-    explicit TimeoutException(std::chrono::seconds timeoutDuration)
-        : std::runtime_error("Slave timed out due to lack of communication"),
-          m_timeoutDuration(timeoutDuration)
-    {
-    }
-
-    std::chrono::seconds TimeoutDuration() const { return m_timeoutDuration; }
-
-private:
-    std::chrono::seconds m_timeoutDuration;
-};
-
-
-}}      // namespace
-#endif  // header guard
+}}
+#endif // header guard

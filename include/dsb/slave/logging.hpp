@@ -1,24 +1,24 @@
-#ifndef DSB_EXECUTION_LOGGING_SLAVE_HPP
-#define DSB_EXECUTION_LOGGING_SLAVE_HPP
+#ifndef DSB_SLAVE_LOGGING_HPP_INCLUDED
+#define DSB_SLAVE_LOGGING_HPP_INCLUDED
 
 #include <fstream>
 #include <memory>
 #include <string>
 
-#include "dsb/execution/slave.hpp"
+#include "dsb/slave/instance.hpp"
 
 
 namespace dsb
 {
-namespace execution
+namespace slave
 {
 
 
-class LoggingSlaveInstance : public dsb::execution::ISlaveInstance
+class LoggingInstance : public Instance
 {
 public:
     /**
-    \brief  Constructs a LoggingSlaveInstance that wraps the given slave
+    \brief  Constructs a LoggingInstance that wraps the given slave
             instance and adds logging to it.
 
     \param [in] instance
@@ -30,11 +30,11 @@ public:
         contains a directory name, it should end with a directory separator
         (a slash).
     */
-    explicit LoggingSlaveInstance(
-        std::shared_ptr<dsb::execution::ISlaveInstance> instance,
+    explicit LoggingInstance(
+        std::shared_ptr<Instance> instance,
         const std::string& outputFilePrefix = std::string{});
 
-    // ISlaveInstance methods.
+    // slave::Instance methods.
     bool Setup(
         dsb::model::TimePoint startTime,
         dsb::model::TimePoint stopTime,
@@ -52,7 +52,7 @@ public:
     bool DoStep(dsb::model::TimePoint currentT, dsb::model::TimeDuration deltaT) override;
 
 private:
-    std::shared_ptr<dsb::execution::ISlaveInstance> m_instance;
+    std::shared_ptr<Instance> m_instance;
     std::string m_outputFilePrefix;
     std::ofstream m_outputStream;
 };

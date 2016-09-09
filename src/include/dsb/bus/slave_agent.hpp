@@ -15,12 +15,12 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/execution/slave.hpp"
 #include "dsb/execution/variable_io.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
 #include "dsb/net/reactor.hpp"
 #include "dsb/net/zmqx.hpp"
+#include "dsb/slave/instance.hpp"
 #include "execution.pb.h"
 
 
@@ -52,13 +52,13 @@ public:
         data.
     \param [in] commTimeout
         A time after which communication with the master is assumed to be
-        broken.  When this happens, a dsb::execution::TimeoutException will
+        broken.  When this happens, a dsb::slave::TimeoutException will
         be thrown from the "incoming message" handler, and will propagate
         out through dsb::net::Reactor::Run().
     */
     SlaveAgent(
         dsb::net::Reactor& reactor,
-        dsb::execution::ISlaveInstance& slaveInstance,
+        dsb::slave::Instance& slaveInstance,
         const dsb::net::Endpoint& controlEndpoint,
         const dsb::net::Endpoint& dataPubEndpoint,
         std::chrono::milliseconds commTimeout);
@@ -151,7 +151,7 @@ private:
         // Waits until all data has been received for the time step specified
         // by `stepID` and updates the slave instance with the new values.
         void Update(
-            dsb::execution::ISlaveInstance& slaveInstance,
+            dsb::slave::Instance& slaveInstance,
             dsb::model::StepID stepID,
             std::chrono::milliseconds timeout);
 
@@ -169,7 +169,7 @@ private:
         dsb::execution::VariableSubscriber m_subscriber;
     };
 
-    dsb::execution::ISlaveInstance& m_slaveInstance;
+    dsb::slave::Instance& m_slaveInstance;
     std::chrono::milliseconds m_commTimeout;
 
     dsb::net::zmqx::RepSocket m_control;

@@ -1,4 +1,4 @@
-#include "dsb/execution/logging_slave.hpp"
+#include "dsb/slave/logging.hpp"
 
 #include <cassert>
 #include <cerrno>
@@ -12,12 +12,12 @@
 
 namespace dsb
 {
-namespace execution
+namespace slave
 {
 
 
-LoggingSlaveInstance::LoggingSlaveInstance(
-    std::shared_ptr<dsb::execution::ISlaveInstance> instance,
+LoggingInstance::LoggingInstance(
+    std::shared_ptr<Instance> instance,
     const std::string& outputFilePrefix)
     : m_instance{instance}
     , m_outputFilePrefix(outputFilePrefix)
@@ -26,7 +26,7 @@ LoggingSlaveInstance::LoggingSlaveInstance(
 }
 
 
-bool LoggingSlaveInstance::Setup(
+bool LoggingInstance::Setup(
     dsb::model::TimePoint startTime,
     dsb::model::TimePoint stopTime,
     const std::string& executionName,
@@ -50,7 +50,7 @@ bool LoggingSlaveInstance::Setup(
     }
     outputFileName += ".csv";
 
-    DSB_LOG_TRACE("LoggingSlaveInstance: Opening " + outputFileName);
+    DSB_LOG_TRACE("LoggingInstance: Opening " + outputFileName);
     m_outputStream.open(
         outputFileName,
         std::ios_base::out | std::ios_base::trunc
@@ -75,55 +75,55 @@ bool LoggingSlaveInstance::Setup(
 }
 
 
-const dsb::model::SlaveTypeDescription& LoggingSlaveInstance::TypeDescription() const
+const dsb::model::SlaveTypeDescription& LoggingInstance::TypeDescription() const
 {
     return m_instance->TypeDescription();
 }
 
 
-double LoggingSlaveInstance::GetRealVariable(dsb::model::VariableID varRef) const
+double LoggingInstance::GetRealVariable(dsb::model::VariableID varRef) const
 {
     return m_instance->GetRealVariable(varRef);
 }
 
 
-int LoggingSlaveInstance::GetIntegerVariable(dsb::model::VariableID varRef) const
+int LoggingInstance::GetIntegerVariable(dsb::model::VariableID varRef) const
 {
     return m_instance->GetIntegerVariable(varRef);
 }
 
 
-bool LoggingSlaveInstance::GetBooleanVariable(dsb::model::VariableID varRef) const
+bool LoggingInstance::GetBooleanVariable(dsb::model::VariableID varRef) const
 {
     return m_instance->GetBooleanVariable(varRef);
 }
 
 
-std::string LoggingSlaveInstance::GetStringVariable(dsb::model::VariableID varRef) const
+std::string LoggingInstance::GetStringVariable(dsb::model::VariableID varRef) const
 {
     return m_instance->GetStringVariable(varRef);
 }
 
 
-void LoggingSlaveInstance::SetRealVariable(dsb::model::VariableID varRef, double value)
+void LoggingInstance::SetRealVariable(dsb::model::VariableID varRef, double value)
 {
     m_instance->SetRealVariable(varRef, value);
 }
 
 
-void LoggingSlaveInstance::SetIntegerVariable(dsb::model::VariableID varRef, int value)
+void LoggingInstance::SetIntegerVariable(dsb::model::VariableID varRef, int value)
 {
     m_instance->SetIntegerVariable(varRef, value);
 }
 
 
-void LoggingSlaveInstance::SetBooleanVariable(dsb::model::VariableID varRef, bool value)
+void LoggingInstance::SetBooleanVariable(dsb::model::VariableID varRef, bool value)
 {
     m_instance->SetBooleanVariable(varRef, value);
 }
 
 
-void LoggingSlaveInstance::SetStringVariable(dsb::model::VariableID varRef, const std::string& value)
+void LoggingInstance::SetStringVariable(dsb::model::VariableID varRef, const std::string& value)
 {
     m_instance->SetStringVariable(varRef, value);
 }
@@ -134,7 +134,7 @@ namespace
     void PrintVariable(
         std::ostream& out,
         const dsb::model::VariableDescription& varInfo,
-        dsb::execution::ISlaveInstance& slaveInstance)
+        Instance& slaveInstance)
     {
         out << ",";
         switch (varInfo.DataType()) {
@@ -157,7 +157,7 @@ namespace
 }
 
 
-bool LoggingSlaveInstance::DoStep(
+bool LoggingInstance::DoStep(
     dsb::model::TimePoint currentT,
     dsb::model::TimeDuration deltaT)
 {

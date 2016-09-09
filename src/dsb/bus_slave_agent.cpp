@@ -10,6 +10,7 @@
 #include "dsb/protobuf.hpp"
 #include "dsb/protocol/execution.hpp"
 #include "dsb/protocol/glue.hpp"
+#include "dsb/slave/exception.hpp"
 #include "dsb/util.hpp"
 
 
@@ -49,7 +50,7 @@ namespace bus
 
 SlaveAgent::SlaveAgent(
     dsb::net::Reactor& reactor,
-    dsb::execution::ISlaveInstance& slaveInstance,
+    dsb::slave::Instance& slaveInstance,
     const dsb::net::Endpoint& controlEndpoint,
     const dsb::net::Endpoint& dataPubEndpoint,
     std::chrono::milliseconds commTimeout)
@@ -71,7 +72,7 @@ SlaveAgent::SlaveAgent(
             assert(&s == &m_control.Socket());
             std::vector<zmq::message_t> msg;
             if (!dsb::net::zmqx::Receive(m_control, msg, m_commTimeout)) {
-                throw dsb::execution::TimeoutException(
+                throw dsb::slave::TimeoutException(
                     std::chrono::duration_cast<std::chrono::seconds>(m_commTimeout));
             }
             try {
@@ -218,7 +219,7 @@ namespace
     {
     public:
         SetVariable(
-            dsb::execution::ISlaveInstance& slaveInstance,
+            dsb::slave::Instance& slaveInstance,
             dsb::model::VariableID varRef)
             : m_slaveInstance(slaveInstance), m_varRef(varRef) { }
         void operator()(double value) const
@@ -238,7 +239,7 @@ namespace
             m_slaveInstance.SetStringVariable(m_varRef, value);
         }
     private:
-        dsb::execution::ISlaveInstance& m_slaveInstance;
+        dsb::slave::Instance& m_slaveInstance;
         dsb::model::VariableID m_varRef;
     };
 }
@@ -296,7 +297,7 @@ void SlaveAgent::HandleSetPeers(std::vector<zmq::message_t>& msg)
 namespace
 {
     dsb::model::ScalarValue GetVariable(
-        const dsb::execution::ISlaveInstance& slave,
+        const dsb::slave::Instance& slave,
         const dsb::model::VariableDescription& variable)
     {
         switch (variable.DataType()) {
@@ -359,7 +360,7 @@ void SlaveAgent::Connections::Couple(
 
 
 void SlaveAgent::Connections::Update(
-    dsb::execution::ISlaveInstance& slaveInstance,
+    dsb::slave::Instance& slaveInstance,
     dsb::model::StepID stepID,
     std::chrono::milliseconds timeout)
 {

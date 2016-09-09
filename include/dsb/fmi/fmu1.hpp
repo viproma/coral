@@ -118,7 +118,7 @@ public:
 
     ~SlaveInstance1() DSB_NOEXCEPT;
 
-    // dsb::execution::ISlaveInstance methods
+    // dsb::slave::Instance methods
     const dsb::model::SlaveTypeDescription& TypeDescription() const override;
 
     bool Setup(

@@ -11,12 +11,11 @@
 #include "boost/filesystem.hpp"
 #include "zmq.hpp"
 
-#include "dsb/execution/logging_slave.hpp"
-#include "dsb/execution/slave.hpp"
 #include "dsb/fmi/fmu.hpp"
 #include "dsb/fmi/importer.hpp"
 #include "dsb/log.hpp"
 #include "dsb/net/zmqx.hpp"
+#include "dsb/slave.hpp"
 
 
 /*
@@ -80,18 +79,18 @@ try {
         % fmu->Description().Name());
 
     auto fmiSlave = fmu->InstantiateSlave();
-    std::shared_ptr<dsb::execution::ISlaveInstance> slave;
+    std::shared_ptr<dsb::slave::Instance> slave;
     if (outputDir.empty()) {
         slave = fmiSlave;
     } else {
-        slave = std::make_shared<dsb::execution::LoggingSlaveInstance>(
+        slave = std::make_shared<dsb::slave::LoggingInstance>(
             fmiSlave,
             outputDir);
     }
 
     const auto bindpoint =
         dsb::net::ip::Endpoint(networkInterface, "*").ToEndpoint("tcp");
-    auto slaveRunner = dsb::execution::SlaveRunner(
+    auto slaveRunner = dsb::slave::Runner(
         slave,
         bindpoint,
         bindpoint,

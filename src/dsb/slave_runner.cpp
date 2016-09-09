@@ -1,4 +1,4 @@
-#include "dsb/execution/slave.hpp"
+#include "dsb/slave/runner.hpp"
 
 #include <utility>
 #include <vector>
@@ -12,12 +12,12 @@
 
 namespace dsb
 {
-namespace execution
+namespace slave
 {
 
 
-SlaveRunner::SlaveRunner(
-    std::shared_ptr<ISlaveInstance> slaveInstance,
+Runner::Runner(
+    std::shared_ptr<Instance> slaveInstance,
     const dsb::net::Endpoint& controlEndpoint,
     const dsb::net::Endpoint& dataPubEndpoint,
     std::chrono::seconds commTimeout)
@@ -33,13 +33,13 @@ SlaveRunner::SlaveRunner(
 }
 
 
-SlaveRunner::SlaveRunner(SlaveRunner&& other) DSB_NOEXCEPT
+Runner::Runner(Runner&& other) DSB_NOEXCEPT
     : m_slaveInstance(std::move(other.m_slaveInstance)),
       m_reactor(std::move(other.m_reactor)),
       m_slaveAgent(std::move(other.m_slaveAgent))
 {
 }
-SlaveRunner& SlaveRunner::operator=(SlaveRunner&& other) DSB_NOEXCEPT
+Runner& Runner::operator=(Runner&& other) DSB_NOEXCEPT
 {
     m_slaveInstance = std::move(other.m_slaveInstance);
     m_reactor = std::move(other.m_reactor);
@@ -51,22 +51,22 @@ SlaveRunner& SlaveRunner::operator=(SlaveRunner&& other) DSB_NOEXCEPT
 // The destructor doesn't actually do anything, we just needed to declare
 // it explicitly in the header to be able to use std::unique_ptr with Reactor
 // as an incomplete type.
-SlaveRunner::~SlaveRunner() { }
+Runner::~Runner() { }
 
 
-dsb::net::Endpoint SlaveRunner::BoundControlEndpoint()
+dsb::net::Endpoint Runner::BoundControlEndpoint()
 {
     return m_slaveAgent->BoundControlEndpoint();
 }
 
 
-dsb::net::Endpoint SlaveRunner::BoundDataPubEndpoint()
+dsb::net::Endpoint Runner::BoundDataPubEndpoint()
 {
     return m_slaveAgent->BoundDataPubEndpoint();
 }
 
 
-void SlaveRunner::Run()
+void Runner::Run()
 {
     m_reactor->Run();
 }
