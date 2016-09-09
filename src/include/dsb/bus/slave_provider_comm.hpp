@@ -1,3 +1,7 @@
+/**
+\file
+\brief  Slave provider client/server communication classes.
+*/
 #ifndef DSB_BUS_SP_INFO_CLIENT_HPP
 #define DSB_BUS_SP_INFO_CLIENT_HPP
 
@@ -9,10 +13,10 @@
 #include <system_error>
 
 #include "dsb/config.h"
-#include "dsb/comm/reactor.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
-#include "dsb/protocol/req_rep.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/reqrep.hpp"
 
 
 namespace dsb
@@ -38,8 +42,8 @@ public:
         The port on which the slave provider is accepting connections.
     */
     SlaveProviderClient(
-        dsb::comm::Reactor& reactor,
-        const dsb::net::InetEndpoint& endpoint);
+        dsb::net::Reactor& reactor,
+        const dsb::net::ip::Endpoint& endpoint);
 
     /// Destructor
     ~SlaveProviderClient() DSB_NOEXCEPT;
@@ -139,7 +143,7 @@ public:
     The object that will carry out any incoming requests.
 */
 void MakeSlaveProviderServer(
-    dsb::protocol::RRServer& server,
+    dsb::net::reqrep::Server& server,
     std::shared_ptr<SlaveProviderOps> slaveProvider);
 
 

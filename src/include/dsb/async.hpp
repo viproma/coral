@@ -16,10 +16,10 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/comm/reactor.hpp"
-#include "dsb/comm/util.hpp"
 #include "dsb/error.hpp"
 #include "dsb/log.hpp"
+#include "dsb/net/reactor.hpp"
+#include "dsb/net/zmqx.hpp"
 #include "dsb/util.hpp"
 
 
@@ -50,23 +50,23 @@ struct CommThreadTask
     If `StackData` is not `void`, the signature is defined as follows:
     ~~~{.cpp}
     void fun(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         StackData& data,
         std::promise<Result> promise);
     ~~~
     And if `StackData` is `void`, the signature is defined like this:
     ~~~{.cpp}
     void fun(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         std::promise<Result> promise);
     ~~~
-    Here, `reactor` and `data` are the dedicated dsb::comm::Reactor and
+    Here, `reactor` and `data` are the dedicated dsb::net::Reactor and
     `StackData` objects associated with the background thread, respectively,
     and `promise` is the std::promise object which the task function should
     use to return its result (or throw an exception).
     */
     using Type = std::function<void(
-        dsb::comm::Reactor&,
+        dsb::net::Reactor&,
         StackData&,
         std::promise<Result>)>;
 };
@@ -76,7 +76,7 @@ template<typename Result>
 struct CommThreadTask<void, Result>
 {
     using Type = std::function<void(
-        dsb::comm::Reactor&,
+        dsb::net::Reactor&,
         std::promise<Result>)>;
 };
 
@@ -86,7 +86,7 @@ namespace detail
     template<typename StackData>
     struct CommThreadAnyTask
     {
-        using Type = std::function<void(dsb::comm::Reactor&, StackData&)>;
+        using Type = std::function<void(dsb::net::Reactor&, StackData&)>;
         using SharedPtr = std::shared_ptr<Type>;
         using WeakPtr = std::weak_ptr<Type>;
     };
@@ -94,7 +94,7 @@ namespace detail
     template<>
     struct CommThreadAnyTask<void>
     {
-        using Type = std::function<void(dsb::comm::Reactor&)>;
+        using Type = std::function<void(dsb::net::Reactor&)>;
         using SharedPtr = std::shared_ptr<Type>;
         using WeakPtr = std::weak_ptr<Type>;
     };
@@ -108,7 +108,7 @@ The constructor of this class creates a new thread whose lifetime is tied
 to that of the constructed object (i.e., the destructor will wait for the
 background thread to complete before returning.)  This thread can be used
 to execute arbitrary code, but its primary design purpose is to run
-event-based communications code based on dsb::comm::Reactor.  The thread
+event-based communications code based on dsb::net::Reactor.  The thread
 therefore has a dedicated `Reactor` object, a reference to which is passed
 to all functions that are executed in it.
 
@@ -200,8 +200,8 @@ public:
     in the body of the `task` function, or it may be done at a later
     time by registering a reactor event.
 
-    A reference to the background thread's dsb::comm::Reactor object is
-    also passed to `task`.  Do *not* call dsb::comm::Reactor::Stop() on
+    A reference to the background thread's dsb::net::Reactor object is
+    also passed to `task`.  Do *not* call dsb::net::Reactor::Stop() on
     this object to terminate the thread; this will lead to unspecified
     behaviour.  Instead, use Shutdown() to terminate the thread in a
     controlled manner.
@@ -328,11 +328,11 @@ namespace detail
         zmq::socket_t& bgSocket,
         typename CommThreadAnyTask<StackData>::SharedPtr nextTask)
     {
-        dsb::comm::Reactor reactor;
+        dsb::net::Reactor reactor;
         StackData data;
         reactor.AddSocket(
             bgSocket,
-            [nextTask, &data] (dsb::comm::Reactor& r, zmq::socket_t& s) {
+            [nextTask, &data] (dsb::net::Reactor& r, zmq::socket_t& s) {
                 char dummy;
                 s.recv(&dummy, 1);
 
@@ -353,10 +353,10 @@ namespace detail
         zmq::socket_t& bgSocket,
         typename CommThreadAnyTask<void>::SharedPtr nextTask)
     {
-        dsb::comm::Reactor reactor;
+        dsb::net::Reactor reactor;
         reactor.AddSocket(
             bgSocket,
-            [nextTask] (dsb::comm::Reactor& r, zmq::socket_t& s) {
+            [nextTask] (dsb::net::Reactor& r, zmq::socket_t& s) {
                 char dummy;
                 s.recv(&dummy, 1);
 
@@ -407,12 +407,12 @@ namespace detail
 template<typename StackData>
 CommThread<StackData>::CommThread()
     : m_active{true}
-    , m_socket{dsb::comm::GlobalContext(), ZMQ_PAIR}
+    , m_socket{dsb::net::zmqx::GlobalContext(), ZMQ_PAIR}
     , m_threadStatus{}
     , m_nextTask{}
 {
     auto bgSocket =
-        std::make_shared<zmq::socket_t>(dsb::comm::GlobalContext(), ZMQ_PAIR);
+        std::make_shared<zmq::socket_t>(dsb::net::zmqx::GlobalContext(), ZMQ_PAIR);
     bgSocket->setsockopt(ZMQ_LINGER, 0);
     m_socket.setsockopt(ZMQ_LINGER, 0);
     const auto endpoint = "inproc://" + dsb::util::RandomUUID();
@@ -475,7 +475,7 @@ namespace detail
             const auto sharedPromise =
                 std::make_shared<typename std::promise<Result>>(std::move(promise));
             return [task, sharedPromise]
-                (dsb::comm::Reactor& reactor, StackData& data)
+                (dsb::net::Reactor& reactor, StackData& data)
             {
                 task(reactor, data, std::move(*sharedPromise));
             };
@@ -493,7 +493,7 @@ namespace detail
             const auto sharedPromise =
                 std::make_shared<typename std::promise<Result>>(std::move(promise));
             return [task, sharedPromise]
-                (dsb::comm::Reactor& reactor)
+                (dsb::net::Reactor& reactor)
             {
                 task(reactor, std::move(*sharedPromise));
             };
@@ -544,7 +544,7 @@ std::future<Result> CommThread<StackData>::Execute(
 namespace detail
 {
     inline void CommThreadShutdown(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         std::promise<void> promise)
     {
         reactor.Stop();
@@ -554,7 +554,7 @@ namespace detail
     template<typename StackData>
     typename CommThreadTask<StackData, void>::Type CommThreadShutdownTask()
     {
-        return [] (dsb::comm::Reactor& r, StackData&, std::promise<void> p)
+        return [] (dsb::net::Reactor& r, StackData&, std::promise<void> p)
         {
             CommThreadShutdown(r, std::move(p));
         };
@@ -563,7 +563,7 @@ namespace detail
     template<>
     inline typename CommThreadTask<void, void>::Type CommThreadShutdownTask<void>()
     {
-        return [] (dsb::comm::Reactor& r, std::promise<void> p)
+        return [] (dsb::net::Reactor& r, std::promise<void> p)
         {
             CommThreadShutdown(r, std::move(p));
         };

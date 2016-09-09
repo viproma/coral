@@ -1,3 +1,7 @@
+/**
+\file
+\brief Classes for dealing with FMI 1.0 FMUs.
+*/
 #ifndef DSB_FMI_FMU1_HPP
 #define DSB_FMI_FMU1_HPP
 
@@ -118,7 +122,7 @@ public:
 
     ~SlaveInstance1() DSB_NOEXCEPT;
 
-    // dsb::execution::ISlaveInstance methods
+    // dsb::slave::Instance methods
     const dsb::model::SlaveTypeDescription& TypeDescription() const override;
 
     bool Setup(

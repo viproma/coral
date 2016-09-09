@@ -1,3 +1,7 @@
+/**
+\file
+\brief FMU import functionality.
+*/
 #ifndef DSB_FMI_IMPORTER_HPP
 #define DSB_FMI_IMPORTER_HPP
 
@@ -19,7 +23,6 @@ struct jm_callbacks;
 
 namespace dsb
 {
-/// Classes and functions related to the Functional Mock-up Interface (FMI).
 namespace fmi
 {
 

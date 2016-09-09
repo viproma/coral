@@ -20,7 +20,7 @@ stuff in this header.
 #include "dsb/config.h"
 
 #include "dsb/bus/slave_setup.hpp"
-#include "dsb/comm/reactor.hpp"
+#include "dsb/net/reactor.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
 
@@ -501,7 +501,7 @@ an exception.
 \throws std::invalid_argument if any of the arguments are invalid.
 */
 PendingSlaveControlConnection ConnectToSlave(
-    dsb::comm::Reactor& reactor,
+    dsb::net::Reactor& reactor,
     const dsb::net::SlaveLocator& slaveLocator,
     int maxAttempts,
     std::chrono::milliseconds timeout,

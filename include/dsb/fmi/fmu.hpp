@@ -1,8 +1,12 @@
+/**
+\file
+\brief Defines a version-independent FMU interface.
+*/
 #ifndef DSB_FMI_FMU_HPP
 #define DSB_FMI_FMU_HPP
 
-#include "dsb/execution/slave.hpp"
 #include "dsb/model.hpp"
+#include "dsb/slave/instance.hpp"
 
 
 namespace dsb
@@ -58,7 +62,7 @@ public:
 
 
 /// An FMI co-simulation slave instance.
-class SlaveInstance : public dsb::execution::ISlaveInstance
+class SlaveInstance : public dsb::slave::Instance
 {
 public:
     /// Returns a reference to the %FMU of which this is an instance.

@@ -46,7 +46,7 @@ class ExecutionManagerPrivate : boost::noncopyable
 {
 public:
     ExecutionManagerPrivate(
-        dsb::comm::Reactor& reactor,
+        dsb::net::Reactor& reactor,
         const std::string& executionName,
         dsb::model::TimePoint startTime,
         dsb::model::TimePoint maxTime);
@@ -145,7 +145,7 @@ public:
     };
 
     // Data which is available to the state objects
-    dsb::comm::Reactor& reactor;
+    dsb::net::Reactor& reactor;
     dsb::bus::SlaveSetup slaveSetup;
     dsb::model::SlaveID lastSlaveID;
     std::map<dsb::model::SlaveID, Slave> slaves;

@@ -1,6 +1,6 @@
 /**
 \file
-\brief  Utilities for dealing with ZIP archives.
+\brief  Module header for dsb::util::zip
 */
 #ifndef DSB_UTIL_ZIP_HPP
 #define DSB_UTIL_ZIP_HPP
@@ -26,19 +26,23 @@ namespace dsb
 namespace util
 {
 
+/// Utilities for dealing with ZIP archives.
+namespace zip
+{
+
 /**
 \brief  A type for numeric zip entry indices.
-\see ZipArchive
-\see INVALID_ZIP_ENTRY_INDEX
+\see Archive
+\see INVALID_ENTRY_INDEX
 */
-typedef std::uint64_t ZipEntryIndex;
+typedef std::uint64_t EntryIndex;
 
 
 /**
 \brief  An index value that represents an invalid/unknown zip entry.
-\see ZipArchive
+\see Archive
 */
-const ZipEntryIndex INVALID_ZIP_ENTRY_INDEX = 0xFFFFFFFFFFFFFFFFull;
+const EntryIndex INVALID_ENTRY_INDEX = 0xFFFFFFFFFFFFFFFFull;
 
 
 /**
@@ -60,11 +64,11 @@ like this:
         2  images/photo.jpg
 
 */
-class ZipArchive
+class Archive
 {
 public:
     /// Default constructor; does not associate the object with an archive file.
-    ZipArchive() DSB_NOEXCEPT;
+    Archive() DSB_NOEXCEPT;
 
     /**
     \brief  Constructor which opens a ZIP archive.
@@ -74,29 +78,29 @@ public:
     \param [in] path
         The path to a ZIP archive file.
 
-    \throws ZipException
+    \throws dsb::util::zip::Exception
         If there was an error opening the archive.
     */
-    ZipArchive(const boost::filesystem::path& path);
+    Archive(const boost::filesystem::path& path);
 
     // Disable copying.
-    ZipArchive(const ZipArchive&) = delete;
-    ZipArchive& operator=(const ZipArchive&) = delete;
+    Archive(const Archive&) = delete;
+    Archive& operator=(const Archive&) = delete;
 
     /// Move constructor.
-    ZipArchive(ZipArchive&&) DSB_NOEXCEPT;
+    Archive(Archive&&) DSB_NOEXCEPT;
     /// Move assignment operator.
-    ZipArchive& operator=(ZipArchive&&) DSB_NOEXCEPT;
+    Archive& operator=(Archive&&) DSB_NOEXCEPT;
 
     /// Destructor; calls Discard().
-    ~ZipArchive() DSB_NOEXCEPT;
+    ~Archive() DSB_NOEXCEPT;
 
     /**
     \brief  Opens a ZIP archive.
 
     \param [in] path
         The path to a ZIP archive file.
-    \throws ZipException
+    \throws dsb::util::zip::Exception
         If there was an error opening the archive.
     \pre
         `IsOpen() == false`
@@ -129,14 +133,14 @@ public:
         The full name of a file or directory in the archive.  The search is
         case sensitive, and directory names must end with a forward slash (/).
     \returns
-        The index of the entry with the given name, or INVALID_ZIP_ENTRY_INDEX
+        The index of the entry with the given name, or INVALID_ENTRY_INDEX
         if no such entry was found.
-    \throws ZipException
+    \throws dsb::util::zip::Exception
         If there was an error accessing the archive.
     \pre
         `IsOpen() == true`
     */
-    ZipEntryIndex FindEntry(const std::string& name) const;
+    EntryIndex FindEntry(const std::string& name) const;
 
     /**
     \brief  Returns the name of an archive entry.
@@ -145,12 +149,12 @@ public:
         An archive entry index in the range `[0,EntryCount())`.
     \returns
         The full name of the entry with the given index.
-    \throws ZipException
+    \throws dsb::util::zip::Exception
         If there was an error accessing the archive.
     \pre
         `IsOpen() == true`
     */
-    std::string EntryName(ZipEntryIndex index) const;
+    std::string EntryName(EntryIndex index) const;
 
     /**
     \brief  Returns whether an archive entry is a directory.
@@ -162,12 +166,12 @@ public:
         An archive entry index in the range `[0,EntryCount())`.
     \returns
         Whether the entry with the given index is a directory.
-    \throws ZipException
+    \throws dsb::util::zip::Exception
         If there was an error accessing the archive.
     \pre
         `IsOpen() == true`
     */
-    bool IsDirEntry(ZipEntryIndex index) const;
+    bool IsDirEntry(EntryIndex index) const;
 
     /**
     \brief  Extracts the entire contents of the archive.
@@ -177,7 +181,7 @@ public:
 
     \param [in] targetDir
         The directory to which the files should be extracted.
-    \throws ZipException
+    \throws dsb::util::zip::Exception
         If there was an error accessing the archive.
     \throws std::ios_base::failure
         On I/O error.
@@ -202,7 +206,7 @@ public:
     \returns
         The full path to the extracted file, i.e. the base name of the archive
         entry appended to the target directory.
-    \throws ZipException
+    \throws dsb::util::zip::Exception
         If there was an error accessing the archive.
     \throws std::ios_base::failure
         On I/O error.
@@ -210,28 +214,28 @@ public:
         `IsOpen() == true`
     */
     boost::filesystem::path ExtractFileTo(
-        ZipEntryIndex index,
+        EntryIndex index,
         const boost::filesystem::path& targetDir) const;
 
 private:
-    zip* m_archive;
+    ::zip* m_archive;
 };
 
 
 /// Exception class for errors that occur while dealing with ZIP files.
-class ZipException : public std::runtime_error
+class Exception : public std::runtime_error
 {
 public:
     // Creates an exception with the given message
-    ZipException(const std::string& msg) DSB_NOEXCEPT;
+    Exception(const std::string& msg) DSB_NOEXCEPT;
 
     // Creates an exception for the last error for the given archive
-    ZipException(zip* archive) DSB_NOEXCEPT;
+    Exception(::zip* archive) DSB_NOEXCEPT;
 
     // Creates an exception for the last error for the given file
-    ZipException(zip_file* file) DSB_NOEXCEPT;
+    Exception(zip_file* file) DSB_NOEXCEPT;
 };
 
 
-}} // namespace
+}}} // namespace
 #endif // header guard
