@@ -1,4 +1,4 @@
-#include "dsb/execution/controller.hpp"
+#include "dsb/master/execution.hpp"
 
 #include <exception>
 #include <stdexcept>
@@ -44,7 +44,7 @@ namespace
 }
 
 
-class dsb::execution::Controller::Private
+class dsb::master::Execution::Private
 {
 public:
     /// Constructor.
@@ -185,12 +185,12 @@ public:
                         if (!ec) {
                             if (slaveResults) {
                                 slaveResults->push_back(
-                                    std::make_pair(slaveID, STEP_COMPLETE));
+                                    std::make_pair(slaveID, StepResult::completed));
                             }
                         } else if (ec == dsb::error::sim_error::cannot_perform_timestep
                                 && slaveResults) {
                             slaveResults->push_back(
-                                std::make_pair(slaveID, STEP_FAILED));
+                                std::make_pair(slaveID, StepResult::failed));
                         } else {
                             dsb::log::Log(
                                 dsb::log::error,
@@ -209,8 +209,8 @@ public:
                     {
                         if (!ec || ec == dsb::error::sim_error::cannot_perform_timestep) {
                             sharedPromise->set_value(ec == dsb::error::sim_error::cannot_perform_timestep
-                                ? STEP_FAILED
-                                : STEP_COMPLETE);
+                                ? StepResult::failed
+                                : StepResult::completed);
                         } else {
                             SetException(
                                 *sharedPromise,
@@ -272,7 +272,7 @@ private:
 
 
 
-dsb::execution::Controller::Controller(
+dsb::master::Execution::Execution(
     const std::string& executionName,
     dsb::model::TimePoint startTime,
     dsb::model::TimePoint maxTime)
@@ -281,18 +281,18 @@ dsb::execution::Controller::Controller(
 }
 
 
-dsb::execution::Controller::~Controller() DSB_NOEXCEPT
+dsb::master::Execution::~Execution() DSB_NOEXCEPT
 {
 }
 
 
-dsb::execution::Controller::Controller(Controller&& other) DSB_NOEXCEPT
+dsb::master::Execution::Execution(Execution&& other) DSB_NOEXCEPT
     : m_private(std::move(other.m_private))
 {
 }
 
 
-dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& other)
+dsb::master::Execution& dsb::master::Execution::operator=(Execution&& other)
     DSB_NOEXCEPT
 {
     m_private = std::move(other.m_private);
@@ -300,7 +300,7 @@ dsb::execution::Controller& dsb::execution::Controller::operator=(Controller&& o
 }
 
 
-void dsb::execution::Controller::Reconstitute(
+void dsb::master::Execution::Reconstitute(
     std::vector<AddedSlave>& slavesToAdd,
     std::chrono::milliseconds commTimeout)
 {
@@ -308,7 +308,7 @@ void dsb::execution::Controller::Reconstitute(
 }
 
 
-void dsb::execution::Controller::Reconfigure(
+void dsb::master::Execution::Reconfigure(
     std::vector<SlaveConfig>& slaveConfigs,
     std::chrono::milliseconds commTimeout)
 {
@@ -316,7 +316,7 @@ void dsb::execution::Controller::Reconfigure(
 }
 
 
-dsb::execution::StepResult dsb::execution::Controller::Step(
+dsb::master::StepResult dsb::master::Execution::Step(
     dsb::model::TimeDuration stepSize,
     std::chrono::milliseconds timeout,
     std::vector<std::pair<dsb::model::SlaveID, StepResult>>* slaveResults)
@@ -325,13 +325,13 @@ dsb::execution::StepResult dsb::execution::Controller::Step(
 }
 
 
-void dsb::execution::Controller::AcceptStep(std::chrono::milliseconds timeout)
+void dsb::master::Execution::AcceptStep(std::chrono::milliseconds timeout)
 {
     return m_private->AcceptStep(timeout);
 }
 
 
-void dsb::execution::Controller::Terminate()
+void dsb::master::Execution::Terminate()
 {
     m_private->Terminate();
 }

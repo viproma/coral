@@ -58,16 +58,16 @@ namespace
     }
 
 
-    typedef std::multimap<std::string, dsb::domain::Controller::SlaveType>
+    typedef std::multimap<std::string, dsb::master::Cluster::SlaveType>
         SlaveTypeMap;
 
     // Obtains the list of available slave types on the domain and returns it
     // in the form of a map where the keys are slave type names and the values
     // are slave type descriptions.
-    SlaveTypeMap SlaveTypesByName(dsb::domain::Controller& domain)
+    SlaveTypeMap SlaveTypesByName(dsb::master::Cluster& providers)
     {
         SlaveTypeMap types;
-        BOOST_FOREACH (const auto& st, domain.GetSlaveTypes(std::chrono::seconds(1))) {
+        BOOST_FOREACH (const auto& st, providers.GetSlaveTypes(std::chrono::seconds(1))) {
             types.insert(std::make_pair(st.description.Name(), st));
         }
         return types;
@@ -100,8 +100,8 @@ namespace
         }
     }
 
-    const dsb::domain::Controller::SlaveType* GetSlaveType(
-        const std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
+    const dsb::master::Cluster::SlaveType* GetSlaveType(
+        const std::map<std::string, const dsb::master::Cluster::SlaveType*>& slaves,
         const std::string& slaveName)
     {
         const auto slaveIt = slaves.find(slaveName);
@@ -125,12 +125,12 @@ namespace
     };
 
     // Variable name lookup could take a long time for slave types with a
-    // large number of variables, because dsb::domain::Controller::SlaveType
+    // large number of variables, because dsb::master::Cluster::SlaveType
     // stores the variable descriptions in a vector.  Therefore, we cache the
     // ones we use in a hash map.
     typedef std::map<std::string, const dsb::model::VariableDescription*>
         VarDescriptionCacheEntry;
-    typedef std::map<const dsb::domain::Controller::SlaveType*, VarDescriptionCacheEntry>
+    typedef std::map<const dsb::master::Cluster::SlaveType*, VarDescriptionCacheEntry>
         VarDescriptionCache;
 
     // Given a slave type description and a variable name, this function will
@@ -138,7 +138,7 @@ namespace
     // fast lookup of the variable description.  If the slave type is not found
     // in the cache, it will be added.
     const dsb::model::VariableDescription* GetCachedVarDescription(
-        const dsb::domain::Controller::SlaveType* slaveType,
+        const dsb::master::Cluster::SlaveType* slaveType,
         const std::string& variableName,
         VarDescriptionCache& cache)
     {
@@ -174,8 +174,8 @@ namespace
     //   variables: maps slave names to lists of variable values
     void ParseSlavesNode(
         const boost::property_tree::ptree& ptree,
-        const std::multimap<std::string, dsb::domain::Controller::SlaveType>& slaveTypes,
-        std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
+        const std::multimap<std::string, dsb::master::Cluster::SlaveType>& slaveTypes,
+        std::map<std::string, const dsb::master::Cluster::SlaveType*>& slaves,
         std::map<std::string, std::vector<VariableValue>>& variables,
         VarDescriptionCache& varDescriptionCache)
     {
@@ -221,7 +221,7 @@ namespace
     // ('connections') from slave names to lists of variable connections.
     void ParseConnectionsNode(
         const boost::property_tree::ptree& ptree,
-        const std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
+        const std::map<std::string, const dsb::master::Cluster::SlaveType*>& slaves,
         std::ostream* warningLog,
         std::map<std::string, std::vector<VariableConnection>>& connections,
         VarDescriptionCache& varDescriptionCache)
@@ -298,7 +298,7 @@ namespace
     //          the corresponding events in 'scenario'
     void ParseScenarioNode(
         const boost::property_tree::ptree& ptree,
-        const std::map<std::string, const dsb::domain::Controller::SlaveType*>& slaves,
+        const std::map<std::string, const dsb::master::Cluster::SlaveType*>& slaves,
         std::ostream* warningLog,
         std::vector<SimulationEvent>& scenario,
         std::vector<std::string>& scenarioEventSlaveName,
@@ -360,17 +360,17 @@ namespace
 
 void ParseSystemConfig(
     const std::string& path,
-    dsb::domain::Controller& domain,
-    dsb::execution::Controller& execution,
+    dsb::master::Cluster& providers,
+    dsb::master::Execution& execution,
     std::vector<SimulationEvent>& scenarioOut,
     std::chrono::milliseconds commTimeout,
     std::chrono::milliseconds instantiationTimeout,
     std::ostream* warningLog)
 {
     const auto ptree = ReadPtreeInfoFile(path);
-    const auto slaveTypes = SlaveTypesByName(domain);
+    const auto slaveTypes = SlaveTypesByName(providers);
 
-    std::map<std::string, const dsb::domain::Controller::SlaveType*> slaves;
+    std::map<std::string, const dsb::master::Cluster::SlaveType*> slaves;
     std::map<std::string, std::vector<VariableValue>> variables;
     VarDescriptionCache varDescriptionCache;
     ParseSlavesNode(ptree, slaveTypes, slaves, variables, varDescriptionCache);
@@ -384,10 +384,10 @@ void ParseSystemConfig(
 
     // Add all the slaves to the execution and map their names to their
     // numeric IDs.
-    std::vector<dsb::execution::AddedSlave> slavesToAdd;
+    std::vector<dsb::master::AddedSlave> slavesToAdd;
     BOOST_FOREACH (const auto& slave, slaves) {
         slavesToAdd.emplace_back();
-        slavesToAdd.back().locator = domain.InstantiateSlave(
+        slavesToAdd.back().locator = providers.InstantiateSlave(
             slave.second->providers.front(),
             slave.second->description.UUID(),
             instantiationTimeout);
@@ -416,7 +416,7 @@ void ParseSystemConfig(
     // Using the name-ID mapping, build lists of variable settings from the
     // lists of initial values and connections, and execute "set variables"
     // commands for each slave.
-    std::vector<dsb::execution::SlaveConfig> slaveConfigs;
+    std::vector<dsb::master::SlaveConfig> slaveConfigs;
     std::map<std::string, std::size_t> slaveConfigsIndexes;
     for (const auto& slaveVars : variables) {
         const auto& slaveName = slaveVars.first;

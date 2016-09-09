@@ -1,9 +1,9 @@
 /**
 \file
-\brief Functionality for starting and controlling an execution.
+\brief Defines the dsb::master::Execution class and related functionality.
 */
-#ifndef DSB_EXECUTION_CONTROLLER_HPP
-#define DSB_EXECUTION_CONTROLLER_HPP
+#ifndef DSB_MASTER_EXECUTION_HPP
+#define DSB_MASTER_EXECUTION_HPP
 
 #include <chrono>
 #include <future>
@@ -19,20 +19,20 @@
 
 namespace dsb
 {
-namespace execution
+namespace master
 {
 
 
-/// Constants used to indicate the result of `Controller::Step()`
-enum StepResult
+/// Constants used to indicate the result of `Execution::Step()`
+enum class StepResult
 {
-    STEP_FAILED     = 0,
-    STEP_COMPLETE   = 1
+    failed    = 0,
+    completed = 1
 };
 
 
 /**
-\brief  Used in `Controller::Reconstitute()` to specify a slave which should
+\brief  Used in `Execution::Reconstitute()` to specify a slave which should
         be added to the simulation.
 
 This class is used to supply information about the slave which is to be
@@ -70,7 +70,7 @@ struct AddedSlave
 
 
 /**
-\brief  Used in `Controller::Reconfigure()` to specify variable value
+\brief  Used in `Execution::Reconfigure()` to specify variable value
         and connection changes.
 
 This class is used to supply information about the changes which are to
@@ -113,7 +113,7 @@ struct SlaveConfig
 This class is used by the master entity in an execution to initialize,
 run and shut down the simulation.
 */
-class Controller
+class Execution
 {
 public:
     /**
@@ -128,22 +128,22 @@ public:
         (the default), signifying that there is no predefined maximum time.
         Otherwise, it must be greater than `startTime`.
     */
-    explicit Controller(
+    explicit Execution(
         const std::string& executionName,
         dsb::model::TimePoint startTime = 0.0,
         dsb::model::TimePoint maxTime = dsb::model::ETERNITY);
 
     /// Destructor
-    ~Controller() DSB_NOEXCEPT;
+    ~Execution() DSB_NOEXCEPT;
 
-    Controller(const Controller&) = delete;
-    Controller& operator=(const Controller&) = delete;
+    Execution(const Execution&) = delete;
+    Execution& operator=(const Execution&) = delete;
 
     /// Move constructor
-    Controller(Controller&&) DSB_NOEXCEPT;
+    Execution(Execution&&) DSB_NOEXCEPT;
 
     /// Move assignment operator
-    Controller& operator=(Controller&&) DSB_NOEXCEPT;
+    Execution& operator=(Execution&&) DSB_NOEXCEPT;
 
     /**
     \brief  Adds new slaves to the execution.

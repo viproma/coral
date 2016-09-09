@@ -2,9 +2,7 @@ set (_target "dsb")
 
 set (_publicHeaders
     "dsb/config.h"
-    "dsb/domain/controller.hpp"
     "dsb/domain/slave_provider.hpp"
-    "dsb/execution/controller.hpp"
     "dsb/execution/logging_slave.hpp"
     "dsb/execution/slave.hpp"
     "dsb/execution/variable_io.hpp"
@@ -12,6 +10,8 @@ set (_publicHeaders
     "dsb/fmi/fmu1.hpp"
     "dsb/fmi/importer.hpp"
     "dsb/log.hpp"
+    "dsb/master/cluster.hpp"
+    "dsb/master/execution.hpp"
     "dsb/model.hpp"
     "dsb/net.hpp"
 )
@@ -74,21 +74,19 @@ set (_sources
     "util_console.cpp"
     "util_zip.cpp"
 
-    "domain_controller.cpp"
     "domain_slave_provider.cpp"
-    "execution_controller.cpp"
     "execution_logging_slave.cpp"
     "execution_slave.cpp"
     "execution_variable_io.cpp"
     "fmi_fmu1.cpp"
     "fmi_importer.cpp"
     "log.cpp"
+    "master_cluster.cpp"
+    "master_execution.cpp"
     "model.cpp"
     "net.cpp"
 )
 set (_testSources
-    "domain_controller_test.cpp"
-    "execution_controller_test.cpp"
     "execution_variable_io_test.cpp"
 
     "async_test.cpp"

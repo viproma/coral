@@ -8,8 +8,7 @@
 #include <utility>
 #include <vector>
 #include "dsb/config.h"
-#include "dsb/domain/controller.hpp"
-#include "dsb/execution/controller.hpp"
+#include "dsb/master.hpp"
 #include "dsb/model.hpp"
 
 
@@ -40,8 +39,8 @@ struct SimulationEvent
 // and one which applies it to the controller.
 void ParseSystemConfig(
     const std::string& path,
-    dsb::domain::Controller& domain,
-    dsb::execution::Controller& execution,
+    dsb::master::Cluster& providers,
+    dsb::master::Execution& execution,
     std::vector<SimulationEvent>& scenario,
     std::chrono::milliseconds commTimeout,
     std::chrono::milliseconds instantiationTimeout,

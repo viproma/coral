@@ -10,9 +10,8 @@
 
 #include "boost/program_options.hpp"
 
-#include "dsb/domain/controller.hpp"
-#include "dsb/execution/controller.hpp"
 #include "dsb/log.hpp"
+#include "dsb/master.hpp"
 #include "dsb/util/console.hpp"
 
 #include "config_parser.hpp"
@@ -114,7 +113,7 @@ int Run(const std::vector<std::string>& args)
         const auto execName = (*argValues)["name"].as<std::string>();
         const auto warningStream = argValues->count("warnings") ? &std::clog : nullptr;
 
-        auto domain = dsb::domain::Controller("*", 10272);
+        auto providers = dsb::master::Cluster("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -127,7 +126,7 @@ int Run(const std::vector<std::string>& args)
         const auto execConfig = ParseExecutionConfig(execConfigFile);
 
         std::cout << "Creating new execution" << std::endl;
-        auto exec = dsb::execution::Controller(
+        auto exec = dsb::master::Execution(
             execName,
             execConfig.startTime,
             execConfig.stopTime);
@@ -136,7 +135,7 @@ int Run(const std::vector<std::string>& args)
         std::cout << "Parsing model configuration file '" << sysConfigFile
                   << "' and spawning slaves" << std::endl;
         std::vector<SimulationEvent> unsortedScenario;
-        ParseSystemConfig(sysConfigFile, domain, exec, unsortedScenario,
+        ParseSystemConfig(sysConfigFile, providers, exec, unsortedScenario,
                           execConfig.commTimeout, execConfig.instantiationTimeout,
                           warningStream);
 
@@ -176,7 +175,7 @@ int Run(const std::vector<std::string>& args)
              time += execConfig.stepSize)
         {
             if (!scenario.empty() && scenario.top().timePoint <= time) {
-                std::vector<dsb::execution::SlaveConfig> settings;
+                std::vector<dsb::master::SlaveConfig> settings;
                 std::map<dsb::model::SlaveID, std::size_t> indexes;
                 while (!scenario.empty() && scenario.top().timePoint <= time) {
                     const auto& scenEvent = scenario.top();
@@ -196,7 +195,7 @@ int Run(const std::vector<std::string>& args)
                 }
                 exec.Reconfigure(settings, execConfig.commTimeout);
             }
-            if (exec.Step(execConfig.stepSize, stepTimeout) != dsb::execution::STEP_COMPLETE) {
+            if (exec.Step(execConfig.stepSize, stepTimeout) != dsb::master::StepResult::completed) {
                 throw std::runtime_error("One or more slaves failed to perform the time step");
             }
             exec.AcceptStep(execConfig.commTimeout);
@@ -251,7 +250,7 @@ int List(const std::vector<std::string>& args)
         if (!argValues) return 0;
         const auto address = (*argValues)["domain"].as<std::string>();
 
-        auto domain = dsb::domain::Controller("*", 10272);
+        auto providers = dsb::master::Cluster("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -259,7 +258,7 @@ int List(const std::vector<std::string>& args)
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        auto slaveTypes = domain.GetSlaveTypes(std::chrono::seconds(1));
+        auto slaveTypes = providers.GetSlaveTypes(std::chrono::seconds(1));
         for (const auto& st : slaveTypes) {
             std::cout << st.description.Name() << '\n';
             //DSB_LOG_TRACE(st.description.Name());
@@ -325,16 +324,16 @@ int LsVars(const std::vector<std::string>& args)
 
         // Now we have read all the command-line arguments, connect to the
         // domain and find the slave type
-        auto domain = dsb::domain::Controller("*", 10272);
+        auto providers = dsb::master::Cluster("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
         // slave provider heartbeat time.
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        const auto slaveTypes = domain.GetSlaveTypes(std::chrono::seconds(1));
+        const auto slaveTypes = providers.GetSlaveTypes(std::chrono::seconds(1));
         const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
-            [&](const dsb::domain::Controller::SlaveType& s) {
+            [&](const dsb::master::Cluster::SlaveType& s) {
                 return s.description.Name() == slaveType;
             });
         if (it == slaveTypes.end()) {
@@ -410,7 +409,7 @@ int Info(const std::vector<std::string>& args)
         const auto address =   (*argValues)["domain"].as<std::string>();
 
         // Connect to domain
-        auto domain = dsb::domain::Controller("*", 10272);
+        auto providers = dsb::master::Cluster("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -418,9 +417,9 @@ int Info(const std::vector<std::string>& args)
         std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        const auto slaveTypes = domain.GetSlaveTypes(std::chrono::seconds(1));
+        const auto slaveTypes = providers.GetSlaveTypes(std::chrono::seconds(1));
         const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
-            [&](const dsb::domain::Controller::SlaveType& s) {
+            [&](const dsb::master::Cluster::SlaveType& s) {
                 return s.description.Name() == slaveType; });
         if (it == slaveTypes.end()) {
             throw std::runtime_error("Unknown slave type: " + slaveType);

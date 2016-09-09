@@ -1,4 +1,4 @@
-#include "dsb/domain/controller.hpp"
+#include "dsb/master/cluster.hpp"
 
 #include <cassert>
 #include <unordered_map>
@@ -20,7 +20,7 @@
 
 namespace dsb
 {
-namespace domain
+namespace master
 {
 
 namespace
@@ -43,7 +43,7 @@ namespace
     void HandleGetSlaveTypes(
         std::chrono::milliseconds timeout,
         SlaveProviderMap& slaveProviders,
-        std::promise<std::vector<dsb::domain::Controller::SlaveType>> promise)
+        std::promise<std::vector<dsb::master::Cluster::SlaveType>> promise)
         DSB_NOEXCEPT;
     void HandleInstantiateSlave(
         const std::string& slaveProviderID,
@@ -61,7 +61,7 @@ namespace
 using namespace std::placeholders;
 
 
-class Controller::Private
+class Cluster::Private
 {
 public:
     Private(
@@ -150,7 +150,7 @@ private:
 };
 
 
-Controller::Controller(
+Cluster::Cluster(
     const std::string& networkInterface,
     std::uint16_t discoveryPort)
     : m_private{std::make_unique<Private>(networkInterface, discoveryPort)}
@@ -158,33 +158,33 @@ Controller::Controller(
 }
 
 
-Controller::~Controller() DSB_NOEXCEPT
+Cluster::~Cluster() DSB_NOEXCEPT
 {
     // Do nothing, everything's handled by ~Private().
 }
 
 
-Controller::Controller(Controller&& other) DSB_NOEXCEPT
+Cluster::Cluster(Cluster&& other) DSB_NOEXCEPT
     : m_private{std::move(other.m_private)}
 {
 }
 
 
-Controller& Controller::operator=(Controller&& other) DSB_NOEXCEPT
+Cluster& Cluster::operator=(Cluster&& other) DSB_NOEXCEPT
 {
     m_private = std::move(other.m_private);
     return *this;
 }
 
 
-std::vector<Controller::SlaveType> Controller::GetSlaveTypes(
+std::vector<Cluster::SlaveType> Cluster::GetSlaveTypes(
     std::chrono::milliseconds timeout)
 {
     return m_private->GetSlaveTypes(timeout);
 }
 
 
-dsb::net::SlaveLocator Controller::InstantiateSlave(
+dsb::net::SlaveLocator Cluster::InstantiateSlave(
     const std::string& slaveProviderID,
     const std::string& slaveTypeUUID,
     std::chrono::milliseconds timeout)
@@ -273,7 +273,7 @@ void SetupSlaveProviderTracking(
 struct GetSlaveTypesRequest
 {
     int remainingReplies = 0;
-    std::vector<dsb::domain::Controller::SlaveType> slaveTypes;
+    std::vector<dsb::master::Cluster::SlaveType> slaveTypes;
     std::unordered_map<std::string, std::size_t> slaveTypeIndices;
 
     void AddReply(
@@ -281,18 +281,18 @@ struct GetSlaveTypesRequest
         const std::error_code& ec,
         const dsb::model::SlaveTypeDescription* types,
         std::size_t typeCount,
-        std::promise<std::vector<dsb::domain::Controller::SlaveType>>& promise);
+        std::promise<std::vector<dsb::master::Cluster::SlaveType>>& promise);
 };
 
 
 void HandleGetSlaveTypes(
     std::chrono::milliseconds timeout,
     SlaveProviderMap& slaveProviders,
-    std::promise<std::vector<dsb::domain::Controller::SlaveType>> promise)
+    std::promise<std::vector<dsb::master::Cluster::SlaveType>> promise)
     DSB_NOEXCEPT
 {
     if (slaveProviders.empty()) {
-        promise.set_value(std::vector<dsb::domain::Controller::SlaveType>{});
+        promise.set_value(std::vector<dsb::master::Cluster::SlaveType>{});
         return;
     }
     const auto sharedPromise =
@@ -330,7 +330,7 @@ void GetSlaveTypesRequest::AddReply(
     const std::error_code& ec,
     const dsb::model::SlaveTypeDescription* types,
     std::size_t typeCount,
-    std::promise<std::vector<dsb::domain::Controller::SlaveType>>& promise)
+    std::promise<std::vector<dsb::master::Cluster::SlaveType>>& promise)
 {
     --remainingReplies;
     if (!ec) {

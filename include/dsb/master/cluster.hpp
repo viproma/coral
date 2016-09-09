@@ -1,9 +1,9 @@
 /**
 \file
-\brief Functionality for starting and controlling a simulation domain.
+\brief Defines the dsb::master::Cluster class and related functionality.
 */
-#ifndef DSB_DOMAIN_CONTROLLER_HPP
-#define DSB_DOMAIN_CONTROLLER_HPP
+#ifndef DSB_MASTER_CLUSTER_HPP
+#define DSB_MASTER_CLUSTER_HPP
 
 #include <chrono>
 #include <cstdint>
@@ -18,25 +18,25 @@
 
 namespace dsb
 {
-namespace domain
+namespace master
 {
 
 
 /**
-\brief  Domain interface.
+\brief  A common communication interface to a cluster of slave providers.
 
-This class is used to connect to a domain, inquire about the slave providers
-available on the domain and the slave types they offer, and instantiate slaves
-for executions.
+This class represents a common interface to several slave providers in a
+network.  It can be used to get information about the available slave types
+and to instantiate slaves on specific providers.
 
 \remark
 When an object of this class is created, it will spawn a background thread that
-performs the actual communication with other domain participants.  To ensure
+performs the actual communication with the slave providers.  To ensure
 that there is a one-to-one relationship between an object of this class and
 its underlying communication thread, the objects are noncopyable (but movable),
 and will attempt to shut down the thread on destruction.
 */
-class Controller
+class Cluster
 {
 public:
     /// Information about a slave type.
@@ -56,22 +56,22 @@ public:
         The UDP port used for discovering other entities such as slave
         providers.
     */
-    Controller(
+    Cluster(
         const std::string& networkInterface,
         std::uint16_t discoveryPort);
 
     /// Destructor.
-    ~Controller() DSB_NOEXCEPT;
+    ~Cluster() DSB_NOEXCEPT;
 
     // Disable copying
-    Controller(const Controller&) = delete;
-    Controller& operator=(const Controller&) = delete;
+    Cluster(const Cluster&) = delete;
+    Cluster& operator=(const Cluster&) = delete;
 
     /// Move constructor
-    Controller(Controller&&) DSB_NOEXCEPT;
+    Cluster(Cluster&&) DSB_NOEXCEPT;
 
     /// Move assignment operator
-    Controller& operator=(Controller&&) DSB_NOEXCEPT;
+    Cluster& operator=(Cluster&&) DSB_NOEXCEPT;
 
     /**
     \brief  Returns available slave types.
