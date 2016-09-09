@@ -113,7 +113,7 @@ int Run(const std::vector<std::string>& args)
         const auto execName = (*argValues)["name"].as<std::string>();
         const auto warningStream = argValues->count("warnings") ? &std::clog : nullptr;
 
-        auto providers = dsb::master::Cluster("*", 10272);
+        auto providers = dsb::master::ProviderCluster("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -250,7 +250,7 @@ int List(const std::vector<std::string>& args)
         if (!argValues) return 0;
         const auto address = (*argValues)["domain"].as<std::string>();
 
-        auto providers = dsb::master::Cluster("*", 10272);
+        auto providers = dsb::master::ProviderCluster("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -324,7 +324,7 @@ int LsVars(const std::vector<std::string>& args)
 
         // Now we have read all the command-line arguments, connect to the
         // domain and find the slave type
-        auto providers = dsb::master::Cluster("*", 10272);
+        auto providers = dsb::master::ProviderCluster("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -333,7 +333,7 @@ int LsVars(const std::vector<std::string>& args)
 
         const auto slaveTypes = providers.GetSlaveTypes(std::chrono::seconds(1));
         const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
-            [&](const dsb::master::Cluster::SlaveType& s) {
+            [&](const dsb::master::ProviderCluster::SlaveType& s) {
                 return s.description.Name() == slaveType;
             });
         if (it == slaveTypes.end()) {
@@ -409,7 +409,7 @@ int Info(const std::vector<std::string>& args)
         const auto address =   (*argValues)["domain"].as<std::string>();
 
         // Connect to domain
-        auto providers = dsb::master::Cluster("*", 10272);
+        auto providers = dsb::master::ProviderCluster("*", 10272);
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -419,7 +419,7 @@ int Info(const std::vector<std::string>& args)
 
         const auto slaveTypes = providers.GetSlaveTypes(std::chrono::seconds(1));
         const auto it = std::find_if(slaveTypes.begin(), slaveTypes.end(),
-            [&](const dsb::master::Cluster::SlaveType& s) {
+            [&](const dsb::master::ProviderCluster::SlaveType& s) {
                 return s.description.Name() == slaveType; });
         if (it == slaveTypes.end()) {
             throw std::runtime_error("Unknown slave type: " + slaveType);

@@ -39,7 +39,7 @@ struct SimulationEvent
 // and one which applies it to the controller.
 void ParseSystemConfig(
     const std::string& path,
-    dsb::master::Cluster& providers,
+    dsb::master::ProviderCluster& providers,
     dsb::master::Execution& execution,
     std::vector<SimulationEvent>& scenario,
     std::chrono::milliseconds commTimeout,

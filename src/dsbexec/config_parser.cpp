@@ -58,13 +58,13 @@ namespace
     }
 
 
-    typedef std::multimap<std::string, dsb::master::Cluster::SlaveType>
+    typedef std::multimap<std::string, dsb::master::ProviderCluster::SlaveType>
         SlaveTypeMap;
 
     // Obtains the list of available slave types on the domain and returns it
     // in the form of a map where the keys are slave type names and the values
     // are slave type descriptions.
-    SlaveTypeMap SlaveTypesByName(dsb::master::Cluster& providers)
+    SlaveTypeMap SlaveTypesByName(dsb::master::ProviderCluster& providers)
     {
         SlaveTypeMap types;
         BOOST_FOREACH (const auto& st, providers.GetSlaveTypes(std::chrono::seconds(1))) {
@@ -100,8 +100,8 @@ namespace
         }
     }
 
-    const dsb::master::Cluster::SlaveType* GetSlaveType(
-        const std::map<std::string, const dsb::master::Cluster::SlaveType*>& slaves,
+    const dsb::master::ProviderCluster::SlaveType* GetSlaveType(
+        const std::map<std::string, const dsb::master::ProviderCluster::SlaveType*>& slaves,
         const std::string& slaveName)
     {
         const auto slaveIt = slaves.find(slaveName);
@@ -125,12 +125,12 @@ namespace
     };
 
     // Variable name lookup could take a long time for slave types with a
-    // large number of variables, because dsb::master::Cluster::SlaveType
+    // large number of variables, because dsb::master::ProviderCluster::SlaveType
     // stores the variable descriptions in a vector.  Therefore, we cache the
     // ones we use in a hash map.
     typedef std::map<std::string, const dsb::model::VariableDescription*>
         VarDescriptionCacheEntry;
-    typedef std::map<const dsb::master::Cluster::SlaveType*, VarDescriptionCacheEntry>
+    typedef std::map<const dsb::master::ProviderCluster::SlaveType*, VarDescriptionCacheEntry>
         VarDescriptionCache;
 
     // Given a slave type description and a variable name, this function will
@@ -138,7 +138,7 @@ namespace
     // fast lookup of the variable description.  If the slave type is not found
     // in the cache, it will be added.
     const dsb::model::VariableDescription* GetCachedVarDescription(
-        const dsb::master::Cluster::SlaveType* slaveType,
+        const dsb::master::ProviderCluster::SlaveType* slaveType,
         const std::string& variableName,
         VarDescriptionCache& cache)
     {
@@ -174,8 +174,8 @@ namespace
     //   variables: maps slave names to lists of variable values
     void ParseSlavesNode(
         const boost::property_tree::ptree& ptree,
-        const std::multimap<std::string, dsb::master::Cluster::SlaveType>& slaveTypes,
-        std::map<std::string, const dsb::master::Cluster::SlaveType*>& slaves,
+        const std::multimap<std::string, dsb::master::ProviderCluster::SlaveType>& slaveTypes,
+        std::map<std::string, const dsb::master::ProviderCluster::SlaveType*>& slaves,
         std::map<std::string, std::vector<VariableValue>>& variables,
         VarDescriptionCache& varDescriptionCache)
     {
@@ -221,7 +221,7 @@ namespace
     // ('connections') from slave names to lists of variable connections.
     void ParseConnectionsNode(
         const boost::property_tree::ptree& ptree,
-        const std::map<std::string, const dsb::master::Cluster::SlaveType*>& slaves,
+        const std::map<std::string, const dsb::master::ProviderCluster::SlaveType*>& slaves,
         std::ostream* warningLog,
         std::map<std::string, std::vector<VariableConnection>>& connections,
         VarDescriptionCache& varDescriptionCache)
@@ -298,7 +298,7 @@ namespace
     //          the corresponding events in 'scenario'
     void ParseScenarioNode(
         const boost::property_tree::ptree& ptree,
-        const std::map<std::string, const dsb::master::Cluster::SlaveType*>& slaves,
+        const std::map<std::string, const dsb::master::ProviderCluster::SlaveType*>& slaves,
         std::ostream* warningLog,
         std::vector<SimulationEvent>& scenario,
         std::vector<std::string>& scenarioEventSlaveName,
@@ -360,7 +360,7 @@ namespace
 
 void ParseSystemConfig(
     const std::string& path,
-    dsb::master::Cluster& providers,
+    dsb::master::ProviderCluster& providers,
     dsb::master::Execution& execution,
     std::vector<SimulationEvent>& scenarioOut,
     std::chrono::milliseconds commTimeout,
@@ -370,7 +370,7 @@ void ParseSystemConfig(
     const auto ptree = ReadPtreeInfoFile(path);
     const auto slaveTypes = SlaveTypesByName(providers);
 
-    std::map<std::string, const dsb::master::Cluster::SlaveType*> slaves;
+    std::map<std::string, const dsb::master::ProviderCluster::SlaveType*> slaves;
     std::map<std::string, std::vector<VariableValue>> variables;
     VarDescriptionCache varDescriptionCache;
     ParseSlavesNode(ptree, slaveTypes, slaves, variables, varDescriptionCache);

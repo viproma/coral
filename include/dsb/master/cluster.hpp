@@ -1,6 +1,6 @@
 /**
 \file
-\brief Defines the dsb::master::Cluster class and related functionality.
+\brief Defines the dsb::master::ProviderCluster class and related functionality.
 */
 #ifndef DSB_MASTER_CLUSTER_HPP
 #define DSB_MASTER_CLUSTER_HPP
@@ -36,7 +36,7 @@ that there is a one-to-one relationship between an object of this class and
 its underlying communication thread, the objects are noncopyable (but movable),
 and will attempt to shut down the thread on destruction.
 */
-class Cluster
+class ProviderCluster
 {
 public:
     /// Information about a slave type.
@@ -56,22 +56,22 @@ public:
         The UDP port used for discovering other entities such as slave
         providers.
     */
-    Cluster(
+    ProviderCluster(
         const std::string& networkInterface,
         std::uint16_t discoveryPort);
 
     /// Destructor.
-    ~Cluster() DSB_NOEXCEPT;
+    ~ProviderCluster() DSB_NOEXCEPT;
 
     // Disable copying
-    Cluster(const Cluster&) = delete;
-    Cluster& operator=(const Cluster&) = delete;
+    ProviderCluster(const ProviderCluster&) = delete;
+    ProviderCluster& operator=(const ProviderCluster&) = delete;
 
     /// Move constructor
-    Cluster(Cluster&&) DSB_NOEXCEPT;
+    ProviderCluster(ProviderCluster&&) DSB_NOEXCEPT;
 
     /// Move assignment operator
-    Cluster& operator=(Cluster&&) DSB_NOEXCEPT;
+    ProviderCluster& operator=(ProviderCluster&&) DSB_NOEXCEPT;
 
     /**
     \brief  Returns available slave types.
