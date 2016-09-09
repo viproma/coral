@@ -1,4 +1,4 @@
-#include "dsb/domain/slave_provider.hpp"
+#include "dsb/provider/provider.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -16,7 +16,7 @@
 
 namespace dsb
 {
-namespace domain
+namespace provider
 {
 
 
@@ -26,7 +26,7 @@ namespace
     {
     public:
         MySlaveProviderOps(
-            std::vector<std::unique_ptr<dsb::domain::ISlaveType>>&& slaveTypes)
+            std::vector<std::unique_ptr<SlaveCreator>>&& slaveTypes)
             : m_slaveTypes(std::move(slaveTypes))
         {
         }
@@ -62,7 +62,7 @@ namespace
         }
 
     private:
-        const std::vector<std::unique_ptr<dsb::domain::ISlaveType>> m_slaveTypes;
+        const std::vector<std::unique_ptr<SlaveCreator>> m_slaveTypes;
     };
 
 
@@ -98,7 +98,7 @@ namespace
 
 SlaveProvider::SlaveProvider(
     const std::string& slaveProviderID,
-    std::vector<std::unique_ptr<dsb::domain::ISlaveType>>&& slaveTypes,
+    std::vector<std::unique_ptr<SlaveCreator>>&& slaveTypes,
     const std::string& networkInterface,
     std::uint16_t discoveryPort,
     std::function<void(std::exception_ptr)> exceptionHandler)

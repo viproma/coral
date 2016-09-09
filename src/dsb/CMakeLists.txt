@@ -2,7 +2,6 @@ set (_target "dsb")
 
 set (_publicHeaders
     "dsb/config.h"
-    "dsb/domain/slave_provider.hpp"
     "dsb/execution/variable_io.hpp"
     "dsb/fmi/fmu.hpp"
     "dsb/fmi/fmu1.hpp"
@@ -13,6 +12,9 @@ set (_publicHeaders
     "dsb/master/execution.hpp"
     "dsb/model.hpp"
     "dsb/net.hpp"
+    "dsb/provider.hpp"
+    "dsb/provider/provider.hpp"
+    "dsb/provider/slave_creator.hpp"
     "dsb/slave.hpp"
     "dsb/slave/exception.hpp"
     "dsb/slave/instance.hpp"
@@ -78,7 +80,6 @@ set (_sources
     "util_console.cpp"
     "util_zip.cpp"
 
-    "domain_slave_provider.cpp"
     "execution_variable_io.cpp"
     "fmi_fmu1.cpp"
     "fmi_importer.cpp"
@@ -86,6 +87,7 @@ set (_sources
     "master_cluster.cpp"
     "master_execution.cpp"
     "model.cpp"
+    "provider_provider.cpp"
     "slave_logging.cpp"
     "slave_runner.cpp"
     "net.cpp"

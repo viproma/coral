@@ -11,19 +11,19 @@
 
 #include "zmq.hpp"
 
-#include "dsb/domain/slave_provider.hpp"
 #include "dsb/fmi/fmu.hpp"
 #include "dsb/fmi/importer.hpp"
 #include "dsb/log.hpp"
 #include "dsb/net/zmqx.hpp"
+#include "dsb/provider.hpp"
 #include "dsb/util.hpp"
 #include "dsb/util/console.hpp"
 
 
-struct DSBSlaveType : public dsb::domain::ISlaveType
+struct DSBSlaveCreator : public dsb::provider::SlaveCreator
 {
 public:
-    DSBSlaveType(
+    DSBSlaveCreator(
         dsb::fmi::Importer& importer,
         const boost::filesystem::path& fmuPath,
         const std::string& networkInterface,
@@ -221,9 +221,9 @@ try {
         }
     }
 
-    std::vector<std::unique_ptr<dsb::domain::ISlaveType>> fmus;
+    std::vector<std::unique_ptr<dsb::provider::SlaveCreator>> fmus;
     for (const auto& p : fmuPaths) {
-        fmus.push_back(std::make_unique<DSBSlaveType>(
+        fmus.push_back(std::make_unique<DSBSlaveCreator>(
             *importer,
             p,
             networkInterface,
@@ -234,7 +234,7 @@ try {
     }
     std::cout << fmus.size() << " FMUs loaded" << std::endl;
 
-    dsb::domain::SlaveProvider slaveProvider{
+    dsb::provider::SlaveProvider slaveProvider{
         dsb::util::RandomUUID(),
         std::move(fmus),
         networkInterface,
