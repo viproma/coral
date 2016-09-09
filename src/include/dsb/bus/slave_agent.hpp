@@ -15,7 +15,7 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
-#include "dsb/execution/variable_io.hpp"
+#include "dsb/bus/variable_io.hpp"
 #include "dsb/model.hpp"
 #include "dsb/net.hpp"
 #include "dsb/net/reactor.hpp"
@@ -166,14 +166,14 @@ private:
             ConnectionBimap;
 
         ConnectionBimap m_connections;
-        dsb::execution::VariableSubscriber m_subscriber;
+        dsb::bus::VariableSubscriber m_subscriber;
     };
 
     dsb::slave::Instance& m_slaveInstance;
     std::chrono::milliseconds m_commTimeout;
 
     dsb::net::zmqx::RepSocket m_control;
-    dsb::execution::VariablePublisher m_publisher;
+    dsb::bus::VariablePublisher m_publisher;
     Connections m_connections;
     dsb::model::SlaveID m_id; // The slave's ID number in the current execution
 

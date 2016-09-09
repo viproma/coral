@@ -2,7 +2,7 @@ set (_target "dsb")
 
 set (_publicHeaders
     "dsb/config.h"
-    "dsb/execution/variable_io.hpp"
+    "dsb/bus/variable_io.hpp"
     "dsb/fmi/fmu.hpp"
     "dsb/fmi/fmu1.hpp"
     "dsb/fmi/importer.hpp"
@@ -50,8 +50,17 @@ set (_privateHeaders
     "dsb/util/zip.hpp"
 )
 set (_sources
-    "fmi_glue.cpp"
-    "protocol_glue.cpp"
+    "bus_variable_io.cpp"
+    "fmi_fmu1.cpp"
+    "fmi_importer.cpp"
+    "log.cpp"
+    "master_cluster.cpp"
+    "master_execution.cpp"
+    "model.cpp"
+    "provider_provider.cpp"
+    "slave_logging.cpp"
+    "slave_runner.cpp"
+    "net.cpp"
 
     "async.cpp"
     "bus_execution_manager.cpp"
@@ -64,6 +73,7 @@ set (_sources
     "bus_slave_provider_comm.cpp"
     "bus_slave_setup.cpp"
     "error.cpp"
+    "fmi_glue.cpp"
     "net_ip.cpp"
     "net_reactor.cpp"
     "net_reqrep.cpp"
@@ -76,24 +86,13 @@ set (_sources
     "protocol_domain.cpp"
     "protocol_exe_data.cpp"
     "protocol_execution.cpp"
+    "protocol_glue.cpp"
     "util.cpp"
     "util_console.cpp"
     "util_zip.cpp"
-
-    "execution_variable_io.cpp"
-    "fmi_fmu1.cpp"
-    "fmi_importer.cpp"
-    "log.cpp"
-    "master_cluster.cpp"
-    "master_execution.cpp"
-    "model.cpp"
-    "provider_provider.cpp"
-    "slave_logging.cpp"
-    "slave_runner.cpp"
-    "net.cpp"
 )
 set (_testSources
-    "execution_variable_io_test.cpp"
+    "bus_variable_io_test.cpp"
 
     "async_test.cpp"
     "error_test.cpp"

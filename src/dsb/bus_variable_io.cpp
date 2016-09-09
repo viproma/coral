@@ -1,4 +1,4 @@
-#include "dsb/execution/variable_io.hpp"
+#include "dsb/bus/variable_io.hpp"
 
 #include <utility>
 #include "zmq.hpp"
@@ -10,7 +10,7 @@
 
 namespace dsb
 {
-namespace execution
+namespace bus
 {
 
 namespace

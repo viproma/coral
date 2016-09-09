@@ -1,5 +1,5 @@
-#ifndef DSB_EXECUTION_VARIABLE_IO_HPP
-#define DSB_EXECUTION_VARIABLE_IO_HPP
+#ifndef DSB_BUS_VARIABLE_IO_HPP_INCLUDED
+#define DSB_BUS_VARIABLE_IO_HPP_INCLUDED
 
 #include <chrono>
 #include <memory>
@@ -17,7 +17,7 @@ namespace zmq { class socket_t; }
 
 namespace dsb
 {
-namespace execution
+namespace bus
 {
 
 

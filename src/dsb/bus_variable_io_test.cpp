@@ -13,7 +13,7 @@
 #include "boost/thread/latch.hpp"
 #include "gtest/gtest.h"
 
-#include "dsb/execution/variable_io.hpp"
+#include "dsb/bus/variable_io.hpp"
 #include "dsb/net/zmqx.hpp"
 #include "dsb/util.hpp"
 
@@ -31,7 +31,7 @@ namespace
 }
 
 
-TEST(dsb_execution, VariablePublishSubscribe)
+TEST(dsb_bus, VariablePublishSubscribe)
 {
     const dsb::model::SlaveID slaveID = 1;
     const dsb::model::VariableID varXID = 100;
@@ -39,14 +39,14 @@ TEST(dsb_execution, VariablePublishSubscribe)
     const auto varX = dsb::model::Variable(slaveID, varXID);
     const auto varY = dsb::model::Variable(slaveID, varYID);
 
-    auto pub = dsb::execution::VariablePublisher();
+    auto pub = dsb::bus::VariablePublisher();
     pub.Bind(dsb::net::Endpoint{"tcp://*:*"});
 
     auto inetEndpoint = dsb::net::ip::Endpoint{pub.BoundEndpoint().Address()};
     inetEndpoint.SetAddress(dsb::net::ip::Address{"localhost"});
     const auto endpoint = inetEndpoint.ToEndpoint("tcp");
 
-    auto sub = dsb::execution::VariableSubscriber();
+    auto sub = dsb::bus::VariableSubscriber();
     sub.Connect(&endpoint, 1);
     sub.Subscribe(varX);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -100,7 +100,7 @@ TEST(dsb_execution, VariablePublishSubscribe)
 }
 
 
-TEST(dsb_execution, VariablePublishSubscribePerformance)
+TEST(dsb_bus, VariablePublishSubscribePerformance)
 {
     const int VAR_COUNT = 5000;
     const int STEP_COUNT = 50;
@@ -119,7 +119,7 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
     auto pubThread = std::thread(
         [STEP_COUNT, PORT, publisherID, &vars, &primeLatch, &stepBarrier] ()
         {
-            dsb::execution::VariablePublisher pub;
+            dsb::bus::VariablePublisher pub;
             pub.Bind(dsb::net::ip::Endpoint{"*", PORT}.ToEndpoint("tcp"));
             do {
                 for (size_t i = 0; i < vars.size(); ++i) {
@@ -134,7 +134,7 @@ TEST(dsb_execution, VariablePublishSubscribePerformance)
             }
         });
 
-    dsb::execution::VariableSubscriber sub;
+    dsb::bus::VariableSubscriber sub;
     const auto endpoint = dsb::net::ip::Endpoint{"localhost", PORT}.ToEndpoint("tcp");
     sub.Connect(&endpoint, 1);
 
