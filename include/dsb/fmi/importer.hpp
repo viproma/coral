@@ -23,7 +23,6 @@ struct jm_callbacks;
 
 namespace dsb
 {
-/// Classes and functions related to the Functional Mock-up Interface (FMI).
 namespace fmi
 {
 

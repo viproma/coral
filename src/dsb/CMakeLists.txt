@@ -3,6 +3,7 @@ set (_target "dsb")
 set (_publicHeaders
     "dsb/config.h"
     "dsb/bus/variable_io.hpp"
+    "dsb/fmi.hpp"
     "dsb/fmi/fmu.hpp"
     "dsb/fmi/fmu1.hpp"
     "dsb/fmi/importer.hpp"
