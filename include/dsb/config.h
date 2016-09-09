@@ -140,4 +140,23 @@ be a valid C header.  C++-specific code should therefore be placed in
             return a; }
 #endif
 
+// This is as good a place as any to put top-level documentation.
+/**
+\mainpage
+
+DSB is a C++ library for performing distributed co-simulations, built from the
+ground up with [FMI](https://www.fmi-standard.org) support in mind.  As such,
+it is based on a master/slave model of control and communication.
+
+If you are implementing a simulation *master*, i.e., the entity that controls
+the whole simulation, check out the stuff in dsb::master.
+
+If you are implementing a simulation *slave*, aka. sub-simulator, have a
+look at dsb::slave.
+
+If you are implementing a *slave provider*, a type of server software which
+is responsible for spawning new slaves at the request of a master, dsb::provider
+is for you.
+*/
+
 #endif // header guard
