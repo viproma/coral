@@ -74,7 +74,7 @@ TEST(dsb_net_service, Tracker)
 {
     namespace sc = std::chrono;
 
-    const int domainID = 0;
+    const int partitionID = 0;
     const std::uint16_t port = 63948;
     std::unique_ptr<dsb::net::service::Beacon> beacon11, beacon12, beacon21, beacon31;
     const auto service11StartTime = sc::milliseconds(300);
@@ -102,7 +102,7 @@ TEST(dsb_net_service, Tracker)
         service11StartTime, 1,
         [&] (dsb::net::Reactor&, int) {
             beacon11 = std::make_unique<dsb::net::service::Beacon>(
-                domainID,
+                partitionID,
                 "serviceType1",
                 "service1.1",
                 service11Payload1.data(), service11Payload1.size(),
@@ -114,7 +114,7 @@ TEST(dsb_net_service, Tracker)
         service12StartTime, 1,
         [&] (dsb::net::Reactor&, int) {
             beacon12 = std::make_unique<dsb::net::service::Beacon>(
-                domainID,
+                partitionID,
                 "serviceType1",
                 "service1.2",
                 service12Payload.data(), service12Payload.size(),
@@ -126,7 +126,7 @@ TEST(dsb_net_service, Tracker)
         service21StartTime, 1,
         [&] (dsb::net::Reactor&, int) {
             beacon21 = std::make_unique<dsb::net::service::Beacon>(
-                domainID,
+                partitionID,
                 "serviceType2",
                 "service2.1",
                 service21Payload.data(), service21Payload.size(),
@@ -138,7 +138,7 @@ TEST(dsb_net_service, Tracker)
         service31StartTime, 1,
         [&] (dsb::net::Reactor&, int) {
             beacon31 = std::make_unique<dsb::net::service::Beacon>(
-                domainID,
+                partitionID,
                 "serviceType3",
                 "service3.1",
                 service31Payload.data(), service31Payload.size(),
@@ -150,7 +150,7 @@ TEST(dsb_net_service, Tracker)
         service11ChangeTime, 1,
         [&] (dsb::net::Reactor&, int) {
             beacon11 = std::make_unique<dsb::net::service::Beacon>(
-                domainID,
+                partitionID,
                 "serviceType1",
                 "service1.1",
                 service11Payload2.data(), service11Payload2.size(),
