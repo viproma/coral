@@ -65,8 +65,8 @@ class ProviderCluster::Private
 {
 public:
     Private(
-        const std::string& networkInterface,
-        std::uint16_t discoveryPort)
+        const dsb::net::ip::Address& networkInterface,
+        dsb::net::ip::Port discoveryPort)
         : m_thread{}
     {
         m_thread.Execute<void>([&]
@@ -77,8 +77,7 @@ public:
                     std::make_unique<dsb::net::service::Tracker>(
                         reactor,
                         0,
-                        networkInterface,
-                        discoveryPort);
+                        net::ip::Endpoint{networkInterface, discoveryPort});
                 SetupSlaveProviderTracking(
                     *bgData.serviceTracker,
                     bgData.slaveProviders,
@@ -151,8 +150,8 @@ private:
 
 
 ProviderCluster::ProviderCluster(
-    const std::string& networkInterface,
-    std::uint16_t discoveryPort)
+    const dsb::net::ip::Address& networkInterface,
+    dsb::net::ip::Port discoveryPort)
     : m_private{std::make_unique<Private>(networkInterface, discoveryPort)}
 {
 }

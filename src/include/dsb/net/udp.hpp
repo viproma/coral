@@ -16,6 +16,7 @@
 #include <string>
 
 #include "dsb/config.h"
+#include "dsb/net.hpp"
 
 
 namespace dsb
@@ -64,8 +65,8 @@ public:
     \throws std::runtime_error on failure.
     */
     BroadcastSocket(
-        const std::string& networkInterface,
-        std::uint16_t port,
+        const ip::Address& networkInterface,
+        ip::Port port,
         int flags = 0);
 
     /// Destructor

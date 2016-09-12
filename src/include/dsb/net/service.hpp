@@ -14,6 +14,7 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
+#include "dsb/net.hpp"
 #include "dsb/net/reactor.hpp"
 
 
@@ -85,8 +86,8 @@ public:
         const char* payload,
         std::uint16_t payloadSize,
         std::chrono::milliseconds period,
-        const std::string& networkInterface,
-        std::uint16_t port);
+        const ip::Address& networkInterface,
+        ip::Port port);
 
     /**
     \brief  Destructor.
@@ -158,12 +159,10 @@ public:
     \param [in] partitionID
         This must match the partition ID of any Beacon one wishes to
         detect.
-    \param [in] networkInterface
-        The name or IP address of the network interface to listen on,
-        or "*" to listen on all interfaces.
-    \param [in] port
-        Which UDP port to listen on.  This must match the port used in the
-        Beacon.
+    \param [in] endpoint
+        The name or IP address of the network interface, together with the
+        UDP port, to listen on.  The name may be "*" to listen on all
+        interfaces.  The port number must match the port used in the Beacon.
     \param [in] onNotification
         A function which will be called whenever a service notification
         is received.
@@ -173,8 +172,7 @@ public:
     Listener(
         dsb::net::Reactor& reactor,
         std::uint32_t partitionID,
-        const std::string& networkInterface,
-        std::uint16_t port,
+        const ip::Endpoint& endpoint,
         NotificationHandler onNotification);
 
     /// Destructor
@@ -273,20 +271,17 @@ public:
     \param [in] partitionID
         This must match the partition ID of any Beacon one wishes to
         detect.
-    \param [in] networkInterface
-        The name or IP address of the network interface to listen on,
-        or "*" to listen on all interfaces.
-    \param [in] port
-        Which UDP port to listen on.  This must match the port used in the
-        Beacon.
+    \param [in] endpoint
+        The name or IP address of the network interface, together with the
+        UDP port, to listen on.  The name may be "*" to listen on all
+        interfaces.  The port number must match the port used in the Beacon.
 
     \throws std::runtime_error on network error.
     */
     Tracker(
         dsb::net::Reactor& reactor,
         std::uint32_t partitionID,
-        const std::string& networkInterface,
-        std::uint16_t port);
+        const ip::Endpoint& endpoint);
 
     /// Destructor.
     ~Tracker() DSB_NOEXCEPT;

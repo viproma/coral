@@ -40,7 +40,10 @@ TEST(dsb_net_service, Listener)
     int bugCount = 0;
 
     dsb::net::Reactor reactor;
-    auto listener = dsb::net::service::Listener(reactor, 100, "*", port,
+    auto listener = dsb::net::service::Listener{
+        reactor,
+        100,
+        dsb::net::ip::Endpoint{"*", port},
         [&] (const std::string& addr, const std::string& st, const std::string& si, const char* pl, std::size_t pls)
         {
             if (st == "serviceType1" && si == "service1" &&
@@ -52,7 +55,7 @@ TEST(dsb_net_service, Listener)
             } else {
                 ++bugCount;
             }
-        });
+        }};
     reactor.AddTimer(
         std::chrono::seconds(2),
         1,
@@ -189,7 +192,10 @@ TEST(dsb_net_service, Tracker)
         return minimum <= actual && actual <= maximum;
     };
 
-    auto tracker = dsb::net::service::Tracker(reactor, 0, "*", port);
+    auto tracker = dsb::net::service::Tracker{
+        reactor,
+        0,
+        dsb::net::ip::Endpoint{"*", port}};
     tracker.AddTrackedServiceType(
         "serviceType1", serviceType1Timeout,
         [&] (

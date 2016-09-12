@@ -14,6 +14,7 @@
 #include "dsb/fmi/fmu.hpp"
 #include "dsb/fmi/importer.hpp"
 #include "dsb/log.hpp"
+#include "dsb/net.hpp"
 #include "dsb/net/zmqx.hpp"
 #include "dsb/provider.hpp"
 #include "dsb/util.hpp"
@@ -26,13 +27,13 @@ public:
     DSBSlaveCreator(
         dsb::fmi::Importer& importer,
         const boost::filesystem::path& fmuPath,
-        const std::string& networkInterface,
+        const dsb::net::ip::Address& networkInterface,
         const std::string& slaveExe,
         std::chrono::seconds commTimeout,
         const std::string& outputDir)
         : m_fmuPath{fmuPath}
         , m_fmu{importer.Import(fmuPath)}
-        , m_networkInterface(networkInterface)
+        , m_networkInterface{networkInterface}
         , m_slaveExe(slaveExe)
         , m_commTimeout{commTimeout}
         , m_outputDir(outputDir.empty() ? "." : outputDir)
@@ -57,7 +58,7 @@ public:
             std::vector<std::string> args;
             args.push_back(slaveStatusEp);
             args.push_back(m_fmuPath.string());
-            args.push_back(m_networkInterface);
+            args.push_back(m_networkInterface.ToString());
             args.push_back(std::to_string(m_commTimeout.count()));
             args.push_back(m_outputDir);
 
@@ -114,7 +115,7 @@ public:
 private:
     boost::filesystem::path m_fmuPath;
     std::shared_ptr<dsb::fmi::FMU> m_fmu;
-    std::string m_networkInterface;
+    dsb::net::ip::Address m_networkInterface;
     std::string m_slaveExe;
     std::chrono::seconds m_commTimeout;
     std::string m_outputDir;

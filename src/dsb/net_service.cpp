@@ -100,15 +100,14 @@ Beacon::Beacon(
     const char* payload,
     std::uint16_t payloadSize,
     std::chrono::milliseconds period,
-    const std::string& networkInterface,
-    std::uint16_t port)
+    const ip::Address& networkInterface,
+    ip::Port port)
     : m_socket(dsb::net::zmqx::GlobalContext(), ZMQ_PAIR)
 {
     DSB_INPUT_CHECK(serviceType.size() < 256u);
     DSB_INPUT_CHECK(serviceIdentifier.size() < 256u);
     DSB_INPUT_CHECK(payloadSize == 0 || payload != nullptr);
     DSB_INPUT_CHECK(period > std::chrono::milliseconds(0));
-    DSB_INPUT_CHECK(!networkInterface.empty());
 
     // Create the thread-to-thread channel
     const auto endpoint = "inproc://" + dsb::util::RandomUUID();
@@ -182,8 +181,7 @@ public:
     Impl(
         dsb::net::Reactor& reactor,
         std::uint32_t partitionID,
-        const std::string& networkInterface,
-        std::uint16_t port,
+        const ip::Endpoint& endpoint,
         NotificationHandler onNotification);
     ~Impl() DSB_NOEXCEPT;
     Impl(const Impl&) = delete;
@@ -204,13 +202,12 @@ private:
 Listener::Impl::Impl(
     dsb::net::Reactor& reactor,
     std::uint32_t partitionID,
-    const std::string& networkInterface,
-    std::uint16_t port,
+    const ip::Endpoint& endpoint,
     NotificationHandler onNotification)
     : m_reactor(reactor)
     , m_partitionID(partitionID)
     , m_onNotification(onNotification)
-    , m_udpSocket(networkInterface, port)
+    , m_udpSocket(endpoint.Address(), endpoint.Port())
 {
     DSB_INPUT_CHECK(onNotification != nullptr);
     reactor.AddNativeSocket(
@@ -280,14 +277,12 @@ void Listener::Impl::IncomingBeacon()
 Listener::Listener(
     dsb::net::Reactor& reactor,
     std::uint32_t partitionID,
-    const std::string& networkInterface,
-    std::uint16_t port,
+    const ip::Endpoint& endpoint,
     NotificationHandler onNotification)
     : m_impl(std::make_unique<Impl>(
         reactor,
         partitionID,
-        networkInterface,
-        port,
+        endpoint,
         std::move(onNotification)))
 {
 }
@@ -323,14 +318,12 @@ public:
     Impl(
         dsb::net::Reactor& reactor,
         std::uint32_t partitionID,
-        const std::string& networkInterface,
-        std::uint16_t port)
+        const ip::Endpoint& endpoint)
         : m_reactor(reactor)
         , m_listener(
             reactor,
             partitionID,
-            networkInterface,
-            port,
+            endpoint,
             std::bind(&Impl::OnNotification, this, _1, _2, _3, _4, _5))
         , m_timeoutID(-1)
         , m_smallestTimeout(std::chrono::milliseconds::max())
@@ -483,9 +476,8 @@ private:
 Tracker::Tracker(
     dsb::net::Reactor& reactor,
     std::uint32_t partitionID,
-    const std::string& networkInterface,
-    std::uint16_t port)
-    : m_impl(std::make_unique<Impl>(reactor, partitionID, networkInterface, port))
+    const ip::Endpoint& endpoint)
+    : m_impl{std::make_unique<Impl>(reactor, partitionID, endpoint)}
 {
 }
 

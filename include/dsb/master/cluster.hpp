@@ -50,15 +50,15 @@ public:
     \brief  Constructor.
 
     \param [in] networkInterface
-        The name or IP address (in dot-decimal format) of the network
-        interface that should be used, or "*" for all available interfaces.
+        The name or IP address of the network interface that should be used,
+        or "*" for all available interfaces.
     \param [in] discoveryPort
         The UDP port used for discovering other entities such as slave
         providers.
     */
     ProviderCluster(
-        const std::string& networkInterface,
-        std::uint16_t discoveryPort);
+        const dsb::net::ip::Address& networkInterface,
+        dsb::net::ip::Port discoveryPort);
 
     /// Destructor.
     ~ProviderCluster() DSB_NOEXCEPT;
