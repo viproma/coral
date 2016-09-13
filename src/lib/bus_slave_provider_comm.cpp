@@ -147,7 +147,7 @@ private:
         const auto reply = std::string(replyHeader, replyHeaderSize);
         if (reply == OK_REPLY) {
             coralproto::domain::SlaveTypeList slaveTypeList;
-            if (slaveTypeList.ParseFromArray(replyBody, replyBodySize)) {
+            if (slaveTypeList.ParseFromArray(replyBody, boost::numeric_cast<int>(replyBodySize))) {
                 auto slaveTypes = FromProto(slaveTypeList);
                 m_slaveTypesCached = true; // TODO: Add "expiry date"?
                 completionHandler(
@@ -179,7 +179,7 @@ private:
         const auto reply = std::string{replyHeader, replyHeaderSize};
         if (reply == OK_REPLY) {
             coralproto::domain::InstantiateSlaveReply replyData;
-            if (replyData.ParseFromArray(replyBody, replyBodySize)) {
+            if (replyData.ParseFromArray(replyBody, boost::numeric_cast<int>(replyBodySize))) {
                 // Trandlate "*" in the slave addresses with the slave
                 // provider address.
                 const auto slaveLocator = coral::net::SlaveLocator{
@@ -382,7 +382,7 @@ private:
             return false;
         }
         coralproto::domain::InstantiateSlaveData args;
-        if (!args.ParseFromArray(requestBody, requestBodySize)) {
+        if (!args.ParseFromArray(requestBody, boost::numeric_cast<int>(requestBodySize))) {
             CORAL_LOG_TRACE("SlaveProviderServerHandler: Ignoring request due to malformed request body");
             return false;
         }

@@ -84,7 +84,7 @@ public:
         const std::string& serviceType,
         const std::string& serviceIdentifier,
         const char* payload,
-        std::uint16_t payloadSize,
+        std::size_t payloadSize,
         std::chrono::milliseconds period,
         const ip::Address& networkInterface,
         ip::Port port);

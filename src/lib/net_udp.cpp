@@ -167,9 +167,15 @@ public:
             auto bytesSent = sendto(
                 m_socket,
                 buffer,
+#ifdef _WIN32
+                (int)
+#endif
                 bufferSize,
                 0, // flags
                 reinterpret_cast<const sockaddr*>(&address),
+#ifdef _WIN32
+                (int)
+#endif
                 sizeof(address));
             if (bytesSent < 0) {
                 throw std::runtime_error("Failed to broadcast UDP message");
@@ -187,10 +193,17 @@ public:
     {
         sockaddr_in senderAddress;
         std::memset(&senderAddress, 0, sizeof(senderAddress));
+#ifdef _WIN32
+        int senderAddressSize = static_cast<int>(sizeof(senderAddress));
+#else
         socklen_t senderAddressSize = sizeof(senderAddress);
+#endif
         const auto msgSize = recvfrom(
             m_socket,
             buffer,
+#ifdef _WIN32
+            (int)
+#endif
             bufferSize,
             0, // flags
             reinterpret_cast<sockaddr*>(&senderAddress),

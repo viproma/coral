@@ -98,7 +98,7 @@ Beacon::Beacon(
     const std::string& serviceType,
     const std::string& serviceIdentifier,
     const char* payload,
-    std::uint16_t payloadSize,
+    std::size_t payloadSize,
     std::chrono::milliseconds period,
     const ip::Address& networkInterface,
     ip::Port port)
@@ -107,6 +107,7 @@ Beacon::Beacon(
     CORAL_INPUT_CHECK(serviceType.size() < 256u);
     CORAL_INPUT_CHECK(serviceIdentifier.size() < 256u);
     CORAL_INPUT_CHECK(payloadSize == 0 || payload != nullptr);
+    CORAL_INPUT_CHECK(payloadSize < (1u << 16));
     CORAL_INPUT_CHECK(period > std::chrono::milliseconds(0));
 
     // Create the thread-to-thread channel
@@ -137,9 +138,11 @@ Beacon::Beacon(
     std::memcpy(&message[0], protocolMagic, protocolMagicSize);
     message[protocolMagicSize] = 0;
     coral::util::EncodeUint32(partitionID, &message[protocolMagicSize+1]);
-    message[protocolMagicSize + 5] = serviceType.size();
-    message[protocolMagicSize + 6] = serviceIdentifier.size();
-    coral::util::EncodeUint16(payloadSize, &message[protocolMagicSize+7]);
+    message[protocolMagicSize + 5] = static_cast<char>(serviceType.size());
+    message[protocolMagicSize + 6] = static_cast<char>(serviceIdentifier.size());
+    coral::util::EncodeUint16(
+        static_cast<std::uint16_t>(payloadSize),
+        &message[protocolMagicSize+7]);
     auto putIter = message.begin() + minMessageSize;
     putIter = std::copy(serviceType.begin(), serviceType.end(), putIter);
     putIter = std::copy(serviceIdentifier.begin(), serviceIdentifier.end(), putIter);
