@@ -23,7 +23,7 @@ source_group("Protobuf Files" FILES ${protoFiles})
 
 find_package (ProtobufTarget REQUIRED)
 PROTOBUF_GENERATE_CPP (sources headers ${protoFiles})
-set (target "dsbproto")
+set (target "coralproto")
 add_library (${target} OBJECT ${sources} ${headers} ${protoFiles})
 target_include_directories (${target}
     INTERFACE ${CMAKE_CURRENT_BINARY_DIR}

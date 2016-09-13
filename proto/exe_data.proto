@@ -1,4 +1,4 @@
-package dsbproto.exe_data;
+package coralproto.exe_data;
 
 import "model.proto";
 

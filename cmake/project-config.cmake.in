@@ -9,5 +9,5 @@ set (CMAKE_MODULE_PATH ${_old_CMAKE_MODULE_PATH})
 unset (_old_CMAKE_MODULE_PATH)
 
 include ("@PACKAGE_exportFileConfig@")
-set (dsb_LIBRARIES "dsb")
-set_and_check (dsb_INCLUDE_DIRS "@PACKAGE_includeDirsConfig@")
+set (coral_LIBRARIES "coral")
+set_and_check (coral_INCLUDE_DIRS "@PACKAGE_includeDirsConfig@")

@@ -1,5 +1,5 @@
 // The message types in this file are only used for testing purposes.
-package dsbproto.testing;
+package coralproto.testing;
 
 message IntString
 {

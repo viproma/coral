@@ -1,4 +1,4 @@
-package dsbproto.model;
+package coralproto.model;
 
 // The FMI variable data types.
 enum DataType

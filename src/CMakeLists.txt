@@ -10,23 +10,23 @@ elseif (MSVC)
 endif()
 
 # Same, only macro definitions.
-if (DSB_ENABLE_DEBUG_LOGGING OR DSB_ENABLE_TRACE_LOGGING)
+if (CORAL_ENABLE_DEBUG_LOGGING OR CORAL_ENABLE_TRACE_LOGGING)
     set_property (DIRECTORY APPEND PROPERTY
-        COMPILE_DEFINITIONS "DSB_LOG_DEBUG_ENABLED")
+        COMPILE_DEFINITIONS "CORAL_LOG_DEBUG_ENABLED")
 else ()
     set_property (DIRECTORY APPEND PROPERTY
-        COMPILE_DEFINITIONS "$<$<CONFIG:Debug>:DSB_LOG_DEBUG_ENABLED>")
+        COMPILE_DEFINITIONS "$<$<CONFIG:Debug>:CORAL_LOG_DEBUG_ENABLED>")
 endif ()
-if (DSB_ENABLE_TRACE_LOGGING)
+if (CORAL_ENABLE_TRACE_LOGGING)
     set_property (DIRECTORY APPEND PROPERTY
-        COMPILE_DEFINITIONS "DSB_LOG_TRACE_ENABLED")
+        COMPILE_DEFINITIONS "CORAL_LOG_TRACE_ENABLED")
 endif ()
 # The directory in which private headers are located.
 # These are the headers that should be available to all submodules in this
 # project, but which should not be installed as part of the public API.
 set (privateHeaderDir "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-add_subdirectory ("dsb")
-add_subdirectory ("dsbexec")
+add_subdirectory ("lib")
+add_subdirectory ("master")
+add_subdirectory ("provider")
 add_subdirectory ("slave")
-add_subdirectory ("slave_provider")
