@@ -220,7 +220,7 @@ void SetupSlaveProviderTracking(
             std::size_t payloadSize)
         {
             if (payloadSize != 2) {
-                DSB_LOG_TRACE("Domain controller ignoring slave provider beacon due to missing data");
+                DSB_LOG_TRACE("Ignoring slave provider beacon due to missing data");
                 return;
             }
             const auto port = dsb::util::DecodeUint16(payload);
@@ -242,7 +242,7 @@ void SetupSlaveProviderTracking(
             std::size_t payloadSize)
         {
             if (payloadSize != 2) {
-                DSB_LOG_TRACE("Domain controller ignoring slave provider beacon due to missing data");
+                DSB_LOG_TRACE("Ignoring slave provider beacon due to missing data");
                 return;
             }
             const auto port = dsb::util::DecodeUint16(payload);
@@ -402,4 +402,4 @@ void HandleInstantiateSlave(
 
 
 } // anonymous namespace
-}} // namespace dsb::domain
+}} // namespace
