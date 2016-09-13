@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
@@ -19,6 +20,13 @@
 #include "dsb/provider.hpp"
 #include "dsb/util.hpp"
 #include "dsb/util/console.hpp"
+
+
+namespace
+{
+    const std::string DEFAULT_NETWORK_INTERFACE = "*";
+    const std::uint16_t DEFAULT_DISCOVERY_PORT = 10272;
+}
 
 
 struct DSBSlaveCreator : public dsb::provider::SlaveCreator
@@ -157,13 +165,16 @@ try {
         ("clean-cache",
             "Clear the cache which contains previously unpacked FMU contents."
             "The program will exit immediately after performing this action.")
-        ("domain,d", po::value<std::string>()->default_value("localhost"),
-            "The domain address, of the form \"hostname:port\". (\":port\" is "
-            "optional, and only required if a nonstandard port is used.)")
-        ("slave-exe", po::value<std::string>(),
-            "The path to the DSB slave executable")
+        ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
+            "The IP address or (OS-specific) name of the network interface to "
+            "use for network communications, or \"*\" for all/any.")
         ("output-dir,o", po::value<std::string>()->default_value("."),
             "The directory where output files should be written")
+        ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
+            "The UDP port used to broadcast information about this slave provider. "
+            "The master must listen on the same port.")
+        ("slave-exe", po::value<std::string>(),
+            "The path to the DSB slave executable")
         ("timeout", po::value<unsigned int>()->default_value(3600),
             "The number of seconds of inactivity before a slave shuts itself down");
     po::options_description positionalOptions("Arguments");
@@ -187,9 +198,11 @@ try {
     }
     if (!optionValues->count("fmu")) throw std::runtime_error("No FMUs specified");
 
-    const auto domainAddress = (*optionValues)["domain"].as<std::string>();
-    const auto networkInterface = std::string("*"); // TODO: Make cmdline switch
+    const auto networkInterface = dsb::net::ip::Address{
+        (*optionValues)["interface"].as<std::string>()};
     const auto outputDir = (*optionValues)["output-dir"].as<std::string>();
+    const auto discoveryPort = dsb::net::ip::Port{
+        (*optionValues)["port"].as<std::uint16_t>()};
     const auto timeout = std::chrono::seconds((*optionValues)["timeout"].as<unsigned int>());
 
     std::string slaveExe;
@@ -239,7 +252,7 @@ try {
         dsb::util::RandomUUID(),
         std::move(fmus),
         networkInterface,
-        10272,
+        discoveryPort,
         [](std::exception_ptr e) {
             try { std::rethrow_exception(e); }
             catch (const std::exception& e) {

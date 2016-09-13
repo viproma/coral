@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <cstdint>
 #include <iostream>
 #include <queue>
 #include <map>
@@ -19,6 +20,8 @@
 
 namespace {
     const std::string self = "dsbexec";
+    const std::string DEFAULT_NETWORK_INTERFACE = "*";
+    const std::uint16_t DEFAULT_DISCOVERY_PORT = 10272;
 }
 
 
@@ -28,11 +31,13 @@ int Run(const std::vector<std::string>& args)
         namespace po = boost::program_options;
         po::options_description options("Options");
         options.add_options()
-            ("domain,d", po::value<std::string>()->default_value("localhost"),
-                "The domain address, of the form \"hostname:port\". (\":port\" is "
-                "optional, and only required if a nonstandard port is used.)")
+            ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
+                "The IP address or (OS-specific) name of the network interface to "
+                "use for network communications, or \"*\" for all/any.")
             ("name,n", po::value<std::string>()->default_value(""),
                 "The execution name (if left unspecified, a timestamp will be used)")
+            ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
+                "The UDP port used to listen for slave providers.")
             ("warnings,w",
                 "Enable warnings while parsing execution configuration file");
         po::options_description positionalOptions("Arguments");
@@ -109,16 +114,21 @@ int Run(const std::vector<std::string>& args)
         if (!argValues->count("sys-config")) throw std::runtime_error("No system configuration file specified");
         const auto execConfigFile = (*argValues)["exec-config"].as<std::string>();
         const auto sysConfigFile = (*argValues)["sys-config"].as<std::string>();
-        const auto address = (*argValues)["domain"].as<std::string>();
+        const auto networkInterface = dsb::net::ip::Address{
+            (*argValues)["interface"].as<std::string>()};
         const auto execName = (*argValues)["name"].as<std::string>();
+        const auto discoveryPort = dsb::net::ip::Port{
+            (*argValues)["port"].as<std::uint16_t>()};
         const auto warningStream = argValues->count("warnings") ? &std::clog : nullptr;
 
-        auto providers = dsb::master::ProviderCluster("*", 10272);
+        auto providers = dsb::master::ProviderCluster{
+            networkInterface,
+            discoveryPort};
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
         // slave provider heartbeat time.
-        std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
+        std::cout << "Looking for slave providers..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         std::cout << "Parsing execution configuration file '" << execConfigFile
@@ -236,9 +246,11 @@ int List(const std::vector<std::string>& args)
         namespace po = boost::program_options;
         po::options_description options("Options");
         options.add_options()
-            ("domain,d", po::value<std::string>()->default_value("localhost"),
-                "The domain address, of the form \"hostname:port\". (\":port\" is "
-                "optional, and only required if a nonstandard port is used.)");
+            ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
+                "The IP address or (OS-specific) name of the network interface to "
+                "use for network communications, or \"*\" for all/any.")
+            ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
+                "The UDP port used to listen for slave providers.");
         const auto argValues = dsb::util::ParseArguments(
             args,
             options,
@@ -246,16 +258,21 @@ int List(const std::vector<std::string>& args)
             po::positional_options_description(),
             std::cerr,
             self + " list",
-            "Lists the slave types that are available on a domain.");
+            "Lists the slave types that are available on the network.");
         if (!argValues) return 0;
-        const auto address = (*argValues)["domain"].as<std::string>();
+        const auto networkInterface = dsb::net::ip::Address{
+            (*argValues)["interface"].as<std::string>()};
+        const auto discoveryPort = dsb::net::ip::Port{
+            (*argValues)["port"].as<std::uint16_t>()};
 
-        auto providers = dsb::master::ProviderCluster("*", 10272);
+        auto providers = dsb::master::ProviderCluster{
+            networkInterface,
+            discoveryPort};
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
         // slave provider heartbeat time.
-        std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
+        std::cout << "Looking for slave providers..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         auto slaveTypes = providers.GetSlaveTypes(std::chrono::seconds(1));
@@ -284,23 +301,25 @@ int LsVars(const std::vector<std::string>& args)
         namespace po = boost::program_options;
         po::options_description options("Options");
         options.add_options()
-            ("domain,d", po::value<std::string>()->default_value("localhost"),
-                "The domain address, of the form \"hostname:port\". (\":port\" is "
-                "optional, and only required if a nonstandard port is used.)")
-            ("type,t", po::value<std::string>()->default_value("birs"),
-                "The data type(s) to include.  May contain one or more of the "
-                "following characters: b=boolean, i=integer, r=real, s=string")
             ("causality,c", po::value<std::string>()->default_value("cilop"),
                 "The causalities to include.  May contain one or more of the "
                 "following characters: c=calculated parameter, i=input, "
                 "l=local, o=output, p=parameter")
+            ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
+                "The IP address or (OS-specific) name of the network interface to "
+                "use for network communications, or \"*\" for all/any.")
+            ("long,l",
+                "\"Long\" format.  Shows type, causality and variability as a "
+                "3-character string after the variable name.")
+            ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
+                "The UDP port used to listen for slave providers.")
+            ("type,t", po::value<std::string>()->default_value("birs"),
+                "The data type(s) to include.  May contain one or more of the "
+                "following characters: b=boolean, i=integer, r=real, s=string")
             ("variability,v", po::value<std::string>()->default_value("cdftu"),
                 "The variabilities to include.  May contain one or more of the "
                 "following characters: c=constant, d=discrete, f=fixed, "
-                "t=tunable, u=continuous")
-            ("long,l",
-                "\"Long\" format.  Shows type, causality and variability as a "
-                "3-character string after the variable name.");
+                "t=tunable, u=continuous");
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("slave-type",  po::value<std::string>(),
@@ -316,15 +335,19 @@ int LsVars(const std::vector<std::string>& args)
 
         if (!argValues->count("slave-type")) throw std::runtime_error("Slave type name not specified");
         const auto slaveType =     (*argValues)["slave-type"].as<std::string>();
-        const auto types =         (*argValues)["type"].as<std::string>();
-        const auto address =       (*argValues)["domain"].as<std::string>();
-        const auto causalities =   (*argValues)["causality"].as<std::string>();
-        const auto variabilities = (*argValues)["variability"].as<std::string>();
-        const bool longForm =      (*argValues).count("long") > 0;
 
-        // Now we have read all the command-line arguments, connect to the
-        // domain and find the slave type
-        auto providers = dsb::master::ProviderCluster("*", 10272);
+        const auto causalities =   (*argValues)["causality"].as<std::string>();
+        const auto networkInterface = dsb::net::ip::Address{
+            (*argValues)["interface"].as<std::string>()};
+        const bool longForm =      (*argValues).count("long") > 0;
+        const auto discoveryPort = dsb::net::ip::Port{
+            (*argValues)["port"].as<std::uint16_t>()};
+        const auto types =         (*argValues)["type"].as<std::string>();
+        const auto variabilities = (*argValues)["variability"].as<std::string>();
+
+        auto providers = dsb::master::ProviderCluster{
+            networkInterface,
+            discoveryPort};
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
@@ -389,9 +412,11 @@ int Info(const std::vector<std::string>& args)
         namespace po = boost::program_options;
         po::options_description options("Options");
         options.add_options()
-            ("domain,d", po::value<std::string>()->default_value("localhost"),
-                "The domain address, of the form \"hostname:port\". (\":port\" is "
-                "optional, and only required if a nonstandard port is used.)");
+            ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
+                "The IP address or (OS-specific) name of the network interface to "
+                "use for network communications, or \"*\" for all/any.")
+            ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
+                "The UDP port used to listen for slave providers.");
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("slave-type",  po::value<std::string>(), "A slave type name");
@@ -406,15 +431,19 @@ int Info(const std::vector<std::string>& args)
 
         if (!argValues->count("slave-type")) throw std::runtime_error("Slave type name not specified");
         const auto slaveType = (*argValues)["slave-type"].as<std::string>();
-        const auto address =   (*argValues)["domain"].as<std::string>();
+        const auto networkInterface = dsb::net::ip::Address{
+            (*argValues)["interface"].as<std::string>()};
+        const auto discoveryPort = dsb::net::ip::Port{
+            (*argValues)["port"].as<std::uint16_t>()};
 
-        // Connect to domain
-        auto providers = dsb::master::ProviderCluster("*", 10272);
+        auto providers = dsb::master::ProviderCluster{
+            networkInterface,
+            discoveryPort};
 
         // TODO: Handle this waiting more elegantly, e.g. wait until all required
         // slave types are available.  Also, the waiting time is related to the
         // slave provider heartbeat time.
-        std::cout << "Connected to domain; waiting for data from slave providers..." << std::endl;
+        std::cout << "Looking for slave providers..." << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         const auto slaveTypes = providers.GetSlaveTypes(std::chrono::seconds(1));
@@ -471,7 +500,7 @@ int main(int argc, const char** argv)
     if (argc < 2) {
         std::cerr <<
             "Execution master (DSB v" DSB_VERSION_STRING ")\n\n"
-            "This program will connect to a domain and obtain information about\n"
+            "This program will connect to the network and obtain information about\n"
             "available slave types, and can be used to run simple simulations.\n\n"
             "Usage:\n"
             "  " << self << " <command> [command-specific args]\n\n"
