@@ -14,6 +14,7 @@
 #include "zmq.hpp"
 
 #include "dsb/config.h"
+#include "dsb/net.hpp"
 #include "dsb/net/reactor.hpp"
 
 
@@ -44,18 +45,18 @@ public:
     /**
     \brief  Constructor.
 
-    \param [in] domainID
+    \param [in] partitionID
         This represents a way to divide the services on the same physical
         network into distinct partitions.  A Listener will only detect
-        services whose Beacon uses the same `domainID`.
+        services whose Beacon uses the same `partitionID`.
     \param [in] serviceType
         The name of the service type, which may be any string of at most
         255 characters.  This is used to filter services in Listener.
     \param [in] serviceIdentifier
         A name which identifies a particular service-providing entity.
         Its length may be up to 255 characters.  Normally, this will be a
-        unique name, at least in the context of a particular service on a
-        particular domain.
+        unique name, at least in the context of a particular service in a
+        particular network partition.
     \param [in] payload
         A service-specific data payload.  If `payloadSize` is zero, this
         parameter is ignored.  Otherwise, it must point to an array of size
@@ -79,14 +80,14 @@ public:
     \throws std::runtime_error on error.
     */
     Beacon(
-        std::uint64_t domainID,
+        std::uint32_t partitionID,
         const std::string& serviceType,
         const std::string& serviceIdentifier,
         const char* payload,
         std::uint16_t payloadSize,
         std::chrono::milliseconds period,
-        const std::string& networkInterface,
-        std::uint16_t port);
+        const ip::Address& networkInterface,
+        ip::Port port);
 
     /**
     \brief  Destructor.
@@ -155,15 +156,13 @@ public:
 
     \param [in] reactor
         Used to listen for incoming data.
-    \param [in] domainID
-        This must match the domain ID of any Beacon one wishes to
+    \param [in] partitionID
+        This must match the partition ID of any Beacon one wishes to
         detect.
-    \param [in] networkInterface
-        The name or IP address of the network interface to listen on,
-        or "*" to listen on all interfaces.
-    \param [in] port
-        Which UDP port to listen on.  This must match the port used in the
-        Beacon.
+    \param [in] endpoint
+        The name or IP address of the network interface, together with the
+        UDP port, to listen on.  The name may be "*" to listen on all
+        interfaces.  The port number must match the port used in the Beacon.
     \param [in] onNotification
         A function which will be called whenever a service notification
         is received.
@@ -172,9 +171,8 @@ public:
     */
     Listener(
         dsb::net::Reactor& reactor,
-        std::uint64_t domainID,
-        const std::string& networkInterface,
-        std::uint16_t port,
+        std::uint32_t partitionID,
+        const ip::Endpoint& endpoint,
         NotificationHandler onNotification);
 
     /// Destructor
@@ -270,23 +268,20 @@ public:
 
     \param [in] reactor
         Used to listen for incoming data.
-    \param [in] domainID
-        This must match the domain ID of any Beacon one wishes to
+    \param [in] partitionID
+        This must match the partition ID of any Beacon one wishes to
         detect.
-    \param [in] networkInterface
-        The name or IP address of the network interface to listen on,
-        or "*" to listen on all interfaces.
-    \param [in] port
-        Which UDP port to listen on.  This must match the port used in the
-        Beacon.
+    \param [in] endpoint
+        The name or IP address of the network interface, together with the
+        UDP port, to listen on.  The name may be "*" to listen on all
+        interfaces.  The port number must match the port used in the Beacon.
 
     \throws std::runtime_error on network error.
     */
     Tracker(
         dsb::net::Reactor& reactor,
-        std::uint64_t domainID,
-        const std::string& networkInterface,
-        std::uint16_t port);
+        std::uint32_t partitionID,
+        const ip::Endpoint& endpoint);
 
     /// Destructor.
     ~Tracker() DSB_NOEXCEPT;

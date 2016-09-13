@@ -97,6 +97,9 @@ namespace ip
         /// Returns whether this address is the special "any address" value.
         bool IsAnyAddress() const DSB_NOEXCEPT;
 
+        /// Returns whether this address is a name (i.e., host or interface name)
+        bool IsName() const DSB_NOEXCEPT;
+
         /// Returns a string representation of the address.
         std::string ToString() const DSB_NOEXCEPT;
 

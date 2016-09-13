@@ -61,7 +61,7 @@ namespace
     typedef std::multimap<std::string, dsb::master::ProviderCluster::SlaveType>
         SlaveTypeMap;
 
-    // Obtains the list of available slave types on the domain and returns it
+    // Obtains the list of available slave types on the network and returns it
     // in the form of a map where the keys are slave type names and the values
     // are slave type descriptions.
     SlaveTypeMap SlaveTypesByName(dsb::master::ProviderCluster& providers)
@@ -197,10 +197,10 @@ namespace
             const auto typeCount = slaveTypes.count(slaveTypeName);
             if (typeCount == 0) {
                 throw std::runtime_error(
-                    "Slave type not found in domain: " + slaveTypeName);
+                    "Slave type not found: " + slaveTypeName);
             } else if (typeCount > 1) {
                 throw std::runtime_error(
-                    "Two or more slave types with the same name found in domain: " + slaveTypeName);
+                    "Found two or more slave types with the same name: " + slaveTypeName);
             }
             const auto& slaveType = slaveTypes.find(slaveTypeName)->second;
             slaves[slaveName] = &slaveType;

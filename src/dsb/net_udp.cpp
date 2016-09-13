@@ -40,18 +40,15 @@ namespace udp
 class BroadcastSocket::Private
 {
 public:
-    Private(
-        const std::string& networkInterface,
-        std::uint16_t port,
-        int flags)
-        : m_socket(INVALID_NATIVE_SOCKET)
-        , m_port(port)
+    Private(const ip::Address& networkInterface, ip::Port port, int flags)
+        : m_socket{INVALID_NATIVE_SOCKET}
+        , m_port{port}
     {
         // Parse the `networkInterface` parameter and obtain the listen and
         // broadcast addresses.
         in_addr listenAddress;
-        if (networkInterface == "*") {
-            listenAddress.s_addr = htonl(INADDR_ANY);
+        if (networkInterface.IsAnyAddress()) {
+            listenAddress = networkInterface.ToInAddr();
             for (const auto& iface : ip::GetNetworkInterfaces()) {
                 m_broadcastAddrs.push_back(iface.broadcastAddress);
                 DSB_LOG_TRACE(
@@ -59,30 +56,27 @@ public:
                         % ip::IPAddressToString(iface.broadcastAddress));
             }
         } else {
-            in_addr addr;
-            const auto rc = inet_pton(AF_INET, networkInterface.c_str(), &addr);
-            assert (rc != -1);
             const auto ifaces = ip::GetNetworkInterfaces();
             auto iface = decltype(ifaces)::const_iterator{};
-            if (rc == 1) {
-                // interfaceAddress is a valid IP address, now stored in addr
+            if (networkInterface.IsName()) {
+                const auto interfaceName = networkInterface.ToString();
                 iface = std::find_if(
                     begin(ifaces), end(ifaces),
                     [&](const ip::NetworkInterfaceInfo& nii) {
-                        return nii.address.s_addr == addr.s_addr;
+                        return nii.name == interfaceName;
                     });
             } else {
-                // interfaceAddress is not a valid IP address, so we assume it
-                // is an interface *name*.
+                const auto interfaceAddr = networkInterface.ToInAddr();
                 iface = std::find_if(
                     begin(ifaces), end(ifaces),
                     [&](const ip::NetworkInterfaceInfo& nii) {
-                        return nii.name == networkInterface;
+                        return nii.address.s_addr == interfaceAddr.s_addr;
                     });
             }
             if (iface == end(ifaces)) {
                 throw std::runtime_error(
-                    "Unknown or invalid network interface: " + networkInterface);
+                    "Unknown or invalid network interface: "
+                    + networkInterface.ToString());
             }
             listenAddress = iface->address;
             m_broadcastAddrs.push_back(iface->broadcastAddress);
@@ -135,13 +129,13 @@ public:
             std::memset(&address, 0, sizeof(address));
             address.sin_family = AF_INET;
             address.sin_addr = listenAddress;
-            address.sin_port = htons(port);
+            address.sin_port = port.ToNetworkByteOrder();
             if (0 != bind(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address))) {
                 throw std::runtime_error("Failed to bind UDP socket to local port");
             }
             DSB_LOG_TRACE(boost::format("BroadcastSocket: Bound to %s:%d")
                 % ip::IPAddressToString(listenAddress)
-                % port);
+                % port.ToNumber());
         }
         constructionComplete = true;
     }
@@ -167,7 +161,7 @@ public:
         sockaddr_in address;
         std::memset(&address, 0, sizeof(address));
         address.sin_family = AF_INET;
-        address.sin_port = htons(m_port);
+        address.sin_port = m_port.ToNetworkByteOrder();
         for (auto addr : m_broadcastAddrs) {
             address.sin_addr = addr;
             auto bytesSent = sendto(
@@ -220,16 +214,16 @@ public:
 
 private:
     NativeSocket m_socket;
-    std::uint16_t m_port;
+    ip::Port m_port;
     std::vector<in_addr> m_broadcastAddrs;
 };
 
 
 BroadcastSocket::BroadcastSocket(
-    const std::string& interfaceAddress,
-    std::uint16_t port,
+    const ip::Address& networkInterface,
+    ip::Port port,
     int flags)
-    : m_private(std::make_unique<Private>(interfaceAddress, port, flags))
+    : m_private{std::make_unique<Private>(networkInterface, port, flags)}
 {
 }
 

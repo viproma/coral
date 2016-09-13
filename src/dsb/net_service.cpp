@@ -74,7 +74,7 @@ namespace
     //
     //      magic string:       4 bytes
     //      protocol version:   8-bit unsigned integer
-    //      domain ID:          64-bit unsigned integer, network byte order
+    //      partition ID:       32-bit unsigned integer, network byte order
     //      service type size:  8-bit unsigned integer
     //      service name size:  8-bit unsigned integer
     //      payload size:       16-bit unsigned integer, network byte order
@@ -87,28 +87,27 @@ namespace
     const std::size_t minMessageSize =
         protocolMagicSize
         + 1  // version
-        + 8  // domain ID
+        + 4  // partition ID
         + 1  // serviceType size
         + 1  // serviceIdentifier size
         + 2; // payload size
 }
 
 Beacon::Beacon(
-    std::uint64_t domainID,
+    std::uint32_t partitionID,
     const std::string& serviceType,
     const std::string& serviceIdentifier,
     const char* payload,
     std::uint16_t payloadSize,
     std::chrono::milliseconds period,
-    const std::string& networkInterface,
-    std::uint16_t port)
+    const ip::Address& networkInterface,
+    ip::Port port)
     : m_socket(dsb::net::zmqx::GlobalContext(), ZMQ_PAIR)
 {
     DSB_INPUT_CHECK(serviceType.size() < 256u);
     DSB_INPUT_CHECK(serviceIdentifier.size() < 256u);
     DSB_INPUT_CHECK(payloadSize == 0 || payload != nullptr);
     DSB_INPUT_CHECK(period > std::chrono::milliseconds(0));
-    DSB_INPUT_CHECK(!networkInterface.empty());
 
     // Create the thread-to-thread channel
     const auto endpoint = "inproc://" + dsb::util::RandomUUID();
@@ -137,10 +136,10 @@ Beacon::Beacon(
     auto message = std::vector<char>(messageSize);
     std::memcpy(&message[0], protocolMagic, protocolMagicSize);
     message[protocolMagicSize] = 0;
-    dsb::util::EncodeUint64(domainID, &message[protocolMagicSize+1]);
-    message[protocolMagicSize + 9] = serviceType.size();
-    message[protocolMagicSize + 10] = serviceIdentifier.size();
-    dsb::util::EncodeUint16(payloadSize, &message[protocolMagicSize+11]);
+    dsb::util::EncodeUint32(partitionID, &message[protocolMagicSize+1]);
+    message[protocolMagicSize + 5] = serviceType.size();
+    message[protocolMagicSize + 6] = serviceIdentifier.size();
+    dsb::util::EncodeUint16(payloadSize, &message[protocolMagicSize+7]);
     auto putIter = message.begin() + minMessageSize;
     putIter = std::copy(serviceType.begin(), serviceType.end(), putIter);
     putIter = std::copy(serviceIdentifier.begin(), serviceIdentifier.end(), putIter);
@@ -181,9 +180,8 @@ class Listener::Impl
 public:
     Impl(
         dsb::net::Reactor& reactor,
-        std::uint64_t domainID,
-        const std::string& networkInterface,
-        std::uint16_t port,
+        std::uint32_t partitionID,
+        const ip::Endpoint& endpoint,
         NotificationHandler onNotification);
     ~Impl() DSB_NOEXCEPT;
     Impl(const Impl&) = delete;
@@ -195,7 +193,7 @@ private:
     void IncomingBeacon();
 
     dsb::net::Reactor& m_reactor;
-    std::uint64_t m_domainID;
+    std::uint32_t m_partitionID;
     NotificationHandler m_onNotification;
     dsb::net::udp::BroadcastSocket m_udpSocket;
 };
@@ -203,14 +201,13 @@ private:
 
 Listener::Impl::Impl(
     dsb::net::Reactor& reactor,
-    std::uint64_t domainID,
-    const std::string& networkInterface,
-    std::uint16_t port,
+    std::uint32_t partitionID,
+    const ip::Endpoint& endpoint,
     NotificationHandler onNotification)
     : m_reactor(reactor)
-    , m_domainID(domainID)
+    , m_partitionID(partitionID)
     , m_onNotification(onNotification)
-    , m_udpSocket(networkInterface, port)
+    , m_udpSocket(endpoint.Address(), endpoint.Port())
 {
     DSB_INPUT_CHECK(onNotification != nullptr);
     reactor.AddNativeSocket(
@@ -249,19 +246,19 @@ void Listener::Impl::IncomingBeacon()
             % static_cast<int>(buffer[protocolMagicSize]));
         return;
     }
-    const auto domainID = dsb::util::DecodeUint64(buffer+protocolMagicSize+1);
-    if (domainID != m_domainID) {
+    const auto partitionID = dsb::util::DecodeUint32(buffer+protocolMagicSize+1);
+    if (partitionID != m_partitionID) {
         DSB_LOG_TRACE(
-            boost::format("Listener: Ignoring message from domain %d")
-            % domainID);
+            boost::format("Listener: Ignoring message from partition %d")
+            % partitionID);
         return;
     }
     const auto serviceTypeSize =
-        static_cast<unsigned char>(buffer[protocolMagicSize+9]);
+        static_cast<unsigned char>(buffer[protocolMagicSize+5]);
     const auto serviceIdentifierSize =
-        static_cast<unsigned char>(buffer[protocolMagicSize+10]);
+        static_cast<unsigned char>(buffer[protocolMagicSize+6]);
     const auto  payloadSize =
-        dsb::util::DecodeUint16(buffer+protocolMagicSize+11);
+        dsb::util::DecodeUint16(buffer+protocolMagicSize+7);
     if (static_cast<std::size_t>(msgSize) !=
             minMessageSize + serviceTypeSize + serviceIdentifierSize + payloadSize) {
         DSB_LOG_TRACE("Listener: Ignoring invalid message (wrong size)");
@@ -279,15 +276,13 @@ void Listener::Impl::IncomingBeacon()
 
 Listener::Listener(
     dsb::net::Reactor& reactor,
-    std::uint64_t domainID,
-    const std::string& networkInterface,
-    std::uint16_t port,
+    std::uint32_t partitionID,
+    const ip::Endpoint& endpoint,
     NotificationHandler onNotification)
     : m_impl(std::make_unique<Impl>(
         reactor,
-        domainID,
-        networkInterface,
-        port,
+        partitionID,
+        endpoint,
         std::move(onNotification)))
 {
 }
@@ -322,15 +317,13 @@ class Tracker::Impl
 public:
     Impl(
         dsb::net::Reactor& reactor,
-        std::uint64_t domainID,
-        const std::string& networkInterface,
-        std::uint16_t port)
+        std::uint32_t partitionID,
+        const ip::Endpoint& endpoint)
         : m_reactor(reactor)
         , m_listener(
             reactor,
-            domainID,
-            networkInterface,
-            port,
+            partitionID,
+            endpoint,
             std::bind(&Impl::OnNotification, this, _1, _2, _3, _4, _5))
         , m_timeoutID(-1)
         , m_smallestTimeout(std::chrono::milliseconds::max())
@@ -482,10 +475,9 @@ private:
 
 Tracker::Tracker(
     dsb::net::Reactor& reactor,
-    std::uint64_t domainID,
-    const std::string& networkInterface,
-    std::uint16_t port)
-    : m_impl(std::make_unique<Impl>(reactor, domainID, networkInterface, port))
+    std::uint32_t partitionID,
+    const ip::Endpoint& endpoint)
+    : m_impl{std::make_unique<Impl>(reactor, partitionID, endpoint)}
 {
 }
 

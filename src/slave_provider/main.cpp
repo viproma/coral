@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
@@ -14,10 +15,18 @@
 #include "dsb/fmi/fmu.hpp"
 #include "dsb/fmi/importer.hpp"
 #include "dsb/log.hpp"
+#include "dsb/net.hpp"
 #include "dsb/net/zmqx.hpp"
 #include "dsb/provider.hpp"
 #include "dsb/util.hpp"
 #include "dsb/util/console.hpp"
+
+
+namespace
+{
+    const std::string DEFAULT_NETWORK_INTERFACE = "*";
+    const std::uint16_t DEFAULT_DISCOVERY_PORT = 10272;
+}
 
 
 struct DSBSlaveCreator : public dsb::provider::SlaveCreator
@@ -26,13 +35,13 @@ public:
     DSBSlaveCreator(
         dsb::fmi::Importer& importer,
         const boost::filesystem::path& fmuPath,
-        const std::string& networkInterface,
+        const dsb::net::ip::Address& networkInterface,
         const std::string& slaveExe,
         std::chrono::seconds commTimeout,
         const std::string& outputDir)
         : m_fmuPath{fmuPath}
         , m_fmu{importer.Import(fmuPath)}
-        , m_networkInterface(networkInterface)
+        , m_networkInterface{networkInterface}
         , m_slaveExe(slaveExe)
         , m_commTimeout{commTimeout}
         , m_outputDir(outputDir.empty() ? "." : outputDir)
@@ -57,7 +66,7 @@ public:
             std::vector<std::string> args;
             args.push_back(slaveStatusEp);
             args.push_back(m_fmuPath.string());
-            args.push_back(m_networkInterface);
+            args.push_back(m_networkInterface.ToString());
             args.push_back(std::to_string(m_commTimeout.count()));
             args.push_back(m_outputDir);
 
@@ -114,7 +123,7 @@ public:
 private:
     boost::filesystem::path m_fmuPath;
     std::shared_ptr<dsb::fmi::FMU> m_fmu;
-    std::string m_networkInterface;
+    dsb::net::ip::Address m_networkInterface;
     std::string m_slaveExe;
     std::chrono::seconds m_commTimeout;
     std::string m_outputDir;
@@ -156,13 +165,16 @@ try {
         ("clean-cache",
             "Clear the cache which contains previously unpacked FMU contents."
             "The program will exit immediately after performing this action.")
-        ("domain,d", po::value<std::string>()->default_value("localhost"),
-            "The domain address, of the form \"hostname:port\". (\":port\" is "
-            "optional, and only required if a nonstandard port is used.)")
-        ("slave-exe", po::value<std::string>(),
-            "The path to the DSB slave executable")
+        ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
+            "The IP address or (OS-specific) name of the network interface to "
+            "use for network communications, or \"*\" for all/any.")
         ("output-dir,o", po::value<std::string>()->default_value("."),
             "The directory where output files should be written")
+        ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
+            "The UDP port used to broadcast information about this slave provider. "
+            "The master must listen on the same port.")
+        ("slave-exe", po::value<std::string>(),
+            "The path to the DSB slave executable")
         ("timeout", po::value<unsigned int>()->default_value(3600),
             "The number of seconds of inactivity before a slave shuts itself down");
     po::options_description positionalOptions("Arguments");
@@ -186,9 +198,11 @@ try {
     }
     if (!optionValues->count("fmu")) throw std::runtime_error("No FMUs specified");
 
-    const auto domainAddress = (*optionValues)["domain"].as<std::string>();
-    const auto networkInterface = std::string("*"); // TODO: Make cmdline switch
+    const auto networkInterface = dsb::net::ip::Address{
+        (*optionValues)["interface"].as<std::string>()};
     const auto outputDir = (*optionValues)["output-dir"].as<std::string>();
+    const auto discoveryPort = dsb::net::ip::Port{
+        (*optionValues)["port"].as<std::uint16_t>()};
     const auto timeout = std::chrono::seconds((*optionValues)["timeout"].as<unsigned int>());
 
     std::string slaveExe;
@@ -238,7 +252,7 @@ try {
         dsb::util::RandomUUID(),
         std::move(fmus),
         networkInterface,
-        10272,
+        discoveryPort,
         [](std::exception_ptr e) {
             try { std::rethrow_exception(e); }
             catch (const std::exception& e) {

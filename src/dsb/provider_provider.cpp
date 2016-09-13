@@ -99,12 +99,11 @@ namespace
 SlaveProvider::SlaveProvider(
     const std::string& slaveProviderID,
     std::vector<std::unique_ptr<SlaveCreator>>&& slaveTypes,
-    const std::string& networkInterface,
-    std::uint16_t discoveryPort,
+    const dsb::net::ip::Address& networkInterface,
+    dsb::net::ip::Port discoveryPort,
     std::function<void(std::exception_ptr)> exceptionHandler)
 {
     DSB_INPUT_CHECK(!slaveProviderID.empty());
-    DSB_INPUT_CHECK(!networkInterface.empty());
 
     // We do as much as setup as possible in the "foreground" thread,
     // so that exceptions are most likely to be thrown here.
@@ -124,7 +123,7 @@ SlaveProvider::SlaveProvider(
 
     bg.server = std::make_shared<dsb::net::reqrep::Server>(
         *bg.reactor,
-        dsb::net::Endpoint{"tcp", networkInterface + ":*"});
+        dsb::net::ip::Endpoint{networkInterface, "*"}.ToEndpoint("tcp"));
     dsb::bus::MakeSlaveProviderServer(
         *bg.server,
         std::make_shared<MySlaveProviderOps>(std::move(slaveTypes)));

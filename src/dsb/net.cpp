@@ -128,6 +128,12 @@ bool Address::IsAnyAddress() const DSB_NOEXCEPT
 }
 
 
+bool Address::IsName() const DSB_NOEXCEPT
+{
+    return !m_strAddr.empty();
+}
+
+
 std::string Address::ToString() const DSB_NOEXCEPT
 {
     if (m_strAddr.empty()) {

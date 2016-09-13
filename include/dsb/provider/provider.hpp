@@ -57,8 +57,8 @@ public:
     SlaveProvider(
         const std::string& slaveProviderID,
         std::vector<std::unique_ptr<SlaveCreator>>&& slaveTypes,
-        const std::string& networkInterface,
-        std::uint16_t discoveryPort,
+        const dsb::net::ip::Address& networkInterface,
+        dsb::net::ip::Port discoveryPort,
         std::function<void(std::exception_ptr)> exceptionHandler = nullptr);
 
     SlaveProvider(const SlaveProvider&) = delete;
