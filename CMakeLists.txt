@@ -9,17 +9,17 @@ cmake_minimum_required (VERSION 3.0.0)
 #   variables" section, and avoid using absolute directories.  This makes for a
 #   consistent directory structure and allows for easy packaging with CPack.
 #
-project ("dsb")
-set (projectSummary "Distributed Simulation Bus")
+project ("coral")
+set (projectSummary "A C++ library for distributed co-simulation")
 
-option (DSB_BUILD_PRIVATE_API_DOCS
+option (CORAL_BUILD_PRIVATE_API_DOCS
         "Whether to generate API documentation for the non-public API"
         OFF)
-option (DSB_ENABLE_DEBUG_LOGGING
+option (CORAL_ENABLE_DEBUG_LOGGING
         "Whether to log messages of severity 'debug' also in release mode. (This is always enabled in debug mode.)"
         OFF)
-option (DSB_ENABLE_TRACE_LOGGING
-        "Whether to log messages of severity 'trace' in both debug and release mode. (Implies DSB_ENABLE_DEBUG_LOGGING.)"
+option (CORAL_ENABLE_TRACE_LOGGING
+        "Whether to log messages of severity 'trace' in both debug and release mode. (Implies CORAL_ENABLE_DEBUG_LOGGING.)"
         OFF)
 option (FMILIB_USE_SHARED_LIB
         "Whether to link against the shared library version of FMI Library"
@@ -105,12 +105,12 @@ endif()
 # ==============================================================================
 
 # Read version numbers from config.h
-file (READ "${publicHeaderDir}/dsb/config.h" configDotH)
-string (REGEX MATCH "#define +DSB_VERSION_MAJOR +([0-9]+)" dummy "${configDotH}")
+file (READ "${publicHeaderDir}/coral/config.h" configDotH)
+string (REGEX MATCH "#define +CORAL_VERSION_MAJOR +([0-9]+)" dummy "${configDotH}")
 set (versionMajor "${CMAKE_MATCH_1}")
-string (REGEX MATCH "#define +DSB_VERSION_MINOR +([0-9]+)" dummy "${configDotH}")
+string (REGEX MATCH "#define +CORAL_VERSION_MINOR +([0-9]+)" dummy "${configDotH}")
 set (versionMinor "${CMAKE_MATCH_1}")
-string (REGEX MATCH "#define +DSB_VERSION_PATCH +([0-9]+)" dummy "${configDotH}")
+string (REGEX MATCH "#define +CORAL_VERSION_PATCH +([0-9]+)" dummy "${configDotH}")
 set (versionPatch "${CMAKE_MATCH_1}")
 
 # Get rid of a CMake warning wrt. INTERFACE_LINK_LIBRARIES target property.
@@ -138,9 +138,9 @@ add_subdirectory ("src")
 find_package (Doxygen)
 if (DOXYGEN_FOUND)
     set (documentedDirectories "\"${CMAKE_SOURCE_DIR}/include\"")
-    if (DSB_BUILD_PRIVATE_API_DOCS)
+    if (CORAL_BUILD_PRIVATE_API_DOCS)
         set (documentedDirectories
-            "${documentedDirectories} \"${CMAKE_SOURCE_DIR}/src/include\" \"${CMAKE_SOURCE_DIR}/src/dsb\"")
+            "${documentedDirectories} \"${CMAKE_SOURCE_DIR}/src/include\"")
     endif ()
     set (doxyfile "${CMAKE_BINARY_DIR}/Doxyfile")
     configure_file ("${CMAKE_SOURCE_DIR}/cmake/Doxyfile.in" ${doxyfile} @ONLY)

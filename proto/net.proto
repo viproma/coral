@@ -1,4 +1,4 @@
-package dsbproto.net;
+package coralproto.net;
 
 message SlaveLocator
 {

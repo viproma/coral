@@ -1,4 +1,4 @@
-package dsbproto.domain;
+package coralproto.domain;
 
 import "model.proto";
 import "net.proto";

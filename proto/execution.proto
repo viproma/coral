@@ -1,4 +1,4 @@
-package dsbproto.execution;
+package coralproto.execution;
 
 import "model.proto";
 

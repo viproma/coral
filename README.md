@@ -8,8 +8,9 @@ mathematical models and simulations, from a variety of physics/engineering
 domains and modelling tools, to simulate complex marine systems and operations.
 The VPF is currently under development as part of the KMB ViProMa project.
 
-The Distributed Simulation Bus (DSB) is a fundamental software component of
-the VPF.  Its job is to connect the various subsystems involved in a simulation.
+Coral is a C++ library and a set of applications for performing distributed
+cos-simulations, and it is a fundamental software component of the VPF.
+Its job is to connect the various subsystems involved in a simulation.
 More precisely, it takes care of:
 
   - *Abstraction*, in that it hides the implementation details of each subsystem
@@ -30,7 +31,7 @@ tools, data loggers, and so on.
 
 Requirements
 ------------
-DSB may currently be built on the following platforms, using the following
+Coral may currently be built on the following platforms, using the following
 compilers:
 
   - Windows: Visual Studio 2013 or newer.
@@ -43,7 +44,7 @@ In addition, the following tools are needed:
     compiler, to parse the protocol buffer files and generate C++ code for them.
   - [Doxygen](http://doxygen.org), to generate API documentation (optional).
 
-Finally, the following libraries are used by DSB and must therefore be present:
+Finally, the following libraries are used by Coral and must therefore be present:
 
   - [Boost](http://boost.org) (currently tested with v1.58, but older and newer
     versions are likely to work as well).
@@ -57,7 +58,7 @@ Finally, the following libraries are used by DSB and must therefore be present:
 
 Building
 --------
-DSB is built using a fairly standard CMake procedure, so we refer to the
+Coral is built using a fairly standard CMake procedure, so we refer to the
 [CMake documentation](http://cmake.org/cmake/help/documentation.html) for
 details and advanced usage, and only give a quick walk-through of the procedure
 here.

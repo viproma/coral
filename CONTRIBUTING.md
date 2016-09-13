@@ -2,7 +2,7 @@ Contributing guidelines
 =======================
 
 This document contains a set of rules and guidelines for everyone who wishes
-to contribute to the DSB library, its auxiliary libraries and any executables
+to contribute to the Coral library, its auxiliary libraries and any executables
 built together with it.  All of the aforementioned are hereafter referred to as
 "the software".
 
@@ -20,35 +20,40 @@ future.  See the `LICENCE.txt` file for details.
 Programming language
 --------------------
 The primary programming language is C++, specifically the subset of C++14 which
-is supported by Visual Studio 2010.  (Note that some C++14 features missing from
-VS2010 have been implemented in `compat_helpers.hpp`.)
+is supported by Visual Studio 2013.
 
 Source tree structure
 ---------------------
-The DSB library's public API is defined by the headers in the topmost `include`
-directory. All headers must be placed below the `include/dsb` subdirectory,
+The library's public API is defined by the headers in the topmost `include`
+directory. All headers must be placed below the `include/coral` subdirectory,
 so that `#include` directives in client code always look like this:
 
-    #include "dsb/something"
+    #include "coral/something"
 
 The header directory structure should match the namespace structure, so that
-client code that uses things from the `dsb::foo` namespace should look like
+client code that uses things from the `coral::foo` namespace should look like
 
-    #include "dsb/foo.hpp"
+    #include "coral/foo.hpp"
 
-or, if `dsb::foo` is large enough to warrant splitting across several files,
+or, if `coral::foo` is large enough to warrant splitting across several files,
 
-    #include "dsb/foo/bar.hpp"
-    #include "dsb/foo/baz.hpp"
+    #include "coral/foo/bar.hpp"
+    #include "coral/foo/baz.hpp"
 
 Pure C++ header files should have a `.hpp` extension, while files which are
 also designed to be included in C programs should have a `.h` extension.
 
 Source files are located under the topmost `src` directory, with the main
-DSB library sources under the `src/dsb` subdirectory.
+Coral library sources under the `src/lib` subdirectory.
 C++ source files should have `.cpp` extension.  The source file hierarchy is
 generally flat, with directory/namespace names separated by underscores.
-For example, the implementation of `dsb/foo.hpp` should be in `dsb_foo.cpp`.
+For example, the implementation of `include/coral/foo/bar.hpp` should be in
+`lib/foo_bar.cpp`.
+
+All code should have unittests, created using the Google Test framework.
+Test sources must be located alongside the other sources and have a
+`_test` suffix.  For the example in the previous paragraph we'd thus have
+a file called `lib/foo_bar_test.cpp`.
 
 API documentation
 -----------------
@@ -126,5 +131,5 @@ consistent with surrounding code and not mix coding styles.
 
 With regards to indentation and end-of-line markers, it is recommended that
 contributors install the [EditorConfig plugin](http://editorconfig.org/) for
-their editor/IDE.  The root DSB source directory contains a `.editorconfig`
+their editor/IDE.  The root source directory contains a `.editorconfig`
 file with the appropriate settings.

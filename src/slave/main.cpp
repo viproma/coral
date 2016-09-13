@@ -11,11 +11,11 @@
 #include "boost/filesystem.hpp"
 #include "zmq.hpp"
 
-#include "dsb/fmi/fmu.hpp"
-#include "dsb/fmi/importer.hpp"
-#include "dsb/log.hpp"
-#include "dsb/net/zmqx.hpp"
-#include "dsb/slave.hpp"
+#include "coral/fmi/fmu.hpp"
+#include "coral/fmi/importer.hpp"
+#include "coral/log.hpp"
+#include "coral/net/zmqx.hpp"
+#include "coral/slave.hpp"
 
 
 /*
@@ -39,10 +39,10 @@ If all goes well, it will instead send a 2-frame text message which contains
 */
 int main(int argc, const char** argv)
 {
-#ifdef DSB_LOG_TRACE_ENABLED
-    dsb::log::SetLevel(dsb::log::trace);
-#elif defined(DSB_LOG_DEBUG_ENABLED)
-    dsb::log::SetLevel(dsb::log::debug);
+#ifdef CORAL_LOG_TRACE_ENABLED
+    coral::log::SetLevel(coral::log::trace);
+#elif defined(CORAL_LOG_DEBUG_ENABLED)
+    coral::log::SetLevel(coral::log::debug);
 #endif
 
     // We use this socket to report back to the provider that started the slave.
@@ -59,10 +59,10 @@ try {
     const auto networkInterface = std::string(argv[3]);
     const auto commTimeout = std::chrono::seconds(std::atoi(argv[4]));
 
-    DSB_LOG_DEBUG(boost::format("PID: %d") % getpid());
-    dsb::log::Log(dsb::log::info, boost::format("FMU: %s") % fmuPath);
-    DSB_LOG_TRACE(boost::format("Network interface: %s") % networkInterface);
-    DSB_LOG_TRACE(boost::format("Communication silence timeout: %d s")
+    CORAL_LOG_DEBUG(boost::format("PID: %d") % getpid());
+    coral::log::Log(coral::log::info, boost::format("FMU: %s") % fmuPath);
+    CORAL_LOG_TRACE(boost::format("Network interface: %s") % networkInterface);
+    CORAL_LOG_TRACE(boost::format("Communication silence timeout: %d s")
         % commTimeout.count());
 
 #ifdef _WIN32
@@ -72,36 +72,36 @@ try {
 #endif
     const auto outputDir = (argc > 5) ? std::string(argv[5]) + dirSep : std::string();
 
-    const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "dsb" / "cache";
-    auto fmuImporter = dsb::fmi::Importer::Create(fmuCacheDir);
+    const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "coral" / "cache";
+    auto fmuImporter = coral::fmi::Importer::Create(fmuCacheDir);
     auto fmu = fmuImporter->Import(fmuPath);
-    dsb::log::Log(dsb::log::info, boost::format("Model name: %s")
+    coral::log::Log(coral::log::info, boost::format("Model name: %s")
         % fmu->Description().Name());
 
     auto fmiSlave = fmu->InstantiateSlave();
-    std::shared_ptr<dsb::slave::Instance> slave;
+    std::shared_ptr<coral::slave::Instance> slave;
     if (outputDir.empty()) {
         slave = fmiSlave;
     } else {
-        slave = std::make_shared<dsb::slave::LoggingInstance>(
+        slave = std::make_shared<coral::slave::LoggingInstance>(
             fmiSlave,
             outputDir);
     }
 
     const auto bindpoint =
-        dsb::net::ip::Endpoint(networkInterface, "*").ToEndpoint("tcp");
-    auto slaveRunner = dsb::slave::Runner(
+        coral::net::ip::Endpoint(networkInterface, "*").ToEndpoint("tcp");
+    auto slaveRunner = coral::slave::Runner(
         slave,
         bindpoint,
         bindpoint,
         commTimeout);
 
     const auto controlEndpoint =
-        dsb::net::ip::Endpoint{
+        coral::net::ip::Endpoint{
             slaveRunner.BoundControlEndpoint().Address()
         }.ToString();
     const auto dataPubEndpoint =
-        dsb::net::ip::Endpoint{
+        coral::net::ip::Endpoint{
             slaveRunner.BoundDataPubEndpoint().Address()
         }.ToString();
 
@@ -109,14 +109,14 @@ try {
     feedbackSocket->send(controlEndpoint.data(), controlEndpoint.size(), ZMQ_SNDMORE);
     feedbackSocket->send(dataPubEndpoint.data(), dataPubEndpoint.size());
     slaveRunner.Run();
-    DSB_LOG_DEBUG("Normal shutdown");
+    CORAL_LOG_DEBUG("Normal shutdown");
 
 } catch (const std::runtime_error& e) {
     if (feedbackSocket) {
         feedbackSocket->send("ERROR", 5, ZMQ_SNDMORE);
         feedbackSocket->send(e.what(), std::strlen(e.what()));
     }
-    dsb::log::Log(dsb::log::error, e.what());
+    coral::log::Log(coral::log::error, e.what());
     return 1;
 } catch (const std::exception& e) {
     const auto msg = std::string("Internal error (") + e.what() + ')';
@@ -124,7 +124,7 @@ try {
         feedbackSocket->send("ERROR", 5, ZMQ_SNDMORE);
         feedbackSocket->send(msg.data(), msg.size());
     }
-    dsb::log::Log(dsb::log::error, msg);
+    coral::log::Log(coral::log::error, msg);
     return 2;
 }
 return 0;
