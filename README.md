@@ -1,5 +1,5 @@
-Distributed Simulation Bus
-==========================
+Coral
+=====
 
 Introduction
 ------------
