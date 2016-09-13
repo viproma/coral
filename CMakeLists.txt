@@ -10,7 +10,7 @@ cmake_minimum_required (VERSION 3.0.0)
 #   consistent directory structure and allows for easy packaging with CPack.
 #
 project ("coral")
-set (projectSummary "Distributed Simulation Bus")
+set (projectSummary "A C++ library for distributed co-simulation")
 
 option (CORAL_BUILD_PRIVATE_API_DOCS
         "Whether to generate API documentation for the non-public API"
