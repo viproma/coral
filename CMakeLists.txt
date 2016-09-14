@@ -201,6 +201,9 @@ install (FILES
         "${cmakeFilesInstallDir}"
 )
 
+# Build information
+include ("cmake/build-info-file.cmake")
+
 # ==============================================================================
 # Packaging
 # ==============================================================================
