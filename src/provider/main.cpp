@@ -26,6 +26,11 @@ namespace
 {
     const std::string DEFAULT_NETWORK_INTERFACE = "*";
     const std::uint16_t DEFAULT_DISCOVERY_PORT = 10272;
+#ifdef _WIN32
+    const std::string DEFAULT_SLAVE_EXE = "coralslave.exe";
+#else
+    const std::string DEFAULT_SLAVE_EXE = "coralslave";
+#endif
 }
 
 
@@ -211,12 +216,8 @@ try {
     } else if (const auto slaveExeEnv = std::getenv("CORAL_SLAVE_EXE")) {
         slaveExe = slaveExeEnv;
     } else {
-#ifdef _WIN32
-        const auto exeName = "slave.exe";
-#else
-        const auto exeName = "slave";
-#endif
-        auto tryPath = coral::util::ThisExePath().parent_path() / exeName;
+        const auto tryPath = coral::util::ThisExePath().parent_path()
+            / DEFAULT_SLAVE_EXE;
         if (boost::filesystem::exists(tryPath)) {
             slaveExe = tryPath.string();
         } else {
