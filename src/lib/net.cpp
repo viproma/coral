@@ -157,6 +157,14 @@ in_addr Address::ToInAddr() const
     }
 }
 
+
+bool operator==(const Address& a1, const Address& a2)
+{
+    return a1.m_strAddr == a2.m_strAddr
+        && a1.m_inAddr.s_addr == a2.m_inAddr.s_addr;
+}
+
+
 } // namespace ip
 
 
