@@ -44,7 +44,7 @@ TEST(coral_net_service, Listener)
         reactor,
         100,
         coral::net::ip::Endpoint{"*", port},
-        [&] (const std::string& addr, const std::string& st, const std::string& si, const char* pl, std::size_t pls)
+        [&] (const coral::net::ip::Address& addr, const std::string& st, const std::string& si, const char* pl, std::size_t pls)
         {
             if (st == "serviceType1" && si == "service1" &&
                     std::string(pl, pls) == "foo") {
@@ -199,7 +199,7 @@ TEST(coral_net_service, Tracker)
     tracker.AddTrackedServiceType(
         "serviceType1", serviceType1Timeout,
         [&] (
-                const std::string& /*address*/,
+                const coral::net::ip::Address&,
                 const std::string& serviceType,
                 const std::string& serviceID,
                 const char* payload,
@@ -218,7 +218,7 @@ TEST(coral_net_service, Tracker)
             }
         },
         [&] (
-                const std::string& /*address*/,
+                const coral::net::ip::Address&,
                 const std::string& serviceType,
                 const std::string& serviceID,
                 const char* payload,
@@ -249,7 +249,7 @@ TEST(coral_net_service, Tracker)
     tracker.AddTrackedServiceType(
         "serviceType2", serviceType2Timeout,
         [&] (
-                const std::string& /*address*/,
+                const coral::net::ip::Address&,
                 const std::string& serviceType,
                 const std::string& serviceID,
                 const char* payload,

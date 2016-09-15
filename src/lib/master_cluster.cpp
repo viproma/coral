@@ -213,7 +213,7 @@ void SetupSlaveProviderTracking(
         SLAVEPROVIDER_TIMEOUT,
         // Slave provider discovered:
         [slaveProviderMapPtr, reactorPtr] (
-            const std::string& address,
+            const coral::net::ip::Address& address,
             const std::string& serviceType,
             const std::string& serviceID,
             const char* payload,
@@ -235,7 +235,7 @@ void SetupSlaveProviderTracking(
         },
         // Slave provider port changed:
         [slaveProviderMapPtr, reactorPtr] (
-            const std::string& address,
+            const coral::net::ip::Address& address,
             const std::string& serviceType,
             const std::string& serviceID,
             const char* payload,

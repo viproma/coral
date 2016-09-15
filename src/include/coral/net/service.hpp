@@ -134,22 +134,21 @@ public:
     Such a function must have the following signature:
     ~~~{.cpp}
     void handler(
-        const std::string& address,     // the service's IP address
-        const std::string& serviceType, // the service type (see Beacon)
-        const std::string& serviceID,   // the service name (see Beacon)
-        const char* payload,            // data payload (or null if none)
-        std::size_t payloadSize);       // data payload size
+        const coral::net::ip::Address& address, // the service's IP address
+        const std::string& serviceType,         // the service type (see Beacon)
+        const std::string& serviceID,           // the service name (see Beacon)
+        const char* payload,                    // data payload (or null if none)
+        std::size_t payloadSize);               // data payload size
     ~~~
     The `payload` array is not guaranteed to exist beyond this function call,
     so a copy must be made if the data is to be kept around.
     */
-    typedef std::function<void (
-            const std::string&,
-            const std::string&,
-            const std::string&,
-            const char*,
-            std::size_t)>
-        NotificationHandler;
+    using NotificationHandler = std::function<void (
+        const ip::Address&,
+        const std::string&,
+        const std::string&,
+        const char*,
+        std::size_t)>;
 
     /**
     \brief  Constructor.
@@ -215,22 +214,21 @@ public:
     Such a function must have the following signature:
     ~~~{.cpp}
     void handler(
-        const std::string& address,     // the service's IP address
-        const std::string& serviceType, // the service type (see Beacon)
-        const std::string& serviceID,   // the service name (see Beacon)
-        const char* payload,            // data payload (or null if none)
-        std::size_t payloadSize);       // data payload size
+        const coral::net::ip::Address& address, // the service's IP address
+        const std::string& serviceType,         // the service type (see Beacon)
+        const std::string& serviceID,           // the service name (see Beacon)
+        const char* payload,                    // data payload (or null if none)
+        std::size_t payloadSize);               // data payload size
     ~~~
     The `payload` array is not guaranteed to exist beyond this function call,
     so a copy must be made if the data is to be kept around.
     */
-    typedef std::function<void (
-            const std::string&,
-            const std::string&,
-            const std::string&,
-            const char*,
-            std::size_t)>
-        AppearedHandler;
+    using AppearedHandler = std::function<void (
+        const ip::Address&,
+        const std::string&,
+        const std::string&,
+        const char*,
+        std::size_t)>;
 
     /**
     \brief  The type for functions that are called when a service changes its
@@ -239,16 +237,16 @@ public:
     Such a function must have the following signature:
     ~~~{.cpp}
     void handler(
-        const std::string& address,     // the service's IP address
-        const std::string& serviceType, // the service type (see Beacon)
-        const std::string& serviceID,   // the service name (see Beacon)
-        const char* payload,            // data payload (or null if none)
-        std::size_t payloadSize);       // data payload size
+        const coral::net::ip::Address& address, // the service's IP address
+        const std::string& serviceType,         // the service type (see Beacon)
+        const std::string& serviceID,           // the service name (see Beacon)
+        const char* payload,                    // data payload (or null if none)
+        std::size_t payloadSize);               // data payload size
     ~~~
     The `payload` array is not guaranteed to exist beyond this function call,
     so a copy must be made if the data is to be kept around.
     */
-    typedef AppearedHandler PayloadChangedHandler;
+    using PayloadChangedHandler = AppearedHandler;
 
     /**
     \brief  The type for functions that are called when a service disappears.
@@ -260,8 +258,8 @@ public:
         const std::string& serviceID);  // the service name (see Beacon)
     ~~~
     */
-    typedef std::function<void(const std::string&, const std::string&)>
-        DisappearedHandler;
+    using DisappearedHandler =
+        std::function<void(const std::string&, const std::string&)>;
 
     /**
     \brief  Constructor.
@@ -300,7 +298,7 @@ public:
 
     \param [in] serviceType
         The service type to listen for.
-    \param [in] timeout
+    \param [in] expiryTime
         How long a period of silence from a particular service of this type
         must pass before it is considered to have disappeared.  This should
         be at least a few times larger than the services' beacon period.
@@ -319,7 +317,7 @@ public:
     */
     void AddTrackedServiceType(
         const std::string& serviceType,
-        std::chrono::milliseconds timeout,
+        std::chrono::milliseconds expiryTime,
         AppearedHandler onAppearance,
         PayloadChangedHandler onPayloadChange,
         DisappearedHandler onDisappearance);

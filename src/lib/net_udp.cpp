@@ -189,7 +189,10 @@ public:
     }
 
 
-    std::size_t Receive(char* buffer, std::size_t bufferSize, in_addr* sender)
+    std::size_t Receive(
+        char* buffer,
+        std::size_t bufferSize,
+        ip::Address* sender)
     {
         sockaddr_in senderAddress;
         std::memset(&senderAddress, 0, sizeof(senderAddress));
@@ -213,7 +216,7 @@ public:
                 "An error occurred while attempting to receive UDP message");
         }
         if (sender != nullptr) {
-            *sender = senderAddress.sin_addr;
+            *sender = ip::Address{senderAddress.sin_addr};
         }
         return static_cast<std::size_t>(msgSize);
     }
@@ -270,7 +273,7 @@ void BroadcastSocket::Send(const char* buffer, std::size_t bufferSize)
 std::size_t BroadcastSocket::Receive(
     char* buffer,
     std::size_t bufferSize,
-    in_addr* sender)
+    ip::Address* sender)
 {
     return m_private->Receive(buffer, bufferSize, sender);
 }
