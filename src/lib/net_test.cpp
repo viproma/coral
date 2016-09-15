@@ -27,6 +27,8 @@ TEST(coral_net_ip, Address_any)
     EXPECT_TRUE(b.IsAnyAddress());
     EXPECT_EQ("*", b.ToString());
     EXPECT_EQ(INADDR_ANY, b.ToInAddr().s_addr);
+    EXPECT_TRUE(b == a);
+    EXPECT_FALSE(b != a);
 
     in_addr ci;
     ci.s_addr = INADDR_ANY;
@@ -34,11 +36,15 @@ TEST(coral_net_ip, Address_any)
     EXPECT_TRUE(c.IsAnyAddress());
     EXPECT_EQ("*", c.ToString());
     EXPECT_EQ(INADDR_ANY, c.ToInAddr().s_addr);
+    EXPECT_TRUE(c == a);
+    EXPECT_FALSE(c != a);
 
     const auto d = coral::net::ip::Address{"0.0.0.0"};
     EXPECT_TRUE(d.IsAnyAddress());
     EXPECT_EQ("*", d.ToString());
     EXPECT_EQ(INADDR_ANY, d.ToInAddr().s_addr);
+    EXPECT_TRUE(d == a);
+    EXPECT_FALSE(d != a);
 }
 
 
@@ -62,6 +68,11 @@ TEST(coral_net_ip, Address_IPv4)
     EXPECT_EQ(
         *reinterpret_cast<const std::uint32_t*>(ipBinary),
         b.ToInAddr().s_addr);
+
+    EXPECT_TRUE(a == b);
+    EXPECT_FALSE(a != b);
+    EXPECT_FALSE(a == coral::net::ip::Address{"10.0.213.46"});
+    EXPECT_TRUE(a != coral::net::ip::Address{"10.0.213.46"});
 }
 
 
@@ -71,6 +82,11 @@ TEST(coral_net_ip, Address_textual)
     EXPECT_FALSE(a.IsAnyAddress());
     EXPECT_EQ("foo.com", a.ToString());
     EXPECT_THROW(a.ToInAddr(), std::logic_error);
+
+    EXPECT_TRUE(a == coral::net::ip::Address{"foo.com"});
+    EXPECT_FALSE(a != coral::net::ip::Address{"foo.com"});
+    EXPECT_FALSE(a == coral::net::ip::Address{"foo.org"});
+    EXPECT_TRUE(a != coral::net::ip::Address{"foo.org"});
 }
 
 

@@ -101,7 +101,7 @@ public:
     \param [in] bufferSize
         The size of the supplied buffer.
     \param [in] sender
-        If nonnull, the structure pointed to by this parameter will be filled
+        If nonnull, the object pointed to by this parameter will be filled
         with the IP address of the message sender.
 
     \returns
@@ -110,7 +110,10 @@ public:
 
     \throws std::runtime_error on failure.
     */
-    std::size_t Receive(char* buffer, std::size_t bufferSize, in_addr* sender);
+    std::size_t Receive(
+        char* buffer,
+        std::size_t bufferSize,
+        ip::Address* sender);
 
     /// The native socket handle.
     NativeSocket NativeHandle() const CORAL_NOEXCEPT;

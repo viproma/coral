@@ -230,8 +230,8 @@ Listener::Impl::~Impl() CORAL_NOEXCEPT
 void Listener::Impl::IncomingBeacon()
 {
     char buffer[65535];
-    in_addr peerAddress;
-    auto msgSize = m_udpSocket.Receive(
+    ip::Address peerAddress;
+    const auto msgSize = m_udpSocket.Receive(
         buffer,
         sizeof(buffer),
         &peerAddress);
@@ -268,7 +268,7 @@ void Listener::Impl::IncomingBeacon()
         return;
     }
     m_onNotification(
-        coral::net::ip::IPAddressToString(peerAddress),
+        peerAddress,
         std::string(buffer + minMessageSize, serviceTypeSize),
         std::string(buffer + minMessageSize+serviceTypeSize, serviceIdentifierSize),
         payloadSize ? buffer + minMessageSize+serviceTypeSize+serviceIdentifierSize
@@ -328,15 +328,15 @@ public:
             partitionID,
             endpoint,
             std::bind(&Impl::OnNotification, this, _1, _2, _3, _4, _5))
-        , m_timeoutID(-1)
-        , m_smallestTimeout(std::chrono::milliseconds::max())
+        , m_expiryTimerID(-1)
+        , m_smallestExpiryTime(std::chrono::milliseconds::max())
     {
     }
 
     ~Impl() CORAL_NOEXCEPT
     {
-        if (m_timeoutID >= 0) {
-            m_reactor.RemoveTimer(m_timeoutID);
+        if (m_expiryTimerID >= 0) {
+            m_reactor.RemoveTimer(m_expiryTimerID);
         }
     }
 
@@ -347,24 +347,24 @@ public:
 
     void AddTrackedServiceType(
         const std::string& serviceType,
-        std::chrono::milliseconds timeout,
+        std::chrono::milliseconds expiryTime,
         AppearedHandler onAppearance,
         PayloadChangedHandler onPayloadChange,
         DisappearedHandler onDisappearance)
     {
         auto& s = m_trackedServiceTypes[serviceType];
-        s.timeout = timeout;
+        s.expiryTime = expiryTime;
         s.onAppearance = std::move(onAppearance);
         s.onPayloadChange = std::move(onPayloadChange);
         s.onDisappearance = std::move(onDisappearance);
 
-        if (timeout < m_smallestTimeout) {
-            if (m_timeoutID >= 0) {
-                m_reactor.RemoveTimer(m_timeoutID);
+        if (expiryTime < m_smallestExpiryTime) {
+            if (m_expiryTimerID >= 0) {
+                m_reactor.RemoveTimer(m_expiryTimerID);
             }
-            m_smallestTimeout = timeout;
-            m_timeoutID = m_reactor.AddTimer(
-                m_smallestTimeout,
+            m_smallestExpiryTime = expiryTime;
+            m_expiryTimerID = m_reactor.AddTimer(
+                m_smallestExpiryTime,
                 -1,
                 [this] (coral::net::Reactor&, int) { CheckTimeouts(); });
         }
@@ -372,7 +372,7 @@ public:
 
 private:
     void OnNotification(
-        const std::string& address,
+        const ip::Address& address,
         const std::string& serviceType,
         const std::string& serviceID,
         const char* payload,
@@ -434,7 +434,7 @@ private:
             for (auto service = begin(serviceType.second);
                     service != end(serviceType.second);
                     ) {
-                if (now > service->second.lastSeen + tracked.timeout) {
+                if (now > service->second.lastSeen + tracked.expiryTime) {
                     const auto serviceID = service->first;
                     service = serviceType.second.erase(service);
                     if (tracked.onDisappearance) {
@@ -451,7 +451,7 @@ private:
 
     struct TrackedServiceType
     {
-        std::chrono::milliseconds timeout;
+        std::chrono::milliseconds expiryTime;
         AppearedHandler onAppearance;
         PayloadChangedHandler onPayloadChange;
         DisappearedHandler onDisappearance;
@@ -471,8 +471,8 @@ private:
             std::unordered_map<std::string, Service>
         > m_currentServices;
 
-    int m_timeoutID;
-    std::chrono::milliseconds m_smallestTimeout;
+    int m_expiryTimerID;
+    std::chrono::milliseconds m_smallestExpiryTime;
 };
 
 

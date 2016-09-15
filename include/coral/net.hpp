@@ -116,9 +116,29 @@ namespace ip
         in_addr ToInAddr() const;
 
     private:
+        friend bool operator==(const Address&, const Address&);
         std::string m_strAddr;
         in_addr m_inAddr;
     };
+
+    /**
+    \brief  Equality operator for `coral::net::ip::Address`.
+
+    This returns `true` if and only if the addresses themselves match.
+    No host name resolution or interface lookup is performed.
+    */
+    bool operator==(const Address& a1, const Address& a2);
+
+    /**
+    \brief  Inequality operator for `coral::net::ip::Address`.
+
+    This is defined as the negation of
+    `operator==(const Address&, const Address&)`.
+    */
+    inline bool operator!=(const Address& a1, const Address& a2)
+    {
+        return !operator==(a1, a2);
+    }
 
 
     /**
