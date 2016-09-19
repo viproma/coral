@@ -340,7 +340,6 @@ namespace
 SlaveInstance1::SlaveInstance1(std::shared_ptr<coral::fmi::FMU1> fmu)
     : m_fmu{fmu}
     , m_handle{fmi1_import_parse_xml(fmu->Importer()->FmilibHandle(), fmu->Directory().string().c_str())}
-    , m_instanceName(coral::util::RandomString(8, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"))
 {
     if (m_handle == nullptr) {
         throw std::runtime_error(fmu->Importer()->LastErrorMessage());
@@ -357,49 +356,98 @@ SlaveInstance1::SlaveInstance1(std::shared_ptr<coral::fmi::FMU1> fmu)
         fmi1_import_free(m_handle);
         throw std::runtime_error(msg);
     }
-
-    const auto importStatus = fmi1_import_instantiate_slave(
-        m_handle,
-        m_instanceName.c_str(),
-        nullptr,
-        nullptr,
-        0,
-        false,
-        false);
-    if (importStatus != jm_status_success) {
-        fmi1_import_destroy_dllfmu(m_handle);
-        fmi1_import_free(m_handle);
-        throw std::runtime_error(LastLogRecord(m_instanceName).message);
-    }
 }
 
 
 SlaveInstance1::~SlaveInstance1() CORAL_NOEXCEPT
 {
-    if (m_initialized) {
-        fmi1_import_terminate_slave(m_handle);
+    if (m_setupComplete) {
+        fmi1_import_free_slave_instance(m_handle);
     }
-    fmi1_import_free_slave_instance(m_handle);
     fmi1_import_destroy_dllfmu(m_handle);
     fmi1_import_free(m_handle);
 }
 
 
-const coral::model::SlaveTypeDescription& SlaveInstance1::TypeDescription() const
+coral::model::SlaveTypeDescription SlaveInstance1::TypeDescription() const
 {
     return FMU()->Description();
 }
 
 
-bool SlaveInstance1::Setup(
+void SlaveInstance1::Setup(
+    const std::string& slaveName,
+    const std::string& /*executionName*/,
     coral::model::TimePoint startTime,
     coral::model::TimePoint stopTime,
-    const std::string& executionName,
-    const std::string& slaveName)
+    bool /*adaptiveStepSize*/,
+    double /*relativeTolerance*/)
 {
+    assert(!m_setupComplete);
+    const auto rc = fmi1_import_instantiate_slave(
+        m_handle,
+        slaveName.c_str(),
+        nullptr,
+        nullptr,
+        0,
+        fmi1_false,
+        fmi1_false);
+    if (rc != jm_status_success) {
+        throw std::runtime_error(LastLogRecord(slaveName).message);
+    }
+    m_setupComplete = true;
+
+    m_instanceName = slaveName;
     m_startTime = startTime;
     m_stopTime = stopTime;
-    return true;
+}
+
+
+void SlaveInstance1::StartSimulation()
+{
+    assert(m_setupComplete);
+    assert(!m_simStarted);
+    const auto rc = fmi1_import_initialize_slave(
+        m_handle,
+        m_startTime,
+        m_stopTime != coral::model::ETERNITY,
+        m_stopTime);
+    if (rc != fmi1_status_ok && rc != fmi1_status_warning) {
+        throw std::runtime_error(
+            "Failed to initialize slave ("
+            + LastLogRecord(m_instanceName).message + ")");
+    }
+    m_simStarted = true;
+}
+
+
+void SlaveInstance1::EndSimulation()
+{
+    assert(m_simStarted);
+    const auto rc = fmi1_import_terminate_slave(m_handle);
+    if (rc != fmi1_status_ok && rc != fmi1_status_warning) {
+        throw std::runtime_error(
+            "Failed to terminate slave ("
+            + LastLogRecord(m_instanceName).message + ")");
+    }
+}
+
+
+bool SlaveInstance1::DoStep(
+    coral::model::TimePoint currentT,
+    coral::model::TimeDuration deltaT)
+{
+    assert(m_simStarted);
+    const auto rc = fmi1_import_do_step(m_handle, currentT, deltaT, true);
+    if (rc == fmi1_status_ok || rc == fmi1_status_warning) {
+        return true;
+    } else if (rc == fmi1_status_discard) {
+        return false;
+    } else {
+        throw std::runtime_error(
+            "Failed to perform time step ("
+            + LastLogRecord(m_instanceName).message + ")");
+    }
 }
 
 
@@ -422,6 +470,7 @@ namespace
 
 double SlaveInstance1::GetRealVariable(coral::model::VariableID varID) const
 {
+    assert(m_setupComplete);
     const auto valRef = m_fmu->FMIValueReference(varID);
     fmi1_real_t value = 0.0;
     const auto status = fmi1_import_get_real(m_handle, &valRef, 1, &value);
@@ -434,6 +483,7 @@ double SlaveInstance1::GetRealVariable(coral::model::VariableID varID) const
 
 int SlaveInstance1::GetIntegerVariable(coral::model::VariableID varID) const
 {
+    assert(m_setupComplete);
     const auto valRef = m_fmu->FMIValueReference(varID);
     fmi1_integer_t value = 0;
     const auto status = fmi1_import_get_integer(m_handle, &valRef, 1, &value);
@@ -446,6 +496,7 @@ int SlaveInstance1::GetIntegerVariable(coral::model::VariableID varID) const
 
 bool SlaveInstance1::GetBooleanVariable(coral::model::VariableID varID) const
 {
+    assert(m_setupComplete);
     const auto valRef = m_fmu->FMIValueReference(varID);
     fmi1_boolean_t value = 0;
     const auto status = fmi1_import_get_boolean(m_handle, &valRef, 1, &value);
@@ -458,6 +509,7 @@ bool SlaveInstance1::GetBooleanVariable(coral::model::VariableID varID) const
 
 std::string SlaveInstance1::GetStringVariable(coral::model::VariableID varID) const
 {
+    assert(m_setupComplete);
     const auto valRef = m_fmu->FMIValueReference(varID);
     fmi1_string_t value = nullptr;
     const auto status = fmi1_import_get_string(m_handle, &valRef, 1, &value);
@@ -468,67 +520,53 @@ std::string SlaveInstance1::GetStringVariable(coral::model::VariableID varID) co
 }
 
 
-void SlaveInstance1::SetRealVariable(coral::model::VariableID varID, double value)
+bool SlaveInstance1::SetRealVariable(coral::model::VariableID varID, double value)
 {
+    assert(m_setupComplete);
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_real(m_handle, &valRef, 1, &value);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
         throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
+    return true;
 }
 
 
-void SlaveInstance1::SetIntegerVariable(coral::model::VariableID varID, int value)
+bool SlaveInstance1::SetIntegerVariable(coral::model::VariableID varID, int value)
 {
+    assert(m_setupComplete);
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_integer(m_handle, &valRef, 1, &value);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
         throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
+    return true;
 }
 
 
-void SlaveInstance1::SetBooleanVariable(coral::model::VariableID varID, bool value)
+bool SlaveInstance1::SetBooleanVariable(coral::model::VariableID varID, bool value)
 {
+    assert(m_setupComplete);
     fmi1_boolean_t fmiValue = value;
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_boolean(m_handle, &valRef, 1, &fmiValue);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
         throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
+    return true;
 }
 
 
-void SlaveInstance1::SetStringVariable(coral::model::VariableID varID, const std::string& value)
+bool SlaveInstance1::SetStringVariable(coral::model::VariableID varID, const std::string& value)
 {
+    assert(m_setupComplete);
     const auto fmiValue = value.c_str();
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_string(m_handle, &valRef, 1, &fmiValue);
     if (status != fmi1_status_ok && status != fmi1_status_warning) {
         throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
-}
-
-
-bool SlaveInstance1::DoStep(
-    coral::model::TimePoint currentT,
-    coral::model::TimeDuration deltaT)
-{
-    if (!m_initialized) {
-        const auto status = fmi1_import_initialize_slave(
-            m_handle,
-            m_startTime,
-            m_stopTime != std::numeric_limits<double>::infinity(),
-            m_stopTime);
-        if (status != fmi1_status_ok && status != fmi1_status_warning) {
-            throw std::runtime_error(
-                "Failed to initialize slave ("
-                + LastLogRecord(m_instanceName).message + ")");
-        }
-        m_initialized = true;
-    }
-    const auto rc = fmi1_import_do_step(m_handle, currentT, deltaT, true);
-    return rc == fmi1_status_ok;
+    return true;
 }
 
 
