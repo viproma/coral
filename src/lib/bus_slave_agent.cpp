@@ -138,10 +138,12 @@ void SlaveAgent::ConnectedHandler(std::vector<zmq::message_t>& msg)
         % (data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity()));
     m_id = data.slave_id();
     m_slaveInstance.Setup(
+        data.slave_name(),
+        data.execution_name(),
         data.start_time(),
         data.has_stop_time() ? data.stop_time() : std::numeric_limits<double>::infinity(),
-        data.execution_name(),
-        data.slave_name());
+        false,
+        1.0 /* not used */);
 
     coral::protocol::execution::CreateMessage(msg, coralproto::execution::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
@@ -319,6 +321,9 @@ namespace
 
 bool SlaveAgent::Step(const coralproto::execution::StepData& stepInfo)
 {
+    if (m_currentStepID == coral::model::INVALID_STEP_ID) {
+        m_slaveInstance.StartSimulation();
+    }
     m_currentStepID = stepInfo.step_id();
     if (!m_slaveInstance.DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
         return false;

@@ -40,21 +40,25 @@ public:
         const std::string& outputFilePrefix = std::string{});
 
     // slave::Instance methods.
-    bool Setup(
+    coral::model::SlaveTypeDescription TypeDescription() const override;
+    void Setup(
+        const std::string& slaveName,
+        const std::string& executionName,
         coral::model::TimePoint startTime,
         coral::model::TimePoint stopTime,
-        const std::string& executionName,
-        const std::string& slaveName) override;
-    const coral::model::SlaveTypeDescription& TypeDescription() const override;
+        bool adaptiveStepSize,
+        double relativeTolerance) override;
+    void StartSimulation() override;
+    void EndSimulation() override;
+    bool DoStep(coral::model::TimePoint currentT, coral::model::TimeDuration deltaT) override;
     double GetRealVariable(coral::model::VariableID variable) const override;
     int GetIntegerVariable(coral::model::VariableID variable) const override;
     bool GetBooleanVariable(coral::model::VariableID variable) const override;
     std::string GetStringVariable(coral::model::VariableID variable) const override;
-    void SetRealVariable(coral::model::VariableID variable, double value) override;
-    void SetIntegerVariable(coral::model::VariableID variable, int value) override;
-    void SetBooleanVariable(coral::model::VariableID variable, bool value) override;
-    void SetStringVariable(coral::model::VariableID variable, const std::string& value) override;
-    bool DoStep(coral::model::TimePoint currentT, coral::model::TimeDuration deltaT) override;
+    bool SetRealVariable(coral::model::VariableID variable, double value) override;
+    bool SetIntegerVariable(coral::model::VariableID variable, int value) override;
+    bool SetBooleanVariable(coral::model::VariableID variable, bool value) override;
+    bool SetStringVariable(coral::model::VariableID variable, const std::string& value) override;
 
 private:
     std::shared_ptr<Instance> m_instance;

@@ -26,14 +26,24 @@ LoggingInstance::LoggingInstance(
 }
 
 
-bool LoggingInstance::Setup(
+coral::model::SlaveTypeDescription LoggingInstance::TypeDescription() const
+{
+    return m_instance->TypeDescription();
+}
+
+
+void LoggingInstance::Setup(
+    const std::string& slaveName,
+    const std::string& executionName,
     coral::model::TimePoint startTime,
     coral::model::TimePoint stopTime,
-    const std::string& executionName,
-    const std::string& slaveName)
+    bool adaptiveStepSize,
+    double relativeTolerance)
 {
-    const auto ret =
-        m_instance->Setup(startTime, stopTime, executionName, slaveName);
+    m_instance->Setup(
+        slaveName, executionName,
+        startTime, stopTime,
+        adaptiveStepSize, relativeTolerance);
 
     auto outputFileName = m_outputFilePrefix;
     if (executionName.empty()) {
@@ -70,62 +80,18 @@ bool LoggingInstance::Setup(
         m_outputStream << "," << var.Name();
     }
     m_outputStream << std::endl;
-
-    return ret;
 }
 
 
-const coral::model::SlaveTypeDescription& LoggingInstance::TypeDescription() const
+void LoggingInstance::StartSimulation()
 {
-    return m_instance->TypeDescription();
+    m_instance->StartSimulation();
 }
 
 
-double LoggingInstance::GetRealVariable(coral::model::VariableID varRef) const
+void LoggingInstance::EndSimulation()
 {
-    return m_instance->GetRealVariable(varRef);
-}
-
-
-int LoggingInstance::GetIntegerVariable(coral::model::VariableID varRef) const
-{
-    return m_instance->GetIntegerVariable(varRef);
-}
-
-
-bool LoggingInstance::GetBooleanVariable(coral::model::VariableID varRef) const
-{
-    return m_instance->GetBooleanVariable(varRef);
-}
-
-
-std::string LoggingInstance::GetStringVariable(coral::model::VariableID varRef) const
-{
-    return m_instance->GetStringVariable(varRef);
-}
-
-
-void LoggingInstance::SetRealVariable(coral::model::VariableID varRef, double value)
-{
-    m_instance->SetRealVariable(varRef, value);
-}
-
-
-void LoggingInstance::SetIntegerVariable(coral::model::VariableID varRef, int value)
-{
-    m_instance->SetIntegerVariable(varRef, value);
-}
-
-
-void LoggingInstance::SetBooleanVariable(coral::model::VariableID varRef, bool value)
-{
-    m_instance->SetBooleanVariable(varRef, value);
-}
-
-
-void LoggingInstance::SetStringVariable(coral::model::VariableID varRef, const std::string& value)
-{
-    m_instance->SetStringVariable(varRef, value);
+    m_instance->EndSimulation();
 }
 
 
@@ -170,6 +136,54 @@ bool LoggingInstance::DoStep(
     m_outputStream << std::endl;
 
     return ret;
+}
+
+
+double LoggingInstance::GetRealVariable(coral::model::VariableID varRef) const
+{
+    return m_instance->GetRealVariable(varRef);
+}
+
+
+int LoggingInstance::GetIntegerVariable(coral::model::VariableID varRef) const
+{
+    return m_instance->GetIntegerVariable(varRef);
+}
+
+
+bool LoggingInstance::GetBooleanVariable(coral::model::VariableID varRef) const
+{
+    return m_instance->GetBooleanVariable(varRef);
+}
+
+
+std::string LoggingInstance::GetStringVariable(coral::model::VariableID varRef) const
+{
+    return m_instance->GetStringVariable(varRef);
+}
+
+
+bool LoggingInstance::SetRealVariable(coral::model::VariableID varRef, double value)
+{
+    return m_instance->SetRealVariable(varRef, value);
+}
+
+
+bool LoggingInstance::SetIntegerVariable(coral::model::VariableID varRef, int value)
+{
+    return m_instance->SetIntegerVariable(varRef, value);
+}
+
+
+bool LoggingInstance::SetBooleanVariable(coral::model::VariableID varRef, bool value)
+{
+    return m_instance->SetBooleanVariable(varRef, value);
+}
+
+
+bool LoggingInstance::SetStringVariable(coral::model::VariableID varRef, const std::string& value)
+{
+    return m_instance->SetStringVariable(varRef, value);
 }
 
 
