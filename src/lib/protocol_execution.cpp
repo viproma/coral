@@ -89,6 +89,20 @@ void coral::protocol::execution::CreateErrorMessage(
 }
 
 
+void coral::protocol::execution::CreateFatalErrorMessage(
+    std::vector<zmq::message_t>& message,
+    coralproto::execution::ErrorInfo::Code code,
+    const std::string& details)
+{
+    coralproto::execution::ErrorInfo errorInfo;
+    errorInfo.set_code(code);
+    if (!details.empty()) {
+        errorInfo.set_details(details);
+    }
+    CreateMessage(message, coralproto::execution::MSG_FATAL_ERROR, errorInfo);
+}
+
+
 uint16_t coral::protocol::execution::ParseMessageType(const zmq::message_t& header)
 {
     if (header.size() < 2) {
@@ -124,9 +138,9 @@ namespace
             case coralproto::execution::ErrorInfo::INVALID_REQUEST:
                 return "Invalid request";
             default:
-                assert (code == coralproto::execution::ErrorInfo::UNKNOWN_ERROR
+                assert (code == coralproto::execution::ErrorInfo::UNSPECIFIED_ERROR
                         && "RemoteErrorString() received an undefined error code");
-                return "Unknown error";
+                return "Unspecified error";
         }
     }
 

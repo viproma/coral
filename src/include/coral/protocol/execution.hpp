@@ -90,6 +90,17 @@ void CreateErrorMessage(
 
 
 /**
+\brief  Fills `message` with a FATAL_ERROR message.
+
+Any pre-existing contents of `message` will be replaced.
+*/
+void CreateFatalErrorMessage(
+    std::vector<zmq::message_t>& message,
+    coralproto::execution::ErrorInfo::Code code,
+    const std::string& details = std::string());
+
+
+/**
 \brief  Parses the first two bytes of `header` as an uint16_t.
 
 This function does *not* check whether the returned number is a valid

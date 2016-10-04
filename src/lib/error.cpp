@@ -33,8 +33,8 @@ namespace
                     return "Operation canceled";
                 case generic_error::operation_failed:
                     return "Operation failed";
-                case generic_error::partial_failure:
-                    return "Partial failure to complete operation";
+                case generic_error::fatal:
+                    return "An irrecoverable error occurred";
                 default:
                     assert(!"Unknown simulation error code");
                     return "Unknown simulation error";

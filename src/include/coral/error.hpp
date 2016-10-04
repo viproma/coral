@@ -219,8 +219,8 @@ enum class generic_error
     /// An ongoing operation failed
     operation_failed,
 
-    /// One or more parts of a compound operation failed
-    partial_failure,
+    /// An irrecoverable error happened
+    fatal,
 };
 
 /// Error category for generic errors
