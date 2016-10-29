@@ -231,7 +231,7 @@ void SetupSlaveProviderTracking(
                     coral::net::ip::Endpoint{address, port}}));
             CORAL_LOG_TRACE(
                 boost::format("Slave provider discovered: %s @ %s:%d")
-                % serviceID % address % port);
+                % serviceID % address.ToString() % port);
         },
         // Slave provider port changed:
         [slaveProviderMapPtr, reactorPtr] (
@@ -254,7 +254,7 @@ void SetupSlaveProviderTracking(
                     coral::net::ip::Endpoint{address, port}}));
             CORAL_LOG_TRACE(
                 boost::format("Slave provider updated: %s @ %s:%d")
-                % serviceID % address % port);
+                % serviceID % address.ToString() % port);
         },
         // Slave provider disappeared:
         [slaveProviderMapPtr] (
