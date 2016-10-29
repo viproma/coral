@@ -111,12 +111,15 @@ private:
     // filling `msg` with a reply message.
     void HandleSetVars(std::vector<zmq::message_t>& msg);
 
-    // Performs the "set peers" operation for ReadyHandler(), including,
+    // Performs the "set peers" operation for ReadyHandler(), including
     // filling `msg` with a reply message.
     void HandleSetPeers(std::vector<zmq::message_t>& msg);
 
     // Performs the time step for ReadyHandler()
     bool Step(const coralproto::execution::StepData& stepData);
+
+    // Publishes all variable values (used by Step()).
+    void PublishAll();
 
     // A pointer to the handler function for the current state.
     void (SlaveAgent::* m_stateHandler)(std::vector<zmq::message_t>&);

@@ -352,7 +352,16 @@ bool SlaveAgent::Step(const coralproto::execution::StepData& stepInfo)
     if (!m_slaveInstance.DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
         return false;
     }
-    for (const auto& varInfo : m_slaveInstance.TypeDescription().Variables()) {
+    PublishAll();
+    return true;
+}
+
+
+void SlaveAgent::PublishAll()
+{
+    CORAL_LOG_TRACE("Publishing output variable values");
+    const auto typeDescription = m_slaveInstance.TypeDescription();
+    for (const auto& varInfo : typeDescription.Variables()) {
         if (varInfo.Causality() != coral::model::OUTPUT_CAUSALITY) continue;
         m_publisher.Publish(
             m_currentStepID,
@@ -360,7 +369,6 @@ bool SlaveAgent::Step(const coralproto::execution::StepData& stepInfo)
             varInfo.ID(),
             GetVariable(m_slaveInstance, varInfo));
     }
-    return true;
 }
 
 
