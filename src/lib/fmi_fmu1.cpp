@@ -4,12 +4,7 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/fmi/fmu1.hpp"
-
-#ifdef _WIN32
-#   define NOMINMAX
-#   include <Windows.h>
-#endif
+#include <coral/fmi/fmu1.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -20,105 +15,23 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <stdexcept>
 #include <unordered_map>
 
-#include "boost/numeric/conversion/cast.hpp"
-#include "fmilib.h"
+#include <boost/numeric/conversion/cast.hpp>
+#include <fmilib.h>
 
-#include "coral/fmi/glue.hpp"
-#include "coral/fmi/importer.hpp"
-#include "coral/log.hpp"
-#include "coral/util.hpp"
+#include <coral/fmi/glue.hpp>
+#include <coral/fmi/importer.hpp>
+#include <coral/log.hpp>
+#include <coral/util.hpp>
+
+#ifdef _WIN32
+#include <coral/fmi/windows.hpp>
+#endif
 
 
 namespace coral
 {
 namespace fmi
 {
-
-
-#ifdef _WIN32
-
-// Given "path/to/fmu", returns "path/to/fmu/binaries/<platform>"
-boost::filesystem::path FMUBinariesDir(const boost::filesystem::path& baseDir)
-{
-#ifdef _WIN64
-    const auto platformSubdir = L"win64";
-#else
-    const auto platformSubdir = L"win32";
-#endif // _WIN64
-    return baseDir / L"binaries" / platformSubdir;
-}
-
-
-/*
-This class adds the FMU's binaries/<platform> directory to Windows' DLL search
-path (by adding it to the PATH environment variable for the current process),
-and removes it again on desctruction.  This solves a problem where Windows
-was unable to locate some DLLs that are indirectly loaded.  Specifically, the
-problem has been observed when the main FMU model DLL runs Java code (through
-JNI), and that Java code loaded a second DLL, which again was linked to further
-DLLs.  The latter were located in the binaries/<platform> directory, but were
-not found by the dynamic loader because that directory was not in the search
-path.
-
-Since environment variables are shared by the entire process, the functions
-use a mutex to protect against concurrent access to the PATH variable while
-it's being read, modified and written.  (This does not protect against
-access by client code, of course, which is a potential source of bugs.
-See VIPROMA-67 for more info.)
-*/
-class FMU1::AdditionalPath
-{
-    static const size_t MAX_ENV_VAR_SIZE = 32767;
-
-public:
-    AdditionalPath(const boost::filesystem::path& p)
-    {
-        std::lock_guard<std::mutex> lock(m_pathEnvVarMutex);
-
-        WCHAR currentPathZ[MAX_ENV_VAR_SIZE];
-        const auto currentPathLen =
-            GetEnvironmentVariableW(L"PATH", currentPathZ, MAX_ENV_VAR_SIZE);
-        const auto currentPath = std::wstring(currentPathZ, currentPathLen);
-
-        if (currentPathLen > 0) {
-            m_addedPath = L";";
-        }
-        m_addedPath += p.wstring();
-
-        const auto newPath = currentPath + m_addedPath;
-        if (!SetEnvironmentVariableW(L"PATH", newPath.c_str())) {
-            assert(!"Failed to modify PATH environment variable");
-        }
-    }
-
-    ~AdditionalPath()
-    {
-        std::lock_guard<std::mutex> lock(m_pathEnvVarMutex);
-
-        WCHAR currentPathZ[MAX_ENV_VAR_SIZE];
-        const auto currentPathLen =
-            GetEnvironmentVariableW(L"PATH", currentPathZ, MAX_ENV_VAR_SIZE);
-        const auto currentPath = std::wstring(currentPathZ, currentPathLen);
-
-        const auto pos = currentPath.find(m_addedPath);
-        if (pos < std::wstring::npos) {
-            auto newPath = currentPath.substr(0, pos)
-                + currentPath.substr(pos + m_addedPath.size());
-            if (!SetEnvironmentVariableW(L"PATH", newPath.c_str())) {
-                assert(!"Failed to reset PATH environment variable");
-            }
-        }
-    }
-
-private:
-    static std::mutex m_pathEnvVarMutex;
-    std::wstring m_addedPath;
-};
-
-std::mutex FMU1::AdditionalPath::m_pathEnvVarMutex = std::mutex();
-
-#endif // _WIN32
-
 
 // =============================================================================
 // FMU1
@@ -409,7 +322,9 @@ void SlaveInstance1::Setup(
         fmi1_false,
         fmi1_false);
     if (rc != jm_status_success) {
-        throw std::runtime_error(LastLogRecord(slaveName).message);
+        throw std::runtime_error(
+            "FMI error: Slave instantiation failed ("
+            + LastLogRecord(slaveName).message + ')');
     }
     m_setupComplete = true;
 
@@ -430,7 +345,7 @@ void SlaveInstance1::StartSimulation()
         m_stopTime);
     if (rc != fmi1_status_ok && rc != fmi1_status_warning) {
         throw std::runtime_error(
-            "Failed to initialize slave ("
+            "FMI error: Failed to initialize slave ("
             + LastLogRecord(m_instanceName).message + ")");
     }
     m_simStarted = true;
@@ -444,7 +359,7 @@ void SlaveInstance1::EndSimulation()
     m_simStarted = false;
     if (rc != fmi1_status_ok && rc != fmi1_status_warning) {
         throw std::runtime_error(
-            "Failed to terminate slave ("
+            "FMI error: Failed to terminate slave ("
             + LastLogRecord(m_instanceName).message + ")");
     }
 }
@@ -542,10 +457,13 @@ bool SlaveInstance1::SetRealVariable(coral::model::VariableID varID, double valu
     assert(m_setupComplete);
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_real(m_handle, &valRef, 1, &value);
-    if (status != fmi1_status_ok && status != fmi1_status_warning) {
+    if (status == fmi1_status_ok || status == fmi1_status_warning) {
+        return true;
+    } else if (status == fmi1_status_discard) {
+        return false;
+    } else {
         throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
-    return true;
 }
 
 
@@ -554,10 +472,13 @@ bool SlaveInstance1::SetIntegerVariable(coral::model::VariableID varID, int valu
     assert(m_setupComplete);
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_integer(m_handle, &valRef, 1, &value);
-    if (status != fmi1_status_ok && status != fmi1_status_warning) {
+    if (status == fmi1_status_ok || status == fmi1_status_warning) {
+        return true;
+    } else if (status == fmi1_status_discard) {
+        return false;
+    } else {
         throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
-    return true;
 }
 
 
@@ -567,10 +488,13 @@ bool SlaveInstance1::SetBooleanVariable(coral::model::VariableID varID, bool val
     fmi1_boolean_t fmiValue = value;
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_boolean(m_handle, &valRef, 1, &fmiValue);
-    if (status != fmi1_status_ok && status != fmi1_status_warning) {
+    if (status == fmi1_status_ok || status == fmi1_status_warning) {
+        return true;
+    } else if (status == fmi1_status_discard) {
+        return false;
+    } else {
         throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
-    return true;
 }
 
 
@@ -580,10 +504,13 @@ bool SlaveInstance1::SetStringVariable(coral::model::VariableID varID, const std
     const auto fmiValue = value.c_str();
     const auto valRef = m_fmu->FMIValueReference(varID);
     const auto status = fmi1_import_set_string(m_handle, &valRef, 1, &fmiValue);
-    if (status != fmi1_status_ok && status != fmi1_status_warning) {
+    if (status == fmi1_status_ok || status == fmi1_status_warning) {
+        return true;
+    } else if (status == fmi1_status_discard) {
+        return false;
+    } else {
         throw MakeGetOrSetException("set", varID, *FMU1(), m_instanceName);
     }
-    return true;
 }
 
 

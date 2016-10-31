@@ -1,14 +1,14 @@
 /**
 \file
-\brief Classes for dealing with FMI 1.0 FMUs.
+\brief Classes for dealing with FMI 2.0 FMUs.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2016-2017, SINTEF Ocean and the Coral contributors.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#ifndef CORAL_FMI_FMU1_HPP
-#define CORAL_FMI_FMU1_HPP
+#ifndef CORAL_FMI_FMU2_HPP
+#define CORAL_FMI_FMU2_HPP
 
 #include <memory>
 #include <string>
@@ -23,8 +23,8 @@
 
 
 // Forward declarations to avoid external dependency on FMI Library
-struct fmi1_import_t;
-typedef unsigned int fmi1_value_reference_t;
+struct fmi2_import_t;
+typedef unsigned int fmi2_value_reference_t;
 
 
 namespace coral
@@ -35,33 +35,33 @@ namespace fmi
 #ifdef _WIN32
 class AdditionalPath;
 #endif
-class SlaveInstance1;
+class SlaveInstance2;
 
 
 /**
-\brief  A class which represents an imported FMI 1.0 %FMU.
+\brief  A class which represents an imported FMI 2.0 %FMU.
 
 This class is an implementation of coral::fmi::FMU specialised for FMUs that
-implement FMI v1.0.
+implement FMI v2.0.
 */
-class FMU1 : public coral::fmi::FMU, public std::enable_shared_from_this<FMU1>
+class FMU2 : public coral::fmi::FMU, public std::enable_shared_from_this<FMU2>
 {
 private:
     // Only Importer is allowed to instantiate this class.
     friend std::shared_ptr<coral::fmi::FMU> coral::fmi::Importer::Import(
         const boost::filesystem::path&);
-    FMU1(
+    FMU2(
         std::shared_ptr<coral::fmi::Importer> importer,
         const boost::filesystem::path& fmuDir);
 
 public:
     // Disable copy and move
-    FMU1(const FMU1&) = delete;
-    FMU1& operator=(const FMU1&) = delete;
-    FMU1(FMU1&&) = delete;
-    FMU1& operator=(FMU1&&) = delete;
+    FMU2(const FMU2&) = delete;
+    FMU2& operator=(const FMU2&) = delete;
+    FMU2(FMU2&&) = delete;
+    FMU2& operator=(FMU2&&) = delete;
 
-    ~FMU1();
+    ~FMU2();
 
     // coral::fmi::FMU methods
     coral::fmi::FMIVersion FMIVersion() const override;
@@ -73,9 +73,9 @@ public:
     \brief  Creates a new co-simulation slave instance.
 
     This is equivalent to InstantiateSlave(), except that the returned object
-    is statically typed as an FMI 1.0 slave.
+    is statically typed as an FMI 2.0 slave.
     */
-    std::shared_ptr<SlaveInstance1> InstantiateSlave1();
+    std::shared_ptr<SlaveInstance2> InstantiateSlave2();
 
     /// Returns the path to the directory in which this %FMU was unpacked.
     const boost::filesystem::path& Directory() const;
@@ -90,20 +90,20 @@ public:
     \throws std::out_of_range
         If there is no variable with the given ID.
     */
-    fmi1_value_reference_t FMIValueReference(coral::model::VariableID variable)
+    fmi2_value_reference_t FMIValueReference(coral::model::VariableID variable)
         const;
 
     /// Returns the underlying C API handle (for FMI Library)
-    fmi1_import_t* FmilibHandle() const;
+    fmi2_import_t* FmilibHandle() const;
 
 private:
     std::shared_ptr<coral::fmi::Importer> m_importer;
     boost::filesystem::path m_dir;
 
-    fmi1_import_t* m_handle;
+    fmi2_import_t* m_handle;
     std::unique_ptr<coral::model::SlaveTypeDescription> m_description;
-    std::vector<fmi1_value_reference_t> m_valueReferences;
-    std::vector<std::weak_ptr<SlaveInstance1>> m_instances;
+    std::vector<fmi2_value_reference_t> m_valueReferences;
+    std::vector<std::weak_ptr<SlaveInstance2>> m_instances;
 
 #ifdef _WIN32
     // Workaround for VIPROMA-67 (FMU DLL search paths on Windows).
@@ -112,22 +112,22 @@ private:
 };
 
 
-/// An FMI 1.0 co-simulation slave instance.
-class SlaveInstance1 : public coral::fmi::SlaveInstance
+/// An FMI 2.0 co-simulation slave instance.
+class SlaveInstance2 : public coral::fmi::SlaveInstance
 {
 private:
-    // Only FMU1 is allowed to instantiate this class.
-    friend std::shared_ptr<SlaveInstance1> coral::fmi::FMU1::InstantiateSlave1();
-    SlaveInstance1(std::shared_ptr<coral::fmi::FMU1> fmu);
+    // Only FMU2 is allowed to instantiate this class.
+    friend std::shared_ptr<SlaveInstance2> coral::fmi::FMU2::InstantiateSlave2();
+    SlaveInstance2(std::shared_ptr<coral::fmi::FMU2> fmu);
 
 public:
     // Disable copy and move.
-    SlaveInstance1(const SlaveInstance1&) = delete;
-    SlaveInstance1& operator=(const SlaveInstance1&) = delete;
-    SlaveInstance1(SlaveInstance1&&) = delete;
-    SlaveInstance1& operator=(SlaveInstance1&&) = delete;
+    SlaveInstance2(const SlaveInstance2&) = delete;
+    SlaveInstance2& operator=(const SlaveInstance2&) = delete;
+    SlaveInstance2(SlaveInstance2&&) = delete;
+    SlaveInstance2& operator=(SlaveInstance2&&) = delete;
 
-    ~SlaveInstance1() CORAL_NOEXCEPT;
+    ~SlaveInstance2() CORAL_NOEXCEPT;
 
     // coral::slave::Instance methods
     coral::model::SlaveTypeDescription TypeDescription() const override;
@@ -158,22 +158,20 @@ public:
     // coral::fmi::SlaveInstance methods
     std::shared_ptr<coral::fmi::FMU> FMU() const override;
 
-    /// Returns the same object as FMU(), only statically typed as an FMU1.
-    std::shared_ptr<coral::fmi::FMU1> FMU1() const;
+    /// Returns the same object as FMU(), only statically typed as an FMU2.
+    std::shared_ptr<coral::fmi::FMU2> FMU2() const;
 
     /// Returns the underlying C API handle (for FMI Library)
-    fmi1_import_t* FmilibHandle() const;
+    fmi2_import_t* FmilibHandle() const;
 
 private:
-    std::shared_ptr<coral::fmi::FMU1> m_fmu;
-    fmi1_import_t* m_handle;
+    std::shared_ptr<coral::fmi::FMU2> m_fmu;
+    fmi2_import_t* m_handle;
 
     bool m_setupComplete = false;
     bool m_simStarted = false;
 
     std::string m_instanceName;
-    coral::model::TimePoint m_startTime = 0.0;
-    coral::model::TimePoint m_stopTime  = coral::model::ETERNITY;
 };
 
 
