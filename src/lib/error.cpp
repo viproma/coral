@@ -52,6 +52,8 @@ namespace
             switch (static_cast<sim_error>(ev)) {
                 case sim_error::cannot_perform_timestep:
                     return "Slave unable to perform time step";
+                case sim_error::data_timeout:
+                    return "Slave-to-slave data communication timed out";
                 default:
                     assert(!"Unknown simulation error code");
                     return "Unknown simulation error";

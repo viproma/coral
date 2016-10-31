@@ -166,6 +166,28 @@ public:
         std::chrono::milliseconds timeout,
         SetPeersHandler onComplete);
 
+    /// Completion handler type for Prime()
+    typedef VoidHandler PrimeHandler;
+
+    /**
+    \brief  Makes the slave send all variable values and then wait to receive
+            values for all connected input variables.
+
+    \param [in] timeout
+        Max. allowed time for the operation to complete. Must be at least 1 ms.
+    \param [in] onComplete
+        Completion handler.
+
+    \throws std::invalid_argument if `timeout` is less than 1 ms or
+        if `onComplete` is empty.
+
+    \pre  `State() == SLAVE_READY`
+    \post `State() == SLAVE_BUSY`.
+    */
+    void Prime(
+        std::chrono::milliseconds timeout,
+        PrimeHandler onComplete);
+
     /// Completion handler type for Step()
     typedef VoidHandler StepHandler;
 

@@ -122,10 +122,14 @@ private:
     // filling `msg` with a reply message.
     void HandleSetPeers(std::vector<zmq::message_t>& msg);
 
+    // Performs the "prime" operation for ReadyHandler(), including
+    // filling `msg` with a reply message.
+    void HandlePrime(std::vector<zmq::message_t>& msg);
+
     // Performs the time step for ReadyHandler()
     bool Step(const coralproto::execution::StepData& stepData);
 
-    // Publishes all variable values (used by Step()).
+    // Publishes all variable values (used by HandlePrime() and Step()).
     void PublishAll();
 
     // A pointer to the handler function for the current state.
@@ -178,7 +182,7 @@ private:
 
         // Waits until all data has been received for the time step specified
         // by `stepID` and updates the slave instance with the new values.
-        void Update(
+        bool Update(
             coral::slave::Instance& slaveInstance,
             coral::model::StepID stepID,
             std::chrono::milliseconds timeout);

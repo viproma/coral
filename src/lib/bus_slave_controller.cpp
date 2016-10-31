@@ -106,6 +106,18 @@ void SlaveController::SetPeers(
 }
 
 
+void SlaveController::Prime(
+    std::chrono::milliseconds timeout,
+    PrimeHandler onComplete)
+{
+    if (m_messenger) {
+        m_messenger->Prime(timeout, std::move(onComplete));
+    } else {
+        onComplete(std::make_error_code(std::errc::not_connected));
+    }
+}
+
+
 void SlaveController::Step(
     coral::model::StepID stepID,
     coral::model::TimePoint currentT,

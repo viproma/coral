@@ -230,7 +230,10 @@ const std::error_category& generic_category() CORAL_NOEXCEPT;
 enum class sim_error
 {
     /// Slave is unable to perform a time step
-    cannot_perform_timestep = 1
+    cannot_perform_timestep = 1,
+
+    /// Communications timeout between slaves
+    data_timeout,
 };
 
 /// Error category for simulation errors.

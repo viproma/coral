@@ -136,11 +136,10 @@ public:
                             variable data.
     \param [in] timeout     How long to wait without receiving any data.
 
-    \throws std::runtime_error if no data is received for the duration
-        specified by `timeout`.
+    \returns Whether a value has been received for all variables.
     \pre Connect() has been called successfully on this instance.
     */
-    void Update(
+    bool Update(
         coral::model::StepID stepID,
         std::chrono::milliseconds timeout);
 
