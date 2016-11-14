@@ -78,9 +78,17 @@ SlaveAgent::SlaveAgent(
             try {
                 RequestReply(msg);
             } catch (const coral::bus::Shutdown&) {
-                // TODO: Handle slave shutdown via other means?
                 r.Stop();
                 return;
+            } catch (const zmq::error_t&) {
+                throw; // Not much we can do about this...
+            } catch (const std::runtime_error& e) {
+                coral::protocol::execution::CreateFatalErrorMessage(
+                    msg,
+                    coralproto::execution::ErrorInfo::UNSPECIFIED_ERROR,
+                    e.what());
+                m_control.Send(msg);
+                throw;
             }
 #ifdef CORAL_LOG_TRACE_ENABLED
             const auto replyType = static_cast<coralproto::execution::MessageType>(
@@ -217,28 +225,28 @@ void SlaveAgent::HandleDescribe(std::vector<zmq::message_t>& msg)
 
 namespace
 {
-    class SetVariable : public boost::static_visitor<>
+    class SetVariable : public boost::static_visitor<bool>
     {
     public:
         SetVariable(
             coral::slave::Instance& slaveInstance,
             coral::model::VariableID varRef)
             : m_slaveInstance(slaveInstance), m_varRef(varRef) { }
-        void operator()(double value) const
+        bool operator()(double value) const
         {
-            m_slaveInstance.SetRealVariable(m_varRef, value);
+            return m_slaveInstance.SetRealVariable(m_varRef, value);
         }
-        void operator()(int value) const
+        bool operator()(int value) const
         {
-            m_slaveInstance.SetIntegerVariable(m_varRef, value);
+            return m_slaveInstance.SetIntegerVariable(m_varRef, value);
         }
-        void operator()(bool value) const
+        bool operator()(bool value) const
         {
-            m_slaveInstance.SetBooleanVariable(m_varRef, value);
+            return m_slaveInstance.SetBooleanVariable(m_varRef, value);
         }
-        void operator()(const std::string& value) const
+        bool operator()(const std::string& value) const
         {
-            m_slaveInstance.SetStringVariable(m_varRef, value);
+            return m_slaveInstance.SetStringVariable(m_varRef, value);
         }
     private:
         coral::slave::Instance& m_slaveInstance;
@@ -258,13 +266,20 @@ void SlaveAgent::HandleSetVars(std::vector<zmq::message_t>& msg)
     CORAL_LOG_DEBUG("Setting/connecting variables");
     coralproto::execution::SetVarsData data;
     coral::protobuf::ParseFromFrame(msg[1], data);
+
+    bool allGood = true;
     for (const auto& varSetting : data.variable()) {
         // TODO: Catch and report errors
         if (varSetting.has_value()) {
             const auto val = coral::protocol::FromProto(varSetting.value());
-            boost::apply_visitor(
-                SetVariable(m_slaveInstance, varSetting.variable_id()),
-                val);
+            if (!boost::apply_visitor(
+                    SetVariable(m_slaveInstance, varSetting.variable_id()),
+                    val)) {
+                allGood = false;
+                CORAL_LOG_DEBUG(
+                    boost::format("Failed to set value of variable with ID %d")
+                    % varSetting.variable_id());
+            }
         }
         if (varSetting.has_connected_output()) {
             m_connections.Couple(
@@ -273,7 +288,16 @@ void SlaveAgent::HandleSetVars(std::vector<zmq::message_t>& msg)
         }
     }
     CORAL_LOG_TRACE("Done setting/connecting variables");
-    coral::protocol::execution::CreateMessage(msg, coralproto::execution::MSG_READY);
+    if (allGood) {
+        coral::protocol::execution::CreateMessage(
+            msg,
+            coralproto::execution::MSG_READY);
+    } else {
+        coral::protocol::execution::CreateErrorMessage(
+            msg,
+            coralproto::execution::ErrorInfo::CANNOT_SET_VARIABLE,
+            "Failed to set the value of one or more variables");
+    }
 }
 
 
@@ -328,7 +352,16 @@ bool SlaveAgent::Step(const coralproto::execution::StepData& stepInfo)
     if (!m_slaveInstance.DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
         return false;
     }
-    for (const auto& varInfo : m_slaveInstance.TypeDescription().Variables()) {
+    PublishAll();
+    return true;
+}
+
+
+void SlaveAgent::PublishAll()
+{
+    CORAL_LOG_TRACE("Publishing output variable values");
+    const auto typeDescription = m_slaveInstance.TypeDescription();
+    for (const auto& varInfo : typeDescription.Variables()) {
         if (varInfo.Causality() != coral::model::OUTPUT_CAUSALITY) continue;
         m_publisher.Publish(
             m_currentStepID,
@@ -336,7 +369,6 @@ bool SlaveAgent::Step(const coralproto::execution::StepData& stepInfo)
             varInfo.ID(),
             GetVariable(m_slaveInstance, varInfo));
     }
-    return true;
 }
 
 

@@ -76,7 +76,8 @@ void LoggingInstance::Setup(
     }
 
     m_outputStream << "Time";
-    for (const auto& var : TypeDescription().Variables()) {
+    const auto typeDescription  = TypeDescription();
+    for (const auto& var : typeDescription.Variables()) {
         m_outputStream << "," << var.Name();
     }
     m_outputStream << std::endl;
@@ -130,7 +131,8 @@ bool LoggingInstance::DoStep(
     const auto ret = m_instance->DoStep(currentT, deltaT);
 
     m_outputStream << (currentT + deltaT);
-    for (const auto& var : TypeDescription().Variables()) {
+    const auto typeDescription = TypeDescription();
+    for (const auto& var : typeDescription.Variables()) {
         PrintVariable(m_outputStream, var, *this);
     }
     m_outputStream << std::endl;

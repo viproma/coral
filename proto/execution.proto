@@ -20,22 +20,24 @@ enum MessageType
     MSG_SET_PEERS    = 16;
 
     // Responses
-    MSG_ERROR        = 30;
-    MSG_READY        = 31;
-    MSG_STEP_OK      = 32;
-    MSG_STEP_FAILED  = 33;
+    MSG_READY        = 30;
+    MSG_STEP_OK      = 31;
+    MSG_STEP_FAILED  = 32;
+    MSG_ERROR        = 33;
+    MSG_FATAL_ERROR  = 34;
 }
 
-// The body of an ERROR message.
+// The body of an ERROR/FATAL_ERROR message.
 message ErrorInfo
 {
     enum Code
     {
-        UNKNOWN_ERROR   =  0;
-        INVALID_REQUEST =  1;
+        UNSPECIFIED_ERROR       =  0;
+        INVALID_REQUEST         =  1;
+        CANNOT_SET_VARIABLE     =  2;
     }
 
-    optional Code code = 1 [default = UNKNOWN_ERROR];
+    optional Code code = 1 [default = UNSPECIFIED_ERROR];
     optional string details = 2;
 }
 

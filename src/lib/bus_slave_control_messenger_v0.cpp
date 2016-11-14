@@ -500,9 +500,15 @@ void SlaveControlMessengerV0::HandleExpectedReadyReply(
 void SlaveControlMessengerV0::HandleErrorReply(int reply, AnyHandler onComplete)
 {
     Reset();
-    const auto ec = reply == coralproto::execution::MSG_ERROR
-        ? make_error_code(coral::error::generic_error::operation_failed)
-        : make_error_code(std::errc::bad_message);
+    std::error_code ec;
+    if (reply == coralproto::execution::MSG_ERROR) {
+        ec = make_error_code(coral::error::generic_error::operation_failed);
+    } else if (reply == coralproto::execution::MSG_FATAL_ERROR) {
+        ec = make_error_code(coral::error::generic_error::fatal);
+    } else {
+        ec = make_error_code(std::errc::bad_message);
+    }
+    assert(ec);
     boost::apply_visitor(CallWithError(ec), onComplete);
 }
 
