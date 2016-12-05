@@ -53,6 +53,7 @@ try {
 
     const auto feedbackEndpoint = std::string(argv[1]);
     feedbackSocket = std::make_unique<zmq::socket_t>(context, ZMQ_PUSH);
+    feedbackSocket->setsockopt(ZMQ_LINGER, 100 /* ms */);
     feedbackSocket->connect(feedbackEndpoint.c_str());
 
     const auto fmuPath = std::string(argv[2]);
