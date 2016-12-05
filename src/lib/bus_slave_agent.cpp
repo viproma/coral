@@ -53,10 +53,11 @@ SlaveAgent::SlaveAgent(
     coral::slave::Instance& slaveInstance,
     const coral::net::Endpoint& controlEndpoint,
     const coral::net::Endpoint& dataPubEndpoint,
-    std::chrono::milliseconds commTimeout)
+    std::chrono::milliseconds masterInactivityTimeout)
     : m_stateHandler(&SlaveAgent::NotConnectedHandler),
       m_slaveInstance(slaveInstance),
-      m_commTimeout(commTimeout),
+      m_masterInactivityTimeout(reactor, masterInactivityTimeout),
+      m_dataCommTimeout(std::chrono::seconds(1)),
       m_id(coral::model::INVALID_SLAVE_ID),
       m_currentStepID(coral::model::INVALID_STEP_ID)
 {
@@ -70,12 +71,10 @@ SlaveAgent::SlaveAgent(
         m_control.Socket(),
         [this](coral::net::Reactor& r, zmq::socket_t& s) {
             assert(&s == &m_control.Socket());
+            m_masterInactivityTimeout.Reset();
             std::vector<zmq::message_t> msg;
-            if (!coral::net::zmqx::Receive(m_control, msg, m_commTimeout)) {
-                throw coral::slave::TimeoutException(
-                    std::chrono::duration_cast<std::chrono::seconds>(m_commTimeout));
-            }
             try {
+                m_control.Receive(msg);
                 RequestReply(msg);
             } catch (const coral::bus::Shutdown&) {
                 r.Stop();
@@ -197,7 +196,7 @@ void SlaveAgent::PublishedHandler(std::vector<zmq::message_t>& msg)
     CORAL_LOG_TRACE("STEP OK state: incoming message");
     EnforceMessageType(msg, coralproto::execution::MSG_ACCEPT_STEP);
     // TODO: Use a different timeout here?
-    m_connections.Update(m_slaveInstance, m_currentStepID, m_commTimeout);
+    m_connections.Update(m_slaveInstance, m_currentStepID, m_dataCommTimeout);
     coral::protocol::execution::CreateMessage(msg, coralproto::execution::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }
@@ -368,6 +367,54 @@ void SlaveAgent::PublishAll()
             m_id,
             varInfo.ID(),
             GetVariable(m_slaveInstance, varInfo));
+    }
+}
+
+
+// =============================================================================
+// class SlaveAgent::Timeout
+// =============================================================================
+// TODO: This seems generally useful, so should probably be moved elsewhere.
+
+SlaveAgent::Timeout::Timeout(
+    coral::net::Reactor& reactor,
+    std::chrono::milliseconds timeout)
+    : m_reactor{reactor}
+    , m_timerID{coral::net::Reactor::invalidTimerID}
+{
+    SetTimeout(timeout);
+}
+
+
+SlaveAgent::Timeout::~Timeout() CORAL_NOEXCEPT
+{
+    SetTimeout(std::chrono::milliseconds(0));
+}
+
+
+void SlaveAgent::Timeout::Reset()
+{
+    m_reactor.RestartTimerInterval(m_timerID);
+}
+
+
+void SlaveAgent::Timeout::SetTimeout(std::chrono::milliseconds timeout)
+{
+    if (m_timerID != coral::net::Reactor::invalidTimerID) {
+        m_reactor.RemoveTimer(m_timerID);
+        m_timerID = coral::net::Reactor::invalidTimerID;
+    }
+    if (timeout > std::chrono::milliseconds(0)) {
+        m_timerID = m_reactor.AddTimer(
+            timeout,
+            1,
+            [timeout, this] (coral::net::Reactor&, int)
+            {
+                m_timerID = coral::net::Reactor::invalidTimerID;
+                throw coral::slave::TimeoutException(
+                    "Timed out due to lack of communication with master",
+                    timeout);
+            });
     }
 }
 

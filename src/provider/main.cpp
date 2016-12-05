@@ -42,13 +42,13 @@ public:
         const boost::filesystem::path& fmuPath,
         const coral::net::ip::Address& networkInterface,
         const std::string& slaveExe,
-        std::chrono::seconds commTimeout,
+        std::chrono::seconds masterInactivityTimeout,
         const std::string& outputDir)
         : m_fmuPath{fmuPath}
         , m_fmu{importer.Import(fmuPath)}
         , m_networkInterface{networkInterface}
         , m_slaveExe(slaveExe)
-        , m_commTimeout{commTimeout}
+        , m_masterInactivityTimeout{masterInactivityTimeout}
         , m_outputDir(outputDir.empty() ? "." : outputDir)
     {
     }
@@ -72,7 +72,7 @@ public:
             args.push_back(slaveStatusEp);
             args.push_back(m_fmuPath.string());
             args.push_back(m_networkInterface.ToString());
-            args.push_back(std::to_string(m_commTimeout.count()));
+            args.push_back(std::to_string(m_masterInactivityTimeout.count()));
             args.push_back(m_outputDir);
 
             std::cout << "\nStarting slave...\n"
@@ -130,7 +130,7 @@ private:
     std::shared_ptr<coral::fmi::FMU> m_fmu;
     coral::net::ip::Address m_networkInterface;
     std::string m_slaveExe;
-    std::chrono::seconds m_commTimeout;
+    std::chrono::seconds m_masterInactivityTimeout;
     std::string m_outputDir;
     std::string m_instantiationFailureDescription;
 };
@@ -181,7 +181,9 @@ try {
         ("slave-exe", po::value<std::string>(),
             "The path to the slave executable")
         ("timeout", po::value<unsigned int>()->default_value(3600),
-            "The number of seconds of inactivity before a slave shuts itself down");
+            "The number of seconds slaves should wait for commands from a master "
+            "before assuming that the connection is broken and shutting themselves "
+            "down.");
     po::options_description positionalOptions("Arguments");
     positionalOptions.add_options()
         ("fmu",       po::value<std::vector<std::string>>(), "The FMU files and directories");

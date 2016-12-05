@@ -25,8 +25,8 @@ Command line arguments:
  2  FMU path
  3  The network interface to which the slave should bind, or "*" for all
     interfaces.
- 4  Communications timeout, i.e., the number of seconds of inactivity before
-    the slave will shut itself down.
+ 4  Master-to-slave communications timeout, i.e., the number of seconds
+    without any command from the master before the slave will shut itself down.
  5  The name of an output directory, to which a file will be written in CSV
     format.  This is optional, and if no directory is specified, no file will
     be written.
@@ -63,7 +63,7 @@ try {
     CORAL_LOG_DEBUG(boost::format("PID: %d") % getpid());
     coral::log::Log(coral::log::info, boost::format("FMU: %s") % fmuPath);
     CORAL_LOG_TRACE(boost::format("Network interface: %s") % networkInterface);
-    CORAL_LOG_TRACE(boost::format("Communication silence timeout: %d s")
+    CORAL_LOG_TRACE(boost::format("Master-to-slave communication silence timeout: %d s")
         % commTimeout.count());
 
 #ifdef _WIN32
