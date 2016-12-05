@@ -63,6 +63,13 @@ public:
         const coral::net::Endpoint& dataPubEndpoint,
         std::chrono::milliseconds commTimeout);
 
+    // Class can't be copied or moved because it leaks references to `this`
+    // through Reactor event handlers.
+    SlaveAgent(const SlaveAgent&) = delete;
+    SlaveAgent& operator=(const SlaveAgent&) = delete;
+    SlaveAgent(SlaveAgent&&) = delete;
+    SlaveAgent& operator=(SlaveAgent&&) = delete;
+
     /**
     \brief  The endpoint on which the slave is listening for incoming messages
             from the master.
