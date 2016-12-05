@@ -79,6 +79,9 @@ public:
     */
     void RemoveNativeSocket(NativeSocket socket) CORAL_NOEXCEPT;
 
+    /// A number which will never be returned by AddTimer().
+    static const int invalidTimerID;
+
     /**
     \brief  Adds a timer.
 

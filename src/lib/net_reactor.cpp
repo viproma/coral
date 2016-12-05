@@ -102,6 +102,9 @@ namespace
 }
 
 
+const int Reactor::invalidTimerID = -1;
+
+
 int Reactor::AddTimer(
     std::chrono::milliseconds interval,
     int count,
