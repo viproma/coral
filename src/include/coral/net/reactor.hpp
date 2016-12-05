@@ -106,6 +106,16 @@ public:
     void RemoveTimer(int id);
 
     /**
+    \brief  Resets the time to the next event for a timer.
+
+    This function sets the elapsed time for the *current* iteration of a timer
+    to zero.  It does not change the number of remaining events.
+
+    \throws std::invalid_argument if `id` is not a valid timer ID.
+    */
+    void RestartTimerInterval(int id);
+
+    /**
     \brief  Runs the messaging loop.
 
     This function does not return before Stop() is called (by one of the
@@ -127,21 +137,6 @@ public:
     void Stop();
 
 private:
-    void ResetTimers();
-    std::chrono::milliseconds TimeToNextEvent() const;
-    void PerformNextEvent();
-
-    // Rebuilds the list of poll items.
-    void Rebuild();
-
-    typedef std::pair<zmq::socket_t*, std::unique_ptr<SocketHandler>> SocketHandlerPair;
-    typedef std::pair<NativeSocket, std::unique_ptr<NativeSocketHandler>> NativeSocketHandlerPair;
-    std::vector<SocketHandlerPair> m_sockets;
-    std::vector<NativeSocketHandlerPair> m_nativeSockets;
-    std::vector<zmq::pollitem_t> m_pollItems;
-
-    int m_nextTimerID;
-
     struct Timer
     {
         Timer(
@@ -159,6 +154,23 @@ private:
         int remaining;
         std::unique_ptr<TimerHandler> handler;
     };
+
+    void RestartTimerIntervals(
+        std::vector<Timer>::iterator begin,
+        std::vector<Timer>::iterator end);
+    std::chrono::milliseconds TimeToNextEvent() const;
+    void PerformNextEvent();
+
+    // Rebuilds the list of poll items.
+    void Rebuild();
+
+    typedef std::pair<zmq::socket_t*, std::unique_ptr<SocketHandler>> SocketHandlerPair;
+    typedef std::pair<NativeSocket, std::unique_ptr<NativeSocketHandler>> NativeSocketHandlerPair;
+    std::vector<SocketHandlerPair> m_sockets;
+    std::vector<NativeSocketHandlerPair> m_nativeSockets;
+    std::vector<zmq::pollitem_t> m_pollItems;
+
+    int m_nextTimerID;
     std::vector<Timer> m_timers;
 
     bool m_needsRebuild;
