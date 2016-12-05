@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <stdexcept>
+#include <string>
 #include "coral/config.h"
 
 
@@ -20,20 +21,29 @@ namespace slave
 class TimeoutException : public std::runtime_error
 {
 public:
-    explicit TimeoutException(std::chrono::seconds timeoutDuration) CORAL_NOEXCEPT
+    explicit TimeoutException(std::chrono::milliseconds timeoutDuration) CORAL_NOEXCEPT
         : std::runtime_error("Slave timed out due to lack of communication"),
           m_timeoutDuration(timeoutDuration)
     {
     }
 
+    TimeoutException(
+        const std::string& message,
+        std::chrono::milliseconds timeoutDuration) CORAL_NOEXCEPT
+        : std::runtime_error(
+            message + " (timeout: " + std::to_string(timeoutDuration.count()) + " ms)")
+        , m_timeoutDuration(timeoutDuration)
+    {
+    }
+
     /// The duration of the timeout that was reached.
-    std::chrono::seconds TimeoutDuration() const CORAL_NOEXCEPT
+    std::chrono::milliseconds TimeoutDuration() const CORAL_NOEXCEPT
     {
         return m_timeoutDuration;
     }
 
 private:
-    std::chrono::seconds m_timeoutDuration;
+    std::chrono::milliseconds m_timeoutDuration;
 };
 
 
