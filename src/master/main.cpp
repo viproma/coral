@@ -90,15 +90,6 @@ int Run(const std::vector<std::string>& args)
             "      ; step size, where the step size is assumed to be in seconds.\n"
             "      step_timeout_multiplier 10\n"
             "\n"
-            "      ; Slave timeout, in seconds (optional, defaults to 3600 s = 1 hour)\n"
-            "      ;\n"
-            "      ; This controls how long the slaves (and the execution broker, if this\n"
-            "      ; is used) will wait for commands from the master.  This should\n"
-            "      ; generally be a long duration, as the execution master could for\n"
-            "      ; instance be waiting for some user input before starting/continuing\n"
-            "      ; the simulation.\n"
-            "      slave_timeout_s 1000\n"
-            "\n"
             "      ; Slave instantiation timeout, in milliseconds (optional, defaults\n"
             "      ; to 30,000 ms = 30 s)\n"
             "      ;\n"
@@ -140,7 +131,6 @@ int Run(const std::vector<std::string>& args)
             execName,
             execConfig.startTime,
             execConfig.stopTime);
-        const auto execSpawnTime = std::chrono::high_resolution_clock::now();
 
         std::cout << "Parsing model configuration file '" << sysConfigFile
                   << "' and spawning slaves" << std::endl;
@@ -163,9 +153,6 @@ int Run(const std::vector<std::string>& args)
         std::cout << "All slaves are present. Press ENTER to start simulation." << std::endl;
         std::cin.ignore();
         const auto t0 = std::chrono::high_resolution_clock::now();
-        if (t0 - execSpawnTime > execConfig.slaveTimeout) {
-            throw std::runtime_error("Communications timeout reached");
-        }
 
         // Super advanced master algorithm.
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;

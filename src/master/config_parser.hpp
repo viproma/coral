@@ -95,18 +95,6 @@ struct ExecutionConfig
     double stepTimeoutMultiplier;
 
     /**
-    \brief  Slave timeout, in seconds
-
-    This controls how long the slaves (and the execution broker, if this is
-    used) will wait for commands from the master.  This should generally be
-    a long duration, as the execution master could for instance be waiting
-    for some user input before starting/continuing the simulation.
-
-    The default value is 1 hour.
-    */
-    std::chrono::seconds slaveTimeout;
-
-    /**
     \brief  Slave instantiation timeout, in milliseconds.
 
     This controls how long each slave gets from the moment the instantiation
