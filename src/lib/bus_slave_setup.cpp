@@ -20,12 +20,15 @@ SlaveSetup::SlaveSetup()
 SlaveSetup::SlaveSetup(
     coral::model::TimePoint startTime_,
     coral::model::TimePoint stopTime_,
-    const std::string& executionName_)
+    const std::string& executionName_,
+    std::chrono::milliseconds variableRecvTimeout_)
     : startTime(startTime_),
       stopTime(stopTime_),
-      executionName(executionName_)
+      executionName(executionName_),
+      variableRecvTimeout(variableRecvTimeout_)
 {
     assert(startTime <= stopTime);
+    assert(variableRecvTimeout > std::chrono::milliseconds(0));
 }
 
 

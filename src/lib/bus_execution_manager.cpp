@@ -12,10 +12,9 @@ namespace bus
 ExecutionManager::ExecutionManager(
     coral::net::Reactor& reactor,
     const std::string& executionName,
-    coral::model::TimePoint startTime,
-    coral::model::TimePoint maxTime)
+    const coral::master::ExecutionOptions& options)
     : m_private(std::make_unique<ExecutionManagerPrivate>(
-        reactor, executionName, startTime, maxTime))
+        reactor, executionName, options))
 {
 }
 

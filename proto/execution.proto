@@ -63,6 +63,7 @@ message SetupData
     optional double stop_time = 3;
     optional string execution_name = 4;
     optional string slave_name = 5;
+    optional int32 variable_recv_timeout_ms = 6;
 }
 
 // A message that is sent by the master to a slave to set some of its variables.

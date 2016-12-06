@@ -11,6 +11,7 @@ set (_publicHeaders
     "coral/master.hpp"
     "coral/master/cluster.hpp"
     "coral/master/execution.hpp"
+    "coral/master/execution_options.hpp"
     "coral/model.hpp"
     "coral/net.hpp"
     "coral/provider.hpp"

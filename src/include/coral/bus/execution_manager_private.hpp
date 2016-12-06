@@ -48,8 +48,7 @@ public:
     ExecutionManagerPrivate(
         coral::net::Reactor& reactor,
         const std::string& executionName,
-        coral::model::TimePoint startTime,
-        coral::model::TimePoint maxTime);
+        const coral::master::ExecutionOptions& options);
 
     ~ExecutionManagerPrivate();
 

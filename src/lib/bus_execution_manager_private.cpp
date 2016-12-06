@@ -21,10 +21,13 @@ namespace bus
 ExecutionManagerPrivate::ExecutionManagerPrivate(
         coral::net::Reactor& reactor_,
         const std::string& executionName,
-        coral::model::TimePoint startTime,
-        coral::model::TimePoint maxTime)
+        const coral::master::ExecutionOptions& options)
     : reactor(reactor_),
-      slaveSetup(startTime, maxTime, executionName),
+      slaveSetup(
+        options.startTime,
+        options.maxTime,
+        executionName,
+        options.slaveVariableRecvTimeout),
       lastSlaveID(0),
       slaves(),
       m_state(), // created below

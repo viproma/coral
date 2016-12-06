@@ -125,12 +125,13 @@ int Run(const std::vector<std::string>& args)
         std::cout << "Parsing execution configuration file '" << execConfigFile
                   << "'" << std::endl;
         const auto execConfig = ParseExecutionConfig(execConfigFile);
+        coral::master::ExecutionOptions execOptions;
+        execOptions.startTime                   = execConfig.startTime;
+        execOptions.maxTime                     = execConfig.stopTime;
+        execOptions.slaveVariableRecvTimeout    = execConfig.commTimeout;
 
         std::cout << "Creating new execution" << std::endl;
-        auto exec = coral::master::Execution(
-            execName,
-            execConfig.startTime,
-            execConfig.stopTime);
+        auto exec = coral::master::Execution(execName, execOptions);
 
         std::cout << "Parsing model configuration file '" << sysConfigFile
                   << "' and spawning slaves" << std::endl;

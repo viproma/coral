@@ -199,7 +199,7 @@ private:
 
     coral::slave::Instance& m_slaveInstance;
     Timeout m_masterInactivityTimeout;
-    std::chrono::milliseconds m_dataCommTimeout;
+    std::chrono::milliseconds m_variableRecvTimeout;
 
     coral::net::zmqx::RepSocket m_control;
     coral::bus::VariablePublisher m_publisher;

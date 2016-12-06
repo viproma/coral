@@ -57,7 +57,7 @@ SlaveAgent::SlaveAgent(
     : m_stateHandler(&SlaveAgent::NotConnectedHandler),
       m_slaveInstance(slaveInstance),
       m_masterInactivityTimeout(reactor, masterInactivityTimeout),
-      m_dataCommTimeout(std::chrono::seconds(1)),
+      m_variableRecvTimeout(std::chrono::seconds(1)),
       m_id(coral::model::INVALID_SLAVE_ID),
       m_currentStepID(coral::model::INVALID_STEP_ID)
 {
@@ -152,6 +152,11 @@ void SlaveAgent::ConnectedHandler(std::vector<zmq::message_t>& msg)
         false,
         1.0 /* not used */);
 
+    if (data.has_variable_recv_timeout_ms()) {
+        m_variableRecvTimeout =
+            std::chrono::milliseconds(data.variable_recv_timeout_ms());
+    }
+
     coral::protocol::execution::CreateMessage(msg, coralproto::execution::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }
@@ -196,7 +201,7 @@ void SlaveAgent::PublishedHandler(std::vector<zmq::message_t>& msg)
     CORAL_LOG_TRACE("STEP OK state: incoming message");
     EnforceMessageType(msg, coralproto::execution::MSG_ACCEPT_STEP);
     // TODO: Use a different timeout here?
-    m_connections.Update(m_slaveInstance, m_currentStepID, m_dataCommTimeout);
+    m_connections.Update(m_slaveInstance, m_currentStepID, m_variableRecvTimeout);
     coral::protocol::execution::CreateMessage(msg, coralproto::execution::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }
