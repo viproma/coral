@@ -136,3 +136,36 @@ TEST(coral_net, Reactor_bug39)
 
     ASSERT_NO_THROW(reactor.Run());
 }
+
+
+TEST(coral_net, Reactor_RestartTimerInterval)
+{
+    Reactor reactor;
+    int count = 0;
+    const int countTimer = reactor.AddTimer(
+        std::chrono::milliseconds(20),
+        -1,
+        [&count] (Reactor&, int) { ++count; });
+    reactor.AddTimer(
+        std::chrono::milliseconds(50),
+        1,
+        [&count, countTimer] (Reactor& r, int)
+        {
+            EXPECT_EQ(2, count);
+            r.RestartTimerInterval(countTimer);
+        });
+    reactor.AddTimer(
+        std::chrono::milliseconds(85),
+        1,
+        [] (Reactor& r, int) { r.Stop(); });
+    reactor.Run();
+    // Here's how it goes:
+    //    20ms - increment count to 1
+    //    40ms - increment count to 2
+    //    50ms - restart interval for count timer, next event happens at 70ms
+    //    60ms - [count would have been incremented to 3, but not so now]
+    //    70ms - increment count to 3
+    //    80ms - [count would have been incremented to 4, but not so now]
+    //    85ms - stop
+    EXPECT_EQ(3, count);
+}

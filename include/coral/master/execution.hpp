@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "coral/config.h"
+#include "coral/master/execution_options.hpp"
 #include "coral/model.hpp"
 #include "coral/net.hpp"
 
@@ -121,17 +122,12 @@ public:
 
     \param [in] executionName
         A (preferably unique) name for the execution.
-    \param [in] startTime
-        The start time of the simulation.
-    \param [in] maxTime
-        The maximum simulation time point.  This may be coral::model::ETERNITY
-        (the default), signifying that there is no predefined maximum time.
-        Otherwise, it must be greater than `startTime`.
+    \param [in] options
+        Configuration settings for the execution.
     */
     explicit Execution(
         const std::string& executionName,
-        coral::model::TimePoint startTime = 0.0,
-        coral::model::TimePoint maxTime = coral::model::ETERNITY);
+        const ExecutionOptions& options = ExecutionOptions{});
 
     /// Destructor
     ~Execution() CORAL_NOEXCEPT;

@@ -102,6 +102,9 @@ namespace
 }
 
 
+const int Reactor::invalidTimerID = -1;
+
+
 int Reactor::AddTimer(
     std::chrono::milliseconds interval,
     int count,
@@ -136,9 +139,20 @@ void Reactor::RemoveTimer(int id)
 }
 
 
+void Reactor::RestartTimerInterval(int id)
+{
+    const auto it = std::find_if(m_timers.begin(), m_timers.end(),
+        [id](const Timer& t){ return t.id == id; });
+    if (it == m_timers.end()) {
+        throw std::invalid_argument("Invalid timer ID");
+    }
+    RestartTimerIntervals(it, it+1);
+}
+
+
 void Reactor::Run()
 {
-    ResetTimers();
+    RestartTimerIntervals(begin(m_timers), end(m_timers));
     m_continuePolling = true;
     do {
         if (m_needsRebuild) Rebuild();
@@ -180,10 +194,12 @@ void Reactor::Stop()
 }
 
 
-void Reactor::ResetTimers()
+void Reactor::RestartTimerIntervals(
+    std::vector<Timer>::iterator begin,
+    std::vector<Timer>::iterator end)
 {
     const auto t0 = std::chrono::system_clock::now();
-    for (auto it = std::begin(m_timers); it != std::end(m_timers); ++it) {
+    for (auto it = begin; it != end; ++it) {
         it->nextEventTime = t0 + it->interval;
     }
     HeapifyTimers(m_timers);

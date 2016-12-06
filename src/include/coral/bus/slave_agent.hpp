@@ -50,18 +50,25 @@ public:
     \param [in] dataPubEndpoint
         The endpoint to which the slave should bind and publish its output
         data.
-    \param [in] commTimeout
-        A time after which communication with the master is assumed to be
-        broken.  When this happens, a coral::slave::TimeoutException will
-        be thrown from the "incoming message" handler, and will propagate
-        out through coral::net::Reactor::Run().
+    \param [in] masterInactivityTimeout
+        How long to wait for commands from a master before assuming that
+        the connection is broken.  If the timeout is reached, a
+        coral::slave::TimeoutException will be thrown (and propagate out
+        through coral::net::Reactor::Run()).
     */
     SlaveAgent(
         coral::net::Reactor& reactor,
         coral::slave::Instance& slaveInstance,
         const coral::net::Endpoint& controlEndpoint,
         const coral::net::Endpoint& dataPubEndpoint,
-        std::chrono::milliseconds commTimeout);
+        std::chrono::milliseconds masterInactivityTimeout);
+
+    // Class can't be copied or moved because it leaks references to `this`
+    // through Reactor event handlers.
+    SlaveAgent(const SlaveAgent&) = delete;
+    SlaveAgent& operator=(const SlaveAgent&) = delete;
+    SlaveAgent(SlaveAgent&&) = delete;
+    SlaveAgent& operator=(SlaveAgent&&) = delete;
 
     /**
     \brief  The endpoint on which the slave is listening for incoming messages
@@ -124,6 +131,24 @@ private:
     // A pointer to the handler function for the current state.
     void (SlaveAgent::* m_stateHandler)(std::vector<zmq::message_t>&);
 
+    // Class that handles timeouts in master-slave communication
+    class Timeout
+    {
+    public:
+        Timeout(
+            coral::net::Reactor& reactor,
+            std::chrono::milliseconds timeout);
+        ~Timeout() CORAL_NOEXCEPT;
+        Timeout(const Timeout&) = delete;
+        Timeout& operator=(const Timeout&) = delete;
+        Timeout(Timeout&&) = delete;
+        Timeout& operator=(Timeout&&) = delete;
+        void Reset();
+        void SetTimeout(std::chrono::milliseconds timeout);
+    private:
+        coral::net::Reactor& m_reactor;
+        int m_timerID;
+    };
 
     // A less-than comparison functor for Variable objects, so we can put
     // them in a std::map.
@@ -173,7 +198,8 @@ private:
     };
 
     coral::slave::Instance& m_slaveInstance;
-    std::chrono::milliseconds m_commTimeout;
+    Timeout m_masterInactivityTimeout;
+    std::chrono::milliseconds m_variableRecvTimeout;
 
     coral::net::zmqx::RepSocket m_control;
     coral::bus::VariablePublisher m_publisher;

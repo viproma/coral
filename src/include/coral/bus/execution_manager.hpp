@@ -15,6 +15,7 @@
 #include "boost/noncopyable.hpp"
 
 #include "coral/config.h"
+#include "coral/master/execution_options.hpp"
 #include "coral/model.hpp"
 #include "coral/net.hpp"
 
@@ -84,16 +85,13 @@ public:
         The coral::net::Reactor object used for communication.
     \param [in] executionName
         A (preferably unique) name for the execution.
-    \param [in] startTime
-        The start time of the simulation.
-    \param [in] maxTime
-        The maximum simulation time.
+    \param [in] options
+        Configuration settings for the execution.
     */
     ExecutionManager(
         coral::net::Reactor& reactor,
         const std::string& executionName,
-        coral::model::TimePoint startTime = 0.0,
-        coral::model::TimePoint maxTime = coral::model::ETERNITY);
+        const coral::master::ExecutionOptions& options = coral::master::ExecutionOptions{});
 
     ~ExecutionManager();
 

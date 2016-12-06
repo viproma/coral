@@ -50,8 +50,7 @@ public:
     /// Constructor.
     Private(
         const std::string& executionName,
-        coral::model::TimePoint startTime,
-        coral::model::TimePoint maxTime)
+        const ExecutionOptions& options)
         : m_thread{}
     {
         m_thread.Execute<void>(
@@ -64,8 +63,7 @@ public:
                     execMgr = std::make_unique<coral::bus::ExecutionManager>(
                         reactor,
                         executionName,
-                        startTime,
-                        maxTime);
+                        options);
                     status.set_value();
                 } catch (...) {
                     status.set_exception(std::current_exception());
@@ -274,9 +272,8 @@ private:
 
 coral::master::Execution::Execution(
     const std::string& executionName,
-    coral::model::TimePoint startTime,
-    coral::model::TimePoint maxTime)
-    : m_private{std::make_unique<Private>(executionName, startTime, maxTime)}
+    const ExecutionOptions& options)
+    : m_private{std::make_unique<Private>(executionName, options)}
 {
 }
 

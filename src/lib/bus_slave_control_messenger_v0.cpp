@@ -3,6 +3,8 @@
 #include <cassert>
 #include <utility>
 
+#include <boost/numeric/conversion/cast.hpp>
+
 #include "coral/error.hpp"
 #include "coral/log.hpp"
 #include "coral/protobuf.hpp"
@@ -254,6 +256,9 @@ void SlaveControlMessengerV0::Setup(
     }
     data.set_execution_name(setup.executionName);
     data.set_slave_name(slaveName);
+    data.set_variable_recv_timeout_ms(
+        boost::numeric_cast<google::protobuf::int32>(
+            setup.variableRecvTimeout.count()));
     SendCommand(coralproto::execution::MSG_SETUP, &data, timeout, std::move(onComplete));
     assert(State() == SLAVE_BUSY);
 }

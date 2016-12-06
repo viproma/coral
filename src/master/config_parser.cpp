@@ -504,7 +504,6 @@ ExecutionConfig::ExecutionConfig()
       stepSize(1.0),
       commTimeout(std::chrono::seconds(1)),
       stepTimeoutMultiplier(100.0),
-      slaveTimeout(std::chrono::hours(1)),
       instantiationTimeout(std::chrono::seconds(30))
 {
 }
@@ -541,12 +540,6 @@ ExecutionConfig ParseExecutionConfig(const std::string& path)
         if (ec.stepTimeoutMultiplier * ec.stepSize * 1000 < 1.0) {
             Error("step_timeout_multiplier is too small");
         }
-    }
-
-    if (auto slaveTimeoutNode = ptree.get_child_optional("slave_timeout_s")) {
-        ec.slaveTimeout = std::chrono::seconds(
-            slaveTimeoutNode->get_value<typename std::chrono::seconds::rep>());
-        if (ec.slaveTimeout <= std::chrono::seconds(0)) Error("Nonpositive slave_timeout_s");
     }
 
     if (auto instTimeoutNode = ptree.get_child_optional("instantiation_timeout_ms")) {
