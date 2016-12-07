@@ -149,13 +149,9 @@ int Run(const std::vector<std::string>& args)
             <SimulationEvent, decltype(unsortedScenario), decltype(eventTimeGreater)>
             (eventTimeGreater, std::move(unsortedScenario));
 
-        // This is to work around "slow joiner syndrome".  It lets slaves'
-        // subscriptions take effect before we start the simulation.
-        std::cout << "All slaves are present. Press ENTER to start simulation." << std::endl;
-        std::cin.ignore();
-        const auto t0 = std::chrono::high_resolution_clock::now();
 
         // Super advanced master algorithm.
+        const auto t0 = std::chrono::high_resolution_clock::now();
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
         double nextPerc = 0.05;
         const auto stepTimeout = std::chrono::milliseconds(

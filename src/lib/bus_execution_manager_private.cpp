@@ -33,7 +33,8 @@ ExecutionManagerPrivate::ExecutionManagerPrivate(
       m_state(), // created below
       m_operationCount(0),
       m_allSlaveOpsCompleteHandler(),
-      m_currentStepID(-1)
+      m_currentStepID(-1),
+      m_primeNeeded(false)
 {
     SwapState(std::make_unique<ReadyExecutionState>());
 }
@@ -74,6 +75,7 @@ void ExecutionManagerPrivate::Reconfigure(
     m_state->Reconfigure(
         *this, slaveConfigs, commTimeout,
         std::move(onComplete), std::move(onSlaveComplete));
+    m_primeNeeded = true;
 }
 
 
@@ -83,12 +85,40 @@ void ExecutionManagerPrivate::Step(
     ExecutionManager::StepHandler onComplete,
     ExecutionManager::SlaveStepHandler onSlaveStepComplete)
 {
-    m_state->Step(
-        *this,
-        stepSize,
-        timeout,
-        std::move(onComplete),
-        std::move(onSlaveStepComplete));
+    if (m_primeNeeded) {
+        m_state->Prime(
+            *this,
+            3,
+            2*slaveSetup.variableRecvTimeout,
+            [=] (const std::error_code& ec)
+            {
+                if (!ec) {
+                    m_primeNeeded = false;
+                    m_state->Step(
+                        *this,
+                        stepSize,
+                        timeout,
+                        std::move(onComplete),
+                        std::move(onSlaveStepComplete));
+                } else {
+                    if (onSlaveStepComplete) {
+                        for (const auto& s : this->slaves) {
+                            if (s.second.slave->State() != SLAVE_NOT_CONNECTED) {
+                                onSlaveStepComplete(ec, s.first);
+                            }
+                        }
+                    }
+                    onComplete(ec);
+                }
+            });
+    } else {
+        m_state->Step(
+            *this,
+            stepSize,
+            timeout,
+            std::move(onComplete),
+            std::move(onSlaveStepComplete));
+    }
 }
 
 

@@ -183,6 +183,17 @@ void ReadyExecutionState::Reconfigure(
 }
 
 
+void ReadyExecutionState::Prime(
+    ExecutionManagerPrivate& self,
+    int maxAttempts,
+    std::chrono::milliseconds commTimeout,
+    std::function<void(const std::error_code&)> onComplete)
+{
+    self.SwapState(std::make_unique<PrimingExecutionState>(
+        maxAttempts, commTimeout, onComplete));
+}
+
+
 void ReadyExecutionState::Step(
     ExecutionManagerPrivate& self,
     coral::model::TimeDuration stepSize,
@@ -486,6 +497,92 @@ void ReconfiguringExecutionState::StateEntered(
             });
         ++(opTally->first);
     }
+}
+
+
+// =============================================================================
+
+
+namespace
+{
+    struct PrimeOpTally
+    {
+        int ongoing = 0;
+        int timeouts = 0;
+        int otherFailures = 0;
+    };
+}
+
+
+PrimingExecutionState::PrimingExecutionState(
+    int maxAttempts,
+    std::chrono::milliseconds commTimeout,
+    std::function<void(const std::error_code&)> onComplete)
+    : m_maxAttempts{maxAttempts}
+    , m_commTimeout{commTimeout}
+    , m_onComplete{onComplete}
+{
+}
+
+
+void PrimingExecutionState::StateEntered(ExecutionManagerPrivate& self)
+{
+    Try(self, m_maxAttempts);
+}
+
+
+void PrimingExecutionState::Try(ExecutionManagerPrivate& self, int attemptsLeft)
+{
+    const auto selfPtr = &self;
+    auto opTally = std::make_shared<PrimeOpTally>();
+    for (const auto& slave : self.slaves) {
+        slave.second.slave->Prime(
+            m_commTimeout,
+            [attemptsLeft, selfPtr, opTally, this]
+                (const std::error_code& ec)
+            {
+                --(opTally->ongoing);
+                if (ec == coral::error::sim_error::data_timeout) {
+                    ++(opTally->timeouts);
+                } else if (ec) {
+                    ++(opTally->otherFailures);
+                }
+
+                if (opTally->ongoing == 0) {
+                    if (opTally->otherFailures > 0) {
+                        CORAL_LOG_TRACE("PRIME failed");
+                        Fail(*selfPtr, make_error_code(coral::error::generic_error::operation_failed));
+                    } else if (opTally->timeouts > 0 && attemptsLeft == 1) {
+                        CORAL_LOG_TRACE("PRIME operation timed out, no attempts left");
+                        Fail(*selfPtr, make_error_code(coral::error::sim_error::data_timeout));
+                    } else if (opTally->timeouts > 0) {
+                        CORAL_LOG_TRACE("PRIME operation timed out, retrying");
+                        Try(*selfPtr, attemptsLeft - 1);
+                    } else {
+                        CORAL_LOG_TRACE("All PRIME operations succeeded");
+                        Succeed(*selfPtr);
+                    }
+                }
+            });
+        ++(opTally->ongoing);
+    }
+}
+
+
+void PrimingExecutionState::Fail(
+    ExecutionManagerPrivate& self,
+    const std::error_code& ec)
+{
+    auto keepMeAlive =
+        self.SwapState(std::make_unique<FatalErrorExecutionState>());
+    m_onComplete(ec);
+}
+
+
+void PrimingExecutionState::Succeed(ExecutionManagerPrivate& self)
+{
+    auto keepMeAlive = self.SwapState(std::make_unique<ReadyExecutionState>());
+    m_onComplete(std::error_code{});
 }
 
 
