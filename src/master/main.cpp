@@ -211,11 +211,7 @@ int Run(const std::vector<std::string>& args)
         const auto t1 = std::chrono::high_resolution_clock::now();
         const auto simTime = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
         std::cout << "Completed in " << simTime.count() << " ms." << std::endl;
-
-        // Give ZMQ time to send all TERMINATE messages
         exec.Terminate();
-        std::cout << "Terminated. Press ENTER to quit." << std::endl;
-        std::cin.ignore();
     } catch (const std::runtime_error& e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
