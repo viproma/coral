@@ -149,8 +149,8 @@ int Run(const std::vector<std::string>& args)
             <SimulationEvent, decltype(unsortedScenario), decltype(eventTimeGreater)>
             (eventTimeGreater, std::move(unsortedScenario));
 
-
         // Super advanced master algorithm.
+        std::cout << "Simulation started" << std::endl;
         const auto t0 = std::chrono::high_resolution_clock::now();
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
         double nextPerc = 0.05;

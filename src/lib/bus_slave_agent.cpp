@@ -380,8 +380,10 @@ bool SlaveAgent::Step(const coralproto::execution::StepData& stepInfo)
         m_slaveInstance.StartSimulation();
     }
     m_currentStepID = stepInfo.step_id();
-    if (!m_slaveInstance.DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
-        return false;
+    if (stepInfo.stepsize() > 0.0) {
+        if (!m_slaveInstance.DoStep(stepInfo.timepoint(), stepInfo.stepsize())) {
+            return false;
+        }
     }
     PublishAll();
     return true;

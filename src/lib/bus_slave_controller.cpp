@@ -125,7 +125,7 @@ void SlaveController::Step(
     std::chrono::milliseconds timeout,
     StepHandler onComplete)
 {
-    CORAL_INPUT_CHECK(deltaT > 0.0);
+    CORAL_INPUT_CHECK(deltaT >= 0.0);
     if (m_messenger) {
         m_messenger->Step(stepID, currentT, deltaT, timeout, std::move(onComplete));
     } else {

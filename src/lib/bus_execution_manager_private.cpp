@@ -168,7 +168,7 @@ coral::model::TimePoint ExecutionManagerPrivate::CurrentSimTime() const
 
 void ExecutionManagerPrivate::AdvanceSimTime(coral::model::TimeDuration delta)
 {
-    assert(delta > 0.0);
+    assert(delta >= 0.0);
     slaveSetup.startTime += delta;
 }
 
