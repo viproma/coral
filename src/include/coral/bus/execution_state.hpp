@@ -50,7 +50,7 @@ public:
         ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
     { NotAllowed(__FUNCTION__); }
 
-    virtual void Prime(
+    virtual void ResendVars(
         ExecutionManagerPrivate& self,
         int maxAttempts,
         std::chrono::milliseconds commTimeout,
@@ -102,7 +102,7 @@ class ReadyExecutionState : public ExecutionState
         ExecutionManager::ReconstituteHandler onComplete,
         ExecutionManager::SlaveReconstituteHandler onSlaveComplete) override;
 
-    void Prime(
+    void ResendVars(
         ExecutionManagerPrivate& self,
         int maxAttempts,
         std::chrono::milliseconds commTimeout,

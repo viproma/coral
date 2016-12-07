@@ -186,16 +186,16 @@ void SlaveControlMessengerV0::SetPeers(
 }
 
 
-void SlaveControlMessengerV0::Prime(
+void SlaveControlMessengerV0::ResendVars(
     std::chrono::milliseconds timeout,
-    PrimeHandler onComplete)
+    ResendVarsHandler onComplete)
 {
     CORAL_PRECONDITION_CHECK(State() == SLAVE_READY);
     CORAL_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     CORAL_INPUT_CHECK(onComplete);
     CheckInvariant();
 
-    SendCommand(coralproto::execution::MSG_PRIME, nullptr, timeout, std::move(onComplete));
+    SendCommand(coralproto::execution::MSG_RESEND_VARS, nullptr, timeout, std::move(onComplete));
     assert(State() == SLAVE_BUSY);
 }
 
@@ -394,8 +394,8 @@ void SlaveControlMessengerV0::OnReply()
                 msg,
                 std::move(boost::get<VoidHandler>(onComplete)));
             break;
-        case coralproto::execution::MSG_PRIME:
-            PrimeReplyReceived(
+        case coralproto::execution::MSG_RESEND_VARS:
+            ResendVarsReplyReceived(
                 msg,
                 std::move(boost::get<VoidHandler>(onComplete)));
             break;
@@ -479,7 +479,7 @@ void SlaveControlMessengerV0::SetPeersReplyReceived(
 }
 
 
-void SlaveControlMessengerV0::PrimeReplyReceived(
+void SlaveControlMessengerV0::ResendVarsReplyReceived(
     const std::vector<zmq::message_t>& msg,
     VoidHandler onComplete)
 {

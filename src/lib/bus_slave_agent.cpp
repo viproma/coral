@@ -190,8 +190,8 @@ void SlaveAgent::ReadyHandler(std::vector<zmq::message_t>& msg)
         case coralproto::execution::MSG_DESCRIBE:
             HandleDescribe(msg);
             break;
-        case coralproto::execution::MSG_PRIME:
-            HandlePrime(msg);
+        case coralproto::execution::MSG_RESEND_VARS:
+            HandleResendVars(msg);
             break;
         default:
             InvalidReplyFromMaster();
@@ -329,7 +329,7 @@ void SlaveAgent::HandleSetPeers(std::vector<zmq::message_t>& msg)
 }
 
 
-void SlaveAgent::HandlePrime(std::vector<zmq::message_t>& msg)
+void SlaveAgent::HandleResendVars(std::vector<zmq::message_t>& msg)
 {
     // Publish all own variable values
     PublishAll();
@@ -341,11 +341,11 @@ void SlaveAgent::HandlePrime(std::vector<zmq::message_t>& msg)
     if (m_connections.Update(m_slaveInstance, m_currentStepID, m_variableRecvTimeout)) {
         coral::protocol::execution::CreateMessage(msg, coralproto::execution::MSG_READY);
     } else {
-        CORAL_LOG_TRACE("PRIME timed out");
+        CORAL_LOG_TRACE("RESEND_VARS timed out");
         coral::protocol::execution::CreateErrorMessage(
             msg,
             coralproto::execution::ErrorInfo::TIMED_OUT,
-            "PRIME timed out");
+            "RESEND_VARS timed out");
     }
     assert(m_stateHandler == &SlaveAgent::ReadyHandler);
 }

@@ -65,9 +65,9 @@ public:
         std::chrono::milliseconds timeout,
         SetPeersHandler onComplete) override;
 
-    void Prime(
+    void ResendVars(
         std::chrono::milliseconds timeout,
-        PrimeHandler onComplete) override;
+        ResendVarsHandler onComplete) override;
 
     void Step(
         coral::model::StepID stepID,
@@ -123,7 +123,7 @@ private:
     void SetVarsReplyReceived(
         const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
-    void PrimeReplyReceived(
+    void ResendVarsReplyReceived(
         const std::vector<zmq::message_t>& msg,
         VoidHandler onComplete);
     void StepReplyReceived(

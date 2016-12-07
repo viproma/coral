@@ -18,7 +18,7 @@ enum MessageType
     MSG_TERMINATE    = 14;
     MSG_DESCRIBE     = 15;
     MSG_SET_PEERS    = 16;
-    MSG_PRIME        = 17;
+    MSG_RESEND_VARS  = 17;
 
     // Responses
     MSG_READY        = 30;

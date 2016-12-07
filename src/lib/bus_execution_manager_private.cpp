@@ -34,7 +34,7 @@ ExecutionManagerPrivate::ExecutionManagerPrivate(
       m_operationCount(0),
       m_allSlaveOpsCompleteHandler(),
       m_currentStepID(-1),
-      m_primeNeeded(false)
+      m_resendVarsNeeded(false)
 {
     SwapState(std::make_unique<ReadyExecutionState>());
 }
@@ -75,7 +75,7 @@ void ExecutionManagerPrivate::Reconfigure(
     m_state->Reconfigure(
         *this, slaveConfigs, commTimeout,
         std::move(onComplete), std::move(onSlaveComplete));
-    m_primeNeeded = true;
+    m_resendVarsNeeded = true;
 }
 
 
@@ -85,15 +85,15 @@ void ExecutionManagerPrivate::Step(
     ExecutionManager::StepHandler onComplete,
     ExecutionManager::SlaveStepHandler onSlaveStepComplete)
 {
-    if (m_primeNeeded) {
-        m_state->Prime(
+    if (m_resendVarsNeeded) {
+        m_state->ResendVars(
             *this,
             3,
             2*slaveSetup.variableRecvTimeout,
             [=] (const std::error_code& ec)
             {
                 if (!ec) {
-                    m_primeNeeded = false;
+                    m_resendVarsNeeded = false;
                     m_state->Step(
                         *this,
                         stepSize,

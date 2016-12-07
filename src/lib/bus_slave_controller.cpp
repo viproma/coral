@@ -106,12 +106,12 @@ void SlaveController::SetPeers(
 }
 
 
-void SlaveController::Prime(
+void SlaveController::ResendVars(
     std::chrono::milliseconds timeout,
-    PrimeHandler onComplete)
+    ResendVarsHandler onComplete)
 {
     if (m_messenger) {
-        m_messenger->Prime(timeout, std::move(onComplete));
+        m_messenger->ResendVars(timeout, std::move(onComplete));
     } else {
         onComplete(std::make_error_code(std::errc::not_connected));
     }

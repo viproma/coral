@@ -124,12 +124,12 @@ private:
 
     // Performs the "prime" operation for ReadyHandler(), including
     // filling `msg` with a reply message.
-    void HandlePrime(std::vector<zmq::message_t>& msg);
+    void HandleResendVars(std::vector<zmq::message_t>& msg);
 
     // Performs the time step for ReadyHandler()
     bool Step(const coralproto::execution::StepData& stepData);
 
-    // Publishes all variable values (used by HandlePrime() and Step()).
+    // Publishes all variable values (used by HandleResendVars() and Step()).
     void PublishAll();
 
     // A pointer to the handler function for the current state.

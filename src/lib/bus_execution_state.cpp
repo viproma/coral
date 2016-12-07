@@ -183,7 +183,7 @@ void ReadyExecutionState::Reconfigure(
 }
 
 
-void ReadyExecutionState::Prime(
+void ReadyExecutionState::ResendVars(
     ExecutionManagerPrivate& self,
     int maxAttempts,
     std::chrono::milliseconds commTimeout,
@@ -505,7 +505,7 @@ void ReconfiguringExecutionState::StateEntered(
 
 namespace
 {
-    struct PrimeOpTally
+    struct ResendVarsOpTally
     {
         int ongoing = 0;
         int timeouts = 0;
@@ -534,9 +534,9 @@ void PrimingExecutionState::StateEntered(ExecutionManagerPrivate& self)
 void PrimingExecutionState::Try(ExecutionManagerPrivate& self, int attemptsLeft)
 {
     const auto selfPtr = &self;
-    auto opTally = std::make_shared<PrimeOpTally>();
+    auto opTally = std::make_shared<ResendVarsOpTally>();
     for (const auto& slave : self.slaves) {
-        slave.second.slave->Prime(
+        slave.second.slave->ResendVars(
             m_commTimeout,
             [attemptsLeft, selfPtr, opTally, this]
                 (const std::error_code& ec)
@@ -550,16 +550,16 @@ void PrimingExecutionState::Try(ExecutionManagerPrivate& self, int attemptsLeft)
 
                 if (opTally->ongoing == 0) {
                     if (opTally->otherFailures > 0) {
-                        CORAL_LOG_TRACE("PRIME failed");
+                        CORAL_LOG_TRACE("RESEND_VARS failed");
                         Fail(*selfPtr, make_error_code(coral::error::generic_error::operation_failed));
                     } else if (opTally->timeouts > 0 && attemptsLeft == 1) {
-                        CORAL_LOG_TRACE("PRIME operation timed out, no attempts left");
+                        CORAL_LOG_TRACE("RESEND_VARS operation timed out, no attempts left");
                         Fail(*selfPtr, make_error_code(coral::error::sim_error::data_timeout));
                     } else if (opTally->timeouts > 0) {
-                        CORAL_LOG_TRACE("PRIME operation timed out, retrying");
+                        CORAL_LOG_TRACE("RESEND_VARS operation timed out, retrying");
                         Try(*selfPtr, attemptsLeft - 1);
                     } else {
-                        CORAL_LOG_TRACE("All PRIME operations succeeded");
+                        CORAL_LOG_TRACE("All RESEND_VARS operations succeeded");
                         Succeed(*selfPtr);
                     }
                 }

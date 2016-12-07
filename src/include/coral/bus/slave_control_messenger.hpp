@@ -322,8 +322,8 @@ public:
         SetPeersHandler onComplete) = 0;
 
 
-    /// Completion handler type for Prime()
-    typedef VoidHandler PrimeHandler;
+    /// Completion handler type for ResendVars()
+    typedef VoidHandler ResendVarsHandler;
 
     /**
     \brief  Makes the slave send all variable values and then wait to receive
@@ -362,9 +362,9 @@ public:
     \pre  `State() == SLAVE_READY`
     \post `State() == SLAVE_BUSY`.
     */
-    virtual void Prime(
+    virtual void ResendVars(
         std::chrono::milliseconds timeout,
-        PrimeHandler onComplete) = 0;
+        ResendVarsHandler onComplete) = 0;
 
 
     /// Completion handler type for Step()
