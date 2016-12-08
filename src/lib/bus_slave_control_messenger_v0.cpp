@@ -186,6 +186,20 @@ void SlaveControlMessengerV0::SetPeers(
 }
 
 
+void SlaveControlMessengerV0::ResendVars(
+    std::chrono::milliseconds timeout,
+    ResendVarsHandler onComplete)
+{
+    CORAL_PRECONDITION_CHECK(State() == SLAVE_READY);
+    CORAL_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
+    CORAL_INPUT_CHECK(onComplete);
+    CheckInvariant();
+
+    SendCommand(coralproto::execution::MSG_RESEND_VARS, nullptr, timeout, std::move(onComplete));
+    assert(State() == SLAVE_BUSY);
+}
+
+
 void SlaveControlMessengerV0::Step(
     coral::model::StepID stepID,
     coral::model::TimePoint currentT,
@@ -380,6 +394,11 @@ void SlaveControlMessengerV0::OnReply()
                 msg,
                 std::move(boost::get<VoidHandler>(onComplete)));
             break;
+        case coralproto::execution::MSG_RESEND_VARS:
+            ResendVarsReplyReceived(
+                msg,
+                std::move(boost::get<VoidHandler>(onComplete)));
+            break;
         case coralproto::execution::MSG_STEP:
             StepReplyReceived(
                 msg,
@@ -457,6 +476,30 @@ void SlaveControlMessengerV0::SetPeersReplyReceived(
 {
     assert (m_state == SLAVE_BUSY);
     HandleExpectedReadyReply(msg, std::move(onComplete));
+}
+
+
+void SlaveControlMessengerV0::ResendVarsReplyReceived(
+    const std::vector<zmq::message_t>& msg,
+    VoidHandler onComplete)
+{
+    assert (m_state == SLAVE_BUSY);
+    const auto reply = coral::protocol::execution::ParseMessageType(msg.front());
+    if (reply == coralproto::execution::MSG_READY) {
+        m_state = SLAVE_READY;
+        onComplete(std::error_code{});
+    } else if (reply == coralproto::execution::MSG_ERROR && msg.size() > 1) {
+        coralproto::execution::ErrorInfo errorInfo;
+        coral::protobuf::ParseFromFrame(msg[1], errorInfo);
+        if (errorInfo.code() == coralproto::execution::ErrorInfo::TIMED_OUT) {
+            m_state = SLAVE_READY;
+            onComplete(make_error_code(coral::error::sim_error::data_timeout));
+        } else {
+            HandleErrorReply(reply, std::move(onComplete));
+        }
+    } else {
+        HandleErrorReply(reply, std::move(onComplete));
+    }
 }
 
 

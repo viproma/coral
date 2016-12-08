@@ -322,6 +322,51 @@ public:
         SetPeersHandler onComplete) = 0;
 
 
+    /// Completion handler type for ResendVars()
+    typedef VoidHandler ResendVarsHandler;
+
+    /**
+    \brief  Makes the slave send all variable values and then wait to receive
+            values for all connected input variables.
+
+    On return, the slave state is `SLAVE_BUSY`.  When the operation completes
+    (or fails), `onComplete` is called.  Before `onComplete` is called, the
+    slave state is updated to one of the following:
+
+      - `SLAVE_READY` on success or non-fatal failure
+      - `SLAVE_NOT_CONNECTED` on fatal failure
+
+    `onComplete` must have the following signature:
+    ~~~{.cpp}
+    void f(const std::error_code&);
+    ~~~
+    Possible error conditions are:
+
+      - `coral::error::sim_error::data_timeout`: The slave did not receive all
+            expected variable values in time.  This is a non-fatal error.
+      - `std::errc::bad_message`: The slave sent invalid data.
+      - `std::errc::timed_out`: The slave did not reply in time.
+      - `coral::error::generic_error::aborted`: The operation was aborted
+            (e.g. by Close()).
+      - `coral::error::generic_error::failed`: The operation failed (e.g. due to
+            an error in the slave).
+
+    All error conditions are fatal unless otherwise specified.
+
+    \param [in] timeout         Max. allowed time for the operation to complete
+    \param [in] onComplete      Completion handler
+
+    \throws std::invalid_argument if `timeout` is less than 1 ms or
+        if `onComplete` is empty.
+
+    \pre  `State() == SLAVE_READY`
+    \post `State() == SLAVE_BUSY`.
+    */
+    virtual void ResendVars(
+        std::chrono::milliseconds timeout,
+        ResendVarsHandler onComplete) = 0;
+
+
     /// Completion handler type for Step()
     typedef VoidHandler StepHandler;
 

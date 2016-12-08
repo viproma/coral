@@ -23,7 +23,7 @@ namespace zmqx
 
 namespace
 {
-    static const int REQSOCKET_DEFAULT_LINGER_MSEC = 0;
+    static const int REQSOCKET_DEFAULT_LINGER_MSEC = 1000;
 
     bool HasMoreFrames(zmq::socket_t& socket)
     {

@@ -468,6 +468,20 @@ void ParseSystemConfig(
         throw;
     }
 
+    // Propagate initial values. We make the (somewhat sketchy) assumptions
+    // that (1) there are no algebraic loops, and (2) no connection chain
+    // is longer than the total number of slaves.
+    const auto initIterations = slaves.size();
+    CORAL_LOG_DEBUG(
+        boost::format("Performing %d zero-length steps to initialise")
+        % initIterations);
+    for (std::size_t i = 0; i < initIterations; ++i) {
+        if (execution.Step(0.0, commTimeout) != coral::master::StepResult::completed) {
+            throw std::runtime_error("Failed to perform initialisation");
+        }
+        execution.AcceptStep(commTimeout);
+    }
+
     // Update the scenario with the correct numeric slave IDs.
     for (size_t i = 0; i < scenario.size(); ++i) {
         scenario[i].slave = slaveIDs[scenarioEventSlaveName[i]];

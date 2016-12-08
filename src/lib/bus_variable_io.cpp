@@ -4,6 +4,7 @@
 #include "zmq.hpp"
 
 #include "coral/error.hpp"
+#include "coral/log.hpp"
 #include "coral/net/zmqx.hpp"
 #include "coral/protocol/exe_data.hpp"
 
@@ -123,7 +124,7 @@ void VariableSubscriber::Unsubscribe(const coral::model::Variable& variable)
 }
 
 
-void VariableSubscriber::Update(
+bool VariableSubscriber::Update(
     coral::model::StepID stepID,
     std::chrono::milliseconds timeout)
 {
@@ -141,10 +142,10 @@ void VariableSubscriber::Update(
         // If necessary, wait for new data
         while (valQueue.empty()) {
             if (!coral::net::zmqx::WaitForIncoming(*m_socket, timeout)) {
-                // TODO: Create dedicated exception type
-                throw std::runtime_error(
-                    "Timeout waiting for variable " + std::to_string(var.ID())
-                    + " from slave " + std::to_string(var.Slave()));
+                CORAL_LOG_DEBUG(
+                    boost::format("Timeout waiting for variable %d from slave %d")
+                    %var.ID() % var.Slave());
+                return false;
             }
             coral::net::zmqx::Receive(*m_socket, rawMsg);
             const auto msg = coral::protocol::exe_data::ParseMessage(rawMsg);
@@ -159,6 +160,7 @@ void VariableSubscriber::Update(
             }
         }
     }
+    return true;
 }
 
 

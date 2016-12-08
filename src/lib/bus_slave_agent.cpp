@@ -190,6 +190,9 @@ void SlaveAgent::ReadyHandler(std::vector<zmq::message_t>& msg)
         case coralproto::execution::MSG_DESCRIBE:
             HandleDescribe(msg);
             break;
+        case coralproto::execution::MSG_RESEND_VARS:
+            HandleResendVars(msg);
+            break;
         default:
             InvalidReplyFromMaster();
     }
@@ -201,7 +204,9 @@ void SlaveAgent::PublishedHandler(std::vector<zmq::message_t>& msg)
     CORAL_LOG_TRACE("STEP OK state: incoming message");
     EnforceMessageType(msg, coralproto::execution::MSG_ACCEPT_STEP);
     // TODO: Use a different timeout here?
-    m_connections.Update(m_slaveInstance, m_currentStepID, m_variableRecvTimeout);
+    if (!m_connections.Update(m_slaveInstance, m_currentStepID, m_variableRecvTimeout)) {
+        throw std::runtime_error("Timeout waiting for variable values from other slaves");
+    }
     coral::protocol::execution::CreateMessage(msg, coralproto::execution::MSG_READY);
     m_stateHandler = &SlaveAgent::ReadyHandler;
 }
@@ -321,6 +326,28 @@ void SlaveAgent::HandleSetPeers(std::vector<zmq::message_t>& msg)
     m_connections.Connect(m_endpoints.data(), m_endpoints.size());
     CORAL_LOG_TRACE("Done reconnecting to peers");
     coral::protocol::execution::CreateMessage(msg, coralproto::execution::MSG_READY);
+}
+
+
+void SlaveAgent::HandleResendVars(std::vector<zmq::message_t>& msg)
+{
+    // Publish all own variable values
+    PublishAll();
+
+    // Wait for all values from others
+    CORAL_LOG_TRACE(
+        boost::format("Waiting for variable values (timeout = %d ms)")
+        % m_variableRecvTimeout.count());
+    if (m_connections.Update(m_slaveInstance, m_currentStepID, m_variableRecvTimeout)) {
+        coral::protocol::execution::CreateMessage(msg, coralproto::execution::MSG_READY);
+    } else {
+        CORAL_LOG_TRACE("RESEND_VARS timed out");
+        coral::protocol::execution::CreateErrorMessage(
+            msg,
+            coralproto::execution::ErrorInfo::TIMED_OUT,
+            "RESEND_VARS timed out");
+    }
+    assert(m_stateHandler == &SlaveAgent::ReadyHandler);
 }
 
 
@@ -448,17 +475,18 @@ void SlaveAgent::Connections::Couple(
 }
 
 
-void SlaveAgent::Connections::Update(
+bool SlaveAgent::Connections::Update(
     coral::slave::Instance& slaveInstance,
     coral::model::StepID stepID,
     std::chrono::milliseconds timeout)
 {
-    m_subscriber.Update(stepID, timeout);
+    if (!m_subscriber.Update(stepID, timeout)) return false;
     for (const auto& conn : m_connections.left) {
         boost::apply_visitor(
             SetVariable(slaveInstance, conn.second),
             m_subscriber.Value(conn.first));
     }
+    return true;
 }
 
 

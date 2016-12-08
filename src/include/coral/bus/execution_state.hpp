@@ -50,6 +50,13 @@ public:
         ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
     { NotAllowed(__FUNCTION__); }
 
+    virtual void ResendVars(
+        ExecutionManagerPrivate& self,
+        int maxAttempts,
+        std::chrono::milliseconds commTimeout,
+        std::function<void(const std::error_code&)> onComplete)
+    { NotAllowed(__FUNCTION__); }
+
     virtual void Step(
         ExecutionManagerPrivate& self,
         coral::model::TimeDuration stepSize,
@@ -94,6 +101,12 @@ class ReadyExecutionState : public ExecutionState
         std::chrono::milliseconds commTimeout,
         ExecutionManager::ReconstituteHandler onComplete,
         ExecutionManager::SlaveReconstituteHandler onSlaveComplete) override;
+
+    void ResendVars(
+        ExecutionManagerPrivate& self,
+        int maxAttempts,
+        std::chrono::milliseconds commTimeout,
+        std::function<void(const std::error_code&)> onComplete) override;
 
     void Step(
         ExecutionManagerPrivate& self,
@@ -149,6 +162,29 @@ private:
     const std::chrono::milliseconds m_commTimeout;
     const ExecutionManager::ReconstituteHandler m_onComplete;
     const ExecutionManager::SlaveReconstituteHandler m_onSlaveComplete;
+};
+
+
+class PrimingExecutionState: public ExecutionState
+{
+public:
+    PrimingExecutionState(
+        int maxAttempts,
+        std::chrono::milliseconds commTimeout,
+        std::function<void(const std::error_code&)> onComplete);
+
+private:
+    void StateEntered(ExecutionManagerPrivate& self) override;
+    void Failed(ExecutionManagerPrivate& self);
+
+    void Try(ExecutionManagerPrivate& self, int attemptsLeft);
+    void Fail(ExecutionManagerPrivate& self, const std::error_code& ec);
+    void Succeed(ExecutionManagerPrivate& self);
+
+    // Input parameters to this state
+    const int m_maxAttempts;
+    const std::chrono::milliseconds m_commTimeout;
+    const std::function<void(const std::error_code&)> m_onComplete;
 };
 
 

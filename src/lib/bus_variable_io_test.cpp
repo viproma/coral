@@ -53,10 +53,10 @@ TEST(coral_bus, VariablePublishSubscribe)
 
     coral::model::StepID t = 0;
     // Verify that Update() times out if it doesn't receive data
-    EXPECT_THROW(sub.Update(t, std::chrono::milliseconds(1)), std::runtime_error);
+    EXPECT_FALSE(sub.Update(t, std::chrono::milliseconds(1)));
     // Test transferring one variable
     pub.Publish(t, slaveID, varXID, 123);
-    sub.Update(t, std::chrono::seconds(1));
+    EXPECT_TRUE(sub.Update(t, std::chrono::seconds(1)));
     EXPECT_EQ(123, boost::get<int>(sub.Value(varX)));
     // Verify that Value() throws on a variable which is not subscribed to
     EXPECT_THROW(sub.Value(varY), std::logic_error);
@@ -67,7 +67,7 @@ TEST(coral_bus, VariablePublishSubscribe)
     pub.Publish(t-1, slaveID, varXID, 123);
     pub.Publish(t,   slaveID, varXID, 456);
     pub.Publish(t+1, slaveID, varXID, 789);
-    sub.Update(t, std::chrono::seconds(1));
+    ASSERT_TRUE(sub.Update(t, std::chrono::seconds(1)));
     EXPECT_EQ(456, boost::get<int>(sub.Value(varX)));
 
     // Multiple variables
@@ -76,16 +76,16 @@ TEST(coral_bus, VariablePublishSubscribe)
 
     ++t;
     pub.Publish(t, slaveID, varYID, std::string("Hello World"));
-    sub.Update(t, std::chrono::seconds(1));
+    ASSERT_TRUE(sub.Update(t, std::chrono::seconds(1)));
     EXPECT_EQ(789, boost::get<int>(sub.Value(varX)));
     EXPECT_EQ("Hello World", boost::get<std::string>(sub.Value(varY)));
 
     pub.Publish(t, slaveID, varXID, 1.0);
     ++t;
     pub.Publish(t, slaveID, varYID, true);
-    EXPECT_THROW(sub.Update(t, std::chrono::milliseconds(1)), std::runtime_error);
+    EXPECT_FALSE(sub.Update(t, std::chrono::milliseconds(1)));
     pub.Publish(t, slaveID, varXID, 2.0);
-    sub.Update(t, std::chrono::seconds(1));
+    ASSERT_TRUE(sub.Update(t, std::chrono::seconds(1)));
     EXPECT_EQ(2.0, boost::get<double>(sub.Value(varX)));
     EXPECT_TRUE(boost::get<bool>(sub.Value(varY)));
 
@@ -94,7 +94,7 @@ TEST(coral_bus, VariablePublishSubscribe)
     sub.Unsubscribe(varX);
     pub.Publish(t, slaveID, varXID, 100);
     pub.Publish(t, slaveID, varYID, false);
-    sub.Update(t, std::chrono::seconds(1));
+    ASSERT_TRUE(sub.Update(t, std::chrono::seconds(1)));
     EXPECT_THROW(sub.Value(varX), std::logic_error);
     EXPECT_FALSE(boost::get<bool>(sub.Value(varY)));
 }

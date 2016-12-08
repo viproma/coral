@@ -149,13 +149,9 @@ int Run(const std::vector<std::string>& args)
             <SimulationEvent, decltype(unsortedScenario), decltype(eventTimeGreater)>
             (eventTimeGreater, std::move(unsortedScenario));
 
-        // This is to work around "slow joiner syndrome".  It lets slaves'
-        // subscriptions take effect before we start the simulation.
-        std::cout << "All slaves are present. Press ENTER to start simulation." << std::endl;
-        std::cin.ignore();
-        const auto t0 = std::chrono::high_resolution_clock::now();
-
         // Super advanced master algorithm.
+        std::cout << "Simulation started" << std::endl;
+        const auto t0 = std::chrono::high_resolution_clock::now();
         const double maxTime = execConfig.stopTime - 0.9*execConfig.stepSize;
         double nextPerc = 0.05;
         const auto stepTimeout = std::chrono::milliseconds(
@@ -215,11 +211,7 @@ int Run(const std::vector<std::string>& args)
         const auto t1 = std::chrono::high_resolution_clock::now();
         const auto simTime = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
         std::cout << "Completed in " << simTime.count() << " ms." << std::endl;
-
-        // Give ZMQ time to send all TERMINATE messages
         exec.Terminate();
-        std::cout << "Terminated. Press ENTER to quit." << std::endl;
-        std::cin.ignore();
     } catch (const std::runtime_error& e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;

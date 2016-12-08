@@ -106,6 +106,18 @@ void SlaveController::SetPeers(
 }
 
 
+void SlaveController::ResendVars(
+    std::chrono::milliseconds timeout,
+    ResendVarsHandler onComplete)
+{
+    if (m_messenger) {
+        m_messenger->ResendVars(timeout, std::move(onComplete));
+    } else {
+        onComplete(std::make_error_code(std::errc::not_connected));
+    }
+}
+
+
 void SlaveController::Step(
     coral::model::StepID stepID,
     coral::model::TimePoint currentT,
@@ -113,7 +125,7 @@ void SlaveController::Step(
     std::chrono::milliseconds timeout,
     StepHandler onComplete)
 {
-    CORAL_INPUT_CHECK(deltaT > 0.0);
+    CORAL_INPUT_CHECK(deltaT >= 0.0);
     if (m_messenger) {
         m_messenger->Step(stepID, currentT, deltaT, timeout, std::move(onComplete));
     } else {

@@ -18,6 +18,7 @@ enum MessageType
     MSG_TERMINATE    = 14;
     MSG_DESCRIBE     = 15;
     MSG_SET_PEERS    = 16;
+    MSG_RESEND_VARS  = 17;
 
     // Responses
     MSG_READY        = 30;
@@ -35,6 +36,7 @@ message ErrorInfo
         UNSPECIFIED_ERROR       =  0;
         INVALID_REQUEST         =  1;
         CANNOT_SET_VARIABLE     =  2;
+        TIMED_OUT               =  3;
     }
 
     optional Code code = 1 [default = UNSPECIFIED_ERROR];

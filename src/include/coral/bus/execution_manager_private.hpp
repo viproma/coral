@@ -171,6 +171,9 @@ private:
 
     // The ID of the time step currently in progress or just completed.
     coral::model::StepID m_currentStepID;
+
+    // Whether a RESEND_VARS is needed before the next STEP.
+    bool m_resendVarsNeeded;
 };
 
 
