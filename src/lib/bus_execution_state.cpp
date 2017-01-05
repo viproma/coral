@@ -2,6 +2,7 @@
 #include "coral/bus/execution_state.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cctype>
 #include <limits>
 #include <stdexcept>
@@ -156,6 +157,10 @@ void ReadyExecutionState::Reconstitute(
     ExecutionManager::ReconstituteHandler onComplete,
     ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
 {
+    if (slavesToAdd.empty()) {
+        onComplete(std::error_code{});
+        return;
+    }
     self.SwapState(std::make_unique<ReconstitutingExecutionState>(
         slavesToAdd,
         commTimeout,
@@ -171,6 +176,10 @@ void ReadyExecutionState::Reconfigure(
     ExecutionManager::ReconstituteHandler onComplete,
     ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
 {
+    if (slaveConfigs.empty()) {
+        onComplete(std::error_code{});
+        return;
+    }
     // TODO: Maybe hoist this check to ExecutionManagerPrivate?
     for (const auto& sc : slaveConfigs) {
         VerifyVariableSettings(self, sc.slaveID, sc.variableSettings);
@@ -320,6 +329,7 @@ ReconstitutingExecutionState::ReconstitutingExecutionState(
     , m_onComplete{std::move(onComplete)}
     , m_onSlaveComplete{std::move(onSlaveComplete)}
 {
+    assert(!slavesToAdd.empty());
 }
 
 
@@ -462,6 +472,7 @@ ReconfiguringExecutionState::ReconfiguringExecutionState(
     , m_onComplete{std::move(onComplete)}
     , m_onSlaveComplete{std::move(onSlaveComplete)}
 {
+    assert(!slaveConfigs.empty());
 }
 
 
