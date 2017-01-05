@@ -239,17 +239,28 @@ try {
     }
 
     std::vector<std::unique_ptr<coral::provider::SlaveCreator>> fmus;
+    int failedFMUS = 0;
     for (const auto& p : fmuPaths) {
-        fmus.push_back(std::make_unique<MySlaveCreator>(
-            *importer,
-            p,
-            networkInterface,
-            slaveExe,
-            timeout,
-            outputDir));
-        std::cout << "FMU loaded: " << p << std::endl;
+        try {
+            fmus.push_back(std::make_unique<MySlaveCreator>(
+                *importer,
+                p,
+                networkInterface,
+                slaveExe,
+                timeout,
+                outputDir));
+            std::cout << "FMU loaded: " << p << std::endl;
+        } catch (const std::runtime_error& e) {
+            ++failedFMUS;
+            std::cerr << "Error: Failed to load FMU \"" << p
+                << "\": " << e.what() << std::endl;
+        }
     }
-    std::cout << fmus.size() << " FMUs loaded" << std::endl;
+    std::cout << fmus.size() << " FMUs loaded";
+    if (failedFMUS > 0) {
+        std::cout << ", " << failedFMUS << " failed";
+    }
+    std::cout << std::endl;
 
     coral::provider::SlaveProvider slaveProvider{
         coral::util::RandomUUID(),
