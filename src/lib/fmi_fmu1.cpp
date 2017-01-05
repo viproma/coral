@@ -132,6 +132,11 @@ FMU1::FMU1(
     if (m_handle == nullptr) {
         throw std::runtime_error(importer->LastErrorMessage());
     }
+    const auto fmuKind = fmi1_import_get_fmu_kind(m_handle);
+    if (fmuKind != fmi1_fmu_kind_enu_cs_standalone &&
+        fmuKind != fmi1_fmu_kind_enu_cs_tool) {
+        throw std::runtime_error("Not a co-simulation FMU");
+    }
 
     // Create the slave type description object
     const auto varList = fmi1_import_get_variable_list(m_handle);
