@@ -133,7 +133,6 @@ bool VariableSubscriber::Update(
 
     std::vector<zmq::message_t> rawMsg;
     for (auto& entry : m_values) {
-        const auto& var = entry.first;
         auto& valQueue = entry.second;
         // Pop off old data
         while (!valQueue.empty() && valQueue.front().first < m_currentStepID) {
