@@ -1,9 +1,15 @@
 /*
+Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+NOTE TO USERS:
 This header file is meant for internal use in this library, and should
 normally not be included directly by client code.  Its purpose is to
 aid in maintaining a cross-platform code base.
 
-Note to contributors:
+NOTE TO CONTRIBUTORS:
 This file intentionally has a ".h" extension, as it is supposed to
 be a valid C header.  C++-specific code should therefore be placed in
 #ifdef __cplusplus blocks.
