@@ -143,7 +143,7 @@ bool VariableSubscriber::Update(
             if (!coral::net::zmqx::WaitForIncoming(*m_socket, timeout)) {
                 CORAL_LOG_DEBUG(
                     boost::format("Timeout waiting for variable %d from slave %d")
-                    %var.ID() % var.Slave());
+                    % entry.first.ID() % entry.first.Slave());
                 return false;
             }
             coral::net::zmqx::Receive(*m_socket, rawMsg);

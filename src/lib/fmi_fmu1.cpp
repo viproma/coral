@@ -367,6 +367,9 @@ SlaveInstance1::SlaveInstance1(std::shared_ptr<coral::fmi::FMU1> fmu)
 SlaveInstance1::~SlaveInstance1() CORAL_NOEXCEPT
 {
     if (m_setupComplete) {
+        if (m_simStarted) {
+            fmi1_import_terminate_slave(m_handle);
+        }
         fmi1_import_free_slave_instance(m_handle);
     }
     fmi1_import_destroy_dllfmu(m_handle);
@@ -430,6 +433,7 @@ void SlaveInstance1::EndSimulation()
 {
     assert(m_simStarted);
     const auto rc = fmi1_import_terminate_slave(m_handle);
+    m_simStarted = false;
     if (rc != fmi1_status_ok && rc != fmi1_status_warning) {
         throw std::runtime_error(
             "Failed to terminate slave ("
