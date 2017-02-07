@@ -1,32 +1,8 @@
 Coral
 =====
+Coral is **free and open-source co-simulation software** built from the ground up with support for [FMI](https://fmi-standard.org) and distributed simulations in mind. It is primarily a **C++ library** that can be embedded into any application that needs to perform co-simulations. However, we've also made some simple **command-line applications** for testing, demonstration and research purposes.
 
-Introduction
-------------
-The Virtual Prototyping Framework (VPF) is an open framework for connecting
-mathematical models and simulations, from a variety of physics/engineering
-domains and modelling tools, to simulate complex marine systems and operations.
-The VPF is currently under development as part of the KMB ViProMa project.
-
-Coral is a C++ library and a set of applications for performing distributed
-co-simulations, and it is a fundamental software component of the VPF.
-Its job is to connect the various subsystems involved in a simulation.
-More precisely, it takes care of:
-
-  - *Abstraction*, in that it hides the implementation details of each subsystem
-    behind a common communication interface.
-  - *Initialisation*, by detecting which subsystems are available, starting the
-    ones that are needed in the current simulation, connecting them with each
-    other, and initialising each one.
-  - *Communication*, enabling distributed simulations, where different
-    subsystems may run in different processes on one computer, or on different
-    computers in a network.
-  - *Time synchronisation*, to ensure that all parts of a simulation follow the
-    same clock.
-
-The subsystems can be simulation tools (such as Simulink, Modelica
-implementations, etc.), hardware interfaces, control systems, visualisation
-tools, data loggers, and so on.
+Coral was developed as part of the R&D project [Virtual Prototyping of Maritime Systems and Operations](http://viproma.no) (ViProMa), and is currently maintained by [SINTEF Ocean](http://www.sintef.no/en/ocean/).
 
 Terms of use
 ------------
