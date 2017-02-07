@@ -9,7 +9,7 @@ domains and modelling tools, to simulate complex marine systems and operations.
 The VPF is currently under development as part of the KMB ViProMa project.
 
 Coral is a C++ library and a set of applications for performing distributed
-cos-simulations, and it is a fundamental software component of the VPF.
+co-simulations, and it is a fundamental software component of the VPF.
 Its job is to connect the various subsystems involved in a simulation.
 More precisely, it takes care of:
 
@@ -28,6 +28,11 @@ The subsystems can be simulation tools (such as Simulink, Modelica
 implementations, etc.), hardware interfaces, control systems, visualisation
 tools, data loggers, and so on.
 
+Terms of use
+------------
+Coral is free and open-source software released under the terms of the
+[Mozilla Public License v. 2.0](http://mozilla.org/MPL/2.0/). For more
+information, see the [MPL 2.0 FAQ](https://www.mozilla.org/en-US/MPL/2.0/FAQ/).
 
 Requirements
 ------------

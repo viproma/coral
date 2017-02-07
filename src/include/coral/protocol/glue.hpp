@@ -1,6 +1,11 @@
 /**
 \file
 \brief  Glue code that relates public APIs and internal communication protocols.
+\copyright
+    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    This Source Code Form is subject to the terms of the Mozilla Public
+    License, v. 2.0. If a copy of the MPL was not distributed with this
+    file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 #ifndef CORAL_PROTOCOL_GLUE_HPP
 #define CORAL_PROTOCOL_GLUE_HPP
