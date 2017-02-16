@@ -44,6 +44,12 @@ int Run(const std::vector<std::string>& args)
                 "The execution name (if left unspecified, a timestamp will be used)")
             ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
                 "The UDP port used to listen for slave providers.")
+            ("realtime,r", po::value<double>()->default_value(0.0),
+                "Real-time multiplier, i.e., how fast the simulation should go "
+                "compared to wall clock time.  A value of 1 means that the "
+                "simulation should run in real time, while e.g. 2 means twice as "
+                "fast.  The default is 0, which is a special value that means "
+                "\"as fast as possible\"")
             ("warnings,w",
                 "Enable warnings while parsing execution configuration file");
         po::options_description positionalOptions("Arguments");
@@ -116,6 +122,7 @@ int Run(const std::vector<std::string>& args)
         const auto execName = (*argValues)["name"].as<std::string>();
         const auto discoveryPort = coral::net::ip::Port{
             (*argValues)["port"].as<std::uint16_t>()};
+        const auto realtimeMultiplier = (*argValues)["realtime"].as<double>();
         const auto warningStream = argValues->count("warnings") ? &std::clog : nullptr;
 
         auto providers = coral::master::ProviderCluster{
@@ -164,11 +171,24 @@ int Run(const std::vector<std::string>& args)
             boost::numeric_cast<typename std::chrono::milliseconds::rep>(
                 execConfig.stepSize * 1000 * execConfig.stepTimeoutMultiplier));
 
-        const double clockRes = // the resolution of the clock, in ticks/sec
+        const double clockRes = // the resolution of the clock, in secs/tick
             static_cast<double>(std::chrono::high_resolution_clock::duration::period::num)
             / std::chrono::high_resolution_clock::duration::period::den;
         auto prevRealTime = std::chrono::high_resolution_clock::now();
         auto prevSimTime = execConfig.startTime;
+
+        auto targetWallClockTime = std::chrono::steady_clock::now();
+        const double wallClockTicksPerSec =
+            static_cast<double>(std::chrono::steady_clock::duration::period::den)
+            / std::chrono::steady_clock::duration::period::num;
+        const auto wallClockStepSize = std::chrono::steady_clock::duration(
+            static_cast<std::chrono::steady_clock::duration::rep>(
+                execConfig.stepSize * wallClockTicksPerSec / realtimeMultiplier));
+        if (realtimeMultiplier > 0.0) {
+            CORAL_LOG_DEBUG(boost::format("Real-time step size is %d microseconds")
+                % std::chrono::duration_cast<std::chrono::microseconds>(
+                    wallClockStepSize).count());
+        }
 
         for (double time = execConfig.startTime;
              time < maxTime;
@@ -210,6 +230,11 @@ int Run(const std::vector<std::string>& args)
                 nextPerc += 0.05;
                 prevRealTime = realTime;
                 prevSimTime = time;
+            }
+
+            if (realtimeMultiplier > 0.0) {
+                targetWallClockTime += wallClockStepSize;
+                std::this_thread::sleep_until(targetWallClockTime);
             }
         }
 
