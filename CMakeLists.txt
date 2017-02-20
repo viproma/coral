@@ -83,8 +83,19 @@ elseif (MSVC)
     # disabled by compiler option /W0.
     add_compile_options("/wd4996")
     add_definitions("-D_SCL_SECURE_NO_WARNINGS")
+
+    # Use a Boost-like library naming convention where toolchain version and
+    # ABI is encoded in the name.
+    if (MSVC_VERSION LESS 1900)
+        math (EXPR vcVersion "(${MSVC_VERSION}-600)/10")
+    else ()
+        math (EXPR vcVersion "(${MSVC_VERSION}-500)/10")
+    endif ()
+    set (CMAKE_DEBUG_POSTFIX          "-vc${vcVersion}-gd")
+    set (CMAKE_RELEASE_POSTFIX        "-vc${vcVersion}")
+    set (CMAKE_RELWITHDEBINFO_POSTFIX "-vc${vcVersion}")
+    set (CMAKE_MINSIZEREL_POSTFIX     "-vc${vcVersion}")
 endif()
-set (CMAKE_DEBUG_POSTFIX "_d")
 
 # Boost settings
 # Note that find_package(Boost) has to be called for the individual
