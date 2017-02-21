@@ -209,6 +209,7 @@ install (DIRECTORY "${CMAKE_SOURCE_DIR}/manuals/" DESTINATION ${docInstallDir})
 install (FILES
         "cmake/FindBoostTarget.cmake"
         "cmake/FindFMILIB.cmake"
+        "cmake/FindLIBZIP.cmake"
         "cmake/FindProtobufTarget.cmake"
         "cmake/FindZMQ.cmake"
     DESTINATION
