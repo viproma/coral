@@ -1,0 +1,14 @@
+name "Test input/output"
+descriptions "Two FMUs that test transfer of all variable types"
+
+slaves {
+    out { type testOutput }
+    in  { type testInput }
+}
+
+connections {
+    in.real_in   out.real_out
+    in.int_in    out.int_out
+    in.bool_in   out.bool_out
+    in.string_in out.string_out
+}

@@ -1,0 +1,36 @@
+// Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+package coralproto.domain;
+
+import "model.proto";
+import "net.proto";
+
+
+message SlaveTypeInfo
+{
+    required model.SlaveTypeDescription description = 1;
+}
+
+message SlaveTypeList
+{
+    repeated SlaveTypeInfo slave_type = 1;
+}
+
+message InstantiateSlaveData
+{
+    required string slave_type_uuid = 1;
+    required int32 timeout_ms = 2;
+}
+
+message InstantiateSlaveReply
+{
+    required net.SlaveLocator slave_locator = 1;
+}
+
+message Error
+{
+    optional string message = 1;
+}

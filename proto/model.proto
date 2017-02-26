@@ -1,0 +1,72 @@
+// Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+package coralproto.model;
+
+// The FMI variable data types.
+enum DataType
+{
+    REAL    = 1;
+    INTEGER = 2;
+    BOOLEAN = 3;
+    STRING  = 4;
+}
+
+// FMI variable causalities.
+enum Causality
+{
+    PARAMETER               = 1;
+    CALCULATED_PARAMETER    = 2;
+    INPUT                   = 3;
+    OUTPUT                  = 4;
+    LOCAL                   = 5;
+}
+
+// FMI variable variabilities.
+enum Variability
+{
+    CONSTANT   = 1;
+    FIXED      = 2;
+    TUNABLE    = 3;
+    DISCRETE   = 4;
+    CONTINUOUS = 5;
+}
+
+// Information about a variable
+message VariableDescription
+{
+    required uint32 id = 1;
+    required string name = 2;
+    required DataType data_type = 3;
+    required Causality causality = 4;
+    required Variability variability = 5;
+}
+
+// Information about a slave type
+message SlaveTypeDescription
+{
+   required string name = 1;
+   required string uuid = 2;
+   optional string description = 3;
+   optional string author = 4;
+   optional string version = 5;
+   repeated VariableDescription variable = 6;
+}
+
+// The value of a variable
+message ScalarValue
+{
+    // TODO: Replace with 'oneof' field (new feature in protobuf 2.6)
+    optional double real_value = 1;
+    optional int32 integer_value = 2;
+    optional bool boolean_value = 3;
+    optional string string_value = 4;
+}
+
+message Variable
+{
+    required uint32 slave_id = 1;
+    required uint32 variable_id = 2;
+}

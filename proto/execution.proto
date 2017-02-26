@@ -1,0 +1,94 @@
+// Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+package coralproto.execution;
+
+import "model.proto";
+
+
+// Message type identifiers.
+enum MessageType
+{
+    // Handshake
+    MSG_DENIED       =  0;
+    MSG_HELLO        =  1;
+
+    // Commands
+    MSG_SETUP        = 10;
+    MSG_SET_VARS     = 11;
+    MSG_STEP         = 12;
+    MSG_ACCEPT_STEP  = 13;
+    MSG_TERMINATE    = 14;
+    MSG_DESCRIBE     = 15;
+    MSG_SET_PEERS    = 16;
+    MSG_RESEND_VARS  = 17;
+
+    // Responses
+    MSG_READY        = 30;
+    MSG_STEP_OK      = 31;
+    MSG_STEP_FAILED  = 32;
+    MSG_ERROR        = 33;
+    MSG_FATAL_ERROR  = 34;
+}
+
+// The body of an ERROR/FATAL_ERROR message.
+message ErrorInfo
+{
+    enum Code
+    {
+        UNSPECIFIED_ERROR       =  0;
+        INVALID_REQUEST         =  1;
+        CANNOT_SET_VARIABLE     =  2;
+        TIMED_OUT               =  3;
+    }
+
+    optional Code code = 1 [default = UNSPECIFIED_ERROR];
+    optional string details = 2;
+}
+
+// Information sent by a slave about itself
+message SlaveDescription
+{
+    required model.SlaveTypeDescription type_description = 1;
+}
+
+// The ID number and a value for one of a slave's variables.
+message SlaveVariableSetting
+{
+    required uint32 variable_id = 1;
+    optional model.ScalarValue value = 2;
+    optional model.Variable connected_output = 3;
+}
+
+// The body of a SETUP message
+message SetupData
+{
+    required uint32 slave_id = 1;
+    required double start_time = 2;
+    optional double stop_time = 3;
+    optional string execution_name = 4;
+    optional string slave_name = 5;
+    optional int32 variable_recv_timeout_ms = 6;
+}
+
+// A message that is sent by the master to a slave to set some of its variables.
+message SetVarsData
+{
+    repeated SlaveVariableSetting variable = 1;
+}
+
+// The body of a STEP message
+message StepData
+{
+    required int32 step_id = 1;
+    required double timepoint = 2;
+    required double stepsize = 3;
+}
+
+// The body of a SET_PEERS message
+message SetPeersData
+{
+    repeated string peer = 1;
+}

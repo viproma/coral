@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+set (_old_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH})
+set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "@PACKAGE_extraModuleDirConfig@")
+find_package (BoostTarget REQUIRED COMPONENTS filesystem thread system chrono random)
+find_package (ZMQ REQUIRED)
+find_package (ProtobufTarget REQUIRED)
+find_package (FMILIB REQUIRED)
+set (CMAKE_MODULE_PATH ${_old_CMAKE_MODULE_PATH})
+unset (_old_CMAKE_MODULE_PATH)
+
+include ("@PACKAGE_exportFileConfig@")
+set (coral_LIBRARIES "coral")
+set_and_check (coral_INCLUDE_DIRS "@PACKAGE_includeDirsConfig@")

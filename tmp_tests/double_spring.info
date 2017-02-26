@@ -1,0 +1,54 @@
+name "Double spring/mass system"
+description "A mass connected to a spring connected to a mass connected to a spring connected to the wall..."
+
+slaves {
+    spring1 {
+        type spring_1d
+        init {
+            length 2.0
+            pos_b  1.0
+        }
+    }
+    mass1  {
+        type mass_1d
+        init {
+            pos 1.0
+        }
+    }
+    spring2 {
+        type spring_1d
+        init {
+            length 2.0
+            pos_a 1.0
+            pos_b 3.0
+        }
+    }
+    mass2 {
+        type mass_1d
+        init {
+            pos 3.0
+        }
+    }
+}
+
+connections {
+    spring1.pos_b mass1.pos
+    mass1.force1 spring1.force_b
+
+    spring2.pos_b mass2.pos
+    mass2.force1 spring2.force_b
+
+    spring2.pos_a mass1.pos
+    mass1.force2 spring2.force_a
+}
+
+scenario {
+    5 {
+        mass1.mass 0.1
+        spring1.stiffness 10.0
+    }
+    9 {
+        mass1.pos 1.0
+        mass2.pos 3.0
+    }
+}
