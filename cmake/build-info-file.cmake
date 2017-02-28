@@ -22,4 +22,4 @@ add_custom_command(
     VERBATIM
 )
 add_custom_target("build-info" ALL DEPENDS "${_buildInfoFile}")
-install(FILES "${_buildInfoFile}" DESTINATION "${readmeInstallDir}")
+install(FILES "${_buildInfoFile}" DESTINATION "${docInstallDir}")
