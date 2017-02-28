@@ -1,6 +1,6 @@
 usr/include/*
 usr/lib/lib*.a
 usr/share/coral/cmake
-usr/share/coral/build-info.txt usr/share/libcoral-dev
+usr/share/doc/coral/build-info.txt usr/share/doc/libcoral-dev
 usr/share/doc/coral/README.md usr/share/doc/libcoral-dev
 usr/share/doc/coral/api usr/share/doc/libcoral-dev
