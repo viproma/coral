@@ -24,6 +24,9 @@ option (CORAL_ENABLE_TRACE_LOGGING
 option (FMILIB_USE_SHARED_LIB
         "Whether to link against the shared library version of FMI Library"
         ON)
+option (CORAL_BUILD_TESTS
+        "Whether to build tests"
+        ON)
 
 # ==============================================================================
 # Common variables
@@ -129,10 +132,12 @@ set (versionPatch "${CMAKE_MATCH_1}")
 # whatnot.  (Otherwise it would be defined in proto/CMakeLists.txt.)
 cmake_policy (SET CMP0022 NEW)
 
-# Enable testing and load Google Test
-enable_testing ()
-set (gtest_force_shared_crt ON CACHE INTERNAL "Google Test setting override")
-add_subdirectory ("external/gtest-1.7.0")
+if (CORAL_BUILD_TESTS)
+    # Enable testing and load Google Test
+    enable_testing ()
+    set (gtest_force_shared_crt ON CACHE INTERNAL "Google Test setting override")
+    add_subdirectory ("external/gtest-1.7.0")
+endif ()
 
 # Allow local CMake modules (e.g. find scripts) under cmake/
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
