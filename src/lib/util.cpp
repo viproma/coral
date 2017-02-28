@@ -272,7 +272,6 @@ void coral::util::SpawnProcess(
     std::vector<const char*> argz;
     argz.push_back(program.c_str());
     for (auto it = begin(args); it != end(args); ++it) {
-        std::cout << ' ' << *it;
         argz.push_back(it->c_str());
     }
     argz.push_back(nullptr);
