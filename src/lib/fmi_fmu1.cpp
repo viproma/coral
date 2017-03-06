@@ -130,10 +130,6 @@ FMU1::FMU1(
     : m_importer{importer}
     , m_dir(fmuDir)
     , m_handle{fmi1_import_parse_xml(importer->FmilibHandle(), fmuDir.string().c_str())}
-#ifdef _WIN32
-    , m_additionalDllSearchPath{
-        std::make_unique<AdditionalPath>(FMUBinariesDir(fmuDir))}
-#endif
 {
     if (m_handle == nullptr) {
         throw std::runtime_error(importer->LastErrorMessage());
@@ -212,6 +208,12 @@ namespace
 
 std::shared_ptr<SlaveInstance1> FMU1::InstantiateSlave1()
 {
+#ifdef _WIN32
+    if (!m_additionalDllSearchPath) {
+        m_additionalDllSearchPath =
+            std::make_unique<AdditionalPath>(FMUBinariesDir(m_dir));
+    }
+#endif
     Prune(m_instances);
     const bool isSingleton = !!fmi1_import_get_canBeInstantiatedOnlyOncePerProcess(
         fmi1_import_get_capabilities(m_handle));
