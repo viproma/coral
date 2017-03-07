@@ -3,3 +3,4 @@
 0003-Add-option-to-disable-testing.patch
 0004-Install-README-and-similar-to-doc-dir.patch
 0005-Put-zmq.hpp-in-the-repository-not-as-a-submodule.patch
+0006-Use-local-MathJax-installation.patch

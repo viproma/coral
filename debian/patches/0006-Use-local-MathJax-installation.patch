@@ -1,0 +1,23 @@
+From: "Lars T. Kyllingstad" <lars.kyllingstad@sintef.no>
+Date: Tue, 7 Mar 2017 09:43:21 +0100
+Subject: Use local MathJax installation
+
+This is to address the Lintian warning about possible privacy violation,
+and will be combined with a dependency on the libjs-mathjax package.
+---
+ cmake/Doxyfile.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmake/Doxyfile.in b/cmake/Doxyfile.in
+index 8cac84d..9a8bd76 100755
+--- a/cmake/Doxyfile.in
++++ b/cmake/Doxyfile.in
+@@ -1461,7 +1461,7 @@ MATHJAX_FORMAT         = HTML-CSS
+ # The default value is: http://cdn.mathjax.org/mathjax/latest.
+ # This tag requires that the tag USE_MATHJAX is set to YES.
+ 
+-MATHJAX_RELPATH        = http://cdn.mathjax.org/mathjax/latest
++MATHJAX_RELPATH        = file:///usr/share/javascript/mathjax
+ 
+ # The MATHJAX_EXTENSIONS tag can be used to specify one or more MathJax
+ # extension names that should be enabled during MathJax rendering. For example

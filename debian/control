@@ -18,7 +18,7 @@ Description: Distributed co-simulation software
 Package: libcoral-dev
 Architecture: any
 Section: libdevel
-Depends: libboost-dev (>= 1.55), libboost-chrono-dev (>= 1.55), libboost-filesystem-dev (>= 1.55), libboost-program-options-dev (>= 1.55), libboost-random-dev (>= 1.55), libboost-system-dev (>= 1.55), libboost-thread-dev (>= 1.55), libfmilib2-dev (>= 2), libzip-dev (>= 0.11), libprotobuf-dev (>= 2.5), libzmq3-dev | libzmq5-dev, ${misc:Depends}
+Depends: libboost-dev (>= 1.55), libboost-chrono-dev (>= 1.55), libboost-filesystem-dev (>= 1.55), libboost-program-options-dev (>= 1.55), libboost-random-dev (>= 1.55), libboost-system-dev (>= 1.55), libboost-thread-dev (>= 1.55), libfmilib2-dev (>= 2), libjs-mathjax (>= 2), libzip-dev (>= 0.11), libprotobuf-dev (>= 2.5), libzmq3-dev | libzmq5-dev, ${misc:Depends}
 Description: C++ library for distributed co-simulation (Development files)
  This package contains the static library, header files and documentation needed
  for development with Coral.
