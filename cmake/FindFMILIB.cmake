@@ -32,7 +32,12 @@ cmake_minimum_required (VERSION 2.8.11)
 
 # Find static library, and use its path prefix to provide a HINTS option to the
 # other find_*() commands.
-find_library (FMILIB_LIBRARY "fmilib"
+if (UNIX)
+    set (_FMILIB_oldsuffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    set (CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+endif ()
+find_library (FMILIB_LIBRARY
+    NAMES "fmilib2" "fmilib"
     PATHS ${FMILIB_DIR} $ENV{FMILIB_DIR}
     PATH_SUFFIXES "lib")
 mark_as_advanced (FMILIB_LIBRARY)
@@ -45,7 +50,11 @@ if (FMILIB_LIBRARY)
 endif ()
 
 # Find shared/import library and append its path prefix to the HINTS option.
-find_library (FMILIB_SHARED_LIBRARY "fmilib_shared"
+if (UNIX)
+    set (CMAKE_FIND_LIBRARY_SUFFIXES ".so")
+endif ()
+find_library (FMILIB_SHARED_LIBRARY
+    NAMES "fmilib2" "fmilib"
     ${_FMILIB_hints}
     PATHS ${FMILIB_DIR} $ENV{FMILIB_DIR}
     PATH_SUFFIXES "lib")
@@ -58,6 +67,12 @@ if (FMILIB_SHARED_LIBRARY)
     endif ()
     list (APPEND _FMILIB_hints "${_FMILIB_shared_prefix}")
     unset (_FMILIB_shared_prefix)
+endif ()
+
+# Reset CMAKE_FIND_LIBRARY_SUFFIXES
+if (UNIX)
+    set (CMAKE_FIND_LIBRARY_SUFFIXES ${_FMILIB_oldsuffixes})
+    unset (_FMILIB_oldsuffixes)
 endif ()
 
 # Find header files and, on Windows, the dynamic library
