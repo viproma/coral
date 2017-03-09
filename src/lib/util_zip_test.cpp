@@ -1,11 +1,11 @@
 #include <cstdlib>
 #include <ios>
 
-#include "boost/filesystem.hpp"
-#include "gtest/gtest.h"
+#include <boost/filesystem.hpp>
+#include <gtest/gtest.h>
 
-#include "coral/util.hpp"
-#include "coral/util/zip.hpp"
+#include <coral/util/filesystem.hpp>
+#include <coral/util/zip.hpp>
 
 
 TEST(coral_util_zip, Archive)

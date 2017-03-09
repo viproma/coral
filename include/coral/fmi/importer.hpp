@@ -14,10 +14,10 @@
 #include <memory>
 #include <string>
 
-#include "boost/filesystem/path.hpp"
+#include <boost/filesystem.hpp>
 
-#include "coral/config.h"
-#include "coral/util.hpp"
+#include <coral/config.h>
+#include <coral/util/filesystem.hpp>
 
 
 // Forward declarations to avoid external dependency on FMI Library.

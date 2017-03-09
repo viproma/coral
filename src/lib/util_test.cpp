@@ -3,7 +3,6 @@
 #include <functional>
 #include <stdexcept>
 #include <vector>
-#include "boost/filesystem.hpp"
 
 
 using namespace coral::util;
@@ -201,37 +200,6 @@ TEST(coral_util, OnScopeExit)
         i = 3;
     }
     EXPECT_EQ(3, i);
-}
-
-TEST(coral_util, TempDir)
-{
-    namespace fs = boost::filesystem;
-    fs::path d;
-    {
-        auto tmp = TempDir();
-        d = tmp.Path();
-        ASSERT_FALSE(d.empty());
-        ASSERT_TRUE(fs::exists(d));
-        EXPECT_TRUE(fs::is_directory(d));
-        EXPECT_TRUE(fs::is_empty(d));
-
-        auto tmp2 = std::move(tmp);
-        EXPECT_TRUE(tmp.Path().empty());
-        EXPECT_EQ(d, tmp2.Path());
-        EXPECT_TRUE(fs::exists(d));
-
-        auto tmp3 = TempDir();
-        const auto d3 = tmp3.Path();
-        EXPECT_TRUE(fs::exists(d3));
-        ASSERT_FALSE(fs::equivalent(d, d3));
-
-        tmp3 = std::move(tmp2);
-        EXPECT_TRUE(tmp2.Path().empty());
-        EXPECT_FALSE(fs::exists(d3));
-        EXPECT_EQ(d, tmp3.Path());
-        EXPECT_TRUE(fs::exists(d));
-    }
-    EXPECT_FALSE(fs::exists(d));
 }
 
 TEST(coral_util, ThisExePath)
