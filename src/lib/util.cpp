@@ -134,56 +134,6 @@ std::string coral::util::Timestamp()
 }
 
 
-coral::util::TempDir::TempDir(const boost::filesystem::path& parent)
-{
-    if (parent.empty()) {
-        m_path = boost::filesystem::temp_directory_path()
-            / boost::filesystem::unique_path();
-    } else if (parent.is_absolute()) {
-        m_path = parent / boost::filesystem::unique_path();
-    } else {
-        m_path = boost::filesystem::temp_directory_path()
-            / parent / boost::filesystem::unique_path();
-    }
-    boost::filesystem::create_directories(m_path);
-}
-
-coral::util::TempDir::TempDir(TempDir&& other) CORAL_NOEXCEPT
-    : m_path{std::move(other.m_path)}
-{
-    // This doesn't seem to be guaranteed by path's move constructor:
-    other.m_path.clear();
-}
-
-coral::util::TempDir& coral::util::TempDir::operator=(TempDir&& other) CORAL_NOEXCEPT
-{
-    DeleteNoexcept();
-    m_path = std::move(other.m_path);
-    // This doesn't seem to be guaranteed by path's move constructor:
-    other.m_path.clear();
-    return *this;
-}
-
-coral::util::TempDir::~TempDir()
-{
-    DeleteNoexcept();
-}
-
-const boost::filesystem::path& coral::util::TempDir::Path() const
-{
-    return m_path;
-}
-
-void coral::util::TempDir::DeleteNoexcept() CORAL_NOEXCEPT
-{
-    if (!m_path.empty()) {
-        boost::system::error_code ignoreErrors;
-        boost::filesystem::remove_all(m_path, ignoreErrors);
-        m_path.clear();
-    }
-}
-
-
 #ifdef _WIN32
 namespace
 {
