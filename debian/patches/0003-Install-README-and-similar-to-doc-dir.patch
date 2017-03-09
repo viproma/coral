@@ -8,7 +8,7 @@ Subject: Install README and similar to doc dir
  2 files changed, 3 insertions(+), 5 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f0a7223..b720060 100644
+index b5e05ea..3c3c8b3 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -55,11 +55,9 @@ set (headerInstallDir "include")

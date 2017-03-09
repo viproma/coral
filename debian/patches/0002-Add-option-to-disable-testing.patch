@@ -8,7 +8,7 @@ Subject: Add option to disable testing
  2 files changed, 32 insertions(+), 25 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 722e8f9..f0a7223 100644
+index e61986e..b5e05ea 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -24,6 +24,9 @@ option (CORAL_ENABLE_TRACE_LOGGING
@@ -39,10 +39,10 @@ index 722e8f9..f0a7223 100644
  # Allow local CMake modules (e.g. find scripts) under cmake/
  list (APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 diff --git a/src/lib/CMakeLists.txt b/src/lib/CMakeLists.txt
-index 9f9d149..77bcdab 100644
+index cd4eb54..ee56d9b 100644
 --- a/src/lib/CMakeLists.txt
 +++ b/src/lib/CMakeLists.txt
-@@ -176,24 +176,26 @@ endif()
+@@ -179,24 +179,26 @@ endif()
  install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
  
  # Test target
