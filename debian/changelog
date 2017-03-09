@@ -1,3 +1,11 @@
+coral (0.7.1-1) experimental; urgency=high
+
+  * Add build dependency on libprotobuf-dev
+  * Use local MathJax installation
+  * Change distribution to 'experimental' in changelog
+
+ -- Lars T. Kyllingstad <lars.kyllingstad@sintef.no>  Thu, 09 Mar 2017 10:22:56 +0100
+
 coral (0.7.0-1) experimental; urgency=low
 
   * Initial release.
