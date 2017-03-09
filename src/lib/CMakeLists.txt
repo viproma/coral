@@ -22,6 +22,7 @@ set (_publicHeaders
     "coral/slave/instance.hpp"
     "coral/slave/logging.hpp"
     "coral/slave/runner.hpp"
+    "coral/util/filesystem.hpp"
 )
 set (_privateHeaders
     "coral/async.hpp"
@@ -63,6 +64,7 @@ set (_sources
     "slave_logging.cpp"
     "slave_runner.cpp"
     "net.cpp"
+    "util_filesystem.cpp"
 
     "async.cpp"
     "bus_execution_manager.cpp"
@@ -112,6 +114,7 @@ set (_testSources
     "protocol_execution_test.cpp"
     "util_test.cpp"
     "util_console_test.cpp"
+    "util_filesystem_test.cpp"
     "util_zip_test.cpp"
 )
 
