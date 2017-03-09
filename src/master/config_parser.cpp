@@ -371,7 +371,8 @@ void ParseSystemConfig(
     std::vector<SimulationEvent>& scenarioOut,
     std::chrono::milliseconds commTimeout,
     std::chrono::milliseconds instantiationTimeout,
-    std::ostream* warningLog)
+    std::ostream* warningLog,
+    std::function<void()> postInstantiationHook)
 {
     const auto ptree = ReadPtreeInfoFile(path);
     const auto slaveTypes = SlaveTypesByName(providers);
@@ -388,8 +389,7 @@ void ParseSystemConfig(
     std::vector<std::string> scenarioEventSlaveName; // We don't know IDs yet, so we keep a parallel list of names
     ParseScenarioNode(ptree, slaves, warningLog, scenario, scenarioEventSlaveName, varDescriptionCache);
 
-    // Add all the slaves to the execution and map their names to their
-    // numeric IDs.
+    // Instantiate the slaves
     std::vector<coral::master::AddedSlave> slavesToAdd;
     BOOST_FOREACH (const auto& slave, slaves) {
         slavesToAdd.emplace_back();
@@ -399,6 +399,10 @@ void ParseSystemConfig(
             instantiationTimeout);
         slavesToAdd.back().name = slave.first;
     }
+    if (postInstantiationHook) postInstantiationHook();
+
+    // Add the slaves to the execution and map their names to their
+    // numeric IDs.
     try {
         execution.Reconstitute(slavesToAdd, commTimeout);
     } catch (const std::runtime_error&) {

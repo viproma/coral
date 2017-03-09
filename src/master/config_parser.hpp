@@ -8,6 +8,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #define CORALMASTER_CONFIG_PARSER_HPP
 
 #include <chrono>
+#include <functional>
 #include <ostream>
 #include <stdexcept>
 #include <string>
@@ -50,7 +51,8 @@ void ParseSystemConfig(
     std::vector<SimulationEvent>& scenario,
     std::chrono::milliseconds commTimeout,
     std::chrono::milliseconds instantiationTimeout,
-    std::ostream* warningLog);
+    std::ostream* warningLog,
+    std::function<void()> postInstantiationHook);
 
 
 class SetVariablesException : public std::runtime_error
