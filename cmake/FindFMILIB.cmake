@@ -52,9 +52,12 @@ endif ()
 # Find shared/import library and append its path prefix to the HINTS option.
 if (UNIX)
     set (CMAKE_FIND_LIBRARY_SUFFIXES ".so")
+    set (_FMILIB_shlibs "fmilib_shared" "fmilib2" "fmilib")
+else ()
+    set (_FMILIB_shlibs "fmilib_shared")
 endif ()
 find_library (FMILIB_SHARED_LIBRARY
-    NAMES "fmilib2" "fmilib"
+    NAMES ${_FMILIB_shlibs}
     ${_FMILIB_hints}
     PATHS ${FMILIB_DIR} $ENV{FMILIB_DIR}
     PATH_SUFFIXES "lib")
