@@ -22,6 +22,8 @@ message SlaveTypeList
 message InstantiateSlaveData
 {
     required string slave_type_uuid = 1;
+
+    // The special value -1 means "never"
     required int32 timeout_ms = 2;
 }
 

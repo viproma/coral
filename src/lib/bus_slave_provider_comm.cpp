@@ -94,7 +94,6 @@ public:
         std::chrono::milliseconds timeout)
     {
         CORAL_INPUT_CHECK(onComplete != nullptr);
-        CORAL_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
         if (m_slaveTypesCached) {
             onComplete(std::error_code(), m_slaveTypes.data(), m_slaveTypes.size());
         } else {
@@ -112,28 +111,32 @@ public:
     void InstantiateSlave(
         const std::string& slaveTypeUUID,
         std::chrono::milliseconds instantiationTimeout,
-        InstantiateSlaveHandler onComplete,
-        std::chrono::milliseconds requestTimeout)
+        std::chrono::milliseconds requestTimeout,
+        InstantiateSlaveHandler onComplete)
     {
-        if (requestTimeout == std::chrono::milliseconds(0)) {
-            requestTimeout = 2 * instantiationTimeout;
-        }
-        CORAL_INPUT_CHECK(instantiationTimeout > std::chrono::milliseconds(0));
         CORAL_INPUT_CHECK(onComplete != nullptr);
-        CORAL_INPUT_CHECK(requestTimeout > instantiationTimeout);
+
         coralproto::domain::InstantiateSlaveData args;
         args.set_slave_type_uuid(slaveTypeUUID);
-        args.set_timeout_ms(boost::numeric_cast<google::protobuf::int32>(
-            instantiationTimeout.count()));
+        args.set_timeout_ms(instantiationTimeout >= std::chrono::milliseconds(0)
+            ? boost::numeric_cast<google::protobuf::int32>(instantiationTimeout.count())
+            : -1);
         const auto body = args.SerializeAsString();
         assert(!body.empty());
+
+        const auto totalTimeout =
+            instantiationTimeout < std::chrono::milliseconds(0)
+                || requestTimeout < std::chrono::milliseconds(0)
+            ? std::chrono::milliseconds(-1)
+            : instantiationTimeout + requestTimeout;
+
         m_client.Request(
             PROTOCOL_VERSION,
             INSTANTIATE_SLAVE_REQUEST.data(),
             INSTANTIATE_SLAVE_REQUEST.size(),
             body.data(),
             body.size(),
-            requestTimeout,
+            totalTimeout,
             std::bind(
                 &Private::OnInstantiateSlaveReply, this,
                 std::move(onComplete), _1, _2, _3, _4, _5));
@@ -264,16 +267,14 @@ void SlaveProviderClient::GetSlaveTypes(
 void SlaveProviderClient::InstantiateSlave(
     const std::string& slaveTypeUUID,
     std::chrono::milliseconds instantiationTimeout,
-    InstantiateSlaveHandler onComplete,
-    std::chrono::milliseconds requestTimeout)
+    std::chrono::milliseconds requestTimeout,
+    InstantiateSlaveHandler onComplete)
 {
     m_private->InstantiateSlave(
         slaveTypeUUID,
         instantiationTimeout,
-        onComplete,
-        requestTimeout == std::chrono::milliseconds(0)
-            ? 2*instantiationTimeout
-            : requestTimeout);
+        requestTimeout,
+        onComplete);
 }
 
 
