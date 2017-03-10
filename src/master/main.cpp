@@ -37,6 +37,9 @@ int Run(const std::vector<std::string>& args)
         namespace po = boost::program_options;
         po::options_description options("Options");
         options.add_options()
+            ("debug-pause",
+                "Wait for a user keypress after slaves have been spawned, "
+                "to allow time to attach a debugger.")
             ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
                 "The IP address or (OS-specific) name of the network interface to "
                 "use for network communications, or \"*\" for all/any.")
@@ -117,6 +120,7 @@ int Run(const std::vector<std::string>& args)
         if (!argValues->count("sys-config")) throw std::runtime_error("No system configuration file specified");
         const auto execConfigFile = (*argValues)["exec-config"].as<std::string>();
         const auto sysConfigFile = (*argValues)["sys-config"].as<std::string>();
+        const auto debugPause= !!argValues->count("debug-pause");
         const auto networkInterface = coral::net::ip::Address{
             (*argValues)["interface"].as<std::string>()};
         const auto execName = (*argValues)["name"].as<std::string>();
@@ -149,9 +153,25 @@ int Run(const std::vector<std::string>& args)
         std::cout << "Parsing model configuration file '" << sysConfigFile
                   << "' and spawning slaves" << std::endl;
         std::vector<SimulationEvent> unsortedScenario;
-        ParseSystemConfig(sysConfigFile, providers, exec, unsortedScenario,
-                          execConfig.commTimeout, execConfig.instantiationTimeout,
-                          warningStream);
+        std::function<void()> debugPauseCallback;
+        if (debugPause) {
+            debugPauseCallback = [] ()
+            {
+                std::cout << "Slave processes spawned. Press ENTER to continue. "
+                            "[--debug-pause]" << std::endl;
+                std::cin.ignore();
+            };
+        }
+
+        ParseSystemConfig(
+            sysConfigFile,
+            providers,
+            exec,
+            unsortedScenario,
+            execConfig.commTimeout,
+            execConfig.instantiationTimeout,
+            warningStream,
+            debugPauseCallback);
 
         // Put the scenario events into a priority queue, in order of ascending
         // event time.
