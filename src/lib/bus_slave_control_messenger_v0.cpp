@@ -136,7 +136,6 @@ void SlaveControlMessengerV0::GetDescription(
     GetDescriptionHandler onComplete)
 {
     CORAL_PRECONDITION_CHECK(State() == SLAVE_READY);
-    CORAL_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     CORAL_INPUT_CHECK(onComplete);
     CheckInvariant();
 
@@ -155,7 +154,6 @@ void SlaveControlMessengerV0::SetVariables(
     SetVariablesHandler onComplete)
 {
     CORAL_PRECONDITION_CHECK(State() == SLAVE_READY);
-    CORAL_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     CORAL_INPUT_CHECK(onComplete);
     CheckInvariant();
 
@@ -181,7 +179,6 @@ void SlaveControlMessengerV0::SetPeers(
     SetPeersHandler onComplete)
 {
     CORAL_PRECONDITION_CHECK(State() == SLAVE_READY);
-    CORAL_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     CORAL_INPUT_CHECK(onComplete);
     CheckInvariant();
 
@@ -197,7 +194,6 @@ void SlaveControlMessengerV0::ResendVars(
     ResendVarsHandler onComplete)
 {
     CORAL_PRECONDITION_CHECK(State() == SLAVE_READY);
-    CORAL_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     CORAL_INPUT_CHECK(onComplete);
     CheckInvariant();
 
@@ -214,7 +210,6 @@ void SlaveControlMessengerV0::Step(
     StepHandler onComplete)
 {
     CORAL_PRECONDITION_CHECK(State() == SLAVE_READY);
-    CORAL_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     CORAL_INPUT_CHECK(onComplete);
     CheckInvariant();
 
@@ -233,7 +228,6 @@ void SlaveControlMessengerV0::AcceptStep(
     AcceptStepHandler onComplete)
 {
     CORAL_PRECONDITION_CHECK(m_state == SLAVE_STEP_OK);
-    CORAL_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     CORAL_INPUT_CHECK(onComplete);
     CheckInvariant();
 
@@ -321,7 +315,7 @@ void SlaveControlMessengerV0::PostSendCommand(
     std::chrono::milliseconds timeout,
     AnyHandler onComplete)
 {
-    RegisterTimeout(timeout);
+    if (timeout >= std::chrono::milliseconds(0)) RegisterTimeout(timeout);
     m_state = SLAVE_BUSY;
     m_currentCommand = command;
     m_onComplete = std::move(onComplete);
@@ -331,6 +325,7 @@ void SlaveControlMessengerV0::PostSendCommand(
 void SlaveControlMessengerV0::RegisterTimeout(std::chrono::milliseconds timeout)
 {
     assert (m_replyTimeoutTimerId == NO_TIMER_ACTIVE);
+    assert (timeout >= std::chrono::milliseconds(0));
     m_replyTimeoutTimerId = m_reactor.AddTimer(timeout, 1,
         [=](coral::net::Reactor& r, int i) {
             assert (i == m_replyTimeoutTimerId);
@@ -342,7 +337,7 @@ void SlaveControlMessengerV0::RegisterTimeout(std::chrono::milliseconds timeout)
 
 void SlaveControlMessengerV0::UnregisterTimeout()
 {
-    assert (m_replyTimeoutTimerId != NO_TIMER_ACTIVE);
+    if (m_replyTimeoutTimerId == NO_TIMER_ACTIVE) return;
     m_reactor.RemoveTimer(m_replyTimeoutTimerId);
     m_replyTimeoutTimerId = NO_TIMER_ACTIVE;
 }
@@ -592,7 +587,6 @@ void SlaveControlMessengerV0::CheckInvariant() const
             assert(m_attachedToReactor);
             assert(m_currentCommand != NO_COMMAND_ACTIVE);
             assert(!boost::apply_visitor(IsEmpty(), m_onComplete));
-            assert(m_replyTimeoutTimerId != NO_TIMER_ACTIVE);
             break;
         default:
             assert(!"Invalid value of m_state");

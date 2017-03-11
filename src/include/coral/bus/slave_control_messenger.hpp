@@ -214,7 +214,8 @@ public:
 
     All error conditions are fatal unless otherwise specified.
 
-    \param [in] timeout         Max. allowed time for the operation to complete
+    \param [in] timeout         Max. allowed time for the operation to complete.
+                                A negative value means no time limit.
     \param [in] onComplete      Completion handler
 
     \throws std::invalid_argument if `timeout` is less than 1 ms or
@@ -263,7 +264,8 @@ public:
         implemented yet.
 
     \param [in] settings        A list of variable values and connections
-    \param [in] timeout         Max. allowed time for the operation to complete
+    \param [in] timeout         Max. allowed time for the operation to complete.
+                                A negative value means no time limit.
     \param [in] onComplete      Completion handler
 
     \throws std::invalid_argument if `timeout` is less than 1 ms or
@@ -313,7 +315,8 @@ public:
         implemented yet.
 
     \param [in] peers           A list of peer endpoints
-    \param [in] timeout         Max. allowed time for the operation to complete
+    \param [in] timeout         Max. allowed time for the operation to complete.
+                                A negative value means no time limit.
     \param [in] onComplete      Completion handler
 
     \throws std::invalid_argument if `timeout` is less than 1 ms or
@@ -359,7 +362,8 @@ public:
 
     All error conditions are fatal unless otherwise specified.
 
-    \param [in] timeout         Max. allowed time for the operation to complete
+    \param [in] timeout         Max. allowed time for the operation to complete.
+                                A negative value means no time limit.
     \param [in] onComplete      Completion handler
 
     \throws std::invalid_argument if `timeout` is less than 1 ms or
@@ -407,7 +411,8 @@ public:
     \param [in] stepID          The ID of the time step to be performed
     \param [in] currentT        The current time point
     \param [in] deltaT          The step size
-    \param [in] timeout         Max. allowed time for the operation to complete
+    \param [in] timeout         Max. allowed time for the operation to complete.
+                                A negative value means no time limit.
     \param [in] onComplete      Completion handler
 
     \throws std::invalid_argument if `timeout` is less than 1 ms or
@@ -451,7 +456,8 @@ public:
       - `coral::error::generic_error::failed`: The operation failed (e.g. due to
             an error in the slave).
 
-    \param [in] timeout         Max. allowed time for the operation to complete
+    \param [in] timeout         Max. allowed time for the operation to complete.
+                                A negative value means no time limit.
     \param [in] onComplete      Completion handler
 
     \throws std::invalid_argument if `timeout` is less than 1 ms or
@@ -546,7 +552,8 @@ an exception.
 \param [in] maxAttempts     The maximum number of times to attempt a connection.
                             Must be at least 1.
 \param [in] timeout         The maximum time to wait for a reply from the slave
-                            for each connection attempt.  Must be at least 1 ms.
+                            for each connection attempt.
+                            A negative value means no time limit.
 \param [in] onComplete      Completion handler.  May not be null.
 
 \throws std::invalid_argument if any of the arguments are invalid.

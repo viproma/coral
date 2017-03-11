@@ -92,10 +92,21 @@ void ExecutionManagerPrivate::Step(
     ExecutionManager::SlaveStepHandler onSlaveStepComplete)
 {
     if (m_resendVarsNeeded) {
+        auto resendTimeout = 2*slaveSetup.variableRecvTimeout;
+        if (resendTimeout < std::chrono::milliseconds(0)) {
+            coral::master::ExecutionOptions defaults;
+            resendTimeout = 2*defaults.slaveVariableRecvTimeout;
+            CORAL_LOG_DEBUG(boost::format(
+                "Slave-to-slave variable receive timeout is negative "
+                "(aka. infinite), and we cannot use that to detect when "
+                "slaves are all reconnected to each other. Using default "
+                "value (%d ms).")
+                % resendTimeout.count());
+        }
         m_state->ResendVars(
             *this,
             3,
-            2*slaveSetup.variableRecvTimeout,
+            resendTimeout,
             [=] (const std::error_code& ec)
             {
                 if (!ec) {

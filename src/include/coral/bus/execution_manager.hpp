@@ -120,7 +120,7 @@ public:
         Contains information about the slaves on output.
     \param [in] commTimeout
         The communications timeout used to detect loss of communication
-        with the slaves.
+        with the slaves.  A negative value means no timeout.
     \param [in] onComplete
         Handler callback which is called when the entire operation is
         complete.
@@ -155,7 +155,7 @@ public:
         entry per slave.
     \param [in] commTimeout
         The communications timeout used to detect loss of communication
-        with the slaves.
+        with the slaves.  A negative value means no timeout.
     \param [in] onComplete
         Handler callback which is called when the entire operation is
         complete.

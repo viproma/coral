@@ -539,6 +539,10 @@ PrimingExecutionState::PrimingExecutionState(
     , m_commTimeout{commTimeout}
     , m_onComplete{onComplete}
 {
+    // An infinite timeout really does not work here, as the whole point
+    // is to time out and try again if some slaves are not in contact
+    // with each other.
+    assert(commTimeout >= std::chrono::milliseconds(0));
 }
 
 
