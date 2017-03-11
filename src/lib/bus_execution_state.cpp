@@ -231,6 +231,14 @@ void ReadyExecutionState::Terminate(ExecutionManagerPrivate& self)
 
 namespace
 {
+    // Small struct to keep track of the number of ongoing and failed per-slave
+    // operations in the Reconstitute and Reconfigure states.
+    struct OpTally
+    {
+        int ongoing = 0;
+        int failed = 0;
+    };
+
     /*
     Helper function for ReconstitutingExecutionState which performs the
     following tasks for ONE slave:
@@ -345,7 +353,7 @@ void ReconstitutingExecutionState::StateEntered(
     assert(std::numeric_limits<coral::model::SlaveID>::max() - self.lastSlaveID
             >= (int) m_slavesToAdd.size());
 
-    // We call AddSlave() for each of the slaves to be added, using opCount
+    // We call AddSlave() for each of the slaves to be added, using opTally
     // to keep track of how many such operations we have ongoing, and how
     // many have failed.  When the first of those reaches zero, we move to
     // the next stage by calling AllSlavesAdded(), unless the error count is
@@ -356,30 +364,30 @@ void ReconstitutingExecutionState::StateEntered(
     // is called with an error code and the corresponding m_addedSlaves
     // element is reset to INVALID_SLAVE_ID.
     const auto selfPtr = &self;
-    const auto opCount = std::make_shared<std::pair<int, int>>(0, 0);
+    const auto opTally = std::make_shared<OpTally>();
     for (std::size_t index = 0; index < m_slavesToAdd.size(); ++index) {
         auto addedSlaveID = AddSlave(
             self,
             m_slavesToAdd[index],
             m_commTimeout,
-            [selfPtr, opCount, index, this]
+            [selfPtr, opTally, index, this]
                 (const std::error_code& ec, coral::model::SlaveID id)
             {
-                --(opCount->first);
+                --(opTally->ongoing);
                 if (ec) {
-                    ++(opCount->second);
+                    ++(opTally->failed);
                     m_addedSlaves[index] = coral::model::INVALID_SLAVE_ID;
                     m_onSlaveComplete(ec, coral::model::INVALID_SLAVE_ID, index);
                 }
-                if (opCount->first == 0) {
-                    if (opCount->second == 0) {
+                if (opTally->ongoing == 0) {
+                    if (opTally->failed == 0) {
                         AllSlavesAdded(*selfPtr);
                     } else {
                         Failed(*selfPtr);
                     }
                 }
             });
-        ++(opCount->first);
+        ++(opTally->ongoing);
         m_addedSlaves.push_back(addedSlaveID);
     }
 }
@@ -406,7 +414,7 @@ void ReconstitutingExecutionState::AllSlavesAdded(
     // When all per-slave operations are done, we move to the final stage
     // by calling Completed() if all went well, otherwise we call Failed().
     const auto selfPtr = &self;
-    const auto opTally = std::make_shared<std::pair<int, int>>(0, 0); // ops, fails
+    const auto opTally = std::make_shared<OpTally>();
     for (auto& slave : self.slaves) {
         const auto slaveName = slave.second.description.Name();
         slave.second.slave->SetPeers(
@@ -414,22 +422,22 @@ void ReconstitutingExecutionState::AllSlavesAdded(
             m_commTimeout,
             [selfPtr, opTally, slaveName, this] (const std::error_code& ec)
             {
-                --(opTally->first);
+                --(opTally->ongoing);
                 if (ec) {
-                    ++(opTally->second);
+                    ++(opTally->failed);
                     coral::log::Log(coral::log::error,
                         boost::format("Failed to send SET_PEERS command to slave '%s': %s")
                         % slaveName % ec.message());
                 }
-                if (opTally->first == 0) {
-                    if (opTally->second == 0) {
+                if (opTally->ongoing == 0) {
+                    if (opTally->failed == 0) {
                         Completed(*selfPtr);
                     } else {
                         Failed(*selfPtr);
                     }
                 }
             });
-        ++(opTally->first);
+        ++(opTally->ongoing);
     }
 }
 
@@ -492,7 +500,7 @@ void ReconfiguringExecutionState::StateEntered(
     ExecutionManagerPrivate& self)
 {
     const auto selfPtr = &self;
-    const auto opTally = std::make_shared<std::pair<int, int>>(0, 0);
+    const auto opTally = std::make_shared<OpTally>();
     for (std::size_t index = 0; index < m_slaveConfigs.size(); ++index) {
         const auto slaveID = m_slaveConfigs[index].slaveID;
         self.slaves.at(slaveID).slave->SetVariables(
@@ -500,14 +508,14 @@ void ReconfiguringExecutionState::StateEntered(
             m_commTimeout,
             [selfPtr, opTally, index, slaveID, this] (const std::error_code& ec)
             {
-                --(opTally->first);
+                --(opTally->ongoing);
                 if (ec) {
-                    ++(opTally->second);
+                    ++(opTally->failed);
                 }
                 m_onSlaveComplete(ec, slaveID, index);
-                if (opTally->first == 0) {
+                if (opTally->ongoing == 0) {
                     // All per-slave calls complete
-                    if (opTally->second == 0) {
+                    if (opTally->failed == 0) {
                         // No errors
                         m_onComplete(std::error_code{});
                         selfPtr->SwapState(std::make_unique<ReadyExecutionState>());
@@ -518,7 +526,7 @@ void ReconfiguringExecutionState::StateEntered(
                     }
                 }
             });
-        ++(opTally->first);
+        ++(opTally->ongoing);
     }
 }
 
