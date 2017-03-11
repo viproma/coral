@@ -42,6 +42,7 @@ struct ExecutionOptions
             other slaves.
 
     This is used when slaves exchange variable values among themselves.
+    A negative value effectively means no timeout.
     */
     std::chrono::milliseconds slaveVariableRecvTimeout = std::chrono::seconds(1);
 };
