@@ -346,16 +346,17 @@ void ReconstitutingExecutionState::StateEntered(
             >= (int) m_slavesToAdd.size());
 
     // We call AddSlave() for each of the slaves to be added, using opCount
-    // to keep track of how many such operations we have ongoing.  When the
-    // counter reaches zero, we move to the next stage by calling
-    // AllSlavesAdded().
+    // to keep track of how many such operations we have ongoing, and how
+    // many have failed.  When the first of those reaches zero, we move to
+    // the next stage by calling AllSlavesAdded(), unless the error count is
+    // nonzero.
     //
     // m_addedSlaves contains the IDs of the slaves we have added.  If any
     // per-slave operations fail in the AddSlave() step, the per-slave handler
     // is called with an error code and the corresponding m_addedSlaves
     // element is reset to INVALID_SLAVE_ID.
     const auto selfPtr = &self;
-    const auto opCount = std::make_shared<int>(0);
+    const auto opCount = std::make_shared<std::pair<int, int>>(0, 0);
     for (std::size_t index = 0; index < m_slavesToAdd.size(); ++index) {
         auto addedSlaveID = AddSlave(
             self,
@@ -364,16 +365,21 @@ void ReconstitutingExecutionState::StateEntered(
             [selfPtr, opCount, index, this]
                 (const std::error_code& ec, coral::model::SlaveID id)
             {
-                --(*opCount);
+                --(opCount->first);
                 if (ec) {
+                    ++(opCount->second);
                     m_addedSlaves[index] = coral::model::INVALID_SLAVE_ID;
                     m_onSlaveComplete(ec, coral::model::INVALID_SLAVE_ID, index);
                 }
-                if (*opCount == 0) {
-                    AllSlavesAdded(*selfPtr);
+                if (opCount->first == 0) {
+                    if (opCount->second == 0) {
+                        AllSlavesAdded(*selfPtr);
+                    } else {
+                        Failed(*selfPtr);
+                    }
                 }
             });
-        ++(*opCount);
+        ++(opCount->first);
         m_addedSlaves.push_back(addedSlaveID);
     }
 }
