@@ -186,10 +186,10 @@ try {
             "The master must listen on the same port.")
         ("slave-exe", po::value<std::string>(),
             "The path to the slave executable")
-        ("timeout", po::value<unsigned int>()->default_value(3600),
+        ("timeout", po::value<int>()->default_value(3600),
             "The number of seconds slaves should wait for commands from a master "
             "before assuming that the connection is broken and shutting themselves "
-            "down.");
+            "down.  The special value -1 means \"never\".");
     po::options_description positionalOptions("Arguments");
     positionalOptions.add_options()
         ("fmu",       po::value<std::vector<std::string>>(), "The FMU files and directories");
@@ -216,7 +216,10 @@ try {
     const auto outputDir = (*optionValues)["output-dir"].as<std::string>();
     const auto discoveryPort = coral::net::ip::Port{
         (*optionValues)["port"].as<std::uint16_t>()};
-    const auto timeout = std::chrono::seconds((*optionValues)["timeout"].as<unsigned int>());
+    const auto timeout = std::chrono::seconds((*optionValues)["timeout"].as<int>());
+    if (timeout < std::chrono::seconds(-1)) {
+        throw std::runtime_error("Invalid timeout value");
+    }
 
     std::string slaveExe;
     if (optionValues->count("slave-exe")) {
