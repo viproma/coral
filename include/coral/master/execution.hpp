@@ -167,7 +167,7 @@ public:
         Contains information about the slaves on output.
     \param [in] commTimeout
         The communications timeout used to detect loss of communication
-        with the slaves.
+        with the slaves.  A negative value means no timeout.
     */
     void Reconstitute(
         std::vector<AddedSlave>& slavesToAdd,
@@ -194,7 +194,7 @@ public:
         entry per slave.
     \param [in] commTimeout
         The communications timeout used to detect loss of communication
-        with the slaves.
+        with the slaves.  A negative value means no timeout.
     */
     void Reconfigure(
         std::vector<SlaveConfig>& slaveConfigs,
@@ -230,7 +230,7 @@ public:
         slave fails to report back within this time, it is considered a fatal
         error which will cause the entire simulation to shut down.
         (Essentially, it is assumed that we have lost connection with the slave
-        for some reason.) Must be a positive number.
+        for some reason.)  A negative value means no timeout.
     \param [in] slaveResults
         An optional vector which, if given, will be cleared and filled with
         the result reported by each slave.
@@ -256,7 +256,7 @@ public:
         slave fails to report back within this time, it is considered a fatal
         error which will cause the entire simulation to shut down.
         (Essentially, it is assumed that we have lost connection with the slave
-        for some reason.)
+        for some reason.)  A negative value means no timeout.
     */
     void AcceptStep(std::chrono::milliseconds timeout);
 

@@ -394,6 +394,7 @@ void HandleInstantiateSlave(
         slaveProvider->second.InstantiateSlave(
             slaveTypeUUID,
             instantiationTimeout,
+            commTimeout,
             [sharedPromise] (
                 const std::error_code& ec,
                 const coral::net::SlaveLocator& locator,
@@ -405,8 +406,7 @@ void HandleInstantiateSlave(
                     sharedPromise->set_exception(std::make_exception_ptr(
                         std::runtime_error(ec.message() + " (" + errorMessage + ")")));
                 }
-            },
-            commTimeout);
+            });
     } catch (...) {
         sharedPromise->set_exception(std::current_exception());
     }

@@ -148,18 +148,29 @@ void PendingSlaveControlConnectionPrivate::TryConnect(int remainingAttempts)
 
     // Register a timeout timer and a reply listener.
     // Both of these cancel the other if triggered.
+    // If the timeout is infinite, use a finite one on the first attempts
     assert(m_timeoutTimer == NO_TIMER);
-    m_timeoutTimer = m_reactor.AddTimer(m_timeout, 1,
-        [remainingAttempts, this](coral::net::Reactor& r, int id)
-        {
-            m_timeoutTimer = NO_TIMER;
-            r.RemoveSocket(m_socket.Socket());
-            if (remainingAttempts > 1) {
-                TryConnect(remainingAttempts-1);
-            } else {
-                HandleTimeout();
-            }
-        });
+    auto timeout = m_timeout;
+    if (timeout < std::chrono::milliseconds(0) && remainingAttempts > 1) {
+        timeout = std::chrono::seconds(1);
+        CORAL_LOG_DEBUG(boost::format(
+            "PendingSlaveControlConnectionPrivate %x: Using default timeout "
+            "(%d ms) for initial connection attempts.")
+            % this % timeout.count());
+    }
+    if (timeout >= std::chrono::milliseconds(0)) {
+        m_timeoutTimer = m_reactor.AddTimer(timeout, 1,
+            [remainingAttempts, this](coral::net::Reactor& r, int id)
+            {
+                m_timeoutTimer = NO_TIMER;
+                r.RemoveSocket(m_socket.Socket());
+                if (remainingAttempts > 1) {
+                    TryConnect(remainingAttempts-1);
+                } else {
+                    HandleTimeout();
+                }
+            });
+    }
     m_reactor.AddSocket(
         m_socket.Socket(),
         [this] (coral::net::Reactor& r, zmq::socket_t& s) {
@@ -220,7 +231,7 @@ void PendingSlaveControlConnectionPrivate::OnComplete(
 
 void PendingSlaveControlConnectionPrivate::CancelTimeoutTimer() CORAL_NOEXCEPT
 {
-    assert(m_timeoutTimer != NO_TIMER);
+    if (m_timeoutTimer == NO_TIMER) return;
     try { m_reactor.RemoveTimer(m_timeoutTimer); }
     catch (...) { assert(!"PendingSlaveControlConnection: Tried to cancel a nonexisting timer"); }
     m_timeoutTimer = NO_TIMER;
@@ -316,7 +327,6 @@ PendingSlaveControlConnection ConnectToSlave(
     ConnectToSlaveHandler onComplete)
 {
     CORAL_INPUT_CHECK(maxAttempts > 0);
-    CORAL_INPUT_CHECK(timeout > std::chrono::milliseconds(0));
     CORAL_INPUT_CHECK(onComplete);
 
     return PendingSlaveControlConnection(

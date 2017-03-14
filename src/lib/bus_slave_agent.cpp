@@ -426,13 +426,15 @@ SlaveAgent::Timeout::Timeout(
 
 SlaveAgent::Timeout::~Timeout() CORAL_NOEXCEPT
 {
-    SetTimeout(std::chrono::milliseconds(0));
+    SetTimeout(std::chrono::milliseconds(-1));
 }
 
 
 void SlaveAgent::Timeout::Reset()
 {
-    m_reactor.RestartTimerInterval(m_timerID);
+    if (m_timerID != coral::net::Reactor::invalidTimerID) {
+        m_reactor.RestartTimerInterval(m_timerID);
+    }
 }
 
 
@@ -442,7 +444,7 @@ void SlaveAgent::Timeout::SetTimeout(std::chrono::milliseconds timeout)
         m_reactor.RemoveTimer(m_timerID);
         m_timerID = coral::net::Reactor::invalidTimerID;
     }
-    if (timeout > std::chrono::milliseconds(0)) {
+    if (timeout >= std::chrono::milliseconds(0)) {
         m_timerID = m_reactor.AddTimer(
             timeout,
             1,

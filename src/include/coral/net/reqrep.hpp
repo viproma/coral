@@ -128,6 +128,7 @@ public:
         How long to wait to be able to send the request before throwing an
         exception, or, if the actual sending was successful, how long to wait
         for a reply before calling `onComplete` with an error code.
+        A negative value means "indefinitely".
     \param [in] onComplete
         A callback that will be called when the server responds or the request
         times out.  This function is guaranteed to be called unless Request()
@@ -178,6 +179,7 @@ public:
         How long to wait to be able to send the request before throwing an
         exception, or, if the actual sending was successful, how long to wait
         for a reply before calling `onComplete` with an error code.
+        A negative value means "indefinitely".
     \param [in] onComplete
         A callback that will be called when the server responds or the request
         times out.  This function is guaranteed to be called unless

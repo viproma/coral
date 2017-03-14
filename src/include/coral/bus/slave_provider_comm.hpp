@@ -77,6 +77,7 @@ public:
         code in case of failure.
     \param [in] timeout
         Maximum time allowed for the request to complete.
+        A negative value means that there is no time limit.
     */
     void GetSlaveTypes(
         GetSlaveTypesHandler onComplete,
@@ -96,18 +97,21 @@ public:
         The slave type identifier.
     \param [in] instantiationTimeout
         The max allowed time for the slave to start up.
+        A negative value means that there is no time limit (which is somewhat
+        risky, because it means that the entire slave provider will freeze
+        if the slave hangs during startup).
+    \param [in] requestTimeout
+        Additional time allowed for the whole request to complete.
+        A negative value means that there is no time limit.
     \param [in] onComplete
         Function which is called with the slave address when the slave has
         been instantiated, or with an error code and message in case of failure.
-    \param [in] requestTimeout
-        Maximum time allowed for the request to complete, which must of course
-        be greater than `instantiationTimeout`.
     */
     void InstantiateSlave(
         const std::string& slaveTypeUUID,
         std::chrono::milliseconds instantiationTimeout,
-        InstantiateSlaveHandler onComplete,
-        std::chrono::milliseconds requestTimeout = std::chrono::milliseconds(0));
+        std::chrono::milliseconds requestTimeout,
+        InstantiateSlaveHandler onComplete);
 
 private:
     class Private;

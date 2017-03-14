@@ -58,7 +58,8 @@ public:
     \param [in] timeout
         How long the master will wait for the slave to start up.  If possible,
         instantiation should be aborted and considered "failed" after this
-        time has passed.
+        time has passed. A negative value means that there is no timeout,
+        the slave gets as much time as it needs.
     \param [out] slaveLocator
         An object that describes how to connect to the slave.  See the list
         above for different endpoint formats.

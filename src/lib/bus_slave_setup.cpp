@@ -34,7 +34,6 @@ SlaveSetup::SlaveSetup(
       variableRecvTimeout(variableRecvTimeout_)
 {
     assert(startTime <= stopTime);
-    assert(variableRecvTimeout > std::chrono::milliseconds(0));
 }
 
 

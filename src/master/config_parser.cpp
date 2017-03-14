@@ -556,7 +556,9 @@ ExecutionConfig ParseExecutionConfig(const std::string& path)
     if (auto commTimeoutNode = ptree.get_child_optional("comm_timeout_ms")) {
         ec.commTimeout = std::chrono::milliseconds(
             commTimeoutNode->get_value<typename std::chrono::milliseconds::rep>());
-        if (ec.commTimeout <= std::chrono::milliseconds(0)) Error("Nonpositive comm_timeout_ms");
+        if (ec.commTimeout < std::chrono::milliseconds(-1)) {
+            Error("Invalid comm_timeout_ms");
+        }
     }
 
     if (auto stepTimeoutMultiplierNode = ptree.get_child_optional("step_timeout_multiplier")) {
@@ -569,7 +571,9 @@ ExecutionConfig ParseExecutionConfig(const std::string& path)
     if (auto instTimeoutNode = ptree.get_child_optional("instantiation_timeout_ms")) {
         ec.instantiationTimeout = std::chrono::milliseconds(
             instTimeoutNode->get_value<typename std::chrono::milliseconds::rep>());
-        if (ec.commTimeout <= std::chrono::milliseconds(0)) Error("Nonpositive instantiation_timeout_ms");
+        if (ec.instantiationTimeout < std::chrono::milliseconds(-1)) {
+            Error("Invalid instantiation_timeout_ms");
+        }
     }
     return ec;
 }

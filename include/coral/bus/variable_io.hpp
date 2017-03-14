@@ -140,6 +140,7 @@ public:
     \param [in] stepID      The timestep ID for which we should wait for
                             variable data.
     \param [in] timeout     How long to wait without receiving any data.
+                            A negative value means to wait indefinitely.
 
     \returns Whether a value has been received for all variables.
     \pre Connect() has been called successfully on this instance.

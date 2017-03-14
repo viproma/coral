@@ -112,7 +112,10 @@ int Run(const std::vector<std::string>& args)
             "      ; instantiation command is issued to when the slave is ready for\n"
             "      ; simulation.  Some slaves may take a long time to instantiate, either\n"
             "      ; because the FMU is very large and thus takes a long time to unpack\n"
-            "      ; or because its instantiation routine is very demanding.\n"
+            "      ; or because its instantiation routine is very demanding.  -1 is a\n"
+            "      ; special value which means \"wait indefinitely\".  This is somewhat\n"
+            "      ; risky, however, because it means the entire slave provider will\n"
+            "      ; hang if a slave hangs or crashes during startup.\n"
             "      instantiation_timeout_ms 10000\n");
         if (!argValues) return 0;
 

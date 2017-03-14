@@ -83,6 +83,7 @@ public:
 
     \param [in] timeout
         Maximum time to wait for replies from known slave providers.
+        A negative value means to wait indefinitely.
     */
     std::vector<SlaveType> GetSlaveTypes(std::chrono::milliseconds timeout);
 
@@ -92,9 +93,10 @@ public:
     `timeout` specifies how long the slave provider should wait for the
     slave to start up before assuming it has crashed or frozen.  The master
     will wait twice as long as this for the slave provider to report that the
-    slave has been successfully instantiated before it assumes the slave
+    slave has been successfully instantiated before it assumes that the slave
     provider itself has crashed or the connection has been lost.
-    In both cases, an exception is thrown.
+    In both cases, an exception is thrown.  A negative value means that there
+    is to be no time limit.
 
     \param [in] slaveProviderID
         The ID of the slave provider that should instantiate the slave.
@@ -102,7 +104,8 @@ public:
         The UUID that identifies the type of the slave that is to be
         instantiated.
     \param [in] timeout
-        How much time the slave gets to start up.
+        How much time the slave gets to start up. A negative value means
+        no limit.
 
     \returns
         An object that contains the information needed to locate the slave.
