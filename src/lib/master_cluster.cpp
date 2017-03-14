@@ -305,22 +305,27 @@ void HandleGetSlaveTypes(
     try {
         const auto state = std::make_shared<GetSlaveTypesRequest>();
         for (auto& slaveProvider : slaveProviders) {
-            const auto slaveProviderID = slaveProvider.first;
-            slaveProvider.second.GetSlaveTypes(
-                [sharedPromise, state, slaveProviderID] (
-                    const std::error_code& ec,
-                    const coral::model::SlaveTypeDescription* slaveTypes,
-                    std::size_t slaveTypeCount)
-                {
-                    state->AddReply(
-                        slaveProviderID,
-                        ec,
-                        slaveTypes,
-                        slaveTypeCount,
-                        *sharedPromise);
-                },
-                timeout);
             ++(state->remainingReplies);
+            try {
+                const auto slaveProviderID = slaveProvider.first;
+                slaveProvider.second.GetSlaveTypes(
+                    [sharedPromise, state, slaveProviderID] (
+                        const std::error_code& ec,
+                        const coral::model::SlaveTypeDescription* slaveTypes,
+                        std::size_t slaveTypeCount)
+                    {
+                        state->AddReply(
+                            slaveProviderID,
+                            ec,
+                            slaveTypes,
+                            slaveTypeCount,
+                            *sharedPromise);
+                    },
+                    timeout);
+            } catch (...) {
+                --(state->remainingReplies);
+                throw;
+            }
         }
         CORAL_LOG_TRACE(boost::format("Sent GetSlaveTypes request to %d providers")
             % state->remainingReplies);
@@ -338,6 +343,7 @@ void GetSlaveTypesRequest::AddReply(
     std::promise<std::vector<coral::master::ProviderCluster::SlaveType>>& promise)
 {
     --remainingReplies;
+    assert(remainingReplies >= 0);
     if (!ec) {
         for (std::size_t i = 0; i < typeCount; ++i) {
             auto stIt = slaveTypeIndices.find(types[i].UUID());
