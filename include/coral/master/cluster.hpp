@@ -28,18 +28,22 @@ namespace master
 
 
 /**
-\brief  A common communication interface to a cluster of slave providers.
-
-This class represents a common interface to several slave providers in a
-network.  It can be used to get information about the available slave types
-and to instantiate slaves on specific providers.
-
-\remark
-When an object of this class is created, it will spawn a background thread that
-performs the actual communication with the slave providers.  To ensure
-that there is a one-to-one relationship between an object of this class and
-its underlying communication thread, the objects are noncopyable (but movable),
-and will attempt to shut down the thread on destruction.
+ *  \brief
+ *  A common communication interface to a cluster of slave providers.
+ *
+ *  This class represents a common interface to several slave providers in a
+ *  network.  It can be used to get information about the available slave types
+ *  and to instantiate slaves on specific providers.
+ *
+ *  Slave providers are discovered automatically by listening for UDP
+ *  broadcast messages that they broadcast periodically.
+ *
+ *  \remark
+ *  When an object of this class is created, it will spawn a background thread
+ *  that performs the actual communication with the slave providers.  To ensure
+ *  that there is a one-to-one relationship between an object of this class and
+ *  its underlying communication thread, the objects are noncopyable (but
+ *  movable), and will attempt to shut down the thread on destruction.
 */
 class ProviderCluster
 {
@@ -47,20 +51,24 @@ public:
     /// Information about a slave type.
     struct SlaveType
     {
+        /// A description of the slave type.
         coral::model::SlaveTypeDescription description;
+
+        /// A list of IDs of slave providers that offer this slave type.
         std::vector<std::string> providers;
     };
 
     /**
-    \brief  Constructor.
-
-    \param [in] networkInterface
-        The name or IP address of the network interface that should be used,
-        or "*" for all available interfaces.
-    \param [in] discoveryPort
-        The UDP port used for discovering other entities such as slave
-        providers.
-    */
+     *  \brief
+     *  Constructor.
+     *
+     *  \param [in] networkInterface
+     *      The name or IP address of the network interface that should be used,
+     *      or "*" for all available interfaces.
+     *  \param [in] discoveryPort
+     *      The UDP port used for discovering other entities such as slave
+     *      providers.
+     */
     ProviderCluster(
         const coral::net::ip::Address& networkInterface,
         coral::net::ip::Port discoveryPort);
@@ -79,37 +87,44 @@ public:
     ProviderCluster& operator=(ProviderCluster&&) CORAL_NOEXCEPT;
 
     /**
-    \brief  Returns available slave types.
-
-    \param [in] timeout
-        Maximum time to wait for replies from known slave providers.
-        A negative value means to wait indefinitely.
+     *  \brief
+     *  Returns the slave types which are offered by all slave providers
+     *  discovered so far.
+     *
+     *  \warning
+     *      After an object of this class has been constructed, it may
+     *      take some time for it to discover all slave providers.
+     *
+     *  \param [in] timeout
+     *      The communications timeout used to detect loss of communication
+     *      with slave providers.  A negative value means no timeout.
     */
     std::vector<SlaveType> GetSlaveTypes(std::chrono::milliseconds timeout);
 
     /**
-    \brief  Instantiates a slave.
-
-    `timeout` specifies how long the slave provider should wait for the
-    slave to start up before assuming it has crashed or frozen.  The master
-    will wait twice as long as this for the slave provider to report that the
-    slave has been successfully instantiated before it assumes that the slave
-    provider itself has crashed or the connection has been lost.
-    In both cases, an exception is thrown.  A negative value means that there
-    is to be no time limit.
-
-    \param [in] slaveProviderID
-        The ID of the slave provider that should instantiate the slave.
-    \param [in] slaveTypeUUID
-        The UUID that identifies the type of the slave that is to be
-        instantiated.
-    \param [in] timeout
-        How much time the slave gets to start up. A negative value means
-        no limit.
-
-    \returns
-        An object that contains the information needed to locate the slave.
-    */
+     *  \brief
+     *  Requests that a slave be spawned by a specific slave provider.
+     *
+     *  `timeout` specifies how long the slave provider should wait for
+     *  the slave to start up before assuming it has crashed or frozen.
+     *  The function will wait twice as long as this for the slave provider
+     *  to report that the slave has been successfully instantiated before
+     *  it assumes that the slave provider itself has crashed or the
+     *  connection has been lost.  In both cases, an exception is thrown.
+     *
+     *  \param [in] slaveProviderID
+     *      The ID of the slave provider that should instantiate the slave.
+     *  \param [in] slaveTypeUUID
+     *      The UUID that identifies the type of the slave that is to be
+     *      instantiated.
+     *  \param [in] timeout
+     *      How much time the slave gets to start up.
+     *      A negative value means no limit.
+     *
+     *  \returns
+     *      An object that contains the information needed to connect to
+     *      the slave, which can be passed to `Execution::Reconstitute()`.
+     */
     coral::net::SlaveLocator InstantiateSlave(
         const std::string& slaveProviderID,
         const std::string& slaveTypeUUID,
