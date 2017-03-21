@@ -12,6 +12,7 @@
 
 #include "coral/fmi/fmu.hpp"
 #include "coral/fmi/fmu1.hpp"
+#include "coral/fmi/fmu2.hpp"
 #include "coral/fmi/importer.hpp"
 
 

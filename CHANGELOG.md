@@ -16,6 +16,7 @@ list the bigger ones.
 
 ## [0.8.0] – 2017-03-15
 ### Added
+  - Support for FMI 2.0.
   - A `--realtime` switch to enable soft real time synchronisation in
     coralmaster.
   - A `--debug-pause` switch which causes coralmaster to stop at the
