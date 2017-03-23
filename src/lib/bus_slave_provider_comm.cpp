@@ -157,12 +157,12 @@ private:
         if (reply == OK_REPLY) {
             coralproto::domain::SlaveTypeList slaveTypeList;
             if (slaveTypeList.ParseFromArray(replyBody, boost::numeric_cast<int>(replyBodySize))) {
-                auto slaveTypes = FromProto(slaveTypeList);
+                m_slaveTypes = FromProto(slaveTypeList);
                 m_slaveTypesCached = true; // TODO: Add "expiry date"?
                 completionHandler(
                     std::error_code{},
-                    slaveTypes.data(),
-                    slaveTypes.size());
+                    m_slaveTypes.data(),
+                    m_slaveTypes.size());
             } else {
                 completionHandler(
                     make_error_code(std::errc::bad_message),
