@@ -14,7 +14,7 @@ list the bigger ones.
 
 ## [Unreleased]
 
-## [0.8.0] – 2017-03-15
+## [0.8.0] – currently in beta
 ### Added
   - Support for FMI 2.0.
   - A `--realtime` switch to enable soft real time synchronisation in
