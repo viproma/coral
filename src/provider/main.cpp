@@ -30,7 +30,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 namespace
 {
-    const std::string DEFAULT_NETWORK_INTERFACE = "*";
+    const std::string DEFAULT_NETWORK_INTERFACE = "127.0.0.1";
     const std::uint16_t DEFAULT_DISCOVERY_PORT = 10272;
 #ifdef _WIN32
     const std::string DEFAULT_SLAVE_EXE = "coralslave.exe";
