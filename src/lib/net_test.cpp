@@ -1,5 +1,5 @@
-#include "gtest/gtest.h"
-#include "coral/net.hpp"
+#include <gtest/gtest.h>
+#include <coral/net.hpp>
 
 
 TEST(coral_net, Endpoint)

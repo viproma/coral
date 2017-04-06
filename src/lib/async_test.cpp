@@ -1,6 +1,6 @@
 #include <stdexcept>
-#include "gtest/gtest.h"
-#include "coral/async.hpp"
+#include <gtest/gtest.h>
+#include <coral/async.hpp>
 
 namespace
 {

@@ -11,7 +11,7 @@
 #define CORAL_BUS_SLAVE_SETUP_HPP
 
 #include <chrono>
-#include "coral/model.hpp"
+#include <coral/model.hpp>
 
 
 namespace coral

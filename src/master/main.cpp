@@ -15,11 +15,11 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <thread>
 #include <vector>
 
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 
-#include "coral/log.hpp"
-#include "coral/master.hpp"
-#include "coral/util/console.hpp"
+#include <coral/log.hpp>
+#include <coral/master.hpp>
+#include <coral/util/console.hpp>
 
 #include "config_parser.hpp"
 

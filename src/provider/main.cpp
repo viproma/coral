@@ -13,19 +13,19 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <vector>
 
-#include "boost/filesystem.hpp"
-#include "boost/lexical_cast.hpp"
+#include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
 
-#include "zmq.hpp"
+#include <zmq.hpp>
 
-#include "coral/fmi/fmu.hpp"
-#include "coral/fmi/importer.hpp"
-#include "coral/log.hpp"
-#include "coral/net.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/provider.hpp"
-#include "coral/util.hpp"
-#include "coral/util/console.hpp"
+#include <coral/fmi/fmu.hpp>
+#include <coral/fmi/importer.hpp>
+#include <coral/log.hpp>
+#include <coral/net.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/provider.hpp>
+#include <coral/util.hpp>
+#include <coral/util/console.hpp>
 
 
 namespace

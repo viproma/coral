@@ -16,8 +16,8 @@
 #include <vector>
 #include <utility>
 
-#include "zmq.hpp"
-#include "coral/config.h"
+#include <zmq.hpp>
+#include <coral/config.h>
 
 
 namespace coral

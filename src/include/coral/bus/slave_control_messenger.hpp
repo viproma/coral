@@ -21,14 +21,14 @@ stuff in this header.
 #include <system_error>
 #include <vector>
 
-#include "boost/noncopyable.hpp"
+#include <boost/noncopyable.hpp>
 
-#include "coral/config.h"
+#include <coral/config.h>
 
-#include "coral/bus/slave_setup.hpp"
-#include "coral/net/reactor.hpp"
-#include "coral/model.hpp"
-#include "coral/net.hpp"
+#include <coral/bus/slave_setup.hpp>
+#include <coral/net/reactor.hpp>
+#include <coral/model.hpp>
+#include <coral/net.hpp>
 
 
 namespace coral

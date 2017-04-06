@@ -17,10 +17,10 @@
 #include <string>
 #include <vector>
 
-#include "coral/config.h"
-#include "coral/master/execution_options.hpp"
-#include "coral/model.hpp"
-#include "coral/net.hpp"
+#include <coral/config.h>
+#include <coral/master/execution_options.hpp>
+#include <coral/model.hpp>
+#include <coral/net.hpp>
 
 
 namespace coral

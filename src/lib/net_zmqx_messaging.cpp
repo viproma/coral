@@ -8,11 +8,11 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #   define NOMINMAX
 #endif
 
-#include "coral/net/zmqx.hpp"
+#include <coral/net/zmqx.hpp>
 
 #include <algorithm>
-#include "coral/config.h"
-#include "coral/error.hpp"
+#include <coral/config.h>
+#include <coral/error.hpp>
 
 
 namespace

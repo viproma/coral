@@ -4,7 +4,7 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/util/zip.hpp"
+#include <coral/util/zip.hpp>
 
 #include <cassert>
 #include <cerrno>
@@ -13,10 +13,10 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <system_error>
 #include <vector>
 
-#include "zip.h"
+#include <zip.h>
 
-#include "boost/filesystem.hpp"
-#include "coral/error.hpp"
+#include <boost/filesystem.hpp>
+#include <coral/error.hpp>
 
 
 namespace coral

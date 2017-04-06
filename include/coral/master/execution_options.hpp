@@ -11,7 +11,7 @@
 #define CORAL_MASTER_EXECUTION_OPTIONS_HPP
 
 #include <chrono>
-#include "coral/model.hpp"
+#include <coral/model.hpp>
 
 
 namespace coral

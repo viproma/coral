@@ -11,8 +11,8 @@
 #define CORAL_PROTOCOL_EXE_DATA_HPP
 
 #include <vector>
-#include "zmq.hpp"
-#include "coral/model.hpp"
+#include <zmq.hpp>
+#include <coral/model.hpp>
 
 
 namespace coral

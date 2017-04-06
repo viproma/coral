@@ -4,11 +4,11 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/bus/slave_controller.hpp"
+#include <coral/bus/slave_controller.hpp>
 
 #include <cassert>
 #include <utility>
-#include "coral/error.hpp"
+#include <coral/error.hpp>
 
 
 namespace coral

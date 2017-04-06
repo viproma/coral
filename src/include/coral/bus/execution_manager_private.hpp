@@ -18,15 +18,15 @@
 #include <memory>
 #include <system_error>
 
-#include "boost/noncopyable.hpp"
+#include <boost/noncopyable.hpp>
 
-#include "coral/config.h"
-#include "coral/model.hpp"
-#include "coral/net.hpp"
+#include <coral/config.h>
+#include <coral/model.hpp>
+#include <coral/net.hpp>
 
-#include "coral/bus/execution_manager.hpp"
-#include "coral/bus/slave_controller.hpp"
-#include "coral/bus/slave_setup.hpp"
+#include <coral/bus/execution_manager.hpp>
+#include <coral/bus/slave_controller.hpp>
+#include <coral/bus/slave_setup.hpp>
 
 
 namespace coral

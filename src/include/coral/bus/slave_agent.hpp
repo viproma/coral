@@ -15,18 +15,18 @@
 #include <string>
 #include <vector>
 
-#include "boost/bimap.hpp"
-#include "boost/bimap/multiset_of.hpp"
-#include "zmq.hpp"
+#include <boost/bimap.hpp>
+#include <boost/bimap/multiset_of.hpp>
+#include <zmq.hpp>
 
-#include "coral/config.h"
-#include "coral/bus/variable_io.hpp"
-#include "coral/model.hpp"
-#include "coral/net.hpp"
-#include "coral/net/reactor.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/slave/instance.hpp"
-#include "execution.pb.h"
+#include <coral/config.h>
+#include <coral/bus/variable_io.hpp>
+#include <coral/model.hpp>
+#include <coral/net.hpp>
+#include <coral/net/reactor.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/slave/instance.hpp>
+#include <execution.pb.h>
 
 
 namespace coral

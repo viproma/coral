@@ -17,8 +17,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "coral/model.hpp"
-#include "coral/net.hpp"
+#include <coral/model.hpp>
+#include <coral/net.hpp>
 
 
 // Forward declaration to avoid dependency on ZMQ headers

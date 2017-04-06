@@ -2,8 +2,8 @@
 #include <string>
 #include <typeinfo> // std::bad_cast
 
-#include "gtest/gtest.h"
-#include "coral/net/zmqx.hpp"
+#include <gtest/gtest.h>
+#include <coral/net/zmqx.hpp>
 
 using namespace coral::net::zmqx;
 

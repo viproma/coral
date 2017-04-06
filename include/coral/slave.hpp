@@ -10,10 +10,10 @@
 #ifndef CORAL_SLAVE_HPP_INCLUDED
 #define CORAL_SLAVE_HPP_INCLUDED
 
-#include "coral/slave/exception.hpp"
-#include "coral/slave/instance.hpp"
-#include "coral/slave/logging.hpp"
-#include "coral/slave/runner.hpp"
+#include <coral/slave/exception.hpp>
+#include <coral/slave/instance.hpp>
+#include <coral/slave/logging.hpp>
+#include <coral/slave/runner.hpp>
 
 
 namespace coral

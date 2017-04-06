@@ -4,7 +4,7 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/net/ip.hpp"
+#include <coral/net/ip.hpp>
 
 #ifdef _WIN32
 #   define WIN32_LEAN_AND_MEAN
@@ -26,7 +26,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #   endif
 #   include <sys/socket.h>
 
-#   include "coral/util.hpp"
+#   include <coral/util.hpp>
 #endif
 
 

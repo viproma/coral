@@ -1,5 +1,5 @@
-#include "gtest/gtest.h"
-#include "coral/util.hpp"
+#include <gtest/gtest.h>
+#include <coral/util.hpp>
 #include <functional>
 #include <stdexcept>
 #include <vector>

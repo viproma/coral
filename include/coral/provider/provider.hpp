@@ -17,8 +17,8 @@
 #include <thread>
 #include <vector>
 
-#include "coral/config.h"
-#include "coral/provider/slave_creator.hpp"
+#include <coral/config.h>
+#include <coral/provider/slave_creator.hpp>
 
 
 // Forward declaration to avoid dependency on ZMQ headers

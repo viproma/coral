@@ -18,14 +18,14 @@
 #include <thread>
 #include <utility>
 
-#include "zmq.hpp"
+#include <zmq.hpp>
 
-#include "coral/config.h"
-#include "coral/error.hpp"
-#include "coral/log.hpp"
-#include "coral/net/reactor.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/util.hpp"
+#include <coral/config.h>
+#include <coral/error.hpp>
+#include <coral/log.hpp>
+#include <coral/net/reactor.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/util.hpp>
 
 
 namespace coral

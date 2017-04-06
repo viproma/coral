@@ -13,8 +13,8 @@
 #include <chrono>
 #include <string>
 
-#include "coral/model.hpp"
-#include "coral/net.hpp"
+#include <coral/model.hpp>
+#include <coral/net.hpp>
 
 
 namespace coral

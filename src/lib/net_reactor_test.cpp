@@ -1,6 +1,6 @@
 #include <thread>
-#include "gtest/gtest.h"
-#include "coral/net/reactor.hpp"
+#include <gtest/gtest.h>
+#include <coral/net/reactor.hpp>
 
 using namespace coral::net;
 

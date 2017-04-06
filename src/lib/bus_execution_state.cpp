@@ -5,7 +5,7 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 #define NOMINMAX
-#include "coral/bus/execution_state.hpp"
+#include <coral/bus/execution_state.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -15,11 +15,11 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <unordered_map>
 
-#include "coral/bus/execution_manager_private.hpp"
-#include "coral/bus/slave_control_messenger.hpp"
-#include "coral/bus/slave_controller.hpp"
-#include "coral/log.hpp"
-#include "coral/util.hpp"
+#include <coral/bus/execution_manager_private.hpp>
+#include <coral/bus/slave_control_messenger.hpp>
+#include <coral/bus/slave_controller.hpp>
+#include <coral/log.hpp>
+#include <coral/util.hpp>
 
 
 namespace coral

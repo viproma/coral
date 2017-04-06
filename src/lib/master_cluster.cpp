@@ -4,24 +4,24 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/master/cluster.hpp"
+#include <coral/master/cluster.hpp>
 
 #include <cassert>
 #include <unordered_map>
 
-#include "zmq.hpp"
+#include <zmq.hpp>
 
-#include "coral/async.hpp"
-#include "coral/bus/slave_provider_comm.hpp"
-#include "coral/error.hpp"
-#include "coral/log.hpp"
-#include "coral/net/reactor.hpp"
-#include "coral/net/service.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/protocol/glue.hpp"
-#include "coral/util.hpp"
+#include <coral/async.hpp>
+#include <coral/bus/slave_provider_comm.hpp>
+#include <coral/error.hpp>
+#include <coral/log.hpp>
+#include <coral/net/reactor.hpp>
+#include <coral/net/service.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/protocol/glue.hpp>
+#include <coral/util.hpp>
 
-#include "domain.pb.h"
+#include <domain.pb.h>
 
 
 namespace coral

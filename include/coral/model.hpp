@@ -17,10 +17,10 @@
 #include <string>
 #include <vector>
 
-#include "boost/range/adaptor/map.hpp"
-#include "boost/variant.hpp"
+#include <boost/range/adaptor/map.hpp>
+#include <boost/variant.hpp>
 
-#include "coral/config.h"
+#include <coral/config.h>
 
 
 namespace coral

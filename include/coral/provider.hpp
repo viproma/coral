@@ -11,8 +11,8 @@
 #ifndef CORAL_PROVIDER_HPP_INCLUDED
 #define CORAL_PROVIDER_HPP_INCLUDED
 
-#include "coral/provider/provider.hpp"
-#include "coral/provider/slave_creator.hpp"
+#include <coral/provider/provider.hpp>
+#include <coral/provider/slave_creator.hpp>
 
 
 namespace coral

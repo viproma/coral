@@ -14,9 +14,9 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <utility>
 #include <vector>
-#include "coral/config.h"
-#include "coral/master.hpp"
-#include "coral/model.hpp"
+#include <coral/config.h>
+#include <coral/master.hpp>
+#include <coral/model.hpp>
 
 
 struct SimulationEvent

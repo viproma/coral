@@ -11,8 +11,8 @@
 #define CORAL_LOG_HPP
 
 #include <string>
-#include "boost/format.hpp"
-#include "coral/config.h"
+#include <boost/format.hpp>
+#include <coral/config.h>
 
 
 namespace coral
