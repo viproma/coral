@@ -7,11 +7,11 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #ifdef _WIN32
 #   define NOMINMAX
 #endif
-#include "coral/net/reactor.hpp"
+#include <coral/net/reactor.hpp>
 
 #include <algorithm>
 #include <stdexcept>
-#include "coral/util.hpp"
+#include <coral/util.hpp>
 
 
 namespace coral

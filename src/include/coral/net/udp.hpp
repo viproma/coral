@@ -20,8 +20,8 @@
 #include <memory>
 #include <string>
 
-#include "coral/config.h"
-#include "coral/net.hpp"
+#include <coral/config.h>
+#include <coral/net.hpp>
 
 
 namespace coral

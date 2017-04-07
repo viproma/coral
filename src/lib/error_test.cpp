@@ -1,7 +1,7 @@
 #include <cerrno>
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
-#include "coral/error.hpp"
+#include <coral/error.hpp>
 
 
 TEST(coral_error, ErrnoMessage)

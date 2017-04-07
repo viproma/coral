@@ -4,20 +4,20 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/bus/slave_agent.hpp"
+#include <coral/bus/slave_agent.hpp>
 
 #include <cassert>
 #include <limits>
 #include <utility>
 
-#include "coral/error.hpp"
-#include "coral/log.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/protobuf.hpp"
-#include "coral/protocol/execution.hpp"
-#include "coral/protocol/glue.hpp"
-#include "coral/slave/exception.hpp"
-#include "coral/util.hpp"
+#include <coral/error.hpp>
+#include <coral/log.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/protobuf.hpp>
+#include <coral/protocol/execution.hpp>
+#include <coral/protocol/glue.hpp>
+#include <coral/slave/exception.hpp>
+#include <coral/util.hpp>
 
 
 namespace

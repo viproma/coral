@@ -11,8 +11,8 @@
 #define CORAL_PROTOBUF_HPP
 
 #include <stdexcept>
-#include "google/protobuf/message_lite.h"
-#include "zmq.hpp"
+#include <google/protobuf/message_lite.h>
+#include <zmq.hpp>
 
 
 namespace coral

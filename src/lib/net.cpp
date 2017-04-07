@@ -7,7 +7,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #ifdef _WIN32
 #   define WIN32_LEAN_AND_MEAN
 #endif
-#include "coral/net.hpp"
+#include <coral/net.hpp>
 
 #ifdef _WIN32
 #   include <ws2tcpip.h>
@@ -19,11 +19,11 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <stdexcept>
 #include <utility>
 
-#include "zmq.hpp"
+#include <zmq.hpp>
 
-#include "coral/error.hpp"
-#include "coral/net/ip.hpp"
-#include "coral/net/zmqx.hpp"
+#include <coral/error.hpp>
+#include <coral/net/ip.hpp>
+#include <coral/net/zmqx.hpp>
 
 
 namespace coral

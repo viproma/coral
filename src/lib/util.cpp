@@ -4,7 +4,7 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/util.hpp"
+#include <coral/util.hpp>
 
 #ifdef _WIN32
 #   include <Windows.h>
@@ -18,13 +18,13 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <ctime>
 #include <iomanip>
 
-#include "boost/filesystem.hpp"
-#include "boost/foreach.hpp"
-#include "boost/numeric/conversion/cast.hpp"
-#include "boost/random/random_device.hpp"
-#include "boost/random/uniform_int_distribution.hpp"
-#include "boost/uuid/random_generator.hpp"
-#include "boost/uuid/uuid_io.hpp"
+#include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
+#include <boost/numeric/conversion/cast.hpp>
+#include <boost/random/random_device.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 
 void coral::util::EncodeUint16(std::uint16_t source, char target[2])

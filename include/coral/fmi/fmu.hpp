@@ -10,8 +10,8 @@
 #ifndef CORAL_FMI_FMU_HPP
 #define CORAL_FMI_FMU_HPP
 
-#include "coral/model.hpp"
-#include "coral/slave/instance.hpp"
+#include <coral/model.hpp>
+#include <coral/slave/instance.hpp>
 
 
 namespace coral

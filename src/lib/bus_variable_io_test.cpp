@@ -8,14 +8,14 @@
 #include <utility>
 #include <vector>
 
-#include "boost/chrono/duration.hpp"
-#include "boost/thread/barrier.hpp"
-#include "boost/thread/latch.hpp"
-#include "gtest/gtest.h"
+#include <boost/chrono/duration.hpp>
+#include <boost/thread/barrier.hpp>
+#include <boost/thread/latch.hpp>
+#include <gtest/gtest.h>
 
-#include "coral/bus/variable_io.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/util.hpp"
+#include <coral/bus/variable_io.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/util.hpp>
 
 
 namespace

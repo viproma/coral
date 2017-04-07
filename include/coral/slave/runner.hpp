@@ -12,9 +12,9 @@
 
 #include <chrono>
 #include <memory>
-#include "coral/config.h"
-#include "coral/net.hpp"
-#include "coral/slave/instance.hpp"
+#include <coral/config.h>
+#include <coral/net.hpp>
+#include <coral/slave/instance.hpp>
 
 
 namespace coral

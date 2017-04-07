@@ -13,8 +13,8 @@
 #include <ostream>
 #include <string>
 #include <vector>
-#include "boost/optional.hpp"
-#include "boost/program_options.hpp"
+#include <boost/optional.hpp>
+#include <boost/program_options.hpp>
 
 namespace coral
 {

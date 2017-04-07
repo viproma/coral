@@ -4,16 +4,16 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/slave/logging.hpp"
+#include <coral/slave/logging.hpp>
 
 #include <cassert>
 #include <cerrno>
 #include <ios>
 #include <stdexcept>
 
-#include "coral/error.hpp"
-#include "coral/log.hpp"
-#include "coral/util.hpp"
+#include <coral/error.hpp>
+#include <coral/log.hpp>
+#include <coral/util.hpp>
 
 
 namespace coral

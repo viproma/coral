@@ -7,7 +7,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #ifdef _WIN32
 #   define NOMINMAX
 #endif
-#include "coral/net/service.hpp"
+#include <coral/net/service.hpp>
 
 #include <algorithm> // std::copy
 #include <cassert>
@@ -17,14 +17,14 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <utility>
 #include <vector>
 
-#include "boost/numeric/conversion/cast.hpp"
+#include <boost/numeric/conversion/cast.hpp>
 
-#include "coral/error.hpp"
-#include "coral/log.hpp"
-#include "coral/net/ip.hpp"
-#include "coral/net/udp.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/util.hpp"
+#include <coral/error.hpp>
+#include <coral/log.hpp>
+#include <coral/net/ip.hpp>
+#include <coral/net/udp.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/util.hpp>
 
 
 namespace coral

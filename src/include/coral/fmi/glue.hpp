@@ -10,8 +10,8 @@
 #ifndef CORAL_FMI_GLUE_HPP
 #define CORAL_FMI_GLUE_HPP
 
-#include "fmilib.h"
-#include "coral/model.hpp"
+#include <fmilib.h>
+#include <coral/model.hpp>
 
 
 namespace coral

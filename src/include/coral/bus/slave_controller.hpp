@@ -16,12 +16,12 @@
 #include <system_error>
 #include <vector>
 
-#include "coral/config.h"
-#include "coral/bus/slave_control_messenger.hpp"
-#include "coral/bus/slave_setup.hpp"
-#include "coral/net/reactor.hpp"
-#include "coral/model.hpp"
-#include "coral/net.hpp"
+#include <coral/config.h>
+#include <coral/bus/slave_control_messenger.hpp>
+#include <coral/bus/slave_setup.hpp>
+#include <coral/net/reactor.hpp>
+#include <coral/model.hpp>
+#include <coral/net.hpp>
 
 
 namespace coral

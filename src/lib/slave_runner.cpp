@@ -4,16 +4,16 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/slave/runner.hpp"
+#include <coral/slave/runner.hpp>
 
 #include <utility>
 #include <vector>
 
-#include "zmq.hpp"
+#include <zmq.hpp>
 
-#include "coral/bus/slave_agent.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/util.hpp"
+#include <coral/bus/slave_agent.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/util.hpp>
 
 
 namespace coral

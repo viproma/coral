@@ -10,12 +10,12 @@
 #ifndef CORAL_PROTOCOL_GLUE_HPP
 #define CORAL_PROTOCOL_GLUE_HPP
 
-#include "coral/model.hpp"
-#include "model.pb.h"
-#include "net.pb.h"
+#include <coral/model.hpp>
+#include <model.pb.h>
+#include <net.pb.h>
 
-#include "coral/net.hpp"
-#include "domain.pb.h"
+#include <coral/net.hpp>
+#include <domain.pb.h>
 
 
 namespace coral

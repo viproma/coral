@@ -4,14 +4,14 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/protocol/domain.hpp"
+#include <coral/protocol/domain.hpp>
 
 #include <cstring>
 
-#include "coral/error.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/protobuf.hpp"
-#include "coral/util.hpp"
+#include <coral/error.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/protobuf.hpp>
+#include <coral/util.hpp>
 
 namespace dp = coral::protocol::domain;
 
