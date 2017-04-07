@@ -9,7 +9,7 @@ and will be combined with a dependency on the libjs-mathjax package.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/cmake/Doxyfile.in b/cmake/Doxyfile.in
-index 8cac84d..9a8bd76 100755
+index 8cac84d..9a8bd76 100644
 --- a/cmake/Doxyfile.in
 +++ b/cmake/Doxyfile.in
 @@ -1461,7 +1461,7 @@ MATHJAX_FORMAT         = HTML-CSS

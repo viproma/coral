@@ -1,5 +1,1 @@
-0001-Remove-old-debug-output.patch
-0002-Add-option-to-disable-testing.patch
-0003-Install-README-and-similar-to-doc-dir.patch
-0004-Put-zmq.hpp-in-the-repository-not-as-a-submodule.patch
-0005-Use-local-MathJax-installation.patch
+0001-Use-local-MathJax-installation.patch
