@@ -1,3 +1,9 @@
+coral (0.8.0-1) experimental; urgency=low
+
+  * (No Debian-specific changes.)
+
+ -- Lars T. Kyllingstad <lars.kyllingstad@sintef.no>  Fri, 07 Apr 2017 11:15:52 +0200
+
 coral (0.7.1-1) experimental; urgency=high
 
   * Add build dependency on libprotobuf-dev
