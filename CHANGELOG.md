@@ -26,6 +26,9 @@ list the bigger ones.
 ### Changed
   - A negative number may now be given for any communication timeout,
     which will disable the timeout entirely.
+  - The default network interface in coralmaster and coralslaveprovider
+    has been changed from `*` to `127.0.0.1`.
+    (See issue [#20](https://github.com/viproma/coral/issues/20).)
 
 ## [0.7.1] – 2017-03-09
 ### Fixed
