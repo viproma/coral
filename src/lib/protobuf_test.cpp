@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
-#include "coral/protobuf.hpp"
-#include "testing.pb.h"
+#include <gtest/gtest.h>
+#include <coral/protobuf.hpp>
+#include <testing.pb.h>
 
 
 using namespace coral::protobuf;

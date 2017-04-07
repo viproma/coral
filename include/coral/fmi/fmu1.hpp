@@ -14,12 +14,12 @@
 #include <string>
 #include <vector>
 
-#include "boost/filesystem/path.hpp"
+#include <boost/filesystem/path.hpp>
 
-#include "coral/config.h"
-#include "coral/fmi/fmu.hpp"
-#include "coral/fmi/importer.hpp"
-#include "coral/model.hpp"
+#include <coral/config.h>
+#include <coral/fmi/fmu.hpp>
+#include <coral/fmi/importer.hpp>
+#include <coral/model.hpp>
 
 
 // Forward declarations to avoid external dependency on FMI Library
@@ -32,6 +32,9 @@ namespace coral
 namespace fmi
 {
 
+#ifdef _WIN32
+class AdditionalPath;
+#endif
 class SlaveInstance1;
 
 
@@ -104,7 +107,6 @@ private:
 
 #ifdef _WIN32
     // Workaround for VIPROMA-67 (FMU DLL search paths on Windows).
-    class AdditionalPath;
     std::unique_ptr<AdditionalPath> m_additionalDllSearchPath;
 #endif
 };

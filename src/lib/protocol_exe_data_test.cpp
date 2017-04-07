@@ -1,5 +1,5 @@
-#include "gtest/gtest.h"
-#include "coral/protocol/exe_data.hpp"
+#include <gtest/gtest.h>
+#include <coral/protocol/exe_data.hpp>
 
 namespace ed = coral::protocol::exe_data;
 

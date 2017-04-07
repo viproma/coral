@@ -5,14 +5,14 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 #define NOMINMAX
-#include "coral/net/zmqx.hpp"
+#include <coral/net/zmqx.hpp>
 
 #include <cassert>
 #include <stdexcept>
 #include <utility>
 
-#include "coral/config.h"
-#include "coral/error.hpp"
+#include <coral/config.h>
+#include <coral/error.hpp>
 
 
 namespace coral

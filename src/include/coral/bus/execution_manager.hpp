@@ -17,16 +17,16 @@
 #include <utility>
 #include <vector>
 
-#include "boost/noncopyable.hpp"
+#include <boost/noncopyable.hpp>
 
-#include "coral/config.h"
-#include "coral/master/execution_options.hpp"
-#include "coral/model.hpp"
-#include "coral/net.hpp"
+#include <coral/config.h>
+#include <coral/master/execution_options.hpp>
+#include <coral/model.hpp>
+#include <coral/net.hpp>
 
-#include "coral/bus/slave_controller.hpp"
-#include "coral/bus/slave_setup.hpp"
-#include "coral/net/reactor.hpp"
+#include <coral/bus/slave_controller.hpp>
+#include <coral/bus/slave_setup.hpp>
+#include <coral/net/reactor.hpp>
 
 
 namespace coral
@@ -120,7 +120,7 @@ public:
         Contains information about the slaves on output.
     \param [in] commTimeout
         The communications timeout used to detect loss of communication
-        with the slaves.
+        with the slaves.  A negative value means no timeout.
     \param [in] onComplete
         Handler callback which is called when the entire operation is
         complete.
@@ -155,7 +155,7 @@ public:
         entry per slave.
     \param [in] commTimeout
         The communications timeout used to detect loss of communication
-        with the slaves.
+        with the slaves.  A negative value means no timeout.
     \param [in] onComplete
         Handler callback which is called when the entire operation is
         complete.

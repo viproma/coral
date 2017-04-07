@@ -1,8 +1,8 @@
 #include <memory>
 #include <thread>
-#include "gtest/gtest.h"
-#include "coral/net/reqrep.hpp"
-#include "coral/util.hpp"
+#include <gtest/gtest.h>
+#include <coral/net/reqrep.hpp>
+#include <coral/util.hpp>
 
 
 namespace dnr = coral::net::reqrep;

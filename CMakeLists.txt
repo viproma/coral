@@ -24,6 +24,9 @@ option (CORAL_ENABLE_TRACE_LOGGING
 option (FMILIB_USE_SHARED_LIB
         "Whether to link against the shared library version of FMI Library"
         ON)
+option (CORAL_BUILD_TESTS
+        "Whether to build tests"
+        ON)
 
 # ==============================================================================
 # Common variables
@@ -52,11 +55,9 @@ set (headerInstallDir "include")
 if (WIN32)
     set (cmakeFilesInstallDir "cmake")
     set (docInstallDir        "doc")
-    set (readmeInstallDir     "doc")
 else ()
     set (cmakeFilesInstallDir "share/${CMAKE_PROJECT_NAME}/cmake")
     set (docInstallDir        "share/doc/${CMAKE_PROJECT_NAME}")
-    set (readmeInstallDir     "share/${CMAKE_PROJECT_NAME}")
 endif ()
 
 # The export name to use for libraries.
@@ -83,8 +84,19 @@ elseif (MSVC)
     # disabled by compiler option /W0.
     add_compile_options("/wd4996")
     add_definitions("-D_SCL_SECURE_NO_WARNINGS")
+
+    # Use a Boost-like library naming convention where toolchain version and
+    # ABI is encoded in the name.
+    if (MSVC_VERSION LESS 1900)
+        math (EXPR vcVersion "(${MSVC_VERSION}-600)/10")
+    else ()
+        math (EXPR vcVersion "(${MSVC_VERSION}-500)/10")
+    endif ()
+    set (CMAKE_DEBUG_POSTFIX          "-vc${vcVersion}-gd")
+    set (CMAKE_RELEASE_POSTFIX        "-vc${vcVersion}")
+    set (CMAKE_RELWITHDEBINFO_POSTFIX "-vc${vcVersion}")
+    set (CMAKE_MINSIZEREL_POSTFIX     "-vc${vcVersion}")
 endif()
-set (CMAKE_DEBUG_POSTFIX "_d")
 
 # Boost settings
 # Note that find_package(Boost) has to be called for the individual
@@ -118,10 +130,12 @@ set (versionPatch "${CMAKE_MATCH_1}")
 # whatnot.  (Otherwise it would be defined in proto/CMakeLists.txt.)
 cmake_policy (SET CMP0022 NEW)
 
-# Enable testing and load Google Test
-enable_testing ()
-set (gtest_force_shared_crt ON CACHE INTERNAL "Google Test setting override")
-add_subdirectory ("external/gtest-1.7.0")
+if (CORAL_BUILD_TESTS)
+    # Enable testing and load Google Test
+    enable_testing ()
+    set (gtest_force_shared_crt ON CACHE INTERNAL "Google Test setting override")
+    add_subdirectory ("external/gtest-1.7.0")
+endif ()
 
 # Allow local CMake modules (e.g. find scripts) under cmake/
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -187,9 +201,9 @@ install (EXPORT ${exportTarget} DESTINATION ${cmakeFilesInstallDir})
 
 # Other files
 set (readmeFile "${CMAKE_SOURCE_DIR}/README.md")
-install (FILES ${readmeFile} DESTINATION ${readmeInstallDir})
+install (FILES ${readmeFile} DESTINATION ${docInstallDir})
 set (licenceFile "${CMAKE_SOURCE_DIR}/LICENCE.txt")
-install (FILES ${licenceFile} DESTINATION ${readmeInstallDir})
+install (FILES ${licenceFile} DESTINATION ${docInstallDir})
 install (DIRECTORY "${CMAKE_SOURCE_DIR}/manuals/" DESTINATION ${docInstallDir})
 
 install (FILES

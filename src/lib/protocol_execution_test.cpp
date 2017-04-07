@@ -1,9 +1,9 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include <cstring>
-#include "coral/protocol/execution.hpp"
-#include "coral/error.hpp"
-#include "coral/protobuf.hpp"
-#include "testing.pb.h"
+#include <coral/protocol/execution.hpp>
+#include <coral/error.hpp>
+#include <coral/protobuf.hpp>
+#include <testing.pb.h>
 
 using namespace coral::protocol::execution;
 

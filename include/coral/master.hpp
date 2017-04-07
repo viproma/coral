@@ -10,8 +10,8 @@
 #ifndef CORAL_MASTER_HPP_INCLUDED
 #define CORAL_MASTER_HPP_INCLUDED
 
-#include "coral/master/cluster.hpp"
-#include "coral/master/execution.hpp"
+#include <coral/master/cluster.hpp>
+#include <coral/master/execution.hpp>
 
 
 namespace coral

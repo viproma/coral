@@ -4,10 +4,15 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/net/zmqx.hpp"
+#ifdef _WIN32
+#   define NOMINMAX
+#endif
 
-#include "coral/config.h"
-#include "coral/error.hpp"
+#include <coral/net/zmqx.hpp>
+
+#include <algorithm>
+#include <coral/config.h>
+#include <coral/error.hpp>
 
 
 namespace
@@ -17,9 +22,9 @@ namespace
         short events,
         std::chrono::milliseconds timeout)
     {
-        assert(timeout >= std::chrono::milliseconds(0));
+        const auto timeout_ms = std::max(static_cast<long>(timeout.count()), -1L);
         auto pollItem = zmq::pollitem_t{static_cast<void*>(socket), 0, events, 0};
-        return zmq::poll(&pollItem, 1, static_cast<long>(timeout.count())) == 1;
+        return zmq::poll(&pollItem, 1, timeout_ms) == 1;
     }
 }
 
@@ -28,7 +33,6 @@ bool coral::net::zmqx::WaitForOutgoing(
     zmq::socket_t& socket,
     std::chrono::milliseconds timeout)
 {
-    CORAL_INPUT_CHECK(timeout >= std::chrono::milliseconds(0));
     return PollSingleSocket(socket, ZMQ_POLLOUT, timeout);
 }
 
@@ -37,7 +41,6 @@ bool coral::net::zmqx::WaitForIncoming(
     zmq::socket_t& socket,
     std::chrono::milliseconds timeout)
 {
-    CORAL_INPUT_CHECK(timeout >= std::chrono::milliseconds(0));
     return PollSingleSocket(socket, ZMQ_POLLIN, timeout);
 }
 

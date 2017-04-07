@@ -14,14 +14,14 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <stdexcept>
 #include <string>
 
-#include "boost/filesystem.hpp"
-#include "zmq.hpp"
+#include <boost/filesystem.hpp>
+#include <zmq.hpp>
 
-#include "coral/fmi/fmu.hpp"
-#include "coral/fmi/importer.hpp"
-#include "coral/log.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/slave.hpp"
+#include <coral/fmi/fmu.hpp>
+#include <coral/fmi/importer.hpp>
+#include <coral/log.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/slave.hpp>
 
 
 /*

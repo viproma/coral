@@ -5,17 +5,17 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 #define NOMINMAX
-#include "coral/bus/execution_manager_private.hpp"
+#include <coral/bus/execution_manager_private.hpp>
 
 #include <cassert>
 #include <typeinfo>
 #include <utility>
 
-#include "boost/numeric/conversion/cast.hpp"
+#include <boost/numeric/conversion/cast.hpp>
 
-#include "coral/bus/execution_state.hpp"
-#include "coral/log.hpp"
-#include "coral/util.hpp"
+#include <coral/bus/execution_state.hpp>
+#include <coral/log.hpp>
+#include <coral/util.hpp>
 
 
 namespace coral
@@ -92,10 +92,21 @@ void ExecutionManagerPrivate::Step(
     ExecutionManager::SlaveStepHandler onSlaveStepComplete)
 {
     if (m_resendVarsNeeded) {
+        auto resendTimeout = 2*slaveSetup.variableRecvTimeout;
+        if (resendTimeout < std::chrono::milliseconds(0)) {
+            coral::master::ExecutionOptions defaults;
+            resendTimeout = 2*defaults.slaveVariableRecvTimeout;
+            CORAL_LOG_DEBUG(boost::format(
+                "Slave-to-slave variable receive timeout is negative "
+                "(aka. infinite), and we cannot use that to detect when "
+                "slaves are all reconnected to each other. Using default "
+                "value (%d ms).")
+                % resendTimeout.count());
+        }
         m_state->ResendVars(
             *this,
             3,
-            2*slaveSetup.variableRecvTimeout,
+            resendTimeout,
             [=] (const std::error_code& ec)
             {
                 if (!ec) {

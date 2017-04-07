@@ -15,10 +15,10 @@
 #include <stdexcept>
 #include <string>
 
-#include "boost/filesystem/path.hpp"
-#include "boost/optional.hpp"
+#include <boost/filesystem/path.hpp>
+#include <boost/optional.hpp>
 
-#include "coral/config.h"
+#include <coral/config.h>
 
 
 // Forward declarations to avoid dependency on zip.h

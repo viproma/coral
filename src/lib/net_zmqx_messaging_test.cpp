@@ -1,7 +1,7 @@
 #include <chrono>
 #include <cstring>
-#include "gtest/gtest.h"
-#include "coral/net/zmqx.hpp"
+#include <gtest/gtest.h>
+#include <coral/net/zmqx.hpp>
 
 using namespace coral::net::zmqx;
 

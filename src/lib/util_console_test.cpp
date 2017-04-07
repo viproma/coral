@@ -1,6 +1,6 @@
 #include <sstream>
-#include "gtest/gtest.h"
-#include "coral/util/console.hpp"
+#include <gtest/gtest.h>
+#include <coral/util/console.hpp>
 
 
 TEST(coral_util, CommandLine)

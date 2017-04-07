@@ -17,10 +17,10 @@
 #include <string>
 #include <vector>
 
-#include "zmq.hpp"
+#include <zmq.hpp>
 
-#include "coral/config.h"
-#include "coral/net.hpp"
+#include <coral/config.h>
+#include <coral/net.hpp>
 
 
 namespace coral
@@ -78,8 +78,9 @@ std::uint16_t EndpointPort(const std::string& endpoint);
 \brief  Waits up to `timeout` milliseconds to see if a message may be enqueued
         on `socket`.
 
+If `timeout` is negative, the function will wait indefinitely.
+
 \returns whether a message may be immediately enqueued on `socket`.
-\throws std::invalid_argument if `timeout` is negative.
 \throws zmq::error_t on communications error.
 */
 bool WaitForOutgoing(zmq::socket_t& socket, std::chrono::milliseconds timeout);
@@ -88,8 +89,9 @@ bool WaitForOutgoing(zmq::socket_t& socket, std::chrono::milliseconds timeout);
 /**
 \brief  Waits up to `timeout` milliseconds for incoming messages on `socket`.
 
+If `timeout` is negative, the function will wait indefinitely.
+
 \returns whether there are incoming messages on `socket`.
-\throws std::invalid_argument if `timeout` is negative.
 \throws zmq::error_t on communications error.
 */
 bool WaitForIncoming(zmq::socket_t& socket, std::chrono::milliseconds timeout);

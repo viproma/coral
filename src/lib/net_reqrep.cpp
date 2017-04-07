@@ -4,11 +4,11 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/net/reqrep.hpp"
+#include <coral/net/reqrep.hpp>
 
-#include "coral/error.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/util.hpp"
+#include <coral/error.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/util.hpp>
 
 
 namespace coral
@@ -84,7 +84,9 @@ void Client::Request(
         requestHeader, requestHeaderSize,
         requestBody, requestBodySize,
         timeout);
-    SetTimer(timeout);
+    if (timeout >= std::chrono::milliseconds(0)) {
+        SetTimer(timeout);
+    }
     m_requestProtocolVersion = protocolVersion;
     m_onComplete = std::move(onComplete);
 }
@@ -104,7 +106,9 @@ void Client::RequestMaxProtocol(
         META_REQ_MAX_PROTOCOL_VERSION.data(), META_REQ_MAX_PROTOCOL_VERSION.size(),
         m_protocolIdentifier.data(), m_protocolIdentifier.size(),
         timeout);
-    SetTimer(timeout);
+    if (timeout >= std::chrono::milliseconds(0)) {
+        SetTimer(timeout);
+    }
     m_requestProtocolVersion = protocolVersion;
     m_onMaxProtocolComplete = std::move(onComplete);
 }
@@ -117,6 +121,7 @@ void Client::SendRequest(
     std::chrono::milliseconds timeout)
 {
     assert(!protocolIdentifier.empty());
+    assert(protocolVersion != INVALID_PROTOCOL_VERSION);
     assert(requestHeader != nullptr);
 
     std::vector<zmq::message_t> msg;
@@ -177,7 +182,7 @@ void Client::ReceiveReply()
     m_socket.Receive(msg);
     if (!m_onComplete && !m_onMaxProtocolComplete) return;
 
-    CancelTimer();
+    if (m_timeoutTimerID != NO_TIMER) CancelTimer();
 
     if (msg.size() < 2 || msg[0].size() < 3) {
         CompleteWithError(make_error_code(std::errc::bad_message));
@@ -226,6 +231,7 @@ void Client::CompleteWithError(const std::error_code& ec)
 void Client::SetTimer(std::chrono::milliseconds timeout)
 {
     assert(m_timeoutTimerID == NO_TIMER);
+    assert(timeout >= std::chrono::milliseconds(0));
     m_timeoutTimerID = m_reactor.AddTimer(timeout, 1,
         [this] (coral::net::Reactor&, int) {
             m_timeoutTimerID = NO_TIMER;

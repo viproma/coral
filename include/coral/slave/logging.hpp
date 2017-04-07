@@ -14,7 +14,7 @@
 #include <memory>
 #include <string>
 
-#include "coral/slave/instance.hpp"
+#include <coral/slave/instance.hpp>
 
 
 namespace coral

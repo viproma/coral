@@ -13,15 +13,15 @@
 #include <chrono>
 #include <memory>
 
-#include "coral/config.h"
-#include "coral/bus/slave_control_messenger.hpp"
-#include "coral/bus/slave_setup.hpp"
-#include "coral/model.hpp"
-#include "coral/net.hpp"
-#include "coral/net/reactor.hpp"
-#include "coral/net/zmqx.hpp"
+#include <coral/config.h>
+#include <coral/bus/slave_control_messenger.hpp>
+#include <coral/bus/slave_setup.hpp>
+#include <coral/model.hpp>
+#include <coral/net.hpp>
+#include <coral/net/reactor.hpp>
+#include <coral/net/zmqx.hpp>
 
-#include "boost/variant.hpp"
+#include <boost/variant.hpp>
 
 
 // Forward declaration to avoid header dependency

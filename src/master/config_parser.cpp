@@ -13,13 +13,13 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <utility>
 #include <vector>
 
-#include "boost/foreach.hpp"
-#include "boost/lexical_cast.hpp"
-#include "boost/numeric/conversion/cast.hpp"
-#include "boost/property_tree/info_parser.hpp"
-#include "boost/property_tree/ptree.hpp"
+#include <boost/foreach.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/numeric/conversion/cast.hpp>
+#include <boost/property_tree/info_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
-#include "coral/log.hpp"
+#include <coral/log.hpp>
 
 
 SimulationEvent::SimulationEvent(
@@ -371,7 +371,8 @@ void ParseSystemConfig(
     std::vector<SimulationEvent>& scenarioOut,
     std::chrono::milliseconds commTimeout,
     std::chrono::milliseconds instantiationTimeout,
-    std::ostream* warningLog)
+    std::ostream* warningLog,
+    std::function<void()> postInstantiationHook)
 {
     const auto ptree = ReadPtreeInfoFile(path);
     const auto slaveTypes = SlaveTypesByName(providers);
@@ -388,8 +389,7 @@ void ParseSystemConfig(
     std::vector<std::string> scenarioEventSlaveName; // We don't know IDs yet, so we keep a parallel list of names
     ParseScenarioNode(ptree, slaves, warningLog, scenario, scenarioEventSlaveName, varDescriptionCache);
 
-    // Add all the slaves to the execution and map their names to their
-    // numeric IDs.
+    // Instantiate the slaves
     std::vector<coral::master::AddedSlave> slavesToAdd;
     BOOST_FOREACH (const auto& slave, slaves) {
         slavesToAdd.emplace_back();
@@ -399,6 +399,10 @@ void ParseSystemConfig(
             instantiationTimeout);
         slavesToAdd.back().name = slave.first;
     }
+    if (postInstantiationHook) postInstantiationHook();
+
+    // Add the slaves to the execution and map their names to their
+    // numeric IDs.
     try {
         execution.Reconstitute(slavesToAdd, commTimeout);
     } catch (const std::runtime_error&) {
@@ -552,7 +556,9 @@ ExecutionConfig ParseExecutionConfig(const std::string& path)
     if (auto commTimeoutNode = ptree.get_child_optional("comm_timeout_ms")) {
         ec.commTimeout = std::chrono::milliseconds(
             commTimeoutNode->get_value<typename std::chrono::milliseconds::rep>());
-        if (ec.commTimeout <= std::chrono::milliseconds(0)) Error("Nonpositive comm_timeout_ms");
+        if (ec.commTimeout < std::chrono::milliseconds(-1)) {
+            Error("Invalid comm_timeout_ms");
+        }
     }
 
     if (auto stepTimeoutMultiplierNode = ptree.get_child_optional("step_timeout_multiplier")) {
@@ -565,7 +571,9 @@ ExecutionConfig ParseExecutionConfig(const std::string& path)
     if (auto instTimeoutNode = ptree.get_child_optional("instantiation_timeout_ms")) {
         ec.instantiationTimeout = std::chrono::milliseconds(
             instTimeoutNode->get_value<typename std::chrono::milliseconds::rep>());
-        if (ec.commTimeout <= std::chrono::milliseconds(0)) Error("Nonpositive instantiation_timeout_ms");
+        if (ec.instantiationTimeout < std::chrono::milliseconds(-1)) {
+            Error("Invalid instantiation_timeout_ms");
+        }
     }
     return ec;
 }

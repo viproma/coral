@@ -14,7 +14,7 @@
 #include <stdexcept>
 #include <string>
 #include <system_error>
-#include "coral/config.h"
+#include <coral/config.h>
 
 
 namespace coral

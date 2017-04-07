@@ -16,12 +16,12 @@
 #include <system_error>
 #include <vector>
 
-#include "coral/config.h"
-#include "coral/bus/slave_control_messenger.hpp"
-#include "coral/bus/slave_setup.hpp"
-#include "coral/net/reactor.hpp"
-#include "coral/model.hpp"
-#include "coral/net.hpp"
+#include <coral/config.h>
+#include <coral/bus/slave_control_messenger.hpp>
+#include <coral/bus/slave_setup.hpp>
+#include <coral/net/reactor.hpp>
+#include <coral/model.hpp>
+#include <coral/net.hpp>
 
 
 namespace coral
@@ -71,6 +71,7 @@ public:
         Slave configuration parameters.
     \param [in] timeout
         Max. allowed time for the slave to reply to each message sent to it.
+        A negative value means no time limit.
     \param [in] onComplete
         Completion handler.
     \param [in] maxConnectionAttempts
@@ -78,8 +79,7 @@ public:
         first one, so the value must be at least 1. The default is 3.
 
     \throws std::invalid_argument if `slaveLocator` is empty, if `slaveID` is
-        invalid, if `timeout` is less than 1 ms, if `onComplete` is empty,
-        or if `maxConnectionAttempts < 1`.
+        invalid, if `onComplete` is empty, or if `maxConnectionAttempts < 1`.
     */
     SlaveController(
         coral::net::Reactor& reactor,
@@ -125,7 +125,8 @@ public:
     \brief  Requests a description of the slave.
 
     \param [in] timeout
-        Max. allowed time for the operation to complete. Must be at least 1 ms.
+        Max. allowed time for the operation to complete.
+        A negative value means no time limit.
     \param [in] onComplete
         Completion handler. May not be empty.
     */
@@ -143,7 +144,8 @@ public:
     \param [in] settings
         A list of variable values and connections. May not be empty.
     \param [in] timeout
-        Max. allowed time for the operation to complete. Must be at least 1 ms.
+        Max. allowed time for the operation to complete.
+        A negative value means no time limit.
     \param [in] onComplete
         Completion handler.
     */
@@ -162,7 +164,8 @@ public:
     \param [in] peers
         A list of peer endpoint specifications.
     \param [in] timeout
-        Max. allowed time for the operation to complete. Must be at least 1 ms.
+        Max. allowed time for the operation to complete.
+        A negative value means no time limit.
     \param [in] onComplete
         Completion handler.
     */
@@ -179,7 +182,8 @@ public:
             values for all connected input variables.
 
     \param [in] timeout
-        Max. allowed time for the operation to complete. Must be at least 1 ms.
+        Max. allowed time for the operation to complete.
+        A negative value means no time limit.
     \param [in] onComplete
         Completion handler.
 
@@ -206,7 +210,8 @@ public:
     \param [in] deltaT
         The step size. Must be positive.
     \param [in] timeout
-        Max. allowed time for the operation to complete. Must be at least 1 ms.
+        Max. allowed time for the operation to complete.
+        A negative value means no time limit.
     \param [in] onComplete
         Completion handler.
     */
@@ -225,7 +230,8 @@ public:
             update its inputs with results from other slaves.
 
     \param [in] timeout
-        Max. allowed time for the operation to complete. Must be at least 1 ms.
+        Max. allowed time for the operation to complete.
+        A negative value means no time limit.
     \param [in] onComplete
         Completion handler.
     */

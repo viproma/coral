@@ -16,11 +16,11 @@
 #include <string>
 #include <thread>
 
-#include "zmq.hpp"
+#include <zmq.hpp>
 
-#include "coral/config.h"
-#include "coral/net.hpp"
-#include "coral/net/reactor.hpp"
+#include <coral/config.h>
+#include <coral/net.hpp>
+#include <coral/net/reactor.hpp>
 
 
 namespace coral

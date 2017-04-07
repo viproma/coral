@@ -15,18 +15,18 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <thread>
 #include <vector>
 
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 
-#include "coral/log.hpp"
-#include "coral/master.hpp"
-#include "coral/util/console.hpp"
+#include <coral/log.hpp>
+#include <coral/master.hpp>
+#include <coral/util/console.hpp>
 
 #include "config_parser.hpp"
 
 
 namespace {
     const std::string self = "coralmaster";
-    const std::string DEFAULT_NETWORK_INTERFACE = "*";
+    const std::string DEFAULT_NETWORK_INTERFACE = "127.0.0.1";
     const std::uint16_t DEFAULT_DISCOVERY_PORT = 10272;
 }
 
@@ -37,6 +37,9 @@ int Run(const std::vector<std::string>& args)
         namespace po = boost::program_options;
         po::options_description options("Options");
         options.add_options()
+            ("debug-pause",
+                "Wait for a user keypress after slaves have been spawned, "
+                "to allow time to attach a debugger.")
             ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
                 "The IP address or (OS-specific) name of the network interface to "
                 "use for network communications, or \"*\" for all/any.")
@@ -44,6 +47,12 @@ int Run(const std::vector<std::string>& args)
                 "The execution name (if left unspecified, a timestamp will be used)")
             ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
                 "The UDP port used to listen for slave providers.")
+            ("realtime,r", po::value<double>()->default_value(0.0),
+                "Real-time multiplier, i.e., how fast the simulation should go "
+                "compared to wall clock time.  A value of 1 means that the "
+                "simulation should run in real time, while e.g. 2 means twice as "
+                "fast.  The default is 0, which is a special value that means "
+                "\"as fast as possible\"")
             ("warnings,w",
                 "Enable warnings while parsing execution configuration file");
         po::options_description positionalOptions("Arguments");
@@ -103,7 +112,10 @@ int Run(const std::vector<std::string>& args)
             "      ; instantiation command is issued to when the slave is ready for\n"
             "      ; simulation.  Some slaves may take a long time to instantiate, either\n"
             "      ; because the FMU is very large and thus takes a long time to unpack\n"
-            "      ; or because its instantiation routine is very demanding.\n"
+            "      ; or because its instantiation routine is very demanding.  -1 is a\n"
+            "      ; special value which means \"wait indefinitely\".  This is somewhat\n"
+            "      ; risky, however, because it means the entire slave provider will\n"
+            "      ; hang if a slave hangs or crashes during startup.\n"
             "      instantiation_timeout_ms 10000\n");
         if (!argValues) return 0;
 
@@ -111,11 +123,13 @@ int Run(const std::vector<std::string>& args)
         if (!argValues->count("sys-config")) throw std::runtime_error("No system configuration file specified");
         const auto execConfigFile = (*argValues)["exec-config"].as<std::string>();
         const auto sysConfigFile = (*argValues)["sys-config"].as<std::string>();
+        const auto debugPause= !!argValues->count("debug-pause");
         const auto networkInterface = coral::net::ip::Address{
             (*argValues)["interface"].as<std::string>()};
         const auto execName = (*argValues)["name"].as<std::string>();
         const auto discoveryPort = coral::net::ip::Port{
             (*argValues)["port"].as<std::uint16_t>()};
+        const auto realtimeMultiplier = (*argValues)["realtime"].as<double>();
         const auto warningStream = argValues->count("warnings") ? &std::clog : nullptr;
 
         auto providers = coral::master::ProviderCluster{
@@ -142,9 +156,25 @@ int Run(const std::vector<std::string>& args)
         std::cout << "Parsing model configuration file '" << sysConfigFile
                   << "' and spawning slaves" << std::endl;
         std::vector<SimulationEvent> unsortedScenario;
-        ParseSystemConfig(sysConfigFile, providers, exec, unsortedScenario,
-                          execConfig.commTimeout, execConfig.instantiationTimeout,
-                          warningStream);
+        std::function<void()> debugPauseCallback;
+        if (debugPause) {
+            debugPauseCallback = [] ()
+            {
+                std::cout << "Slave processes spawned. Press ENTER to continue. "
+                            "[--debug-pause]" << std::endl;
+                std::cin.ignore();
+            };
+        }
+
+        ParseSystemConfig(
+            sysConfigFile,
+            providers,
+            exec,
+            unsortedScenario,
+            execConfig.commTimeout,
+            execConfig.instantiationTimeout,
+            warningStream,
+            debugPauseCallback);
 
         // Put the scenario events into a priority queue, in order of ascending
         // event time.
@@ -164,11 +194,24 @@ int Run(const std::vector<std::string>& args)
             boost::numeric_cast<typename std::chrono::milliseconds::rep>(
                 execConfig.stepSize * 1000 * execConfig.stepTimeoutMultiplier));
 
-        const double clockRes = // the resolution of the clock, in ticks/sec
+        const double clockRes = // the resolution of the clock, in secs/tick
             static_cast<double>(std::chrono::high_resolution_clock::duration::period::num)
             / std::chrono::high_resolution_clock::duration::period::den;
         auto prevRealTime = std::chrono::high_resolution_clock::now();
         auto prevSimTime = execConfig.startTime;
+
+        auto targetWallClockTime = std::chrono::steady_clock::now();
+        const double wallClockTicksPerSec =
+            static_cast<double>(std::chrono::steady_clock::duration::period::den)
+            / std::chrono::steady_clock::duration::period::num;
+        const auto wallClockStepSize = std::chrono::steady_clock::duration(
+            static_cast<std::chrono::steady_clock::duration::rep>(
+                execConfig.stepSize * wallClockTicksPerSec / realtimeMultiplier));
+        if (realtimeMultiplier > 0.0) {
+            CORAL_LOG_DEBUG(boost::format("Real-time step size is %d microseconds")
+                % std::chrono::duration_cast<std::chrono::microseconds>(
+                    wallClockStepSize).count());
+        }
 
         for (double time = execConfig.startTime;
              time < maxTime;
@@ -210,6 +253,11 @@ int Run(const std::vector<std::string>& args)
                 nextPerc += 0.05;
                 prevRealTime = realTime;
                 prevSimTime = time;
+            }
+
+            if (realtimeMultiplier > 0.0) {
+                targetWallClockTime += wallClockStepSize;
+                std::this_thread::sleep_until(targetWallClockTime);
             }
         }
 

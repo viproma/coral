@@ -4,20 +4,20 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/bus/slave_agent.hpp"
+#include <coral/bus/slave_agent.hpp>
 
 #include <cassert>
 #include <limits>
 #include <utility>
 
-#include "coral/error.hpp"
-#include "coral/log.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/protobuf.hpp"
-#include "coral/protocol/execution.hpp"
-#include "coral/protocol/glue.hpp"
-#include "coral/slave/exception.hpp"
-#include "coral/util.hpp"
+#include <coral/error.hpp>
+#include <coral/log.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/protobuf.hpp>
+#include <coral/protocol/execution.hpp>
+#include <coral/protocol/glue.hpp>
+#include <coral/slave/exception.hpp>
+#include <coral/util.hpp>
 
 
 namespace
@@ -426,13 +426,15 @@ SlaveAgent::Timeout::Timeout(
 
 SlaveAgent::Timeout::~Timeout() CORAL_NOEXCEPT
 {
-    SetTimeout(std::chrono::milliseconds(0));
+    SetTimeout(std::chrono::milliseconds(-1));
 }
 
 
 void SlaveAgent::Timeout::Reset()
 {
-    m_reactor.RestartTimerInterval(m_timerID);
+    if (m_timerID != coral::net::Reactor::invalidTimerID) {
+        m_reactor.RestartTimerInterval(m_timerID);
+    }
 }
 
 
@@ -442,7 +444,7 @@ void SlaveAgent::Timeout::SetTimeout(std::chrono::milliseconds timeout)
         m_reactor.RemoveTimer(m_timerID);
         m_timerID = coral::net::Reactor::invalidTimerID;
     }
-    if (timeout > std::chrono::milliseconds(0)) {
+    if (timeout >= std::chrono::milliseconds(0)) {
         m_timerID = m_reactor.AddTimer(
             timeout,
             1,

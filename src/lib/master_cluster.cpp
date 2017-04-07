@@ -4,24 +4,24 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/master/cluster.hpp"
+#include <coral/master/cluster.hpp>
 
 #include <cassert>
 #include <unordered_map>
 
-#include "zmq.hpp"
+#include <zmq.hpp>
 
-#include "coral/async.hpp"
-#include "coral/bus/slave_provider_comm.hpp"
-#include "coral/error.hpp"
-#include "coral/log.hpp"
-#include "coral/net/reactor.hpp"
-#include "coral/net/service.hpp"
-#include "coral/net/zmqx.hpp"
-#include "coral/protocol/glue.hpp"
-#include "coral/util.hpp"
+#include <coral/async.hpp>
+#include <coral/bus/slave_provider_comm.hpp>
+#include <coral/error.hpp>
+#include <coral/log.hpp>
+#include <coral/net/reactor.hpp>
+#include <coral/net/service.hpp>
+#include <coral/net/zmqx.hpp>
+#include <coral/protocol/glue.hpp>
+#include <coral/util.hpp>
 
-#include "domain.pb.h"
+#include <domain.pb.h>
 
 
 namespace coral
@@ -305,22 +305,27 @@ void HandleGetSlaveTypes(
     try {
         const auto state = std::make_shared<GetSlaveTypesRequest>();
         for (auto& slaveProvider : slaveProviders) {
-            const auto slaveProviderID = slaveProvider.first;
-            slaveProvider.second.GetSlaveTypes(
-                [sharedPromise, state, slaveProviderID] (
-                    const std::error_code& ec,
-                    const coral::model::SlaveTypeDescription* slaveTypes,
-                    std::size_t slaveTypeCount)
-                {
-                    state->AddReply(
-                        slaveProviderID,
-                        ec,
-                        slaveTypes,
-                        slaveTypeCount,
-                        *sharedPromise);
-                },
-                timeout);
             ++(state->remainingReplies);
+            try {
+                const auto slaveProviderID = slaveProvider.first;
+                slaveProvider.second.GetSlaveTypes(
+                    [sharedPromise, state, slaveProviderID] (
+                        const std::error_code& ec,
+                        const coral::model::SlaveTypeDescription* slaveTypes,
+                        std::size_t slaveTypeCount)
+                    {
+                        state->AddReply(
+                            slaveProviderID,
+                            ec,
+                            slaveTypes,
+                            slaveTypeCount,
+                            *sharedPromise);
+                    },
+                    timeout);
+            } catch (...) {
+                --(state->remainingReplies);
+                throw;
+            }
         }
         CORAL_LOG_TRACE(boost::format("Sent GetSlaveTypes request to %d providers")
             % state->remainingReplies);
@@ -338,6 +343,7 @@ void GetSlaveTypesRequest::AddReply(
     std::promise<std::vector<coral::master::ProviderCluster::SlaveType>>& promise)
 {
     --remainingReplies;
+    assert(remainingReplies >= 0);
     if (!ec) {
         for (std::size_t i = 0; i < typeCount; ++i) {
             auto stIt = slaveTypeIndices.find(types[i].UUID());
@@ -388,6 +394,7 @@ void HandleInstantiateSlave(
         slaveProvider->second.InstantiateSlave(
             slaveTypeUUID,
             instantiationTimeout,
+            commTimeout,
             [sharedPromise] (
                 const std::error_code& ec,
                 const coral::net::SlaveLocator& locator,
@@ -399,8 +406,7 @@ void HandleInstantiateSlave(
                     sharedPromise->set_exception(std::make_exception_ptr(
                         std::runtime_error(ec.message() + " (" + errorMessage + ")")));
                 }
-            },
-            commTimeout);
+            });
     } catch (...) {
         sharedPromise->set_exception(std::current_exception());
     }

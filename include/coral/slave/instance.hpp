@@ -11,7 +11,7 @@
 #define CORAL_SLAVE_INSTANCE_HPP
 
 #include <string>
-#include "coral/model.hpp"
+#include <coral/model.hpp>
 
 namespace coral
 {

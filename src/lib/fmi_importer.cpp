@@ -4,7 +4,7 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/fmi/importer.hpp"
+#include <coral/fmi/importer.hpp>
 
 #include <cassert>
 #include <cstdlib>
@@ -12,18 +12,19 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <new>
 #include <sstream>
 
-#include "boost/algorithm/string/trim.hpp"
-#include "boost/filesystem.hpp"
-#include "boost/property_tree/ptree.hpp"
-#include "boost/property_tree/xml_parser.hpp"
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
-#include "fmilib.h"
+#include <fmilib.h>
 
-#include "coral/error.hpp"
-#include "coral/fmi/fmu1.hpp"
-#include "coral/log.hpp"
-#include "coral/util.hpp"
-#include "coral/util/zip.hpp"
+#include <coral/error.hpp>
+#include <coral/fmi/fmu1.hpp>
+#include <coral/fmi/fmu2.hpp>
+#include <coral/log.hpp>
+#include <coral/util.hpp>
+#include <coral/util/zip.hpp>
 
 
 namespace coral
@@ -219,7 +220,7 @@ std::shared_ptr<FMU> Importer::Import(const boost::filesystem::path& fmuPath)
     zip.ExtractFileTo(modelDescriptionIndex, tempMdDir);
 
     const auto minModelDesc = PeekModelDescription(tempMdDir);
-    if (minModelDesc.fmiVersion != FMIVersion::v1_0) {
+    if (minModelDesc.fmiVersion == FMIVersion::unknown) {
         throw std::runtime_error(
             "Unsupported FMI version for FMU '" + fmuPath.string() + "'");
     }
@@ -241,7 +242,9 @@ std::shared_ptr<FMU> Importer::Import(const boost::filesystem::path& fmuPath)
         }
     }
 
-    auto fmu = std::shared_ptr<FMU>(new FMU1(shared_from_this(), fmuUnpackDir));
+    auto fmu = minModelDesc.fmiVersion == FMIVersion::v1_0
+        ? std::shared_ptr<FMU>(new FMU1(shared_from_this(), fmuUnpackDir))
+        : std::shared_ptr<FMU>(new FMU2(shared_from_this(), fmuUnpackDir));
     m_pathCache[fmuPath] = fmu;
     m_guidCache[minModelDesc.guid] = fmu;
     return fmu;

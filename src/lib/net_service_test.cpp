@@ -3,8 +3,8 @@
 #endif
 #include <algorithm> // std::max
 #include <memory>
-#include "gtest/gtest.h"
-#include "coral/net/service.hpp"
+#include <gtest/gtest.h>
+#include <coral/net/service.hpp>
 
 
 TEST(coral_net_service, Listener)

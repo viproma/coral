@@ -1,4 +1,4 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <chrono>
 #include <cstring>
@@ -6,9 +6,9 @@
 #include <thread>
 #include <vector>
 
-#include "zmq.hpp"
+#include <zmq.hpp>
 
-#include "coral/net/zmqx.hpp"
+#include <coral/net/zmqx.hpp>
 
 
 using namespace coral::net::zmqx;

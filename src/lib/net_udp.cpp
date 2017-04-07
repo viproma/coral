@@ -4,7 +4,7 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-#include "coral/net/udp.hpp"
+#include <coral/net/udp.hpp>
 
 #ifdef _WIN32
 #   include <ws2tcpip.h>
@@ -18,9 +18,9 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <utility>
 #include <vector>
 
-#include "coral/net/ip.hpp"
-#include "coral/log.hpp"
-#include "coral/util.hpp"
+#include <coral/net/ip.hpp>
+#include <coral/log.hpp>
+#include <coral/util.hpp>
 
 
 namespace

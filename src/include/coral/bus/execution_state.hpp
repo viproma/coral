@@ -14,9 +14,9 @@
 // For the sake of maintainability, we can skip the headers which are already
 // included by execution_manager.hpp, and which are only needed here because
 // ExecutionState duplicates ExecutionManager's method signatures.
-#include "coral/bus/execution_manager.hpp"
-#include "coral/config.h"
-#include "coral/error.hpp"
+#include <coral/bus/execution_manager.hpp>
+#include <coral/config.h>
+#include <coral/error.hpp>
 
 
 namespace coral
