@@ -30,6 +30,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 namespace
 {
+    const std::string MY_NAME = "coralslaveprovider";
     const std::string DEFAULT_NETWORK_INTERFACE = "127.0.0.1";
     const std::uint16_t DEFAULT_DISCOVERY_PORT = 10272;
 #ifdef _WIN32
@@ -180,19 +181,19 @@ try {
             "The IP address or (OS-specific) name of the network interface to "
             "use for network communications, or \"*\" for all/any.")
         ("output-dir,o", po::value<std::string>()->default_value("."),
-            "The directory where output files should be written")
+            "The directory where output files should be written.")
         ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
             "The UDP port used to broadcast information about this slave provider. "
             "The master must listen on the same port.")
         ("slave-exe", po::value<std::string>(),
-            "The path to the slave executable")
+            "The path to the slave executable.")
         ("timeout", po::value<int>()->default_value(3600),
             "The number of seconds slaves should wait for commands from a master "
             "before assuming that the connection is broken and shutting themselves "
             "down.  The special value -1 means \"never\".");
     po::options_description positionalOptions("Arguments");
     positionalOptions.add_options()
-        ("fmu",       po::value<std::vector<std::string>>(), "The FMU files and directories");
+        ("fmu",       po::value<std::vector<std::string>>(), "The FMU files and directories.");
     po::positional_options_description positions;
     positions.add("fmu", -1);
 
@@ -200,7 +201,7 @@ try {
     const auto optionValues = coral::util::ParseArguments(
         args, options, positionalOptions, positions,
         std::cerr,
-        "slave_provider",
+        MY_NAME,
         "Slave provider (" CORAL_PROGRAM_NAME_VERSION ")\n\n"
         "This program loads one or more FMUs and makes them available as\n"
         "slaves on a domain.");
