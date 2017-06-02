@@ -28,6 +28,107 @@ namespace {
     const std::string self = "coralmaster";
     const std::string DEFAULT_NETWORK_INTERFACE = "127.0.0.1";
     const std::uint16_t DEFAULT_DISCOVERY_PORT = 10272;
+
+    void PrintExecConfigHelp()
+    {
+        std::cout <<
+            "; The execution configuration file is a simple text file consisting of keys\n"
+            "; and values, where each key is separated from its value by whitespace.\n"
+            "; (Specifically, it must be in the Boost INFO format; see here for more info:\n"
+            "; http://www.boost.org/doc/libs/release/libs/property_tree/).  This is an\n"
+            "; example file which contains all the settings currently available.\n"
+            "\n"
+            "; Time step size (mandatory).\n"
+            "step_size 0.2\n"
+            "\n"
+            "; Simulation start time (optional, defaults to 0).\n"
+            "start 0.0\n"
+            "\n"
+            "; Simulation end time (optional, defaults to \"indefinitely\").\n"
+            "stop 100.0\n"
+            "\n"
+            "; General command/communications timeout, in milliseconds (optional,\n"
+            "; defaults to 1000 ms).\n"
+            ";\n"
+            "; This is how long the master will wait for replies to commands sent\n"
+            "; to a slave before it considers the connection to be broken, and it is\n"
+            "; also how long slaves wait for data from each other between time steps.\n"
+            "; It should generally be a short duration, as it is used for \"cheap\"\n"
+            "; operations (i.e., everything besides the \"perform time step\" command).\n"
+            "; -1 is a special value which means \"wait indefinitely\", which should\n"
+            "; only be used for debugging purposes.\n"
+            "comm_timeout_ms 5000\n"
+            "\n"
+            "; Time step timeout multiplier (optional, defaults to 100).\n"
+            ";\n"
+            "; This controls the amount of time the slaves get to carry out a time\n"
+            "; step.  The timeout is set equal to step_timeout_multiplier` times the\n"
+            "; step size, where the step size is assumed to be in seconds.\n"
+            "step_timeout_multiplier 10\n"
+            "\n"
+            "; Slave instantiation timeout, in milliseconds (optional, defaults\n"
+            "; to 30,000 ms = 30 s).\n"
+            ";\n"
+            "; This is the maximum amount of time that may pass from the moment the\n"
+            "; instantiation command is issued to when the slave is ready for\n"
+            "; simulation.  Some slaves may take a long time to instantiate, either\n"
+            "; because the FMU is very large and thus takes a long time to unpack\n"
+            "; or because its instantiation routine is very demanding.\n"
+            "; -1 is a special value which means \"wait indefinitely\", which should\n"
+            "; only be used for debugging purposes.\n"
+            "instantiation_timeout_ms 10000\n";
+    }
+
+    void PrintSysConfigHelp()
+    {
+        std::cout <<
+            "; The system configuration file is a simple text file consisting of keys\n"
+            "; and values in a tree-like structure.  (Specifically, it must be in the\n"
+            "; Boost INFO format; see here for more info:\n"
+            "; http://www.boost.org/doc/libs/release/libs/property_tree/).  This is an\n"
+            "; example file which demonstrates the available settings.\n"
+            "\n"
+            "; The \"slaves\" section contains a list of all the subsimulators.\n"
+            "slaves {\n"
+            "    ; Each subsimulator is identified by a name, in this case \"mass\" and \"spring\".\n"
+            "    mass {\n"
+            "        type \"1d_mass\"        ; This is the type, i.e., the model name of an FMU.\n"
+            "        init {\n"
+            "            mass     20.0     ; Here, one can set initial values for different variables.\n"
+            "            position  3.0\n"
+            "        }\n"
+            "    }\n"
+            "    spring {\n"
+            "        type \"1d_spring\"\n"
+            "        init {\n"
+            "            stiffness            10.0\n"
+            "            uncompressed_length  5.0\n"
+            "            position_a           0.0\n"
+            "        }\n"
+            "    }\n"
+            "}\n"
+            "\n"
+            "; This section contains the variable connections, on the following form:\n"
+            ";     <slave A>.<input variable> <slave B>.<output variable>\n"
+            "; (To make the order easier to remember, mentally insert an \"equals\" sign\n"
+            "; between them.)\n"
+            "connections {\n"
+            "    mass.force        spring.force\n"
+            "    spring.position_b mass.position\n"
+            "}\n"
+            "\n"
+            "; This section contains parameter changes that are to take place at a\n"
+            "; specific point in time. There is one subsection for each time point.\n"
+            "scenario {\n"
+            "    1.5 {                         ; At 1.5 seconds...\n"
+            "        spring.stiffness  5.0     ; ...the spring stiffness will be changed\n"
+            "        mass.mass        10.0     ; ...along with the mass.\n"
+            "    }\n"
+            "    4.3 {                         ; You can have as many events as you like.\n"
+            "        spring.stiffness  2.4\n"
+            "    }\n"
+            "}\n";
+    }
 }
 
 
@@ -44,7 +145,8 @@ int Run(const std::vector<std::string>& args)
                 "The IP address or (OS-specific) name of the network interface to "
                 "use for network communications, or \"*\" for all/any.")
             ("name,n", po::value<std::string>()->default_value(""),
-                "The execution name (if left unspecified, a timestamp will be used)")
+                "The execution name.  If left unspecified, a name will be created "
+                "based on the current date and time.")
             ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
                 "The UDP port used to listen for slave providers.")
             ("realtime,r", po::value<double>()->default_value(0.0),
@@ -52,17 +154,23 @@ int Run(const std::vector<std::string>& args)
                 "compared to wall clock time.  A value of 1 means that the "
                 "simulation should run in real time, while e.g. 2 means twice as "
                 "fast.  The default is 0, which is a special value that means "
-                "\"as fast as possible\"")
+                "\"as fast as possible\".")
             ("warnings,w",
-                "Enable warnings while parsing execution configuration file");
+                "Enable warnings while parsing configuration files.")
+            ("help-exec-config",
+                "Display a help message about the format of execution configuration files "
+                "and exit.")
+            ("help-sys-config",
+                "Display a help message about the format of system configuration files "
+                "and exit.");
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("exec-config", po::value<std::string>(),
-                "Configuration file which describes the simulation settings "
-                "(start time, step size, etc.)")
+                "Configuration file which describes the execution settings "
+                "(start time, step size, etc.).")
             ("sys-config",  po::value<std::string>(),
                 "Configuration file which describes the system to simulate "
-                "(slaves, connections, etc.)\n");
+                "(slaves, connections, etc.).\n");
         po::positional_options_description positions;
         positions.add("exec-config", 1)
                  .add("sys-config", 1);
@@ -71,53 +179,17 @@ int Run(const std::vector<std::string>& args)
             args, options, positionalOptions, positions,
             std::cerr,
             self + " run",
-            "Runs a simulation.",
-            // Extra help:
-            "Execution configuration file:\n"
-            "  The execution configuration file is a simple text file consisting of keys\n"
-            "  and values, where each key is separated from its value by whitespace.\n"
-            "  (Specifically, it must be in the Boost INFO format; see here for more info:\n"
-            "  http://www.boost.org/doc/libs/release/libs/property_tree/ ).  The\n"
-            "  following example file contains all the settings currently available:\n"
-            "\n"
-            "      ; Time step size (mandatory)\n"
-            "      step_size 0.2\n"
-            "\n"
-            "      ; Simulation start time (optional, defaults to 0)\n"
-            "      start 0.0\n"
-            "\n"
-            "      ; Simulation end time (optional, defaults to \"indefinitely\")\n"
-            "      stop 100.0\n"
-            "\n"
-            "      ; General command/communications timeout, in milliseconds (optional,\n"
-            "      ; defaults to 1000 ms)\n"
-            "      ;\n"
-            "      ; This is how long the master will wait for replies to commands sent\n"
-            "      ; to a slave before it considers the connection to be broken.  It should\n"
-            "      ; generally be a short duration, as it is used for \"cheap\" operations\n"
-            "      ; (i.e., everything besides the \"perform time step\" command).\n"
-            "      comm_timeout_ms 5000\n"
-            "\n"
-            "      ; Time step timeout multiplier (optional, defaults to 100)\n"
-            "      ;\n"
-            "      ; This controls the amount of time the slaves get to carry out a time\n"
-            "      ; step.  The timeout is set equal to step_timeout_multiplier` times the\n"
-            "      ; step size, where the step size is assumed to be in seconds.\n"
-            "      step_timeout_multiplier 10\n"
-            "\n"
-            "      ; Slave instantiation timeout, in milliseconds (optional, defaults\n"
-            "      ; to 30,000 ms = 30 s)\n"
-            "      ;\n"
-            "      ; This is the maximum amount of time that may pass from the moment the\n"
-            "      ; instantiation command is issued to when the slave is ready for\n"
-            "      ; simulation.  Some slaves may take a long time to instantiate, either\n"
-            "      ; because the FMU is very large and thus takes a long time to unpack\n"
-            "      ; or because its instantiation routine is very demanding.  -1 is a\n"
-            "      ; special value which means \"wait indefinitely\".  This is somewhat\n"
-            "      ; risky, however, because it means the entire slave provider will\n"
-            "      ; hang if a slave hangs or crashes during startup.\n"
-            "      instantiation_timeout_ms 10000\n");
+            "Runs a simulation.");
         if (!argValues) return 0;
+
+        if (argValues->count("help-exec-config")) {
+            PrintExecConfigHelp();
+            return 0;
+        }
+        if (argValues->count("help-sys-config")) {
+            PrintSysConfigHelp();
+            return 0;
+        }
 
         if (!argValues->count("exec-config")) throw std::runtime_error("No execution configuration file specified");
         if (!argValues->count("sys-config")) throw std::runtime_error("No system configuration file specified");
@@ -338,7 +410,7 @@ int LsVars(const std::vector<std::string>& args)
             ("causality,c", po::value<std::string>()->default_value("cilop"),
                 "The causalities to include.  May contain one or more of the "
                 "following characters: c=calculated parameter, i=input, "
-                "l=local, o=output, p=parameter")
+                "l=local, o=output, p=parameter.")
             ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
                 "The IP address or (OS-specific) name of the network interface to "
                 "use for network communications, or \"*\" for all/any.")
@@ -349,11 +421,11 @@ int LsVars(const std::vector<std::string>& args)
                 "The UDP port used to listen for slave providers.")
             ("type,t", po::value<std::string>()->default_value("birs"),
                 "The data type(s) to include.  May contain one or more of the "
-                "following characters: b=boolean, i=integer, r=real, s=string")
+                "following characters: b=boolean, i=integer, r=real, s=string.")
             ("variability,v", po::value<std::string>()->default_value("cdftu"),
                 "The variabilities to include.  May contain one or more of the "
                 "following characters: c=constant, d=discrete, f=fixed, "
-                "t=tunable, u=continuous");
+                "t=tunable, u=continuous.");
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("slave-type",  po::value<std::string>(),
@@ -453,7 +525,7 @@ int Info(const std::vector<std::string>& args)
                 "The UDP port used to listen for slave providers.");
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
-            ("slave-type",  po::value<std::string>(), "A slave type name");
+            ("slave-type",  po::value<std::string>(), "A slave type name.");
         po::positional_options_description positions;
         positions.add("slave-type", 1);
         const auto argValues = coral::util::ParseArguments(
@@ -539,12 +611,12 @@ int main(int argc, const char** argv)
             "Usage:\n"
             "  " << self << " <command> [command-specific args]\n\n"
             "Commands:\n"
-            "  info     Shows detailed information about one slave type\n"
-            "  list     Lists available slave types\n"
-            "  ls-vars  Lists information about a slave type's variables\n"
-            "  run    Runs a simulation\n"
+            "  info     Shows detailed information about one slave type.\n"
+            "  list     Lists available slave types.\n"
+            "  ls-vars  Lists information about a slave type's variables.\n"
+            "  run      Runs a simulation.\n"
             "\n"
-            "Run <command> without any additional arguments for more specific help.\n";
+            "Run \"" << self << " <command> --help\" for command-specific information.\n";
         return 0;
     }
     const auto command = std::string(argv[1]);
