@@ -71,7 +71,7 @@ SlaveAgent::SlaveAgent(
     CORAL_LOG_TRACE("Slave bound to control endpoint: " + BoundControlEndpoint().URL());
 
     m_publisher.Bind(dataPubEndpoint);
-    CORAL_LOG_TRACE("Slave bound to data publisher endpoint: " + BoundControlEndpoint().URL());
+    CORAL_LOG_TRACE("Slave bound to data publisher endpoint: " + BoundDataPubEndpoint().URL());
 
     reactor.AddSocket(
         m_control.Socket(),
