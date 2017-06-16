@@ -204,9 +204,6 @@ public:
     /// Terminates the entire execution and all associated slaves.
     void Terminate();
 
-    /// Gets the name of the slave with the given ID.
-    const std::string& SlaveName(coral::model::SlaveID id) const;
-
 private:
     std::unique_ptr<ExecutionManagerPrivate> m_private;
 };

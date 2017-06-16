@@ -89,10 +89,4 @@ void ExecutionManager::Terminate()
 }
 
 
-const std::string& ExecutionManager::SlaveName(coral::model::SlaveID id) const
-{
-    return m_private->slaves.at(id).description.Name();
-}
-
-
 }} // namespace
