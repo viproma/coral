@@ -179,8 +179,8 @@ void ReadyExecutionState::Reconfigure(
     ExecutionManagerPrivate& self,
     const std::vector<SlaveConfig>& slaveConfigs,
     std::chrono::milliseconds commTimeout,
-    ExecutionManager::ReconstituteHandler onComplete,
-    ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
+    ExecutionManager::ReconfigureHandler onComplete,
+    ExecutionManager::SlaveReconfigureHandler onSlaveComplete)
 {
     if (slaveConfigs.empty()) {
         onComplete(std::error_code{});
@@ -374,7 +374,8 @@ void ReconstitutingExecutionState::StateEntered(
                 if (ec) {
                     ++(opTally->failed);
                     m_addedSlaves[index] = coral::model::INVALID_SLAVE_ID;
-                    m_onSlaveComplete(ec, coral::model::INVALID_SLAVE_ID, index);
+                    m_onSlaveComplete(
+                        ec, coral::model::SlaveDescription{}, index);
                 }
                 if (opTally->ongoing == 0) {
                     if (opTally->failed == 0) {
@@ -447,7 +448,10 @@ void ReconstitutingExecutionState::Completed(
     for (std::size_t index = 0; index < m_addedSlaves.size(); ++index) {
         const auto id = m_addedSlaves[index];
         if (id != coral::model::INVALID_SLAVE_ID) {
-            m_onSlaveComplete(std::error_code{}, id, index);
+            m_onSlaveComplete(
+                std::error_code{},
+                self.slaves.at(id).description,
+                index);
         }
     }
     m_onComplete(std::error_code{});
@@ -466,7 +470,7 @@ void ReconstitutingExecutionState::Failed(
         if (id != coral::model::INVALID_SLAVE_ID) {
             m_onSlaveComplete(
                 make_error_code(coral::error::generic_error::operation_failed),
-                coral::model::INVALID_SLAVE_ID,
+                coral::model::SlaveDescription{},
                 index);
         }
     }
@@ -481,8 +485,8 @@ void ReconstitutingExecutionState::Failed(
 ReconfiguringExecutionState::ReconfiguringExecutionState(
     const std::vector<SlaveConfig>& slaveConfigs,
     std::chrono::milliseconds commTimeout,
-    ExecutionManager::ReconstituteHandler onComplete,
-    ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
+    ExecutionManager::ReconfigureHandler onComplete,
+    ExecutionManager::SlaveReconfigureHandler onSlaveComplete)
     : m_slaveConfigs(slaveConfigs)
     , m_commTimeout{commTimeout}
     , m_onComplete{std::move(onComplete)}

@@ -192,9 +192,9 @@ TEST(coral_master, Execution)
     };
     execution.Reconstitute(slaves, timeout);
 
-    const auto idSlave1ID = slaves[0].id;
-    const auto idSlave2ID = slaves[1].id;
-    const auto logSlaveID = slaves[2].id;
+    const auto idSlave1ID = slaves[0].info.ID();
+    const auto idSlave2ID = slaves[1].info.ID();
+    const auto logSlaveID = slaves[2].info.ID();
 
     // Make connections and set initial values
     auto initialSettings = std::vector<SlaveConfig>{

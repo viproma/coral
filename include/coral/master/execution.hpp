@@ -50,10 +50,12 @@ enum class StepResult
  *  errors that may have occurred in the process).
  *
  *  Before an object of this type is passed to `Reconstitute()`, the `#locator`
- *  and `#name` fields must be set.  After `Reconstitute()` has completed
- *  successfully, the `#id` field contains the ID number of the new slave.
+ *  field must be set, and optionally `#name`.  After `Reconstitute()` has
+ *  completed successfully, the `#info` field contains information about the
+ *  new slave, such as its unique ID, its name and its type.
+ *
  *  If the function throws, the `#error` field may be queried to figure out
- *  whether this particular slave is the source of the failure, and if so, why.
+ *  whether this particular slave is the source of the failure.
  */
 struct AddedSlave
 {
@@ -66,12 +68,13 @@ struct AddedSlave
      *
      *  Slave names may only consist of letters (a-z, A-Z), digits (0-9)
      *  and underscores (_). The first character must be a letter.
-     *  If the string is empty, a unique name will be generated.
+     *  If the string is empty, a unique name will be generated and stored
+     *  in `info`.
      */
     std::string name;
 
-    /// [Output] The slave's unique ID.
-    coral::model::SlaveID id = coral::model::INVALID_SLAVE_ID;
+    /// [Output] Information about the added slave.
+    coral::model::SlaveDescription info;
 
     /// [Output] The error reported by the slave, if any.
     std::error_code error;

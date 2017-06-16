@@ -51,8 +51,8 @@ public:
         ExecutionManagerPrivate& self,
         const std::vector<SlaveConfig>& slaveConfigs,
         std::chrono::milliseconds commTimeout,
-        ExecutionManager::ReconstituteHandler onComplete,
-        ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
+        ExecutionManager::ReconfigureHandler onComplete,
+        ExecutionManager::SlaveReconfigureHandler onSlaveComplete)
     { NotAllowed(__FUNCTION__); }
 
     virtual void ResendVars(
@@ -104,8 +104,8 @@ class ReadyExecutionState : public ExecutionState
         ExecutionManagerPrivate& self,
         const std::vector<SlaveConfig>& slaveConfigs,
         std::chrono::milliseconds commTimeout,
-        ExecutionManager::ReconstituteHandler onComplete,
-        ExecutionManager::SlaveReconstituteHandler onSlaveComplete) override;
+        ExecutionManager::ReconfigureHandler onComplete,
+        ExecutionManager::SlaveReconfigureHandler onSlaveComplete) override;
 
     void ResendVars(
         ExecutionManagerPrivate& self,
@@ -156,8 +156,8 @@ public:
     ReconfiguringExecutionState(
         const std::vector<SlaveConfig>& slaveConfigs,
         std::chrono::milliseconds commTimeout,
-        ExecutionManager::ReconstituteHandler onComplete,
-        ExecutionManager::SlaveReconstituteHandler onSlaveComplete);
+        ExecutionManager::ReconfigureHandler onComplete,
+        ExecutionManager::SlaveReconfigureHandler onSlaveComplete);
 
 private:
     void StateEntered(ExecutionManagerPrivate& self) override;
@@ -165,8 +165,8 @@ private:
     // Input parameters to this state
     const std::vector<SlaveConfig> m_slaveConfigs;
     const std::chrono::milliseconds m_commTimeout;
-    const ExecutionManager::ReconstituteHandler m_onComplete;
-    const ExecutionManager::SlaveReconstituteHandler m_onSlaveComplete;
+    const ExecutionManager::ReconfigureHandler m_onComplete;
+    const ExecutionManager::SlaveReconfigureHandler m_onSlaveComplete;
 };
 
 

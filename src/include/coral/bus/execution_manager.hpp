@@ -104,7 +104,10 @@ public:
     typedef std::function<void(const std::error_code&)> ReconstituteHandler;
 
     /// Per-slave completion handler type for Reconstitute()
-    typedef std::function<void(const std::error_code&, coral::model::SlaveID, std::size_t)>
+    typedef std::function<void(
+            const std::error_code&,
+            const coral::model::SlaveDescription&,
+            std::size_t)>
         SlaveReconstituteHandler;
 
     /**

@@ -107,7 +107,7 @@ try {
     if (hangaroundTime < std::chrono::seconds(-1)) {
         throw std::runtime_error("Invalid hangaround-time value");
     }
-    const auto interface = coral::net::ip::Address{
+    const auto networkInterface = coral::net::ip::Address{
         (*optionValues)["interface"].as<std::string>()};
     const auto enableOutput = !optionValues->count("no-output");
     const auto outputDir = (*optionValues)["output-dir"].as<std::string>();
@@ -144,8 +144,8 @@ try {
     }
     auto slaveRunner = coral::slave::Runner(
         slave,
-        coral::net::ip::Endpoint(interface, controlPort).ToEndpoint("tcp"),
-        coral::net::ip::Endpoint(interface, dataPort).ToEndpoint("tcp"),
+        coral::net::ip::Endpoint(networkInterface, controlPort).ToEndpoint("tcp"),
+        coral::net::ip::Endpoint(networkInterface, dataPort).ToEndpoint("tcp"),
         hangaroundTime);
 
     const auto controlEndpoint =

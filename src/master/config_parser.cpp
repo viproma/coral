@@ -419,8 +419,8 @@ void ParseSystemConfig(
     std::map<std::string, coral::model::SlaveID> slaveIDs;
     std::map<coral::model::SlaveID, std::string> slaveNames;
     for (const auto& addedSlave : slavesToAdd) {
-        slaveIDs[addedSlave.name] = addedSlave.id;
-        slaveNames[addedSlave.id] = addedSlave.name;
+        slaveIDs[addedSlave.name] = addedSlave.info.ID();
+        slaveNames[addedSlave.info.ID()] = addedSlave.name;
     }
 
     // Using the name-ID mapping, build lists of variable settings from the

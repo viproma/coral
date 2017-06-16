@@ -112,11 +112,13 @@ public:
                                         ErrMsg("Failed to perform reconstitution", ec)));
                             }
                         },
-                        [&slavesToAdd]
-                            (const std::error_code& ec, coral::model::SlaveID id, std::size_t index)
+                        [&slavesToAdd] (
+                            const std::error_code& ec,
+                            const coral::model::SlaveDescription& info,
+                            std::size_t index)
                         {
+                            slavesToAdd[index].info = info;
                             slavesToAdd[index].error = ec;
-                            slavesToAdd[index].id = id;
                         });
                 } catch (...) {
                     sharedPromise->set_exception(std::current_exception());
