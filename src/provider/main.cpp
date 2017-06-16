@@ -78,13 +78,14 @@ public:
             const auto slaveStatusEp = "tcp://localhost:" + boost::lexical_cast<std::string>(slaveStatusPort);
 
             std::vector<std::string> args;
-            args.push_back(slaveStatusEp);
             args.push_back(m_fmuPath.string());
-            args.push_back(m_networkInterface.ToString());
-            args.push_back(std::to_string(m_masterInactivityTimeout.count()));
-            if (m_enableOutput) {
-                args.push_back(m_outputDir);
+            args.push_back("--coralslaveprovider-endpoint=" + slaveStatusEp);
+            args.push_back("--hangaround-time=" + std::to_string(m_masterInactivityTimeout.count()));
+            args.push_back("--interface=" + m_networkInterface.ToString());
+            if (!m_enableOutput) {
+                args.push_back("--no-output");
             }
+            args.push_back("--output-dir=" + m_outputDir);
 
             std::cout << "\nStarting slave...\n"
                 << "  FMU       : " << m_fmuPath << '\n'
