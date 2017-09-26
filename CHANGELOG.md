@@ -13,6 +13,9 @@ We don't guarantee that they'll all be documented here, but we'll try to
 list the bigger ones.
 
 ## [Unreleased]
+### Added
+  - A `--no-output` switch in coralslaveprovider, which disables file
+    output of variable values.
 
 ## [0.8.0] – 2017-04-07
 ### Added

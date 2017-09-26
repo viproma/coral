@@ -50,12 +50,14 @@ public:
         const coral::net::ip::Address& networkInterface,
         const std::string& slaveExe,
         std::chrono::seconds masterInactivityTimeout,
+        bool enableOutput,
         const std::string& outputDir)
         : m_fmuPath{fmuPath}
         , m_fmu{importer.Import(fmuPath)}
         , m_networkInterface{networkInterface}
         , m_slaveExe(slaveExe)
         , m_masterInactivityTimeout{masterInactivityTimeout}
+        , m_enableOutput{enableOutput}
         , m_outputDir(outputDir.empty() ? "." : outputDir)
     {
     }
@@ -80,7 +82,9 @@ public:
             args.push_back(m_fmuPath.string());
             args.push_back(m_networkInterface.ToString());
             args.push_back(std::to_string(m_masterInactivityTimeout.count()));
-            args.push_back(m_outputDir);
+            if (m_enableOutput) {
+                args.push_back(m_outputDir);
+            }
 
             std::cout << "\nStarting slave...\n"
                 << "  FMU       : " << m_fmuPath << '\n'
@@ -138,6 +142,7 @@ private:
     coral::net::ip::Address m_networkInterface;
     std::string m_slaveExe;
     std::chrono::seconds m_masterInactivityTimeout;
+    bool m_enableOutput;
     std::string m_outputDir;
     std::string m_instantiationFailureDescription;
 };
@@ -180,6 +185,8 @@ try {
         ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
             "The IP address or (OS-specific) name of the network interface to "
             "use for network communications, or \"*\" for all/any.")
+        ("no-output",
+            "Disable file output of variable values.")
         ("output-dir,o", po::value<std::string>()->default_value("."),
             "The directory where output files should be written.")
         ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
@@ -214,6 +221,7 @@ try {
 
     const auto networkInterface = coral::net::ip::Address{
         (*optionValues)["interface"].as<std::string>()};
+    const auto enableOutput = !optionValues->count("no-output");
     const auto outputDir = (*optionValues)["output-dir"].as<std::string>();
     const auto discoveryPort = coral::net::ip::Port{
         (*optionValues)["port"].as<std::uint16_t>()};
@@ -258,6 +266,7 @@ try {
                 networkInterface,
                 slaveExe,
                 timeout,
+                enableOutput,
                 outputDir));
             std::cout << "FMU loaded: " << p << std::endl;
         } catch (const std::runtime_error& e) {
