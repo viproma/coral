@@ -25,7 +25,7 @@ namespace
     static const std::size_t MAX_ENV_VAR_SIZE = 32767;
 
     // Mutex to protect against concurrent access to PATH
-    std::mutex g_pathEnvVarMutex = std::mutex();
+    std::mutex g_pathEnvVarMutex{};
 }
 
 
