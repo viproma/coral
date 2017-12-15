@@ -113,7 +113,7 @@ namespace
                 varDesc.Name(),
                 "set value of");
         }
-        if (setting.IsConnected()) {
+        if (setting.IsConnectionChange() && !setting.ConnectedOutput().Empty()) {
             const auto oit = self.slaves.find(setting.ConnectedOutput().Slave());
             if (oit == self.slaves.end()) {
                 throw std::runtime_error(

@@ -217,6 +217,7 @@ VariableSetting::VariableSetting(
     : m_variable(variable),
       m_hasValue(true),
       m_value(value),
+      m_isConnectionChange(false),
       m_connectedOutput()
 {
 }
@@ -228,9 +229,9 @@ VariableSetting::VariableSetting(
     : m_variable(inputVar),
       m_hasValue(false),
       m_value(),
+      m_isConnectionChange(true),
       m_connectedOutput(outputVar)
 {
-    CORAL_INPUT_CHECK(!outputVar.Empty());
 }
 
 
@@ -241,9 +242,9 @@ VariableSetting::VariableSetting(
     : m_variable(inputVar),
       m_hasValue(true),
       m_value(value),
+      m_isConnectionChange(true),
       m_connectedOutput(outputVar)
 {
-    CORAL_INPUT_CHECK(!outputVar.Empty());
 }
 
 
@@ -266,15 +267,15 @@ const ScalarValue& VariableSetting::Value() const
 }
 
 
-bool VariableSetting::IsConnected() const CORAL_NOEXCEPT
+bool VariableSetting::IsConnectionChange() const CORAL_NOEXCEPT
 {
-    return m_connectedOutput.Slave() != INVALID_SLAVE_ID;
+    return m_isConnectionChange;
 }
 
 
 const coral::model::Variable& VariableSetting::ConnectedOutput() const
 {
-    CORAL_PRECONDITION_CHECK(IsConnected());
+    CORAL_PRECONDITION_CHECK(IsConnectionChange());
     return m_connectedOutput;
 }
 

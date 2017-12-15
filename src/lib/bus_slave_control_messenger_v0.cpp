@@ -164,7 +164,7 @@ void SlaveControlMessengerV0::SetVariables(
         if (it->HasValue()) {
             coral::protocol::ConvertToProto(it->Value(), *v->mutable_value());
         }
-        if (it->IsConnected()) {
+        if (it->IsConnectionChange()) {
             coral::protocol::ConvertToProto(it->ConnectedOutput(), *v->mutable_connected_output());
         }
     }
