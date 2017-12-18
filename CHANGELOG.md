@@ -16,6 +16,8 @@ list the bigger ones.
 ### Added
   - A `--no-output` switch in coralslaveprovider, which disables file
     output of variable values.
+  - The ability to change or break existing variable connections with
+    `coral::master::Execution::Reconfigure()`.
 
 ## [0.8.0] – 2017-04-07
 ### Added
