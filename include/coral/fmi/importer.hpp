@@ -100,6 +100,21 @@ public:
     std::shared_ptr<FMU> Import(const boost::filesystem::path& fmuPath);
 
     /**
+    \brief  Imports and loads an %FMU that has already been unpacked.
+
+    This is more or less equivalent to `Import()`, but since the FMU is
+    already unpacked its contents will be read from the specified directory
+    rather than the cache.
+
+    \param [in] unpackedFMUPath
+        The path to a directory that holds the unpacked contents of an FMU.
+    \returns
+        An object which represents the imported %FMU.
+    */
+    std::shared_ptr<FMU> ImportUnpacked(
+        const boost::filesystem::path& unpackedFMUPath);
+
+    /**
     \brief  Removes unused files and directories from the %FMU cache.
 
     This will remove all %FMU contents from the cache, except the ones for
