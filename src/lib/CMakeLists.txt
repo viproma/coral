@@ -106,6 +106,7 @@ set (_testSources
     "error_test.cpp"
     "fmi_fmu1_test.cpp"
     "fmi_fmu2_test.cpp"
+    "master_execution_test.cpp"
     "net_test.cpp"
     "net_reactor_test.cpp"
     "net_reqrep_test.cpp"
