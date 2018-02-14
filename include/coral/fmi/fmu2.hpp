@@ -48,8 +48,7 @@ class FMU2 : public coral::fmi::FMU, public std::enable_shared_from_this<FMU2>
 {
 private:
     // Only Importer is allowed to instantiate this class.
-    friend std::shared_ptr<coral::fmi::FMU> coral::fmi::Importer::Import(
-        const boost::filesystem::path&);
+    friend class Importer;
     FMU2(
         std::shared_ptr<coral::fmi::Importer> importer,
         const boost::filesystem::path& fmuDir);
