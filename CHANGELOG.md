@@ -18,6 +18,8 @@ list the bigger ones.
     output of variable values.
   - The ability to change or break existing variable connections with
     `coral::master::Execution::Reconfigure()`.
+  - The ability to import FMUs which have already been unpacked,
+    using `coral::fmi::Importer::ImportUnpacked()`.
 
 ## [0.8.0] – 2017-04-07
 ### Added
