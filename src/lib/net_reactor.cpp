@@ -23,7 +23,7 @@ namespace net
 Reactor::Reactor()
     : m_nextTimerID(0),
       m_needsRebuild(false),
-      m_continuePolling(false)
+      m_running(false)
 { }
 
 
@@ -159,8 +159,8 @@ void Reactor::RestartTimerInterval(int id)
 void Reactor::Run()
 {
     RestartTimerIntervals(begin(m_timers), end(m_timers));
-    m_continuePolling = true;
-    do {
+    m_running = true;
+    for (;;) {
         if (m_needsRebuild) Rebuild();
         if (m_pollItems.empty() && m_timers.empty()) break;
 
@@ -177,12 +177,14 @@ void Reactor::Run()
             assert(j < m_pollItems.size());
             if ((m_pollItems[j].revents & ZMQ_POLLIN) && m_sockets[i].first != nullptr) {
                 (*m_sockets[i].second)(*this, *m_sockets[i].first);
+                if (!m_running) goto endLoop;
             }
         }
         for (std::size_t i = 0; i < nativeSocketCount; ++i, ++j) {
             assert(j < m_pollItems.size());
             if ((m_pollItems[j].revents & ZMQ_POLLIN) && m_nativeSockets[i].first != NULL_NATIVE_SOCKET) {
                 (*m_nativeSockets[i].second)(*this, m_nativeSockets[i].first);
+                if (!m_running) goto endLoop;
             }
         }
         assert(j == m_pollItems.size());
@@ -190,14 +192,16 @@ void Reactor::Run()
         while (!m_timers.empty()
                && std::chrono::system_clock::now() >= m_timers.front().nextEventTime) {
             PerformNextEvent();
+            if (!m_running) goto endLoop;
         }
-    } while (m_continuePolling);
+    }
+endLoop: ;
 }
 
 
 void Reactor::Stop()
 {
-    m_continuePolling = false;
+    m_running = false;
 }
 
 

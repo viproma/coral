@@ -139,8 +139,9 @@ public:
     /**
     \brief  Stops the messaging loop.
 
-    This method may be called by a socket/timer handler, and will exit the
-    messaging loop once all handlers for the current event(s) have been called.
+    This method may be called by a socket/timer handler, and will stop the
+    messaging loop once that handler returns, causing `Run()` to return to
+    its caller.
     */
     void Stop();
 
@@ -182,7 +183,7 @@ private:
     std::vector<Timer> m_timers;
 
     bool m_needsRebuild;
-    bool m_continuePolling;
+    bool m_running;
 };
 
 

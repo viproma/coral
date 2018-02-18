@@ -93,7 +93,8 @@ TEST(coral_net_service, Tracker)
     const auto serviceType2Timeout = 3 * serviceType2Period;
     const auto serviceType3Timeout = 3 * serviceType3Period;
     const auto testStopTime = serviceStopTime
-        + std::max({serviceType1Timeout, serviceType2Timeout, serviceType3Timeout});
+        + std::max({serviceType1Timeout, serviceType2Timeout, serviceType3Timeout})
+        + sc::milliseconds(100);
     const std::string service11Payload1 = "aaa";
     const std::string service11Payload2 = "aaab";
     const std::string service12Payload = "bbb";
