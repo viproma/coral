@@ -169,3 +169,15 @@ TEST(coral_net, Reactor_RestartTimerInterval)
     //    85ms - stop
     EXPECT_EQ(3, count);
 }
+
+
+TEST(coral_net, Reactor_autostop)
+{
+    Reactor reactor;
+    int count = 0;
+    reactor.AddTimer(std::chrono::milliseconds(20), 2, [&] (Reactor&, int) {
+        ++count;
+    });
+    reactor.Run();
+    EXPECT_EQ(2, count);
+}

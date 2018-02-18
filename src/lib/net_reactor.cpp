@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-2018, SINTEF Ocean and the Coral contributors.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -162,6 +162,7 @@ void Reactor::Run()
     m_continuePolling = true;
     do {
         if (m_needsRebuild) Rebuild();
+        if (m_pollItems.empty() && m_timers.empty()) break;
 
         // More sockets may be added by the handler functions, so we
         // need to store the current sizes for use in the loops below.
