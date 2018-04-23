@@ -40,7 +40,7 @@ set (LIBZIP_INCLUDE_DIRS
 mark_as_advanced (LIBZIP_INCLUDE_DIRS)
 
 if (WIN32)
-    find_file (LIBZIP_DLL "zip.dll"
+    find_file (LIBZIP_DLL NAMES "zip.dll" "libzip.dll"
         ${_LIBZIP_hints}
         PATHS ${LIBZIP_DIR} $ENV{LIBZIP_DIR}
         PATH_SUFFIXES "bin" "lib"

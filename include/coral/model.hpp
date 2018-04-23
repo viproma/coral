@@ -307,14 +307,25 @@ public:
         VariableID variable,
         const ScalarValue& value);
 
-    /// Indicates an input variable which should be connected to an output variable.
+    /**
+    \brief  Indicates an input variable which should be connected to, or
+            disconnected from, an output variable.
+
+    If `outputVar` is a default-constructed `Variable` object (i.e., if
+    `outputVar.Empty()` is `true`) this is equivalent to "no connection",
+    meaning that an existing connection should be broken.
+    */
     VariableSetting(
         VariableID inputVar,
         const coral::model::Variable& outputVar);
 
     /**
     \brief  Indicates an input variable which should both be given a specific
-            value *and* connected to an output variable.
+            value *and* connected to or disconnected from an output variable.
+
+    If `outputVar` is a default-constructed `Variable` object (i.e., if
+    `outputVar.Empty()` is `true`) this is equivalent to "no connection",
+    meaning that an existing connection should be broken.
     */
     VariableSetting(
         VariableID inputVar,
@@ -333,12 +344,12 @@ public:
     */
     const ScalarValue& Value() const;
 
-    /// Whether the variable is to be connected.
-    bool IsConnected() const CORAL_NOEXCEPT;
+    /// Whether this represents a variable connection change.
+    bool IsConnectionChange() const CORAL_NOEXCEPT;
 
     /**
     \brief  The output to which the variable is to be connected, if any.
-    \pre `IsConnected() == true`
+    \pre `IsConnectionChange() == true`
     */
     const coral::model::Variable& ConnectedOutput() const;
 
@@ -346,6 +357,7 @@ private:
     VariableID m_variable;
     bool m_hasValue;
     ScalarValue m_value;
+    bool m_isConnectionChange;
     coral::model::Variable m_connectedOutput;
 };
 

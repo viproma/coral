@@ -251,6 +251,27 @@ std::shared_ptr<FMU> Importer::Import(const boost::filesystem::path& fmuPath)
 }
 
 
+std::shared_ptr<FMU> Importer::ImportUnpacked(
+    const boost::filesystem::path& unpackedFMUPath)
+{
+    PrunePtrCaches();
+    const auto minModelDesc = PeekModelDescription(unpackedFMUPath);
+    if (minModelDesc.fmiVersion == FMIVersion::unknown) {
+        throw std::runtime_error(
+            "Unsupported FMI version for FMU at '"
+            + unpackedFMUPath.string() + "'");
+    }
+    auto git = m_guidCache.find(minModelDesc.guid);
+    if (git != end(m_guidCache)) return git->second.lock();
+
+    auto fmu = minModelDesc.fmiVersion == FMIVersion::v1_0
+        ? std::shared_ptr<FMU>(new FMU1(shared_from_this(), unpackedFMUPath))
+        : std::shared_ptr<FMU>(new FMU2(shared_from_this(), unpackedFMUPath));
+    m_guidCache[minModelDesc.guid] = fmu;
+    return fmu;
+}
+
+
 void Importer::CleanCache()
 {
     // Remove unused FMUs

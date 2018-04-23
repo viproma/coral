@@ -14,31 +14,33 @@ Documentation
 -------------
 [Browse the API documentation online.](https://viproma.github.io/coral)
 
-Requirements
-------------
-Coral may currently be built on the following platforms, using the following
-compilers:
+Build requirements
+------------------
+The version/release numbers specified for compilers, tools and libraries below
+are the lowest ones used for the official Coral builds, and are therefore known
+to work.  Other versions are likely to work too, especially if they are newer
+or at least have the same major release number, but this is not guaranteed.
+
+Supported platforms and compilers:
 
   - Windows: Visual Studio 2013 or newer.
   - Linux:   GCC 4.9 or newer.
 
-In addition, the following tools are needed:
+Required build tools:
 
-  - [CMake](http://cmake.org) v3.0 or newer, to generate the build system.
+  - [CMake](http://cmake.org) v3.6, to generate the build system.
   - The [Protocol Buffers](https://developers.google.com/protocol-buffers/)
     compiler, to parse the protocol buffer files and generate C++ code for them.
   - [Doxygen](http://doxygen.org), to generate API documentation (optional).
 
-Finally, the following libraries are used by Coral and must therefore be present:
+Required libraries:
 
-  - [Boost](http://boost.org) (currently tested with v1.58, but older and newer
-    versions are likely to work as well).
-  - [ZeroMQ](http://zeromq.org) v4.0 or newer.
-  - [FMI Library](http://jmodelica.org/FMILibrary) v2.0 or newer.
-  - [Protocol Buffers](https://developers.google.com/protocol-buffers/) v2.5 or
-    newer.
-  - [libzip](http://www.nih.at/libzip/) v1.1 or newer.
-  - [zlib](http://www.zlib.net/)
+  - [Boost](http://boost.org) v1.55.0
+  - [ZeroMQ](http://zeromq.org) v4.0
+  - [FMI Library](http://jmodelica.org/FMILibrary) v2.0.3
+  - [Protocol Buffers](https://developers.google.com/protocol-buffers/) v2.6
+  - [libzip](http://www.nih.at/libzip/) v1.1
+  - [zlib](http://www.zlib.net/) v1.2
 
 
 Building

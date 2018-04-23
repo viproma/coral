@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-2018, SINTEF Ocean and the Coral contributors.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -23,7 +23,7 @@ namespace net
 Reactor::Reactor()
     : m_nextTimerID(0),
       m_needsRebuild(false),
-      m_continuePolling(false)
+      m_running(false)
 { }
 
 
@@ -159,9 +159,10 @@ void Reactor::RestartTimerInterval(int id)
 void Reactor::Run()
 {
     RestartTimerIntervals(begin(m_timers), end(m_timers));
-    m_continuePolling = true;
-    do {
+    m_running = true;
+    for (;;) {
         if (m_needsRebuild) Rebuild();
+        if (m_pollItems.empty() && m_timers.empty()) break;
 
         // More sockets may be added by the handler functions, so we
         // need to store the current sizes for use in the loops below.
@@ -176,12 +177,14 @@ void Reactor::Run()
             assert(j < m_pollItems.size());
             if ((m_pollItems[j].revents & ZMQ_POLLIN) && m_sockets[i].first != nullptr) {
                 (*m_sockets[i].second)(*this, *m_sockets[i].first);
+                if (!m_running) goto endLoop;
             }
         }
         for (std::size_t i = 0; i < nativeSocketCount; ++i, ++j) {
             assert(j < m_pollItems.size());
             if ((m_pollItems[j].revents & ZMQ_POLLIN) && m_nativeSockets[i].first != NULL_NATIVE_SOCKET) {
                 (*m_nativeSockets[i].second)(*this, m_nativeSockets[i].first);
+                if (!m_running) goto endLoop;
             }
         }
         assert(j == m_pollItems.size());
@@ -189,14 +192,16 @@ void Reactor::Run()
         while (!m_timers.empty()
                && std::chrono::system_clock::now() >= m_timers.front().nextEventTime) {
             PerformNextEvent();
+            if (!m_running) goto endLoop;
         }
-    } while (m_continuePolling);
+    }
+endLoop: ;
 }
 
 
 void Reactor::Stop()
 {
-    m_continuePolling = false;
+    m_running = false;
 }
 
 

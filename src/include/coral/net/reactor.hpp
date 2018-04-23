@@ -2,7 +2,7 @@
 \file
 \brief Contains the coral::net::Reactor class and related functionality.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-2018, SINTEF Ocean and the Coral contributors.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -126,11 +126,11 @@ public:
     /**
     \brief  Runs the messaging loop.
 
-    This function does not return before Stop() is called (by one of the
-    socket/timer handlers) or an error occurs.
+    This function returns when `Stop()` is called (by one of the socket/timer
+    handlers) or when there are no sockets or timers left to wait on.
 
     If a socket/timer handler throws an exception, the messaging loop will stop
-    and the exception will propagate out of Run().
+    and the exception will propagate out of `Run()`.
 
     \throws zmq::error_t if ZMQ reports an error.
     */
@@ -139,8 +139,9 @@ public:
     /**
     \brief  Stops the messaging loop.
 
-    This method may be called by a socket/timer handler, and will exit the
-    messaging loop once all handlers for the current event(s) have been called.
+    This method may be called by a socket/timer handler, and will stop the
+    messaging loop once that handler returns, causing `Run()` to return to
+    its caller.
     */
     void Stop();
 
@@ -182,7 +183,7 @@ private:
     std::vector<Timer> m_timers;
 
     bool m_needsRebuild;
-    bool m_continuePolling;
+    bool m_running;
 };
 
 

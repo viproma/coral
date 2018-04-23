@@ -30,6 +30,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 namespace
 {
+    const std::string MY_NAME = "coralslaveprovider";
     const std::string DEFAULT_NETWORK_INTERFACE = "127.0.0.1";
     const std::uint16_t DEFAULT_DISCOVERY_PORT = 10272;
 #ifdef _WIN32
@@ -49,12 +50,14 @@ public:
         const coral::net::ip::Address& networkInterface,
         const std::string& slaveExe,
         std::chrono::seconds masterInactivityTimeout,
+        bool enableOutput,
         const std::string& outputDir)
         : m_fmuPath{fmuPath}
         , m_fmu{importer.Import(fmuPath)}
         , m_networkInterface{networkInterface}
         , m_slaveExe(slaveExe)
         , m_masterInactivityTimeout{masterInactivityTimeout}
+        , m_enableOutput{enableOutput}
         , m_outputDir(outputDir.empty() ? "." : outputDir)
     {
     }
@@ -79,7 +82,9 @@ public:
             args.push_back(m_fmuPath.string());
             args.push_back(m_networkInterface.ToString());
             args.push_back(std::to_string(m_masterInactivityTimeout.count()));
-            args.push_back(m_outputDir);
+            if (m_enableOutput) {
+                args.push_back(m_outputDir);
+            }
 
             std::cout << "\nStarting slave...\n"
                 << "  FMU       : " << m_fmuPath << '\n'
@@ -137,6 +142,7 @@ private:
     coral::net::ip::Address m_networkInterface;
     std::string m_slaveExe;
     std::chrono::seconds m_masterInactivityTimeout;
+    bool m_enableOutput;
     std::string m_outputDir;
     std::string m_instantiationFailureDescription;
 };
@@ -179,20 +185,22 @@ try {
         ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
             "The IP address or (OS-specific) name of the network interface to "
             "use for network communications, or \"*\" for all/any.")
+        ("no-output",
+            "Disable file output of variable values.")
         ("output-dir,o", po::value<std::string>()->default_value("."),
-            "The directory where output files should be written")
+            "The directory where output files should be written.")
         ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
             "The UDP port used to broadcast information about this slave provider. "
             "The master must listen on the same port.")
         ("slave-exe", po::value<std::string>(),
-            "The path to the slave executable")
+            "The path to the slave executable.")
         ("timeout", po::value<int>()->default_value(3600),
             "The number of seconds slaves should wait for commands from a master "
             "before assuming that the connection is broken and shutting themselves "
             "down.  The special value -1 means \"never\".");
     po::options_description positionalOptions("Arguments");
     positionalOptions.add_options()
-        ("fmu",       po::value<std::vector<std::string>>(), "The FMU files and directories");
+        ("fmu",       po::value<std::vector<std::string>>(), "The FMU files and directories.");
     po::positional_options_description positions;
     positions.add("fmu", -1);
 
@@ -200,7 +208,7 @@ try {
     const auto optionValues = coral::util::ParseArguments(
         args, options, positionalOptions, positions,
         std::cerr,
-        "slave_provider",
+        MY_NAME,
         "Slave provider (" CORAL_PROGRAM_NAME_VERSION ")\n\n"
         "This program loads one or more FMUs and makes them available as\n"
         "slaves on a domain.");
@@ -213,6 +221,7 @@ try {
 
     const auto networkInterface = coral::net::ip::Address{
         (*optionValues)["interface"].as<std::string>()};
+    const auto enableOutput = !optionValues->count("no-output");
     const auto outputDir = (*optionValues)["output-dir"].as<std::string>();
     const auto discoveryPort = coral::net::ip::Port{
         (*optionValues)["port"].as<std::uint16_t>()};
@@ -257,6 +266,7 @@ try {
                 networkInterface,
                 slaveExe,
                 timeout,
+                enableOutput,
                 outputDir));
             std::cout << "FMU loaded: " << p << std::endl;
         } catch (const std::runtime_error& e) {

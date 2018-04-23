@@ -12,7 +12,18 @@ all new versions must be expected to contain backwards-incompatible changes.
 We don't guarantee that they'll all be documented here, but we'll try to
 list the bigger ones.
 
-## [Unreleased]
+## [0.9.0] – 2018-04-23
+This will be the last release which supports Visual Studio 2013.
+### Added
+  - A `--no-output` switch in coralslaveprovider, which disables file
+    output of variable values.
+  - The ability to change or break existing variable connections with
+    `coral::master::Execution::Reconfigure()`.
+  - `coral::fmi::Importer::ImportUnpacked()`, a function for importing
+    FMUs which have already been unpacked.
+### Fixed
+  - Some minor issues that prevented Coral from being built with newer
+    Visual Studio versions (2015 and 2017).
 
 ## [0.8.0] – 2017-04-07
 ### Added
@@ -38,6 +49,7 @@ list the bigger ones.
 ## 0.7.0 – 2017-02-07
 First public release.
 
-[Unreleased]: https://github.com/viproma/coral/compare/v0.8.0...master
+[Unreleased]: https://github.com/viproma/coral/compare/v0.9.0...master
+[0.9.0]: https://github.com/viproma/coral/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/viproma/coral/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/viproma/coral/compare/v0.7.0...v0.7.1

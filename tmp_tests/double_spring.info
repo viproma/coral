@@ -3,20 +3,20 @@ description "A mass connected to a spring connected to a mass connected to a spr
 
 slaves {
     spring1 {
-        type spring_1d
+        type no.viproma.demo.spring_1d
         init {
             length 2.0
             pos_b  1.0
         }
     }
     mass1  {
-        type mass_1d
+        type no.viproma.demo.mass_1d
         init {
             pos 1.0
         }
     }
     spring2 {
-        type spring_1d
+        type no.viproma.demo.spring_1d
         init {
             length 2.0
             pos_a 1.0
@@ -24,7 +24,7 @@ slaves {
         }
     }
     mass2 {
-        type mass_1d
+        type no.viproma.demo.mass_1d
         init {
             pos 3.0
         }
