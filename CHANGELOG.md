@@ -12,6 +12,8 @@ all new versions must be expected to contain backwards-incompatible changes.
 We don't guarantee that they'll all be documented here, but we'll try to
 list the bigger ones.
 
+## [Unreleased]
+
 ## [0.9.0] – 2018-04-23
 This will be the last release which supports Visual Studio 2013.
 ### Added
