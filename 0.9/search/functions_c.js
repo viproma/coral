@@ -2,8 +2,6 @@ var searchData=
 [
   ['labs',['labs',['http://en.cppreference.com/w/cpp/numeric/math/abs.html',1,'std']]],
   ['lambda',['lambda',['http://en.cppreference.com/w/cpp/numeric/random/exponential_distribution/lambda.html',1,'std::exponential_distribution']]],
-  ['lastcall',['LastCall',['../namespacecoral_1_1util.html#a1e8ce7961209d58395be927acd853cac',1,'coral::util']]],
-  ['lastendpoint',['LastEndpoint',['../namespacecoral_1_1net_1_1zmqx.html#a520dc50ca9b3cbe43c9acd80e8ec402d',1,'coral::net::zmqx']]],
   ['lasterrormessage',['LastErrorMessage',['../classcoral_1_1fmi_1_1_importer.html#ac0f85ff4a4d0bf90dc7e28a2ba6fc707',1,'coral::fmi::Importer']]],
   ['ldexp',['ldexp',['http://en.cppreference.com/w/cpp/numeric/math/ldexp.html',1,'std']]],
   ['ldiv',['ldiv',['http://en.cppreference.com/w/cpp/numeric/math/div.html',1,'std']]],
@@ -14,7 +12,6 @@ var searchData=
   ['lgamma',['lgamma',['http://en.cppreference.com/w/cpp/numeric/math/lgamma.html',1,'std']]],
   ['linear_5fcongruential_5fengine',['linear_congruential_engine',['http://en.cppreference.com/w/cpp/numeric/random/linear_congruential_engine/linear_congruential_engine.html',1,'std::linear_congruential_engine']]],
   ['list',['list',['http://en.cppreference.com/w/cpp/container/list/list.html',1,'std::list']]],
-  ['listener',['Listener',['../classcoral_1_1net_1_1service_1_1_listener.html#a3ad4bbc2b642e77c17ad028dda3fa4d9',1,'coral::net::service::Listener::Listener(coral::net::Reactor &amp;reactor, std::uint32_t partitionID, const ip::Endpoint &amp;endpoint, NotificationHandler onNotification)'],['../classcoral_1_1net_1_1service_1_1_listener.html#acd515a92eb560067f668ce3e76a6c203',1,'coral::net::service::Listener::Listener(Listener &amp;&amp;) CORAL_NOEXCEPT']]],
   ['llabs',['llabs',['http://en.cppreference.com/w/cpp/numeric/math/abs.html',1,'std']]],
   ['llrint',['llrint',['http://en.cppreference.com/w/cpp/numeric/math/rint.html',1,'std']]],
   ['llround',['llround',['http://en.cppreference.com/w/cpp/numeric/math/round.html',1,'std']]],

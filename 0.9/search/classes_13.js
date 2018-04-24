@@ -14,7 +14,6 @@ var searchData=
   ['timed_5fmutex',['timed_mutex',['http://en.cppreference.com/w/cpp/thread/timed_mutex.html',1,'std']]],
   ['timeoutexception',['TimeoutException',['../classcoral_1_1slave_1_1_timeout_exception.html',1,'coral::slave']]],
   ['tm',['tm',['http://en.cppreference.com/w/cpp/chrono/c/tm.html',1,'std']]],
-  ['tracker',['Tracker',['../classcoral_1_1net_1_1service_1_1_tracker.html',1,'coral::net::service']]],
   ['treat_5fas_5ffloating_5fpoint',['treat_as_floating_point',['http://en.cppreference.com/w/cpp/chrono/treat_as_floating_point.html',1,'std::chrono']]],
   ['true_5ftype',['true_type',['http://en.cppreference.com/w/cpp/types/integral_constant.html',1,'std']]],
   ['try_5fto_5flock_5ft',['try_to_lock_t',['http://en.cppreference.com/w/cpp/thread/lock_tag_t.html',1,'std']]],

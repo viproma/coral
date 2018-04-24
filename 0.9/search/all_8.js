@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['handlerequest',['HandleRequest',['../classcoral_1_1net_1_1reqrep_1_1_server_protocol_handler.html#a7b956bcdf04125cd00969553ce6ab595',1,'coral::net::reqrep::ServerProtocolHandler']]],
   ['hardware_5fconcurrency',['hardware_concurrency',['http://en.cppreference.com/w/cpp/thread/thread/hardware_concurrency.html',1,'std::thread']]],
   ['has_5ffacet',['has_facet',['http://en.cppreference.com/w/cpp/locale/has_facet.html',1,'std']]],
   ['has_5fvirtual_5fdestructor',['has_virtual_destructor',['http://en.cppreference.com/w/cpp/types/has_virtual_destructor.html',1,'std']]],
@@ -9,7 +8,6 @@ var searchData=
   ['hash_5fcode',['hash_code',['http://en.cppreference.com/w/cpp/types/type_info/hash_code.html',1,'std::type_info::hash_code()'],['http://en.cppreference.com/w/cpp/types/type_index/hash_code.html',1,'std::type_index::hash_code()']]],
   ['hash_5ffunction',['hash_function',['http://en.cppreference.com/w/cpp/container/unordered_map/hash_function.html',1,'std::unordered_map::hash_function()'],['http://en.cppreference.com/w/cpp/container/unordered_multimap/hash_function.html',1,'std::unordered_multimap::hash_function()'],['http://en.cppreference.com/w/cpp/container/unordered_multiset/hash_function.html',1,'std::unordered_multiset::hash_function()'],['http://en.cppreference.com/w/cpp/container/unordered_set/hash_function.html',1,'std::unordered_set::hash_function()']]],
   ['hasvalue',['HasValue',['../classcoral_1_1model_1_1_variable_setting.html#ae9e5bd6532f55c9b815a7cb5e3f735f0',1,'coral::model::VariableSetting']]],
-  ['header',['Header',['../structcoral_1_1protocol_1_1domain_1_1_header.html',1,'coral::protocol::domain']]],
   ['hecto',['hecto',['http://en.cppreference.com/w/cpp/numeric/ratio/ratio.html',1,'std']]],
   ['hex',['hex',['http://en.cppreference.com/w/cpp/io/manip/hex.html',1,'std']]],
   ['hexfloat',['hexfloat',['http://en.cppreference.com/w/cpp/io/manip/fixed.html',1,'std']]],

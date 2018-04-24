@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['handlerequest',['HandleRequest',['../classcoral_1_1net_1_1reqrep_1_1_server_protocol_handler.html#a7b956bcdf04125cd00969553ce6ab595',1,'coral::net::reqrep::ServerProtocolHandler']]],
   ['hardware_5fconcurrency',['hardware_concurrency',['http://en.cppreference.com/w/cpp/thread/thread/hardware_concurrency.html',1,'std::thread']]],
   ['has_5ffacet',['has_facet',['http://en.cppreference.com/w/cpp/locale/has_facet.html',1,'std']]],
   ['hash',['hash',['http://en.cppreference.com/w/cpp/locale/collate/hash.html',1,'std::collate_byname::hash()'],['http://en.cppreference.com/w/cpp/utility/hash/hash.html',1,'std::hash::hash()'],['http://en.cppreference.com/w/cpp/locale/collate/hash.html',1,'std::collate::hash()']]],

@@ -6,7 +6,6 @@ var searchData=
   ['less_5fequal',['less_equal',['http://en.cppreference.com/w/cpp/utility/functional/less_equal.html',1,'std']]],
   ['linear_5fcongruential_5fengine',['linear_congruential_engine',['http://en.cppreference.com/w/cpp/numeric/random/linear_congruential_engine.html',1,'std']]],
   ['list',['list',['http://en.cppreference.com/w/cpp/container/list.html',1,'std']]],
-  ['listener',['Listener',['../classcoral_1_1net_1_1service_1_1_listener.html',1,'coral::net::service']]],
   ['locale',['locale',['http://en.cppreference.com/w/cpp/locale/locale.html',1,'std']]],
   ['lock_5fguard',['lock_guard',['http://en.cppreference.com/w/cpp/thread/lock_guard.html',1,'std']]],
   ['logginginstance',['LoggingInstance',['../classcoral_1_1slave_1_1_logging_instance.html',1,'coral::slave']]],

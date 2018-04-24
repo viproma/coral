@@ -47,7 +47,6 @@ var searchData=
   ['basic_5fstringstream',['basic_stringstream',['http://en.cppreference.com/w/cpp/io/basic_stringstream.html',1,'std']]],
   ['basic_5fstringstream_3c_20char_20_3e',['basic_stringstream&lt; char &gt;',['http://en.cppreference.com/w/cpp/io/basic_stringstream.html',1,'std']]],
   ['basic_5fstringstream_3c_20wchar_5ft_20_3e',['basic_stringstream&lt; wchar_t &gt;',['http://en.cppreference.com/w/cpp/io/basic_stringstream.html',1,'std']]],
-  ['beacon',['Beacon',['../classcoral_1_1net_1_1service_1_1_beacon.html',1,'coral::net::service']]],
   ['bernoulli_5fdistribution',['bernoulli_distribution',['http://en.cppreference.com/w/cpp/numeric/random/bernoulli_distribution.html',1,'std']]],
   ['bidirectional_5fiterator_5ftag',['bidirectional_iterator_tag',['http://en.cppreference.com/w/cpp/iterator/iterator_tags.html',1,'std']]],
   ['binary_5ffunction',['binary_function',['http://en.cppreference.com/w/cpp/utility/functional/binary_function.html',1,'std']]],
@@ -56,6 +55,5 @@ var searchData=
   ['bit_5fand',['bit_and',['http://en.cppreference.com/w/cpp/utility/functional/bit_and.html',1,'std']]],
   ['bit_5fnot',['bit_not',['http://en.cppreference.com/w/cpp/utility/functional/bit_not.html',1,'std']]],
   ['bit_5for',['bit_or',['http://en.cppreference.com/w/cpp/utility/functional/bit_or.html',1,'std']]],
-  ['bitset',['bitset',['http://en.cppreference.com/w/cpp/utility/bitset.html',1,'std']]],
-  ['broadcastsocket',['BroadcastSocket',['../classcoral_1_1net_1_1udp_1_1_broadcast_socket.html',1,'coral::net::udp']]]
+  ['bitset',['bitset',['http://en.cppreference.com/w/cpp/utility/bitset.html',1,'std']]]
 ];

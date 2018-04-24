@@ -5,7 +5,6 @@ var searchData=
   ['negate',['negate',['http://en.cppreference.com/w/cpp/utility/functional/negate.html',1,'std']]],
   ['negative_5fbinomial_5fdistribution',['negative_binomial_distribution',['http://en.cppreference.com/w/cpp/numeric/random/negative_binomial_distribution.html',1,'std']]],
   ['nested_5fexception',['nested_exception',['http://en.cppreference.com/w/cpp/error/nested_exception.html',1,'std']]],
-  ['networkinterfaceinfo',['NetworkInterfaceInfo',['../structcoral_1_1net_1_1ip_1_1_network_interface_info.html',1,'coral::net::ip']]],
   ['new_5fhandler',['new_handler',['http://en.cppreference.com/w/cpp/memory/new/new_handler.html',1,'std']]],
   ['normal_5fdistribution',['normal_distribution',['http://en.cppreference.com/w/cpp/numeric/random/normal_distribution.html',1,'std']]],
   ['not_5fequal_5fto',['not_equal_to',['http://en.cppreference.com/w/cpp/utility/functional/not_equal_to.html',1,'std']]],

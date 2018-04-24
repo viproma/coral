@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['aborted',['aborted',['../namespacecoral_1_1error.html#a9812e349ffd556c015b9162ac28182a3adfb7069bfc6e0064a6c667626eca07b4',1,'coral::error']]]
+  ['completed',['completed',['../namespacecoral_1_1master.html#a911a7dc57267b5b61d566707635bf7bfaaa8fb77e57d1ca18d593e909729871fe',1,'coral::master']]]
 ];

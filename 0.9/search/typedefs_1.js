@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['connecthandler',['ConnectHandler',['../classcoral_1_1bus_1_1_slave_controller.html#a971515a58c8b91f3523e736200b43674',1,'coral::bus::SlaveController']]],
-  ['connecttoslavehandler',['ConnectToSlaveHandler',['../namespacecoral_1_1bus.html#a7294a21f311ecef55109967bf2ec05af',1,'coral::bus']]],
-  ['constvariablesrange',['ConstVariablesRange',['../classcoral_1_1model_1_1_slave_type_description.html#a2ef778633888d36d875f17c94d2a7b72',1,'coral::model::SlaveTypeDescription']]]
+  ['scalarvalue',['ScalarValue',['../namespacecoral_1_1model.html#ac882620703779d82422cef7d3217d486',1,'coral::model']]],
+  ['slaveid',['SlaveID',['../namespacecoral_1_1model.html#acfe8e544f2ff25838bda884b3ba4008a',1,'coral::model']]],
+  ['stepid',['StepID',['../namespacecoral_1_1model.html#a9e51ffeea7bab4a4a1fd2dd6798c9f03',1,'coral::model']]]
 ];

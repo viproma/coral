@@ -106,7 +106,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <p>Specifies variable values and connection changes for a single slave.  
  <a href="structcoral_1_1master_1_1_slave_config.html#details">More...</a></p>
 
-<p><code>#include &quot;<a class="el" href="include_2coral_2master_2execution_8hpp_source.html">coral/master/execution.hpp</a>&quot;</code></p>
+<p><code>#include &quot;<a class="el" href="execution_8hpp_source.html">coral/master/execution.hpp</a>&quot;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -139,12 +139,12 @@ Public Attributes</h2></td></tr>
 <p>This class is used in calls to <code><a class="el" href="classcoral_1_1master_1_1_execution.html#a8ec647c8da0505cd4999040a05522106" title="Sets input variable values and establishes connections between output and input variables. ">Execution::Reconfigure()</a></code> to specify the changes which are to be effected for one particular slave, and to obtain information about any failures the slave might have reported regarding these changes.</p>
 <p>Before an object of this type is passed to <code>Reconfigure()</code>, the <code><a class="el" href="structcoral_1_1master_1_1_slave_config.html#a76d6d633ca6e6f29e7c59bb3b74ba135" title="[Input] The ID number of the slave whose variables are to be configured. ">slaveID</a></code> and <code><a class="el" href="structcoral_1_1master_1_1_slave_config.html#a56f6585e60446634e5e0d6dbc25a9692" title="[Input] The variable value/connection changes. ">variableSettings</a></code> fields must be set. If <code>Reconfigure()</code> throws, the <code><a class="el" href="structcoral_1_1master_1_1_slave_config.html#af25241110b0c2b05b0de6195c67c2751" title="[Output] The error reported by the slave, if any. ">error</a></code> field may be queried to figure out whether this particular slave contributed to the failure, and if so, why. </p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
-<li>coral/master/<a class="el" href="include_2coral_2master_2execution_8hpp_source.html">execution.hpp</a></li>
+<li>coral/master/<a class="el" href="execution_8hpp_source.html">execution.hpp</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Apr 23 2018 15:32:12 for coral by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Apr 24 2018 09:38:45 for coral by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

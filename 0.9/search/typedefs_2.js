@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['disappearedhandler',['DisappearedHandler',['../classcoral_1_1net_1_1service_1_1_tracker.html#a52af4c65424d310d160aa6eb2639f4f5',1,'coral::net::service::Tracker']]]
+  ['timeduration',['TimeDuration',['../namespacecoral_1_1model.html#a85c342a533f28116c7e9c8c7bd37752a',1,'coral::model']]],
+  ['timepoint',['TimePoint',['../namespacecoral_1_1model.html#aa9e2231db1b73b57ea345cf5680ed1f3',1,'coral::model']]]
 ];

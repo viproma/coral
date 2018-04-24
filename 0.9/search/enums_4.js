@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['level',['Level',['../namespacecoral_1_1log.html#a43f5a095fd699755fe96a5d0aa454c1e',1,'coral::log']]]
+  ['stepresult',['StepResult',['../namespacecoral_1_1master.html#a911a7dc57267b5b61d566707635bf7bf',1,'coral::master']]]
 ];
