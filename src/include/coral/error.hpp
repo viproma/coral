@@ -204,7 +204,7 @@ of the returned message is:
 
     user message (system message)
 */
-std::string ErrnoMessage(const std::string& msg, int errnoValue) CORAL_NOEXCEPT;
+std::string ErrnoMessage(const std::string& msg, int errnoValue) noexcept;
 
 
 /**
@@ -229,7 +229,7 @@ enum class generic_error
 };
 
 /// Error category for generic errors
-const std::error_category& generic_category() CORAL_NOEXCEPT;
+const std::error_category& generic_category() noexcept;
 
 /// Simulation errors.
 enum class sim_error
@@ -242,15 +242,15 @@ enum class sim_error
 };
 
 /// Error category for simulation errors.
-const std::error_category& sim_category() CORAL_NOEXCEPT;
+const std::error_category& sim_category() noexcept;
 
 
 // Standard functions to make std::error_code and std::error_condition from
 // generic_error and sim_error.
-std::error_code make_error_code(generic_error e) CORAL_NOEXCEPT;
-std::error_code make_error_code(sim_error e) CORAL_NOEXCEPT;
-std::error_condition make_error_condition(generic_error e) CORAL_NOEXCEPT;
-std::error_condition make_error_condition(sim_error e) CORAL_NOEXCEPT;
+std::error_code make_error_code(generic_error e) noexcept;
+std::error_code make_error_code(sim_error e) noexcept;
+std::error_condition make_error_condition(generic_error e) noexcept;
+std::error_condition make_error_condition(sim_error e) noexcept;
 
 
 }} // namespace

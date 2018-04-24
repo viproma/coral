@@ -74,17 +74,17 @@ public:
         coral::net::ip::Port discoveryPort);
 
     /// Destructor.
-    ~ProviderCluster() CORAL_NOEXCEPT;
+    ~ProviderCluster() noexcept;
 
     // Disable copying
     ProviderCluster(const ProviderCluster&) = delete;
     ProviderCluster& operator=(const ProviderCluster&) = delete;
 
     /// Move constructor
-    ProviderCluster(ProviderCluster&&) CORAL_NOEXCEPT;
+    ProviderCluster(ProviderCluster&&) noexcept;
 
     /// Move assignment operator
-    ProviderCluster& operator=(ProviderCluster&&) CORAL_NOEXCEPT;
+    ProviderCluster& operator=(ProviderCluster&&) noexcept;
 
     /**
      *  \brief

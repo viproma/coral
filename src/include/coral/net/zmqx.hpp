@@ -160,7 +160,7 @@ public:
 
     CORAL_DEFINE_DEFAULT_MOVE(ReqSocket, m_socket)
 
-    ~ReqSocket() CORAL_NOEXCEPT;
+    ~ReqSocket() noexcept;
 
     /**
     \brief  Connects to a server.
@@ -232,7 +232,7 @@ public:
     CORAL_DEFINE_DEFAULT_MOVE(RepSocket,
         m_socket, m_boundEndpoint, m_clientEnvelope)
 
-    ~RepSocket() CORAL_NOEXCEPT;
+    ~RepSocket() noexcept;
 
     /**
     \brief  Binds to a local endpoint and waits for incoming requests from

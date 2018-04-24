@@ -115,7 +115,7 @@ public:
     void Close();
 
     /// Returns the current state of the slave.
-    SlaveState State() const CORAL_NOEXCEPT;
+    SlaveState State() const noexcept;
 
     /// Completion handler type for GetDescription()
     typedef std::function<void(const std::error_code&, const coral::model::SlaveDescription&)>

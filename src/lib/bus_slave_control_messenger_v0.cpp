@@ -96,7 +96,7 @@ SlaveControlMessengerV0::SlaveControlMessengerV0(
 }
 
 
-SlaveControlMessengerV0::~SlaveControlMessengerV0() CORAL_NOEXCEPT
+SlaveControlMessengerV0::~SlaveControlMessengerV0() noexcept
 {
     CheckInvariant();
     if (m_attachedToReactor) {
@@ -108,7 +108,7 @@ SlaveControlMessengerV0::~SlaveControlMessengerV0() CORAL_NOEXCEPT
 }
 
 
-SlaveState SlaveControlMessengerV0::State() const CORAL_NOEXCEPT
+SlaveState SlaveControlMessengerV0::State() const noexcept
 {
     return m_state;
 }

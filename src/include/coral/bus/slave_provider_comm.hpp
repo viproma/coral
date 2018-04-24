@@ -51,16 +51,16 @@ public:
         const coral::net::ip::Endpoint& endpoint);
 
     /// Destructor
-    ~SlaveProviderClient() CORAL_NOEXCEPT;
+    ~SlaveProviderClient() noexcept;
 
     SlaveProviderClient(const SlaveProviderClient&) = delete;
     SlaveProviderClient& operator=(const SlaveProviderClient&) = delete;
 
     /// Move constructor
-    SlaveProviderClient(SlaveProviderClient&&) CORAL_NOEXCEPT;
+    SlaveProviderClient(SlaveProviderClient&&) noexcept;
 
     /// Move assignment operator
-    SlaveProviderClient& operator=(SlaveProviderClient&&) CORAL_NOEXCEPT;
+    SlaveProviderClient& operator=(SlaveProviderClient&&) noexcept;
 
     /// Completion handler type for GetSlaveTypes().
     typedef std::function<void(
@@ -127,7 +127,7 @@ class SlaveProviderOps
 {
 public:
     /// Returns the number of slave types provided.
-    virtual int GetSlaveTypeCount() const CORAL_NOEXCEPT = 0;
+    virtual int GetSlaveTypeCount() const noexcept = 0;
 
     /// Returns a description of the `index`th slave type.
     virtual coral::model::SlaveTypeDescription GetSlaveType(int index) const = 0;
@@ -137,7 +137,7 @@ public:
         const std::string& slaveTypeUUID,
         std::chrono::milliseconds timeout) = 0;
 
-    virtual ~SlaveProviderOps() CORAL_NOEXCEPT { }
+    virtual ~SlaveProviderOps() noexcept { }
 };
 
 

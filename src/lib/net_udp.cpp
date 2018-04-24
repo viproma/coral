@@ -147,7 +147,7 @@ public:
     }
 
 
-    ~Private() CORAL_NOEXCEPT
+    ~Private() noexcept
     {
         CLOSE_NATIVE_SOCKET(m_socket);
 #ifdef _WIN32
@@ -228,7 +228,7 @@ public:
     }
 
 
-    NativeSocket NativeHandle() const CORAL_NOEXCEPT
+    NativeSocket NativeHandle() const noexcept
     {
         return m_socket;
     }
@@ -250,20 +250,18 @@ BroadcastSocket::BroadcastSocket(
 }
 
 
-BroadcastSocket::~BroadcastSocket() CORAL_NOEXCEPT
+BroadcastSocket::~BroadcastSocket() noexcept
 {
 }
 
 
-BroadcastSocket::BroadcastSocket(BroadcastSocket&& other)
-    CORAL_NOEXCEPT
+BroadcastSocket::BroadcastSocket(BroadcastSocket&& other) noexcept
     : m_private(std::move(other.m_private))
 {
 }
 
 
-BroadcastSocket& BroadcastSocket::operator=(BroadcastSocket&& other)
-    CORAL_NOEXCEPT
+BroadcastSocket& BroadcastSocket::operator=(BroadcastSocket&& other) noexcept
 {
     m_private = std::move(other.m_private);
     return *this;
@@ -285,8 +283,7 @@ std::size_t BroadcastSocket::Receive(
 }
 
 
-BroadcastSocket::NativeSocket BroadcastSocket::NativeHandle()
-    const CORAL_NOEXCEPT
+BroadcastSocket::NativeSocket BroadcastSocket::NativeHandle() const noexcept
 {
     return m_private->NativeHandle();
 }

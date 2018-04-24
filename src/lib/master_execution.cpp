@@ -284,19 +284,19 @@ coral::master::Execution::Execution(
 }
 
 
-coral::master::Execution::~Execution() CORAL_NOEXCEPT
+coral::master::Execution::~Execution() noexcept
 {
 }
 
 
-coral::master::Execution::Execution(Execution&& other) CORAL_NOEXCEPT
+coral::master::Execution::Execution(Execution&& other) noexcept
     : m_private(std::move(other.m_private))
 {
 }
 
 
 coral::master::Execution& coral::master::Execution::operator=(Execution&& other)
-    CORAL_NOEXCEPT
+    noexcept
 {
     m_private = std::move(other.m_private);
     return *this;

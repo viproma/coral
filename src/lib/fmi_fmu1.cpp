@@ -285,7 +285,7 @@ SlaveInstance1::SlaveInstance1(std::shared_ptr<coral::fmi::FMU1> fmu)
 }
 
 
-SlaveInstance1::~SlaveInstance1() CORAL_NOEXCEPT
+SlaveInstance1::~SlaveInstance1() noexcept
 {
     if (m_setupComplete) {
         if (m_simStarted) {

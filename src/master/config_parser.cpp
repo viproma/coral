@@ -507,7 +507,7 @@ SetVariablesException::SetVariablesException()
 }
 
 
-const char* SetVariablesException::what() const CORAL_NOEXCEPT
+const char* SetVariablesException::what() const noexcept
 {
     return m_msg.c_str();
 }

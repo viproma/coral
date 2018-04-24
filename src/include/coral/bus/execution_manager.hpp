@@ -49,7 +49,7 @@ struct AddedSlave
     std::string name;
 
     /// Default constructor
-    AddedSlave() CORAL_NOEXCEPT { }
+    AddedSlave() noexcept { }
 
     /// Constructor which sets the `#locator` and `#name` fields.
     AddedSlave(coral::net::SlaveLocator locator_, std::string name_)
@@ -66,7 +66,7 @@ struct SlaveConfig
     coral::model::SlaveID slaveID;
     std::vector<coral::model::VariableSetting> variableSettings;
 
-    SlaveConfig() CORAL_NOEXCEPT { }
+    SlaveConfig() noexcept { }
     SlaveConfig(
         coral::model::SlaveID slaveID_,
         std::vector<coral::model::VariableSetting> variableSettings_)

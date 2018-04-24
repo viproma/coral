@@ -63,7 +63,7 @@ void SlaveController::Close()
 }
 
 
-SlaveState SlaveController::State() const CORAL_NOEXCEPT
+SlaveState SlaveController::State() const noexcept
 {
     if (m_messenger) return m_messenger->State();
     else if (m_pendingConnection) return SLAVE_BUSY;

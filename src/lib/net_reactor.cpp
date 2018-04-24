@@ -35,7 +35,7 @@ void Reactor::AddSocket(zmq::socket_t& socket, SocketHandler handler)
 }
 
 
-void Reactor::RemoveSocket(zmq::socket_t& socket) CORAL_NOEXCEPT
+void Reactor::RemoveSocket(zmq::socket_t& socket) noexcept
 {
     // Actual removal is deferred to the next rebuild.  At this stage, we just
     // replace the socket pointer with null.
@@ -66,7 +66,7 @@ namespace
 }
 
 
-void Reactor::RemoveNativeSocket(NativeSocket socket) CORAL_NOEXCEPT
+void Reactor::RemoveNativeSocket(NativeSocket socket) noexcept
 {
     // Actual removal is deferred to the next rebuild.  At this stage, we just
     // replace the file descriptor with an invalid value.

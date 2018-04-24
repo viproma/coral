@@ -190,7 +190,7 @@ void ExecutionManagerPrivate::AdvanceSimTime(coral::model::TimeDuration delta)
 }
 
 
-void ExecutionManagerPrivate::SlaveOpStarted() CORAL_NOEXCEPT
+void ExecutionManagerPrivate::SlaveOpStarted() noexcept
 {
     assert(m_operationCount >= 0);
     ++m_operationCount;
@@ -234,7 +234,7 @@ std::unique_ptr<ExecutionState> ExecutionManagerPrivate::SwapState(
 }
 
 
-void ExecutionManagerPrivate::AbortSlaveOpWaiting() CORAL_NOEXCEPT
+void ExecutionManagerPrivate::AbortSlaveOpWaiting() noexcept
 {
     if (m_allSlaveOpsCompleteHandler) {
         coral::util::LastCall(m_allSlaveOpsCompleteHandler,

@@ -38,9 +38,9 @@ public:
         const coral::net::Endpoint& dataPubEndpoint,
         std::chrono::seconds commTimeout);
 
-    Runner(Runner&&) CORAL_NOEXCEPT;
+    Runner(Runner&&) noexcept;
 
-    Runner& operator=(Runner&&) CORAL_NOEXCEPT;
+    Runner& operator=(Runner&&) noexcept;
 
     ~Runner();
 

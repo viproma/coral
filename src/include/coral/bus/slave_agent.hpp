@@ -147,7 +147,7 @@ private:
         Timeout(
             coral::net::Reactor& reactor,
             std::chrono::milliseconds timeout);
-        ~Timeout() CORAL_NOEXCEPT;
+        ~Timeout() noexcept;
         Timeout(const Timeout&) = delete;
         Timeout& operator=(const Timeout&) = delete;
         Timeout(Timeout&&) = delete;
@@ -223,7 +223,7 @@ private:
 class Shutdown : public std::exception
 {
 public:
-    const char* what() const CORAL_NOEXCEPT override { return "Normal shutdown requested by master"; }
+    const char* what() const noexcept override { return "Normal shutdown requested by master"; }
 };
 
 

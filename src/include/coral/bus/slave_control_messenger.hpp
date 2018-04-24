@@ -64,10 +64,10 @@ class PendingSlaveControlConnection
 {
 public:
     explicit PendingSlaveControlConnection(
-        std::shared_ptr<PendingSlaveControlConnectionPrivate> p = nullptr) CORAL_NOEXCEPT;
-    PendingSlaveControlConnection(PendingSlaveControlConnection&&) CORAL_NOEXCEPT;
-    PendingSlaveControlConnection& operator=(PendingSlaveControlConnection&&) CORAL_NOEXCEPT;
-    ~PendingSlaveControlConnection() CORAL_NOEXCEPT;
+        std::shared_ptr<PendingSlaveControlConnectionPrivate> p = nullptr) noexcept;
+    PendingSlaveControlConnection(PendingSlaveControlConnection&&) noexcept;
+    PendingSlaveControlConnection& operator=(PendingSlaveControlConnection&&) noexcept;
+    ~PendingSlaveControlConnection() noexcept;
 
     /**
     \brief  Aborts the connection attempt and calls the completion handler with
@@ -86,7 +86,7 @@ public:
     up to (but not including) the point at which the completion handler is
     called.
     */
-    operator bool() const CORAL_NOEXCEPT;
+    operator bool() const noexcept;
 
 private:
     std::shared_ptr<PendingSlaveControlConnectionPrivate> m_private;
@@ -103,25 +103,25 @@ class SlaveControlConnection
 {
 public:
     /// Default constructor.
-    SlaveControlConnection() CORAL_NOEXCEPT;
+    SlaveControlConnection() noexcept;
 
     // For internal use.
     explicit SlaveControlConnection(
-        std::unique_ptr<SlaveControlConnectionPrivate> p) CORAL_NOEXCEPT;
+        std::unique_ptr<SlaveControlConnectionPrivate> p) noexcept;
 
     /// Move constructor.
-    SlaveControlConnection(SlaveControlConnection&&) CORAL_NOEXCEPT;
+    SlaveControlConnection(SlaveControlConnection&&) noexcept;
 
     /// Move assignment.
-    SlaveControlConnection& operator=(SlaveControlConnection&&) CORAL_NOEXCEPT;
+    SlaveControlConnection& operator=(SlaveControlConnection&&) noexcept;
 
-    ~SlaveControlConnection() CORAL_NOEXCEPT;
+    ~SlaveControlConnection() noexcept;
 
     /**
     \brief  Returns whether this object refers to an established connection.
 
     */
-    operator bool() const CORAL_NOEXCEPT;
+    operator bool() const noexcept;
 
     // For internal use.
     SlaveControlConnectionPrivate& Private();
@@ -155,13 +155,13 @@ public:
     never get called.  Use Terminate() or Close() before destruction to ensure
     that all callbacks are called.
     */
-    virtual ~ISlaveControlMessenger() CORAL_NOEXCEPT { }
+    virtual ~ISlaveControlMessenger() noexcept { }
 
     /**
     \brief  Returns the current state of the slave, as deduced from the messages
             that have been sent to it and its replies (or lack thereof).
     */
-    virtual SlaveState State() const CORAL_NOEXCEPT = 0;
+    virtual SlaveState State() const noexcept = 0;
 
     /**
     \brief  Ends all communication with the slave.

@@ -102,7 +102,7 @@ public:
 
     // To be called when a per-slave operation has started and completed,
     // respectively.
-    void SlaveOpStarted() CORAL_NOEXCEPT;
+    void SlaveOpStarted() noexcept;
     void SlaveOpComplete();
 
     typedef std::function<void(const std::error_code&)> AllSlaveOpsCompleteHandler;
@@ -161,7 +161,7 @@ private:
     ExecutionManagerPrivate& operator=(ExecutionManagerPrivate&&);
 
     // Performs the actual aborting of the "wait for all slave ops" thingy
-    void AbortSlaveOpWaiting() CORAL_NOEXCEPT;
+    void AbortSlaveOpWaiting() noexcept;
 
     // An object that represents, and performs the actions for, the current
     // execution state.

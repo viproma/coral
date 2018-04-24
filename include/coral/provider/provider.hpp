@@ -78,7 +78,7 @@ public:
     If the background thread has not been terminated with Stop() when the
     destructor runs, std::terminate() is called.
     */
-    ~SlaveProvider() CORAL_NOEXCEPT;
+    ~SlaveProvider() noexcept;
 
     /**
     \brief  Stops the slave provider.

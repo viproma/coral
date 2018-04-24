@@ -65,7 +65,7 @@ ReqSocket::ReqSocket()
 }
 
 
-ReqSocket::~ReqSocket() CORAL_NOEXCEPT
+ReqSocket::~ReqSocket() noexcept
 {
     if (m_socket) {
         // ---
@@ -164,7 +164,7 @@ RepSocket::RepSocket()
 }
 
 
-RepSocket::~RepSocket() CORAL_NOEXCEPT
+RepSocket::~RepSocket() noexcept
 {
     if (m_socket) {
         // ---

@@ -39,13 +39,13 @@ Runner::Runner(
 }
 
 
-Runner::Runner(Runner&& other) CORAL_NOEXCEPT
+Runner::Runner(Runner&& other) noexcept
     : m_slaveInstance(std::move(other.m_slaveInstance)),
       m_reactor(std::move(other.m_reactor)),
       m_slaveAgent(std::move(other.m_slaveAgent))
 {
 }
-Runner& Runner::operator=(Runner&& other) CORAL_NOEXCEPT
+Runner& Runner::operator=(Runner&& other) noexcept
 {
     m_slaveInstance = std::move(other.m_slaveInstance);
     m_reactor = std::move(other.m_reactor);

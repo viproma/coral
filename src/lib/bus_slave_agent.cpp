@@ -424,7 +424,7 @@ SlaveAgent::Timeout::Timeout(
 }
 
 
-SlaveAgent::Timeout::~Timeout() CORAL_NOEXCEPT
+SlaveAgent::Timeout::~Timeout() noexcept
 {
     SetTimeout(std::chrono::milliseconds(-1));
 }

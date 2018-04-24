@@ -77,7 +77,7 @@ struct AddedSlave
     std::error_code error;
 
     /// Default constructor.
-    AddedSlave() CORAL_NOEXCEPT { }
+    AddedSlave() noexcept { }
 
     /// Constructor which sets the `#locator` and `#name` fields.
     AddedSlave(coral::net::SlaveLocator locator_, std::string name_)
@@ -117,7 +117,7 @@ struct SlaveConfig
     std::error_code error;
 
     /// Default constructor.
-    SlaveConfig() CORAL_NOEXCEPT { }
+    SlaveConfig() noexcept { }
 
     /// Constructor which sets the `#slaveID` and `#variableSettings` fields.
     SlaveConfig(
@@ -155,16 +155,16 @@ public:
         const ExecutionOptions& options = ExecutionOptions{});
 
     /// Destructor
-    ~Execution() CORAL_NOEXCEPT;
+    ~Execution() noexcept;
 
     Execution(const Execution&) = delete;
     Execution& operator=(const Execution&) = delete;
 
     /// Move constructor
-    Execution(Execution&&) CORAL_NOEXCEPT;
+    Execution(Execution&&) noexcept;
 
     /// Move assignment operator
-    Execution& operator=(Execution&&) CORAL_NOEXCEPT;
+    Execution& operator=(Execution&&) noexcept;
 
     /**
      *  \brief

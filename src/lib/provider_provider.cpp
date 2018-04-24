@@ -37,7 +37,7 @@ namespace
         {
         }
 
-        int GetSlaveTypeCount() const CORAL_NOEXCEPT override
+        int GetSlaveTypeCount() const noexcept override
         {
             return boost::numeric_cast<int>(m_slaveTypes.size());
         }
@@ -154,7 +154,7 @@ SlaveProvider::SlaveProvider(
 
 // This is just here so we can declare m_killSocket to be a std::unique_ptr
 // to an incomplete type in the header.
-SlaveProvider::~SlaveProvider() CORAL_NOEXCEPT { }
+SlaveProvider::~SlaveProvider() noexcept { }
 
 
 void SlaveProvider::Stop()

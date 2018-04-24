@@ -48,15 +48,6 @@ be a valid C header.  C++-specific code should therefore be placed in
 #   define CORAL_MSC14_VER 1900 // VS 2015
 #endif
 
-// Support for 'noexcept' (C++11) was introduced in Visual Studio 2015
-#ifdef __cplusplus
-#   if defined(_MSC_VER) && (_MSC_VER < CORAL_MSC14_VER)
-#       define CORAL_NOEXCEPT throw()
-#   else
-#       define CORAL_NOEXCEPT noexcept
-#   endif
-#endif
-
 // Visual Studio does not support the 'noreturn' attribute
 #ifdef __cplusplus
 #   ifdef _MSC_VER
@@ -120,9 +111,9 @@ be a valid C header.  C++-specific code should therefore be placed in
 #       define CORAL_MOVE_OPER_ASSIGNMENT_9(m1, m2, m3, m4, m5, m6, m7, m8, m)    CORAL_MOVE_OPER_ASSIGNMENT_8(m1, m2, m3, m4, m5, m6, m7, m8) m = std::move(other.m);
 
 #       define CORAL_DEFINE_DEFAULT_MOVE_CONSTRUCTOR(ClassName, ...) \
-            ClassName(ClassName&& other) CORAL_NOEXCEPT : CORAL_MOVE_CTOR_INITIALISER(__VA_ARGS__) { }
+            ClassName(ClassName&& other) noexcept : CORAL_MOVE_CTOR_INITIALISER(__VA_ARGS__) { }
 #       define CORAL_DEFINE_DEFAULT_MOVE_ASSIGNMENT(ClassName, ...) \
-            ClassName& operator=(ClassName&& other) CORAL_NOEXCEPT { CORAL_MOVE_OPER_ASSIGNMENT(__VA_ARGS__) return *this; }
+            ClassName& operator=(ClassName&& other) noexcept { CORAL_MOVE_OPER_ASSIGNMENT(__VA_ARGS__) return *this; }
 
 #   else
 #       define CORAL_DEFINE_DEFAULT_MOVE_CONSTRUCTOR(ClassName, ...) \

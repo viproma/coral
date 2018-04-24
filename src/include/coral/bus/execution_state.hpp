@@ -80,7 +80,7 @@ public:
     virtual void Terminate(ExecutionManagerPrivate& self)
     { NotAllowed(__FUNCTION__); }
 
-    virtual ~ExecutionState() CORAL_NOEXCEPT { }
+    virtual ~ExecutionState() noexcept { }
 
 private:
     CORAL_NORETURN void NotAllowed(const std::string& func) const

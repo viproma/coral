@@ -178,7 +178,7 @@ public:
     before destruction, in order to catch any errors that might have
     occurred in the background thread.
     */
-    ~CommThread() CORAL_NOEXCEPT;
+    ~CommThread() noexcept;
 
     // Copying is disabled
     CommThread(const CommThread&) = delete;
@@ -188,13 +188,13 @@ public:
     \brief Move constructor.
     \post `other.Active() == false`
     */
-    CommThread(CommThread&& other) CORAL_NOEXCEPT;
+    CommThread(CommThread&& other) noexcept;
 
     /**
     \brief Move assignment operator.
     \post `other.Active() == false`
     */
-    CommThread& operator=(CommThread&& other) CORAL_NOEXCEPT;
+    CommThread& operator=(CommThread&& other) noexcept;
 
     /**
     \brief  Executes a task asynchronously in the background thread.
@@ -284,12 +284,12 @@ public:
     run Execute() or Shutdown() and see if CommThreadDead is thrown.
     If this happens, Active() will return `false` afterwards.
     */
-    bool Active() const CORAL_NOEXCEPT;
+    bool Active() const noexcept;
 
 private:
     // Waits for the background thread to terminate and performs cleanup
     void WaitForThreadTermination();
-    void DestroySilently() CORAL_NOEXCEPT;
+    void DestroySilently() noexcept;
 
     bool m_active;
     zmq::socket_t m_socket;
@@ -309,13 +309,13 @@ class CommThreadDead : public std::exception
 {
 public:
     /// Constructor
-    CommThreadDead(std::exception_ptr originalException) CORAL_NOEXCEPT;
+    CommThreadDead(std::exception_ptr originalException) noexcept;
 
     /// Returns a pointer to the exception that caused the thread to terminate
-    std::exception_ptr OriginalException() const CORAL_NOEXCEPT;
+    std::exception_ptr OriginalException() const noexcept;
 
     /// Returns a generic error message saying that the background thread died
-    const char* what() const CORAL_NOEXCEPT override;
+    const char* what() const noexcept override;
 
 private:
     std::exception_ptr m_originalException;
@@ -385,7 +385,7 @@ namespace detail
         std::shared_ptr<zmq::socket_t> bgSocket,
         std::shared_ptr<std::promise<void>> statusNotifier,
         typename CommThreadAnyTask<StackData>::SharedPtr nextTask)
-        CORAL_NOEXCEPT
+        noexcept
     {
         try {
             CommThreadMessagingLoop<StackData>(
@@ -437,14 +437,14 @@ CommThread<StackData>::CommThread()
 
 
 template<typename StackData>
-CommThread<StackData>::~CommThread() CORAL_NOEXCEPT
+CommThread<StackData>::~CommThread() noexcept
 {
     DestroySilently();
 }
 
 
 template<typename StackData>
-CommThread<StackData>::CommThread(CommThread&& other) CORAL_NOEXCEPT
+CommThread<StackData>::CommThread(CommThread&& other) noexcept
     : m_active{other.m_active}
     , m_socket{std::move(other.m_socket)}
     , m_threadStatus{std::move(other.m_threadStatus)}
@@ -455,8 +455,7 @@ CommThread<StackData>::CommThread(CommThread&& other) CORAL_NOEXCEPT
 
 
 template<typename StackData>
-CommThread<StackData>& CommThread<StackData>::operator=(CommThread&& other)
-    CORAL_NOEXCEPT
+CommThread<StackData>& CommThread<StackData>::operator=(CommThread&& other) noexcept
 {
     DestroySilently();
     m_active = other.m_active;
@@ -585,7 +584,7 @@ void CommThread<StackData>::Shutdown()
 
 
 template<typename StackData>
-bool CommThread<StackData>::Active() const CORAL_NOEXCEPT
+bool CommThread<StackData>::Active() const noexcept
 {
     return m_active;
 }
@@ -659,7 +658,7 @@ void CommThread<StackData>::WaitForThreadTermination()
 #endif
 
 template<typename StackData>
-void CommThread<StackData>::DestroySilently() CORAL_NOEXCEPT
+void CommThread<StackData>::DestroySilently() noexcept
 {
     if (Active()) {
         try {

@@ -166,7 +166,7 @@ Beacon::Beacon(
 }
 
 
-Beacon::~Beacon() CORAL_NOEXCEPT
+Beacon::~Beacon() noexcept
 {
     if (m_thread.joinable()) Stop();
 }
@@ -192,7 +192,7 @@ public:
         std::uint32_t partitionID,
         const ip::Endpoint& endpoint,
         NotificationHandler onNotification);
-    ~Impl() CORAL_NOEXCEPT;
+    ~Impl() noexcept;
     Impl(const Impl&) = delete;
     Impl& operator=(const Impl&) = delete;
     Impl(Impl&&) = delete;
@@ -227,7 +227,7 @@ Listener::Impl::Impl(
 }
 
 
-Listener::Impl::~Impl() CORAL_NOEXCEPT
+Listener::Impl::~Impl() noexcept
 {
     m_reactor.RemoveNativeSocket(m_udpSocket.NativeHandle());
 }
@@ -297,18 +297,18 @@ Listener::Listener(
 }
 
 
-Listener::~Listener() CORAL_NOEXCEPT
+Listener::~Listener() noexcept
 {
     // Do nothing.  This is only so we can use Impl anonymously
     // in the header.
 }
 
-Listener::Listener(Listener&& other) CORAL_NOEXCEPT
+Listener::Listener(Listener&& other) noexcept
     : m_impl(std::move(other.m_impl))
 {
 }
 
-Listener& Listener::operator=(Listener&& other) CORAL_NOEXCEPT
+Listener& Listener::operator=(Listener&& other) noexcept
 {
     m_impl = std::move(other.m_impl);
     return *this;
@@ -339,7 +339,7 @@ public:
     {
     }
 
-    ~Impl() CORAL_NOEXCEPT
+    ~Impl() noexcept
     {
         if (m_expiryTimerID >= 0) {
             m_reactor.RemoveTimer(m_expiryTimerID);
@@ -491,18 +491,18 @@ Tracker::Tracker(
 }
 
 
-Tracker::~Tracker() CORAL_NOEXCEPT
+Tracker::~Tracker() noexcept
 {
 }
 
 
-Tracker::Tracker(Tracker&& other) CORAL_NOEXCEPT
+Tracker::Tracker(Tracker&& other) noexcept
     : m_impl(std::move(other.m_impl))
 {
 }
 
 
-Tracker& Tracker::operator=(Tracker&& other) CORAL_NOEXCEPT
+Tracker& Tracker::operator=(Tracker&& other) noexcept
 {
     m_impl = std::move(other.m_impl);
     return *this;

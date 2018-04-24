@@ -50,7 +50,7 @@ namespace
         std::chrono::milliseconds timeout,
         SlaveProviderMap& slaveProviders,
         std::promise<std::vector<coral::master::ProviderCluster::SlaveType>> promise)
-        CORAL_NOEXCEPT;
+        noexcept;
     void HandleInstantiateSlave(
         const std::string& slaveProviderID,
         const std::string& slaveTypeUUID,
@@ -58,7 +58,7 @@ namespace
         std::chrono::milliseconds commTimeout,
         SlaveProviderMap& slaveProviders,
         std::promise<coral::net::SlaveLocator> promise)
-        CORAL_NOEXCEPT;
+        noexcept;
 
 
 }
@@ -163,19 +163,19 @@ ProviderCluster::ProviderCluster(
 }
 
 
-ProviderCluster::~ProviderCluster() CORAL_NOEXCEPT
+ProviderCluster::~ProviderCluster() noexcept
 {
     // Do nothing, everything's handled by ~Private().
 }
 
 
-ProviderCluster::ProviderCluster(ProviderCluster&& other) CORAL_NOEXCEPT
+ProviderCluster::ProviderCluster(ProviderCluster&& other) noexcept
     : m_private{std::move(other.m_private)}
 {
 }
 
 
-ProviderCluster& ProviderCluster::operator=(ProviderCluster&& other) CORAL_NOEXCEPT
+ProviderCluster& ProviderCluster::operator=(ProviderCluster&& other) noexcept
 {
     m_private = std::move(other.m_private);
     return *this;
@@ -294,7 +294,7 @@ void HandleGetSlaveTypes(
     std::chrono::milliseconds timeout,
     SlaveProviderMap& slaveProviders,
     std::promise<std::vector<coral::master::ProviderCluster::SlaveType>> promise)
-    CORAL_NOEXCEPT
+    noexcept
 {
     if (slaveProviders.empty()) {
         promise.set_value(std::vector<coral::master::ProviderCluster::SlaveType>{});
@@ -380,7 +380,7 @@ void HandleInstantiateSlave(
     std::chrono::milliseconds commTimeout,
     SlaveProviderMap& slaveProviders,
     std::promise<coral::net::SlaveLocator> promise)
-    CORAL_NOEXCEPT
+    noexcept
 {
     const auto sharedPromise =
         std::make_shared<decltype(promise)>(std::move(promise));

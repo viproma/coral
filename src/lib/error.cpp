@@ -15,7 +15,7 @@ namespace coral
 namespace error
 {
 
-std::string ErrnoMessage(const std::string& msg, int errnoValue) CORAL_NOEXCEPT
+std::string ErrnoMessage(const std::string& msg, int errnoValue) noexcept
 {
     if (errnoValue == 0) return msg;
     else if (msg.empty()) return std::strerror(errnoValue);
@@ -28,7 +28,7 @@ namespace
     class generic_category_impl : public std::error_category
     {
     public:
-        const char* name() const CORAL_NOEXCEPT final override { return "generic"; }
+        const char* name() const noexcept final override { return "generic"; }
 
         std::string message(int ev) const final override
         {
@@ -51,7 +51,7 @@ namespace
     class sim_category_impl : public std::error_category
     {
     public:
-        const char* name() const CORAL_NOEXCEPT final override { return "simulation"; }
+        const char* name() const noexcept final override { return "simulation"; }
 
         std::string message(int ev) const final override
         {
@@ -69,21 +69,21 @@ namespace
 }
 
 
-const std::error_category& generic_category() CORAL_NOEXCEPT
+const std::error_category& generic_category() noexcept
 {
     static generic_category_impl instance;
     return instance;
 }
 
 
-const std::error_category& sim_category() CORAL_NOEXCEPT
+const std::error_category& sim_category() noexcept
 {
     static sim_category_impl instance;
     return instance;
 }
 
 
-std::error_code make_error_code(generic_error e) CORAL_NOEXCEPT
+std::error_code make_error_code(generic_error e) noexcept
 {
     return std::error_code(
         static_cast<int>(e),
@@ -91,7 +91,7 @@ std::error_code make_error_code(generic_error e) CORAL_NOEXCEPT
 }
 
 
-std::error_code make_error_code(sim_error e) CORAL_NOEXCEPT
+std::error_code make_error_code(sim_error e) noexcept
 {
     return std::error_code(
         static_cast<int>(e),
@@ -99,7 +99,7 @@ std::error_code make_error_code(sim_error e) CORAL_NOEXCEPT
 }
 
 
-std::error_condition make_error_condition(generic_error e) CORAL_NOEXCEPT
+std::error_condition make_error_condition(generic_error e) noexcept
 {
     return std::error_condition(
         static_cast<int>(e),
@@ -107,7 +107,7 @@ std::error_condition make_error_condition(generic_error e) CORAL_NOEXCEPT
 }
 
 
-std::error_condition make_error_condition(sim_error e) CORAL_NOEXCEPT
+std::error_condition make_error_condition(sim_error e) noexcept
 {
     return std::error_condition(
         static_cast<int>(e),

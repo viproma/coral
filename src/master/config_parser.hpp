@@ -59,7 +59,7 @@ class SetVariablesException : public std::runtime_error
 {
 public:
     SetVariablesException();
-    const char* what() const CORAL_NOEXCEPT override;
+    const char* what() const noexcept override;
     void AddSlaveError(const std::string& slaveName, const std::string& errMsg);
 private:
     std::string m_msg;

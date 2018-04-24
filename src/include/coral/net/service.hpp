@@ -103,7 +103,7 @@ public:
     Stop() manually before destruction, so that errors may be handled
     properly.
     */
-    ~Beacon() CORAL_NOEXCEPT;
+    ~Beacon() noexcept;
 
     Beacon(const Beacon&) = delete;
     Beacon& operator=(const Beacon&) = delete;
@@ -180,16 +180,16 @@ public:
         NotificationHandler onNotification);
 
     /// Destructor
-    ~Listener() CORAL_NOEXCEPT;
+    ~Listener() noexcept;
 
     Listener(const Listener&) = delete;
     Listener& operator=(const Listener&) = delete;
 
     /// Move constructor
-    Listener(Listener&&) CORAL_NOEXCEPT;
+    Listener(Listener&&) noexcept;
 
     /// Move assignment operator
-    Listener& operator=(Listener&&) CORAL_NOEXCEPT;
+    Listener& operator=(Listener&&) noexcept;
 
 private:
     class Impl;
@@ -287,16 +287,16 @@ public:
         const ip::Endpoint& endpoint);
 
     /// Destructor.
-    ~Tracker() CORAL_NOEXCEPT;
+    ~Tracker() noexcept;
 
     Tracker(const Tracker&) = delete;
     Tracker& operator=(const Tracker&) = delete;
 
     /// Move constructor.
-    Tracker(Tracker&&) CORAL_NOEXCEPT;
+    Tracker(Tracker&&) noexcept;
 
     /// Move assignment operator.
-    Tracker& operator=(Tracker&&) CORAL_NOEXCEPT;
+    Tracker& operator=(Tracker&&) noexcept;
 
     /**
     \brief  Adds (or updates the settings for) a tracked service type.

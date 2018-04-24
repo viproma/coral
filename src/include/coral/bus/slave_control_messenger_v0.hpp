@@ -50,9 +50,9 @@ public:
         std::chrono::milliseconds timeout,
         MakeSlaveControlMessengerHandler onComplete);
 
-    ~SlaveControlMessengerV0() CORAL_NOEXCEPT;
+    ~SlaveControlMessengerV0() noexcept;
 
-    SlaveState State() const CORAL_NOEXCEPT override;
+    SlaveState State() const noexcept override;
 
     void Close() override;
 

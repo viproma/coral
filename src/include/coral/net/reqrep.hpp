@@ -69,7 +69,7 @@ public:
     Client& operator=(const Client&) = delete;
     Client& operator=(Client&&) = delete;
 
-    ~Client() CORAL_NOEXCEPT;
+    ~Client() noexcept;
 
     /**
     \brief  A callback type for Request().
@@ -336,13 +336,13 @@ public:
         coral::net::Reactor& reactor,
         const coral::net::Endpoint& endpoint);
 
-    ~Server() CORAL_NOEXCEPT;
+    ~Server() noexcept;
 
     Server(const Server&) = delete;
     Server& operator=(const Server&) = delete;
 
-    Server(Server&&) CORAL_NOEXCEPT;
-    Server& operator=(Server&&) CORAL_NOEXCEPT;
+    Server(Server&&) noexcept;
+    Server& operator=(Server&&) noexcept;
 
     /**
     \brief  Adds a protocol handler for the protocol with the given identifier

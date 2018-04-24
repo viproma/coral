@@ -126,7 +126,7 @@ public:
     SlaveInstance1(SlaveInstance1&&) = delete;
     SlaveInstance1& operator=(SlaveInstance1&&) = delete;
 
-    ~SlaveInstance1() CORAL_NOEXCEPT;
+    ~SlaveInstance1() noexcept;
 
     // coral::slave::Instance methods
     coral::model::SlaveTypeDescription TypeDescription() const override;

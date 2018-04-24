@@ -53,43 +53,43 @@ namespace
     }
 
 
-void Log(Level level, const char* message) CORAL_NOEXCEPT
+void Log(Level level, const char* message) noexcept
 {
     CORAL_IMPLEMENT_LOG
 }
 
 
-void Log(Level level, const std::string& message) CORAL_NOEXCEPT
+void Log(Level level, const std::string& message) noexcept
 {
     CORAL_IMPLEMENT_LOG
 }
 
 
-void Log(Level level, const boost::format& message) CORAL_NOEXCEPT
+void Log(Level level, const boost::format& message) noexcept
 {
     CORAL_IMPLEMENT_LOG
 }
 
 
-void detail::LogLoc(Level level, const char* file, int line, const char* message) CORAL_NOEXCEPT
+void detail::LogLoc(Level level, const char* file, int line, const char* message) noexcept
 {
     CORAL_IMPLEMENT_LOG_LOC
 }
 
 
-void detail::LogLoc(Level level, const char* file, int line, const std::string& message) CORAL_NOEXCEPT
+void detail::LogLoc(Level level, const char* file, int line, const std::string& message) noexcept
 {
     CORAL_IMPLEMENT_LOG_LOC
 }
 
 
-void detail::LogLoc(Level level, const char* file, int line, const boost::format& message) CORAL_NOEXCEPT
+void detail::LogLoc(Level level, const char* file, int line, const boost::format& message) noexcept
 {
     CORAL_IMPLEMENT_LOG_LOC
 }
 
 
-void SetLevel(Level level) CORAL_NOEXCEPT
+void SetLevel(Level level) noexcept
 {
     g_logLevel = level;
 }

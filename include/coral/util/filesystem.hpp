@@ -55,19 +55,19 @@ public:
      *  `other.Path()` will return an empty path, and its destructor will not
      *  perform any filesystem operations.
     */
-    TempDir(TempDir&& other) CORAL_NOEXCEPT;
+    TempDir(TempDir&& other) noexcept;
 
     /// Move assignment operator. See TempDir(TempDir&&) for semantics.
-    TempDir& operator=(TempDir&&) CORAL_NOEXCEPT;
+    TempDir& operator=(TempDir&&) noexcept;
 
     /// Destructor.  Recursively deletes the directory.
-    ~TempDir() CORAL_NOEXCEPT;
+    ~TempDir() noexcept;
 
     /// Returns the path to the directory.
     const boost::filesystem::path& Path() const;
 
 private:
-    void DeleteNoexcept() CORAL_NOEXCEPT;
+    void DeleteNoexcept() noexcept;
 
     boost::filesystem::path m_path;
 };

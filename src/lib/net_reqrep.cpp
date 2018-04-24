@@ -57,7 +57,7 @@ Client::Client(
 }
 
 
-Client::~Client() CORAL_NOEXCEPT
+Client::~Client() noexcept
 {
     m_reactor.RemoveSocket(m_socket.Socket());
     if (m_timeoutTimerID != NO_TIMER) CancelTimer();
@@ -278,7 +278,7 @@ public:
             });
     }
 
-    ~Private() CORAL_NOEXCEPT
+    ~Private() noexcept
     {
         m_reactor.RemoveSocket(m_socket.Socket());
     }
@@ -442,19 +442,19 @@ Server::Server(
 }
 
 
-Server::~Server() CORAL_NOEXCEPT
+Server::~Server() noexcept
 {
     // Do nothing, rely on ~Private().
 }
 
 
-Server::Server(Server&& other) CORAL_NOEXCEPT
+Server::Server(Server&& other) noexcept
     : m_private(std::move(other.m_private))
 {
 }
 
 
-Server& Server::operator=(Server&& other) CORAL_NOEXCEPT
+Server& Server::operator=(Server&& other) noexcept
 {
     m_private = std::move(other.m_private);
     return *this;

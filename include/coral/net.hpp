@@ -35,7 +35,7 @@ class Endpoint
 {
 public:
     /// Default constructor; leaves both transport and adress empty.
-    Endpoint() CORAL_NOEXCEPT;
+    Endpoint() noexcept;
 
     /// Constructor which takes an url on the form "transport://address".
     explicit Endpoint(const std::string& url);
@@ -44,13 +44,13 @@ public:
     Endpoint(const std::string& transport, const std::string& address);
 
     /// Returns the transport.
-    std::string Transport() const CORAL_NOEXCEPT;
+    std::string Transport() const noexcept;
 
     /// Returns the address.
-    std::string Address() const CORAL_NOEXCEPT;
+    std::string Address() const noexcept;
 
     /// Returns a URL on the form "transport://address".
-    std::string URL() const CORAL_NOEXCEPT;
+    std::string URL() const noexcept;
 
 private:
     std::string m_transport;
@@ -81,7 +81,7 @@ namespace ip
     {
     public:
         /// Default constructor which sets the address to "*".
-        Address() CORAL_NOEXCEPT;
+        Address() noexcept;
 
         /**
         \brief  Constructor which takes an address in string form.
@@ -97,16 +97,16 @@ namespace ip
         /* implicit */ Address(const char* address);
 
         /// Constructor which takes an IP address as an in_addr.
-        /* implicit */ Address(in_addr address) CORAL_NOEXCEPT;
+        /* implicit */ Address(in_addr address) noexcept;
 
         /// Returns whether this address is the special "any address" value.
-        bool IsAnyAddress() const CORAL_NOEXCEPT;
+        bool IsAnyAddress() const noexcept;
 
         /// Returns whether this address is a name (i.e., host or interface name)
-        bool IsName() const CORAL_NOEXCEPT;
+        bool IsName() const noexcept;
 
         /// Returns a string representation of the address.
-        std::string ToString() const CORAL_NOEXCEPT;
+        std::string ToString() const noexcept;
 
         /**
         \brief  Returns the address as an in_addr object.
@@ -157,7 +157,7 @@ namespace ip
     {
     public:
         /// Constructor which takes a port number.
-        /* implicit */ Port(std::uint16_t port = 0u) CORAL_NOEXCEPT;
+        /* implicit */ Port(std::uint16_t port = 0u) noexcept;
 
         /**
         \brief  Constructor which takes a port number in string form, or the
@@ -174,10 +174,10 @@ namespace ip
         /* implicit */ Port(const char* port);
 
         /// Returns whether this is a normal port number in the range 0-65535.
-        bool IsNumber() const CORAL_NOEXCEPT;
+        bool IsNumber() const noexcept;
 
         /// Returns whether the object was initialised with the special value "*".
-        bool IsAnyPort() const CORAL_NOEXCEPT;
+        bool IsAnyPort() const noexcept;
 
         /**
         \brief  Returns the port number.
@@ -186,7 +186,7 @@ namespace ip
         std::uint16_t ToNumber() const;
 
         /// Returns a string representation of the port number.
-        std::string ToString() const CORAL_NOEXCEPT;
+        std::string ToString() const noexcept;
 
         /**
         \brief  Returns the port number in network byte order.
@@ -195,7 +195,7 @@ namespace ip
         std::uint16_t ToNetworkByteOrder() const;
 
         /// Constructs a Port from a port number in network byte order.
-        static Port FromNetworkByteOrder(std::uint16_t nPort) CORAL_NOEXCEPT;
+        static Port FromNetworkByteOrder(std::uint16_t nPort) noexcept;
 
     private:
         std::int32_t m_port;
@@ -210,13 +210,13 @@ namespace ip
     {
     public:
         /// Constructs an Endpoint with address "*" and port zero.
-        Endpoint() CORAL_NOEXCEPT;
+        Endpoint() noexcept;
 
         /// Constructs an Endpoint from an Address and a Port.
         Endpoint(
             const ip::Address& address,
             const ip::Port& port)
-            CORAL_NOEXCEPT;
+            noexcept;
 
         /**
         \brief  Constructs an Endpoint from a string on the form "address:port",
@@ -241,13 +241,13 @@ namespace ip
         explicit Endpoint(const sockaddr& sa);
 
         /// Returns the address.
-        const ip::Address& Address() const CORAL_NOEXCEPT;
+        const ip::Address& Address() const noexcept;
 
         /// Sets the address.
-        void SetAddress(const ip::Address& value) CORAL_NOEXCEPT;
+        void SetAddress(const ip::Address& value) noexcept;
 
         /// Returns the port.
-        const ip::Port& Port() const CORAL_NOEXCEPT;
+        const ip::Port& Port() const noexcept;
 
         /**
         \brief  Sets the port.
@@ -255,10 +255,10 @@ namespace ip
             The underscore in the name of this function is due to a name
             collision with a macro in the Windows system headers.
         */
-        void SetPort_(const ip::Port& value) CORAL_NOEXCEPT;
+        void SetPort_(const ip::Port& value) noexcept;
 
         /// Returns a string on the form "address:port".
-        std::string ToString() const CORAL_NOEXCEPT;
+        std::string ToString() const noexcept;
 
         /**
         \brief  Returns a coral::net::Endpoint object which refers to the
@@ -294,10 +294,10 @@ class SlaveLocator
 public:
     explicit SlaveLocator(
         const Endpoint& controlEndpoint = Endpoint{},
-        const Endpoint& dataPubEndpoint = Endpoint{}) CORAL_NOEXCEPT;
+        const Endpoint& dataPubEndpoint = Endpoint{}) noexcept;
 
-    const Endpoint& ControlEndpoint() const CORAL_NOEXCEPT;
-    const Endpoint& DataPubEndpoint() const CORAL_NOEXCEPT;
+    const Endpoint& ControlEndpoint() const noexcept;
+    const Endpoint& DataPubEndpoint() const noexcept;
 
 private:
     Endpoint m_controlEndpoint;

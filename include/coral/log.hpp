@@ -33,21 +33,21 @@ enum Level
 };
 
 /// Writes a plain C string to the global logger.
-void Log(Level level, const char* message) CORAL_NOEXCEPT;
+void Log(Level level, const char* message) noexcept;
 
 /// Writes a plain C++ string to the global logger.
-void Log(Level level, const std::string& message) CORAL_NOEXCEPT;
+void Log(Level level, const std::string& message) noexcept;
 
 /// Writes a formatted message to the global logger.
-void Log(Level level, const boost::format& message) CORAL_NOEXCEPT;
+void Log(Level level, const boost::format& message) noexcept;
 
 
 namespace detail
 {
     // These are intended for use in the macros below
-    void LogLoc(Level level, const char* file, int line, const char* message) CORAL_NOEXCEPT;
-    void LogLoc(Level level, const char* file, int line, const std::string& message) CORAL_NOEXCEPT;
-    void LogLoc(Level level, const char* file, int line, const boost::format& message) CORAL_NOEXCEPT;
+    void LogLoc(Level level, const char* file, int line, const char* message) noexcept;
+    void LogLoc(Level level, const char* file, int line, const std::string& message) noexcept;
+    void LogLoc(Level level, const char* file, int line, const boost::format& message) noexcept;
 }
 
 
@@ -76,7 +76,7 @@ namespace detail
 #endif
 
 /// Sets the global log level, i.e., which log messages get written.
-void SetLevel(Level level) CORAL_NOEXCEPT;
+void SetLevel(Level level) noexcept;
 
 }} // namespace
 #endif // header guard

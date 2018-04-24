@@ -26,7 +26,7 @@ namespace slave
 class TimeoutException : public std::runtime_error
 {
 public:
-    explicit TimeoutException(std::chrono::milliseconds timeoutDuration) CORAL_NOEXCEPT
+    explicit TimeoutException(std::chrono::milliseconds timeoutDuration) noexcept
         : std::runtime_error("Slave timed out due to lack of communication"),
           m_timeoutDuration(timeoutDuration)
     {
@@ -34,7 +34,7 @@ public:
 
     TimeoutException(
         const std::string& message,
-        std::chrono::milliseconds timeoutDuration) CORAL_NOEXCEPT
+        std::chrono::milliseconds timeoutDuration) noexcept
         : std::runtime_error(
             message + " (timeout: " + std::to_string(timeoutDuration.count()) + " ms)")
         , m_timeoutDuration(timeoutDuration)
@@ -42,7 +42,7 @@ public:
     }
 
     /// The duration of the timeout that was reached.
-    std::chrono::milliseconds TimeoutDuration() const CORAL_NOEXCEPT
+    std::chrono::milliseconds TimeoutDuration() const noexcept
     {
         return m_timeoutDuration;
     }

@@ -67,7 +67,7 @@ public:
     If the given socket was never registered with AddSocket(), this function
     simply returns without doing anything.
     */
-    void RemoveSocket(zmq::socket_t& socket) CORAL_NOEXCEPT;
+    void RemoveSocket(zmq::socket_t& socket) noexcept;
 
     /// Adds a handler for the given native socket.
     void AddNativeSocket(NativeSocket socket, NativeSocketHandler handler);
@@ -82,7 +82,7 @@ public:
     If the given socket was never registered with AddNativeSocket(), this
     function simply returns without doing anything.
     */
-    void RemoveNativeSocket(NativeSocket socket) CORAL_NOEXCEPT;
+    void RemoveNativeSocket(NativeSocket socket) noexcept;
 
     /// A number which will never be returned by AddTimer().
     static const int invalidTimerID;
