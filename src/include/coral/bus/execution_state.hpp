@@ -83,7 +83,7 @@ public:
     virtual ~ExecutionState() noexcept { }
 
 private:
-    CORAL_NORETURN void NotAllowed(const std::string& func) const
+    [[noreturn]] void NotAllowed(const std::string& func) const
     {
         throw coral::error::PreconditionViolation(
             func + ": Method call not allowed in present state");

@@ -48,15 +48,6 @@ be a valid C header.  C++-specific code should therefore be placed in
 #   define CORAL_MSC14_VER 1900 // VS 2015
 #endif
 
-// Visual Studio does not support the 'noreturn' attribute
-#ifdef __cplusplus
-#   ifdef _MSC_VER
-#       define CORAL_NORETURN __declspec(noreturn)
-#   else
-#       define CORAL_NORETURN [[noreturn]]
-#   endif
-#endif
-
 // Visual Studio (2013 and 2015, at the time of writing) supports C++11's
 // explicitly defaulted and deleted functions, BUT with the exception that
 // it cannot generate default memberwise move constructors and move assignment
