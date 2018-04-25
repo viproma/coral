@@ -35,10 +35,8 @@ TEST(coral_async, CommThread)
     auto delayedReturn = thread.Execute<int>(
         [] (coral::net::Reactor& reactor, MyData& data, std::promise<int> promise)
         {
-            // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
                 std::make_shared<std::promise<int>>(std::move(promise));
-
             reactor.AddTimer(
                 std::chrono::milliseconds(10),
                 -1,
@@ -58,10 +56,8 @@ TEST(coral_async, CommThread)
     auto delayedThrow = thread.Execute<int>(
         [] (coral::net::Reactor& reactor, MyData& data, std::promise<int> promise)
         {
-            // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
                 std::make_shared<std::promise<int>>(std::move(promise));
-
             reactor.AddTimer(
                 std::chrono::milliseconds(10),
                 -1,
@@ -176,10 +172,8 @@ TEST(coral_async, CommThread_void)
     auto delayedReturn = thread.Execute<int>(
         [&eventCount] (coral::net::Reactor& reactor, std::promise<int> promise)
         {
-            // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
                 std::make_shared<std::promise<int>>(std::move(promise));
-
             reactor.AddTimer(
                 std::chrono::milliseconds(10),
                 -1,
@@ -199,10 +193,8 @@ TEST(coral_async, CommThread_void)
     auto delayedThrow = thread.Execute<int>(
         [&eventCount] (coral::net::Reactor& reactor, std::promise<int> promise)
         {
-            // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
                 std::make_shared<std::promise<int>>(std::move(promise));
-
             reactor.AddTimer(
                 std::chrono::milliseconds(10),
                 -1,

@@ -35,7 +35,7 @@ namespace
         std::promise<void> promise,
         const std::string& errMsg)
     {
-        // Note: This is because VS2013 doesn't support moving into lambdas.
+        // Note: This is because std::function must be copyable.
         auto sharedPromise =
             std::make_shared<decltype(promise)>(std::move(promise));
         return [=] (const std::error_code& ec)
