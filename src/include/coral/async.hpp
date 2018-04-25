@@ -377,34 +377,31 @@ namespace detail
         reactor.Run();
     }
 
-    // Note: Some of the parameters are only shared_ptr because VS2013 has
-    // a bug that prevents the use of move-only objects as arguments to the
-    // thread function.
     template<typename StackData>
     void CommThreadBackground(
-        std::shared_ptr<zmq::socket_t> bgSocket,
-        std::shared_ptr<std::promise<void>> statusNotifier,
+        zmq::socket_t bgSocket,
+        std::promise<void> statusNotifier,
         typename CommThreadAnyTask<StackData>::SharedPtr nextTask)
         noexcept
     {
         try {
             CommThreadMessagingLoop<StackData>(
-                *bgSocket,
+                bgSocket,
                 std::move(nextTask));
 
             // We should possibly use set_value_at_thread_exit() and
             // set_exception_at_thread_exit() in the following, but those are
             // not supported in GCC 4.9.
-            statusNotifier->set_value();
+            statusNotifier.set_value();
         } catch (...) {
-            statusNotifier->set_exception(
+            statusNotifier.set_exception(
                 std::current_exception());
         }
 
         // This is to avoid the potential race condition where the background
         // thread dies after the foreground thread has sent a task notification
         // and is waiting to receive an acknowledgement.
-        bgSocket->send("", 0);
+        bgSocket.send("", 0);
     }
 } // namespace detail
 
@@ -416,23 +413,22 @@ CommThread<StackData>::CommThread()
     , m_threadStatus{}
     , m_nextTask{}
 {
-    auto bgSocket =
-        std::make_shared<zmq::socket_t>(coral::net::zmqx::GlobalContext(), ZMQ_PAIR);
-    bgSocket->setsockopt(ZMQ_LINGER, 0);
+    auto bgSocket = zmq::socket_t(coral::net::zmqx::GlobalContext(), ZMQ_PAIR);
+    bgSocket.setsockopt(ZMQ_LINGER, 0);
     m_socket.setsockopt(ZMQ_LINGER, 0);
     const auto endpoint = "inproc://" + coral::util::RandomUUID();
-    bgSocket->bind(endpoint);
+    bgSocket.bind(endpoint);
     m_socket.connect(endpoint);
 
-    auto statusNotifier = std::make_shared<std::promise<void>>();
-    m_threadStatus = statusNotifier->get_future();
+    std::promise<void> statusNotifier;
+    m_threadStatus = statusNotifier.get_future();
 
     auto sharedTask =
         std::make_shared<typename detail::CommThreadAnyTask<StackData>::Type>(/*empty*/);
     m_nextTask = sharedTask;
 
     std::thread{&detail::CommThreadBackground<StackData>,
-        bgSocket, statusNotifier, sharedTask}.detach();
+        std::move(bgSocket), std::move(statusNotifier), sharedTask}.detach();
 }
 
 

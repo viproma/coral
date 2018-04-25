@@ -44,12 +44,12 @@ namespace
     void BeaconThread(
         std::chrono::milliseconds period,
         const std::vector<char>& message,
-        std::shared_ptr<coral::net::udp::BroadcastSocket> udpSocket,
-        std::shared_ptr<zmq::socket_t> inprocSocket)
+        coral::net::udp::BroadcastSocket udpSocket,
+        zmq::socket_t inprocSocket)
     {
         // Messaging loop
         auto pollItem =
-            zmq::pollitem_t{static_cast<void*>(*inprocSocket), 0, ZMQ_POLLIN, 0};
+            zmq::pollitem_t{static_cast<void*>(inprocSocket), 0, ZMQ_POLLIN, 0};
         auto nextBeacon = std::chrono::steady_clock::now();
         for (;;) {
             const auto timeout =
@@ -58,13 +58,13 @@ namespace
             zmq::poll(&pollItem, 1, boost::numeric_cast<long>(timeout.count()));
             if (pollItem.revents & ZMQ_POLLIN) {
                 zmq::message_t msg;
-                inprocSocket->recv(&msg);
+                inprocSocket.recv(&msg);
                 assert(!msg.more());
                 if (coral::net::zmqx::ToString(msg) == "STOP") break;
             }
             if (std::chrono::steady_clock::now() >= nextBeacon) {
                 try {
-                    udpSocket->Send(message.data(), message.size());
+                    udpSocket.Send(message.data(), message.size());
                 } catch (const std::exception& e) {
                     coral::log::Log(coral::log::error,
                         boost::format("Beacon thread terminating due to error: %s ")
@@ -119,12 +119,11 @@ Beacon::Beacon(
     // Create the thread-to-thread channel
     const auto endpoint = "inproc://" + coral::util::RandomUUID();
     m_socket.bind(endpoint);
-    auto otherSocket = std::make_shared<zmq::socket_t>(
-        coral::net::zmqx::GlobalContext(), ZMQ_PAIR);
-    otherSocket->connect(endpoint);
+    auto otherSocket = zmq::socket_t(coral::net::zmqx::GlobalContext(), ZMQ_PAIR);
+    otherSocket.connect(endpoint);
 
     // Set up the UDP socket
-    auto udpSocket = std::make_shared<coral::net::udp::BroadcastSocket>(
+    auto udpSocket = coral::net::udp::BroadcastSocket(
         networkInterface,
         port,
         coral::net::udp::BroadcastSocket::onlySend);
