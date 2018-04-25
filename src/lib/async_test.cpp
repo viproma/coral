@@ -41,7 +41,7 @@ TEST(coral_async, CommThread)
                 std::chrono::milliseconds(10),
                 -1,
                 [&data, promisePtr]
-                    (coral::net::Reactor& reactor, int self) mutable
+                    (coral::net::Reactor& reactor, int self)
                 {
                     if (data.eventCount > 5) {
                         reactor.RemoveTimer(self);
@@ -62,7 +62,7 @@ TEST(coral_async, CommThread)
                 std::chrono::milliseconds(10),
                 -1,
                 [&data, promisePtr]
-                    (coral::net::Reactor& reactor, int self) mutable
+                    (coral::net::Reactor& reactor, int self)
                 {
                     if (data.eventCount > 10) {
                         reactor.RemoveTimer(self);
@@ -178,7 +178,7 @@ TEST(coral_async, CommThread_void)
                 std::chrono::milliseconds(10),
                 -1,
                 [&eventCount, promisePtr]
-                    (coral::net::Reactor& reactor, int self) mutable
+                    (coral::net::Reactor& reactor, int self)
                 {
                     if (eventCount > 5) {
                         reactor.RemoveTimer(self);
@@ -199,7 +199,7 @@ TEST(coral_async, CommThread_void)
                 std::chrono::milliseconds(10),
                 -1,
                 [&eventCount, promisePtr]
-                    (coral::net::Reactor& reactor, int self) mutable
+                    (coral::net::Reactor& reactor, int self)
                 {
                     if (eventCount > 10) {
                         reactor.RemoveTimer(self);
