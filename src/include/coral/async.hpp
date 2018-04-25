@@ -224,14 +224,6 @@ public:
     call to Execute() or Shutdown() will throw a CommThreadDead exception,
     rendering the CommThread object in an inactive state.
 
-    \warning
-        Visual Studio versions prior to 2015 do not handle std::promise
-        destruction correctly.  Specifically, a destroyed std::promise
-        does not cause a "broken promise" error to be thrown by its
-        corresponding `std::future`.  Thus, if an exception is thrown in
-        the background thread when there are any unfulfilled promises,
-        calls to std::future::get() will block indefinitely.
-
     \tparam Result
         The type of the function's "return value".  The function will
         receive an object of type `std::promise<Result>` which it can
