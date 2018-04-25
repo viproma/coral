@@ -31,15 +31,6 @@ be a valid C header.  C++-specific code should therefore be placed in
 
 #define CORAL_PROGRAM_NAME_VERSION CORAL_PROGRAM_NAME " " CORAL_VERSION_STRING
 
-// Unified GCC version macro
-#ifdef __GNUC__
-#   ifdef __GNUC_PATCHLEVEL__
-#       define CORAL_GNUC_VERSION (__GNUC__*100000 + __GNUC_MINOR__*100 + __GNUC_PATCHLEVEL__)
-#   else
-#       define CORAL_GNUC_VERSION (__GNUC__*100000 + __GNUC_MINOR__*100)
-#   endif
-#endif
-
 // Visual Studio (2013 and 2015, at the time of writing) supports C++11's
 // explicitly defaulted and deleted functions, BUT with the exception that
 // it cannot generate default memberwise move constructors and move assignment
