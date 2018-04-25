@@ -23,7 +23,7 @@ or at least have the same major release number, but this is not guaranteed.
 
 Supported platforms and compilers:
 
-  - Windows: Visual Studio 2013 or newer.
+  - Windows: Visual Studio 2015 or newer.
   - Linux:   GCC 4.9 or newer.
 
 Required build tools:
