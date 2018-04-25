@@ -113,11 +113,6 @@ namespace
         std::shared_ptr<coral::slave::Instance> instance;
         coral::net::SlaveLocator locator;
         std::thread thread;
-
-#if defined(_MSC_VER) && _MSC_VER <= CORAL_MSC12_VER
-        Slave() { }
-        CORAL_DEFINE_DEFAULT_MOVE(Slave, instance, locator, thread)
-#endif
     };
 
     void RunSlave(

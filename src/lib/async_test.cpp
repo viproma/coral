@@ -100,15 +100,7 @@ TEST(coral_async, CommThread)
         {
             throw std::underflow_error{""};
         });
-#if defined(_MSC_VER) && (_MSC_VER < CORAL_MSC14_VER)
-    // VS2013 does not abandon the shared state upon promise destruction.
-    // See:  https://connect.microsoft.com/VisualStudio/feedback/details/809632
-    // As a workaround, we simply sleep for a little while, to give the thread
-    // some time to die and unwind its stack.
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-#else
     EXPECT_THROW(brokenFuture.get(), std::future_error); // broken promise
-#endif
     ASSERT_TRUE(thread.Active());
     try {
         thread.Execute<void>([] (coral::net::Reactor&, MyData&, std::promise<void>) { });
@@ -249,15 +241,7 @@ TEST(coral_async, CommThread_void)
         {
             throw std::underflow_error{""};
         });
-#if defined(_MSC_VER) && (_MSC_VER < CORAL_MSC14_VER)
-    // VS2013 does not abandon the shared state upon promise destruction.
-    // See:  https://connect.microsoft.com/VisualStudio/feedback/details/809632
-    // As a workaround, we simply sleep for a little while, to give the thread
-    // some time to die and unwind its stack.
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-#else
     EXPECT_THROW(brokenFuture.get(), std::future_error); // broken promise
-#endif
     ASSERT_TRUE(thread.Active());
     try {
         thread.Execute<void>([] (coral::net::Reactor&, std::promise<void>) { });

@@ -40,14 +40,6 @@ be a valid C header.  C++-specific code should therefore be placed in
 #   endif
 #endif
 
-// Microsoft Visual C++ version macros
-#ifdef _MSC_VER
-#   define CORAL_MSC10_VER 1600 // VS 2010
-#   define CORAL_MSC11_VER 1700 // VS 2012
-#   define CORAL_MSC12_VER 1800 // VS 2013
-#   define CORAL_MSC14_VER 1900 // VS 2015
-#endif
-
 // Visual Studio (2013 and 2015, at the time of writing) supports C++11's
 // explicitly defaulted and deleted functions, BUT with the exception that
 // it cannot generate default memberwise move constructors and move assignment
