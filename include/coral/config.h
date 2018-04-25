@@ -31,10 +31,10 @@ be a valid C header.  C++-specific code should therefore be placed in
 
 #define CORAL_PROGRAM_NAME_VERSION CORAL_PROGRAM_NAME " " CORAL_VERSION_STRING
 
-// Visual Studio (2013 and 2015, at the time of writing) supports C++11's
-// explicitly defaulted and deleted functions, BUT with the exception that
-// it cannot generate default memberwise move constructors and move assignment
-// operators (cf. https://msdn.microsoft.com/en-us/library/dn457344.aspx).
+// Visual Studio supports C++11's explicitly defaulted and deleted functions,
+// BUT with the exception that versions prior to VS2017 could not generate
+// default memberwise move constructors and move assignment operators (cf.
+// https://msdn.microsoft.com/en-us/library/dn457344.aspx).
 //
 // Therefore, we define a macro to generate memberwise move operations for
 // classes where such are appropriate.  For compilers that *do* have full
@@ -52,7 +52,7 @@ be a valid C header.  C++-specific code should therefore be placed in
 // It is crucial that *all* members be included as arguments to the macro,
 // or they will simply not be moved.
 #ifdef __cplusplus
-#   if defined(_MSC_VER)
+#   if defined(_MSC_VER) && (_MSC_VER <= 1900)
         // This is a slightly modified version of a trick which is explained
         // in detail here: http://stackoverflow.com/a/16683147
 #       define CORAL_EVALUATE_MACRO(code) code
