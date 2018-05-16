@@ -119,7 +119,7 @@ try {
 
     CORAL_LOG_DEBUG(boost::format("PID: %d") % getpid());
     coral::log::Log(coral::log::info, boost::format("FMU: %s") % fmuPath);
-    CORAL_LOG_TRACE(boost::format("Network interface: %s") % interface.ToString());
+    CORAL_LOG_TRACE(boost::format("Network interface: %s") % networkInterface.ToString());
     CORAL_LOG_TRACE(boost::format("Hangaround time: %d s") % hangaroundTime.count());
 
     const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "coral" / "cache";
