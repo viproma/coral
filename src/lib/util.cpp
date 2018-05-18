@@ -19,7 +19,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <iomanip>
 
 #include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/random/random_device.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
@@ -186,7 +185,7 @@ void coral::util::SpawnProcess(
 {
 #ifdef _WIN32
     auto cmdLine = Utf8ToUtf16(program);
-    BOOST_FOREACH (const auto& arg, args) {
+    for (const auto& arg : args) {
         cmdLine.push_back(' ');
         cmdLine.push_back('"');
         const auto argW = Utf8ToUtf16(arg);
