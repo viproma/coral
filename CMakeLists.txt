@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0.0)
+cmake_minimum_required (VERSION 3.5)
 
 # CMake guidelines/tips for this project:
 #
@@ -103,7 +103,6 @@ endif()
 # subdirectories/targets.
 set (Boost_USE_MULTITHREADED ON)
 set (Boost_USE_STATIC_LIBS ON)
-add_definitions("-DBOOST_ALL_NO_LIB") # Disables Boost's auto-linking feature.
 add_definitions("-DBOOST_SYSTEM_NO_DEPRECATED") # Disable some deprecated stuff.
 
 # Workaround to enable compilation of Google Test 1.7.0 on VS2012
@@ -131,14 +130,30 @@ set (versionPatch "${CMAKE_MATCH_1}")
 cmake_policy (SET CMP0022 NEW)
 
 if (CORAL_BUILD_TESTS)
-    # Enable testing and load Google Test
     enable_testing ()
-    set (gtest_force_shared_crt ON CACHE INTERNAL "Google Test setting override")
-    add_subdirectory ("external/gtest-1.7.0")
 endif ()
 
 # Allow local CMake modules (e.g. find scripts) under cmake/
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+# ==============================================================================
+# Dependencies
+# ==============================================================================
+if (CORAL_BUILD_TESTS)
+    find_package (GTest REQUIRED)
+    set (testBoostLibs chrono thread)
+else ()
+    set (testBoostLibs)
+endif ()
+
+find_package (Boost
+    REQUIRED
+    COMPONENTS filesystem program_options random ${testBoostLibs}
+)
+find_package (CPPZMQ REQUIRED)
+find_package (FMILIB REQUIRED)
+find_package (LIBZIP REQUIRED)
+include("CompatFindProtobuf")
 
 # ==============================================================================
 # Subdirectories

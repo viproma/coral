@@ -151,35 +151,32 @@ endmacro(CreateHeaderGroups)
 CreateHeaderGroups("Public Header Files" ${_publicHeadersFull})
 CreateHeaderGroups("Private Header Files" ${_privateHeadersFull})
 
-# Dependencies
-find_package (BoostTarget REQUIRED
-    COMPONENTS program_options filesystem thread system chrono random)
-find_package (CPPZMQ REQUIRED)
-find_package (ProtobufTarget REQUIRED)
-find_package (FMILIB REQUIRED)
-find_package (LIBZIP REQUIRED)
-
 # Main library target
 add_library (${_target} STATIC
     ${_publicHeadersFull}
     ${_privateHeadersFull}
     ${_sources}
-    $<TARGET_OBJECTS:coralproto>)
-target_include_directories(${_target}
-    PRIVATE $<TARGET_PROPERTY:coralproto,INTERFACE_INCLUDE_DIRECTORIES>)
-target_link_libraries (${_target}
-    PRIVATE $<BUILD_INTERFACE:cppzmq>
-            $<INSTALL_INTERFACE:zmq>
-    PUBLIC  ${FMILIB_LIBRARIES}
-            "libzip::libzip"
-            "protobuf"
-            "boost"
+)
+include(ObjectTargetFunctions)
+target_link_objects(${_target} PUBLIC coralproto)
+target_link_libraries(${_target}
+    PRIVATE
+        $<BUILD_INTERFACE:cppzmq>
+        $<INSTALL_INTERFACE:libzmq>
+    PUBLIC
+        ${FMILIB_LIBRARIES}
+        "libzip::libzip"
+        "Boost::boost"
+        "Boost::filesystem"
+        "Boost::program_options"
+        "Boost::random"
 )
 if (WIN32)
-    target_link_libraries (${_target} PUBLIC "ws2_32" "iphlpapi")
+    target_link_libraries (${_target} INTERFACE "ws2_32" "iphlpapi" "bcrypt")
 endif()
 if (UNIX)
     target_compile_options (${_target} PRIVATE "-fPIC")
+    target_link_libraries (${_target} INTERFACE "pthread")
 endif()
 
 install (TARGETS ${_target} EXPORT ${exportTarget} ${targetInstallDestinations})
@@ -190,19 +187,16 @@ if (CORAL_BUILD_TESTS)
     add_executable (${_testTarget} ${_testSources})
     target_link_libraries (${_testTarget}
         PRIVATE ${_target}
-                "gtest_main"
-                ${FMILIB_LIBRARIES}
-                ${CPPZMQ_LIBRARIES}
-                "boost"
-    )
-    # FindBoost uses "old style" library references
-    target_include_directories(${_testTarget}
-        PRIVATE "$<TARGET_PROPERTY:gtest_main,INCLUDE_DIRECTORIES>"
-                $<TARGET_PROPERTY:coralproto,INTERFACE_INCLUDE_DIRECTORIES>
+                "GTest::Main"
+                "Boost::chrono"
+                "Boost::thread"
     )
     target_compile_definitions(${_testTarget} PRIVATE
         "CORAL_TEST_FMU_DIRECTORY=${CMAKE_SOURCE_DIR}/external/fmus"
     )
+    if (MSVC)
+        target_compile_options(${_testTarget} PRIVATE "/wd4251" "/wd4275")
+    endif ()
     add_test (NAME ${_testTarget} COMMAND ${_testTarget})
     set_tests_properties(${_testTarget} PROPERTIES
         ENVIRONMENT "CORAL_TEST_DATA_DIR=${CMAKE_SOURCE_DIR}/test_data"

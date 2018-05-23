@@ -26,7 +26,14 @@
 #include <coral/net/reactor.hpp>
 #include <coral/net/zmqx.hpp>
 #include <coral/slave/instance.hpp>
+
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
 #include <execution.pb.h>
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 
 namespace coral

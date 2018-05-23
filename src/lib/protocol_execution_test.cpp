@@ -3,7 +3,14 @@
 #include <coral/protocol/execution.hpp>
 #include <coral/error.hpp>
 #include <coral/protobuf.hpp>
+
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
 #include <testing.pb.h>
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 using namespace coral::protocol::execution;
 

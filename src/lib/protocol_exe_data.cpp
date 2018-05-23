@@ -11,7 +11,13 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <coral/protocol/glue.hpp>
 #include <coral/util.hpp>
 
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
 #include <exe_data.pb.h>
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 
 namespace ed = coral::protocol::exe_data;

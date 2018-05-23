@@ -1,0 +1,16 @@
+boost-algorithm
+boost-bimap
+boost-core
+boost-filesystem
+boost-format
+boost-lexical-cast
+boost-numeric-conversion
+boost-random
+boost-range
+boost-program-options
+boost-property-tree
+boost-uuid
+cppzmq
+libzip
+protobuf
+zeromq

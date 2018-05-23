@@ -1,7 +1,3 @@
-find_package (CPPZMQ REQUIRED)
-find_package (LIBZIP REQUIRED)
-find_package (FMILIB REQUIRED)
-
 set (_target "coralslave")
 add_executable (${_target} "main.cpp")
 target_link_libraries (${_target}

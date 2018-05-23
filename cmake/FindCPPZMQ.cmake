@@ -16,12 +16,12 @@
 cmake_minimum_required (VERSION 3.0.0)
 set (CPPZMQ_DIR "${CPPZMQ_DIR}" CACHE PATH "The directory that contains zmq.hpp")
 
-if (NOT ZMQ_FOUND)
-    find_package (ZMQ REQUIRED)
+if (NOT ZeroMQ_FOUND)
+    find_package (ZeroMQ REQUIRED)
 endif ()
 
 find_path(CPPZMQ_INCLUDE_DIRS "zmq.hpp"
-    HINTS "${CMAKE_SOURCE_DIR}/external"
+    HINTS "${ZeroMQ_INCLUDE_DIR}"
     PATHS "${CPPZMQ_DIR}" "$ENV{CPPZMQ_DIR}"
     PATH_SUFFIXES "include" "cppzmq"
 )
@@ -31,7 +31,7 @@ if (CPPZMQ_INCLUDE_DIRS)
     add_library ("cppzmq" INTERFACE IMPORTED)
     set_target_properties("cppzmq" PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${CPPZMQ_INCLUDE_DIRS}"
-        INTERFACE_LINK_LIBRARIES "zmq"
+        INTERFACE_LINK_LIBRARIES "libzmq"
     )
     set (CPPZMQ_LIBRARIES "cppzmq")
 endif ()

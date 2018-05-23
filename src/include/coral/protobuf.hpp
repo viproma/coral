@@ -11,8 +11,15 @@
 #define CORAL_PROTOBUF_HPP
 
 #include <stdexcept>
-#include <google/protobuf/message_lite.h>
 #include <zmq.hpp>
+
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
+#include <google/protobuf/message_lite.h>
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 
 namespace coral

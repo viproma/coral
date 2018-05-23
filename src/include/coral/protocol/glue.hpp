@@ -11,11 +11,17 @@
 #define CORAL_PROTOCOL_GLUE_HPP
 
 #include <coral/model.hpp>
+#include <coral/net.hpp>
+
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
+#include <domain.pb.h>
 #include <model.pb.h>
 #include <net.pb.h>
-
-#include <coral/net.hpp>
-#include <domain.pb.h>
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 
 namespace coral
