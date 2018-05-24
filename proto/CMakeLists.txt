@@ -14,7 +14,16 @@ set (protoFiles
 set_source_files_properties (${protoFiles} PROPERTIES HEADER_FILE_ONLY TRUE)
 source_group("Protobuf Files" FILES ${protoFiles})
 
-protobuf_generate_cpp(sources headers ${protoFiles})
+if (COMMAND protobuf_generate)
+    protobuf_generate(LANG cpp OUT_VAR sources PROTOS ${protoFiles})
+    set (headers)
+elseif (COMMAND protobuf_generate_cpp)
+    protobuf_generate_cpp(sources headers ${protoFiles})
+elseif (COMMAND PROTOBUF_GENERATE_CPP)
+    PROTOBUF_GENERATE_CPP(sources headers ${protoFiles})
+else ()
+    message(FATAL_ERROR "No protobuf_generate function available")
+endif ()
 
 set(target "coralproto")
 add_library(${target} OBJECT ${sources} ${headers} ${protoFiles})
