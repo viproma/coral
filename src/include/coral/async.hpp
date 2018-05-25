@@ -329,7 +329,7 @@ namespace detail
         StackData data;
         reactor.AddSocket(
             bgSocket,
-            [nextTask, &data] (coral::net::Reactor& r, zmq::socket_t& s) {
+            [nextTask = std::move(nextTask), &data] (coral::net::Reactor& r, zmq::socket_t& s) mutable {
                 char dummy;
                 s.recv(&dummy, 1);
 
@@ -339,7 +339,7 @@ namespace detail
                 swap(*nextTask, myTask);
 
                 // Unblock foreground thread again and then run the task.
-                s.send("", 0);
+                s.send("\1", 1);
                 myTask(r, data);
             });
         reactor.Run();
@@ -353,7 +353,7 @@ namespace detail
         coral::net::Reactor reactor;
         reactor.AddSocket(
             bgSocket,
-            [nextTask] (coral::net::Reactor& r, zmq::socket_t& s) {
+            [nextTask = std::move(nextTask)] (coral::net::Reactor& r, zmq::socket_t& s) mutable {
                 char dummy;
                 s.recv(&dummy, 1);
 
@@ -363,7 +363,7 @@ namespace detail
                 swap(*nextTask, myTask);
 
                 // Unblock foreground thread again and then run the task.
-                s.send("", 0);
+                s.send("\1", 1);
                 myTask(r);
             });
         reactor.Run();
@@ -390,10 +390,10 @@ namespace detail
                 std::current_exception());
         }
 
-        // This is to avoid the potential race condition where the background
+        // This is to avoid the race condition where the background
         // thread dies after the foreground thread has sent a task notification
         // and is waiting to receive an acknowledgement.
-        bgSocket.send("", 0);
+        bgSocket.send("\0", 1);
     }
 } // namespace detail
 
@@ -406,8 +406,8 @@ CommThread<StackData>::CommThread()
     , m_nextTask{}
 {
     auto bgSocket = zmq::socket_t(coral::net::zmqx::GlobalContext(), ZMQ_PAIR);
-    bgSocket.setsockopt(ZMQ_LINGER, 0);
-    m_socket.setsockopt(ZMQ_LINGER, 0);
+    bgSocket.setsockopt(ZMQ_LINGER, -1);
+    m_socket.setsockopt(ZMQ_LINGER, -1);
     const auto endpoint = "inproc://" + coral::util::RandomUUID();
     bgSocket.bind(endpoint);
     m_socket.connect(endpoint);
@@ -505,8 +505,10 @@ std::future<Result> CommThread<StackData>::Execute(
     auto promise = std::promise<Result>{};
     auto future = promise.get_future();
 
+    char alive = 0;
     if (auto sharedTask = m_nextTask.lock()) {
         assert(!(*sharedTask));
+        assert(sharedTask.use_count() == 2);
         *sharedTask = detail::CommThreadFunctions<StackData, Result>::WrapTask(
             std::move(task),
             std::move(promise));
@@ -514,12 +516,11 @@ std::future<Result> CommThread<StackData>::Execute(
         // Notify background thread that a task is ready and wait for it
         // to acknowledge it before returning.
         m_socket.send("", 0);
-        char dummy;
-        m_socket.recv(&dummy, 1);
-        return future;
-    } else {
-        // The weak_ptr has expired, meaning that the thread (which holds
-        // a shared_ptr to the same object) must be dead.
+        m_socket.recv(&alive, 1);
+    }
+    if (!alive) {
+        // Either the weak_ptr has expired or the background thread sent a
+        // zero message. Both mean that the background thread has died.
         WaitForThreadTermination();
 
         // The above function should have thrown.  If it didn't, it probably
@@ -530,6 +531,7 @@ std::future<Result> CommThread<StackData>::Execute(
             "unexpectedly.  Perhaps Reactor::Stop() was called?");
         std::terminate();
     }
+    return future;
 }
 
 
