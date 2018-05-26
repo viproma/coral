@@ -4,6 +4,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // The message types in this file are only used for testing purposes.
+syntax="proto2";
 package coralproto.testing;
 
 message IntString
