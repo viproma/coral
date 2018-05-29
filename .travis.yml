@@ -6,9 +6,9 @@ compiler: gcc
 before_install:
   - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   - sudo apt-get update -q
+
+install:
   - sudo apt-get install doxygen g++-5 libboost-filesystem-dev libboost-program-options-dev libboost-random-dev libboost-thread-dev libprotobuf-dev protobuf-compiler -y
-  - export CC=gcc-5
-  - export CXX=g++-5
 
   - wget https://github.com/viproma/debian-fmilib/releases/download/debian%2F2.0.2-1/libfmilib2_2.0.2-1_amd64.deb
   - wget https://github.com/viproma/debian-fmilib/releases/download/debian%2F2.0.2-1/libfmilib2-dev_2.0.2-1_amd64.deb
@@ -27,7 +27,6 @@ before_install:
   - sudo apt-get install -y libunwind8
   - sudo dpkg -i libzmq5_4.2.5_amd64.deb libzmq3-dev_4.2.5_amd64.deb libnorm1_1.5r6+dfsg1-1_amd64.deb libpgm-5.2-0_5.2.122~dfsg-2_amd64.deb libsodium18_1.0.11-1_amd64.deb
 
-install:
   - sudo wget -P /usr/include https://raw.githubusercontent.com/zeromq/cppzmq/v4.2.3/zmq.hpp
 
   - curl -fsSL https://github.com/google/googletest/archive/release-1.8.0.tar.gz | tar -zxf -
@@ -35,4 +34,7 @@ install:
   - cmake -DBUILD_SHARED_LIBS=ON . && make && sudo make install
   - popd
 
-script: cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DCORAL_ENABLE_TRACE_LOGGING=TRUE. && cmake --build . && ctest -V
+script:
+  - export CC=gcc-5
+  - export CXX=g++-5
+  - cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DCORAL_ENABLE_TRACE_LOGGING=TRUE. && cmake --build . && ctest -V
