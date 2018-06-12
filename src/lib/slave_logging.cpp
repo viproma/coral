@@ -136,7 +136,7 @@ bool LoggingInstance::DoStep(
 {
     const auto ret = m_instance->DoStep(currentT, deltaT);
 
-    m_outputStream << (currentT + deltaT);
+    m_outputStream << std::fixed << (currentT + deltaT) << std::defaultfloat;
     const auto typeDescription = TypeDescription();
     for (const auto& var : typeDescription.Variables()) {
         PrintVariable(m_outputStream, var, *this);
