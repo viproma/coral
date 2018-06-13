@@ -22,7 +22,7 @@ be a valid C header.  C++-specific code should therefore be placed in
 
 #define CORAL_VERSION_MAJOR 0
 #define CORAL_VERSION_MINOR 9
-#define CORAL_VERSION_PATCH 0
+#define CORAL_VERSION_PATCH 1
 
 #define CORAL_VERSION_STRINGIFY(a, b, c) #a "." #b "." #c
 #define CORAL_VERSION_STRINGIFY_EXPAND(a, b, c) CORAL_VERSION_STRINGIFY(a, b, c)
