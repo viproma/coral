@@ -16,6 +16,11 @@ list the bigger ones.
 ### Changed
   - The slave provider command line interface is now a bit more well-defined.
 
+## [0.9.1] – 2018-06-13
+### Fixed
+  - Issue [#54](https://github.com/viproma/coral/issues/54):
+    Too low time precision in CSV output
+
 ## [0.9.0] – 2018-04-23
 This will be the last release which supports Visual Studio 2013.
 ### Added
@@ -53,7 +58,8 @@ This will be the last release which supports Visual Studio 2013.
 ## 0.7.0 – 2017-02-07
 First public release.
 
-[Unreleased]: https://github.com/viproma/coral/compare/v0.9.0...master
+[Unreleased]: https://github.com/viproma/coral/compare/v0.9.1...master
+[0.9.1]: https://github.com/viproma/coral/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/viproma/coral/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/viproma/coral/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/viproma/coral/compare/v0.7.0...v0.7.1
