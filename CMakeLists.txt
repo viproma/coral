@@ -12,6 +12,12 @@ cmake_minimum_required (VERSION 3.5)
 project ("coral")
 set (projectSummary "A C++ library for distributed co-simulation")
 
+if(WIN32)
+    set(onOnWindows "ON")
+else()
+    set(onOnWindows "OFF")
+endif()
+
 option (CORAL_BUILD_PRIVATE_API_DOCS
         "Whether to generate API documentation for the non-public API"
         OFF)
@@ -27,6 +33,15 @@ option (FMILIB_USE_SHARED_LIB
 option (CORAL_BUILD_TESTS
         "Whether to build tests"
         ON)
+option (CORAL_INSTALL_RUNTIME_LIBS
+        "Whether to install compiler-provided runtime libraries"
+        ${onOnWindows})
+option (CORAL_INSTALL_DEBUG_RUNTIME_LIBS
+        "Whether to install debug versions of compiler-provided runtime libraries"
+        OFF)
+option (CORAL_INSTALL_DEPENDENCIES
+        "Whether to install the shared libraries that this software depends on"
+        ${onOnWindows})
 
 # ==============================================================================
 # Common variables
@@ -207,6 +222,12 @@ install (FILES ${versionFile} DESTINATION ${cmakeFilesInstallDir})
 # ==============================================================================
 # Installation of remaining files
 # ==============================================================================
+
+# Runtime libraries
+if (CORAL_INSTALL_RUNTIME_LIBS)
+    set (CMAKE_INSTALL_DEBUG_LIBRARIES ${CORAL_INSTALL_DEBUG_RUNTIME_LIBS})
+    include ("InstallRequiredSystemLibraries")
+endif ()
 
 # Public headers
 install (DIRECTORY "${publicHeaderDir}/" DESTINATION ${headerInstallDir})

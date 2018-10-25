@@ -13,3 +13,8 @@ target_include_directories (${_target}
     PRIVATE ${publicHeaderDir}
             ${privateHeaderDir})
 install (TARGETS ${_target} ${targetInstallDestinations})
+
+if (CORAL_INSTALL_DEPENDENCIES)
+    include (InstallPrerequisites)
+    install_prerequisites (${_target})
+endif ()
