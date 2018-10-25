@@ -51,7 +51,8 @@ public:
         const std::string& slaveExe,
         std::chrono::seconds masterInactivityTimeout,
         bool enableOutput,
-        const std::string& outputDir)
+        const std::string& outputDir,
+        bool createConsoles)
         : m_fmuPath{fmuPath}
         , m_fmu{importer.Import(fmuPath)}
         , m_networkInterface{networkInterface}
@@ -59,6 +60,7 @@ public:
         , m_masterInactivityTimeout{masterInactivityTimeout}
         , m_enableOutput{enableOutput}
         , m_outputDir(outputDir.empty() ? "." : outputDir)
+        , m_createConsoles(createConsoles)
     {
     }
 
@@ -87,10 +89,13 @@ public:
             }
             args.push_back("--output-dir=" + m_outputDir);
 
+            auto processOptions = coral::util::ProcessOptions::none;
+            if (m_createConsoles) processOptions |= coral::util::ProcessOptions::createNewConsole;
+
             std::cout << "\nStarting slave...\n"
                 << "  FMU       : " << m_fmuPath << '\n'
                 << std::flush;
-            coral::util::SpawnProcess(m_slaveExe, args);
+            coral::util::SpawnProcess(m_slaveExe, args, processOptions);
 
             std::clog << "Waiting for verification..." << std::flush;
             std::vector<zmq::message_t> slaveStatus;
@@ -145,6 +150,7 @@ private:
     std::chrono::seconds m_masterInactivityTimeout;
     bool m_enableOutput;
     std::string m_outputDir;
+    bool m_createConsoles;
     std::string m_instantiationFailureDescription;
 };
 
@@ -181,13 +187,18 @@ try {
     po::options_description options("Options");
     options.add_options()
         ("clean-cache",
-            "Clear the cache which contains previously unpacked FMU contents."
+            "Clear the cache which contains previously unpacked FMU contents. "
             "The program will exit immediately after performing this action.")
         ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
             "The IP address or (OS-specific) name of the network interface to "
             "use for network communications, or \"*\" for all/any.")
         ("no-output",
             "Disable file output of variable values.")
+        ("no-slave-console",
+            "Don't create new console windows for slaves. Their output will "
+            "be printed to the slave provider's console instead.  This only has "
+            "an effect on Windows, as it is already the default behaviour on "
+            "other platforms.")
         ("output-dir,o", po::value<std::string>()->default_value("."),
             "The directory where output files should be written.")
         ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
@@ -223,6 +234,7 @@ try {
     const auto networkInterface = coral::net::ip::Address{
         (*optionValues)["interface"].as<std::string>()};
     const auto enableOutput = !optionValues->count("no-output");
+    const auto createConsoles = !optionValues->count("no-slave-console");
     const auto outputDir = (*optionValues)["output-dir"].as<std::string>();
     const auto discoveryPort = coral::net::ip::Port{
         (*optionValues)["port"].as<std::uint16_t>()};
@@ -268,7 +280,8 @@ try {
                 slaveExe,
                 timeout,
                 enableOutput,
-                outputDir));
+                outputDir,
+                createConsoles));
             std::cout << "FMU loaded: " << p << std::endl;
         } catch (const std::runtime_error& e) {
             ++failedFMUS;

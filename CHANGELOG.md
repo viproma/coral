@@ -13,6 +13,9 @@ We don't guarantee that they'll all be documented here, but we'll try to
 list the bigger ones.
 
 ## [Unreleased]
+### Added
+  - A `--no-slave-console` switch to disable creation of new console windows
+    for slaves in coralslaveprovider. This only has an effect on Windows.
 ### Changed
   - The slave provider command line interface is now a bit more well-defined.
 
