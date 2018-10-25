@@ -21,11 +21,11 @@ install:
 
   - wget http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/xUbuntu_14.04/amd64/libzmq5_4.2.5_amd64.deb
   - wget http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/xUbuntu_14.04/amd64/libzmq3-dev_4.2.5_amd64.deb
-  - wget http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/xUbuntu_14.04/amd64/libnorm1_1.5r6+dfsg1-1_amd64.deb
+  - wget http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/xUbuntu_14.04/amd64/libnorm1_1.5r6+dfsg1-9_amd64.deb
   - wget http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/xUbuntu_14.04/amd64/libpgm-5.2-0_5.2.122~dfsg-2_amd64.deb
   - wget http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/xUbuntu_14.04/amd64/libsodium18_1.0.11-1_amd64.deb
   - sudo apt-get install -y libunwind8
-  - sudo dpkg -i libzmq5_4.2.5_amd64.deb libzmq3-dev_4.2.5_amd64.deb libnorm1_1.5r6+dfsg1-1_amd64.deb libpgm-5.2-0_5.2.122~dfsg-2_amd64.deb libsodium18_1.0.11-1_amd64.deb
+  - sudo dpkg -i libzmq5_4.2.5_amd64.deb libzmq3-dev_4.2.5_amd64.deb libnorm1_1.5r6+dfsg1-9_amd64.deb libpgm-5.2-0_5.2.122~dfsg-2_amd64.deb libsodium18_1.0.11-1_amd64.deb
 
   - sudo wget -P /usr/include https://raw.githubusercontent.com/zeromq/cppzmq/v4.2.3/zmq.hpp
 
