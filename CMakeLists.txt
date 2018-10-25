@@ -219,14 +219,11 @@ set (readmeFile "${CMAKE_SOURCE_DIR}/README.md")
 install (FILES ${readmeFile} DESTINATION ${docInstallDir})
 set (licenceFile "${CMAKE_SOURCE_DIR}/LICENCE.txt")
 install (FILES ${licenceFile} DESTINATION ${docInstallDir})
-install (DIRECTORY "${CMAKE_SOURCE_DIR}/manuals/" DESTINATION ${docInstallDir})
 
 install (FILES
-        "cmake/FindBoostTarget.cmake"
         "cmake/FindFMILIB.cmake"
         "cmake/FindLIBZIP.cmake"
-        "cmake/FindProtobufTarget.cmake"
-        "cmake/FindZMQ.cmake"
+        "cmake/FindZeroMQ.cmake"
     DESTINATION
         "${cmakeFilesInstallDir}"
 )
