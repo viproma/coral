@@ -189,6 +189,17 @@ template<typename Action>
 ScopeGuard<Action> OnScopeExit(Action action) { return ScopeGuard<Action>(action); }
 
 
+/// Options that control how new processes are created.
+enum class ProcessOptions
+{
+    none = 0,
+
+    /// Create a new console window for the process (Windows only)
+    createNewConsole = 1
+};
+CORAL_DEFINE_BITWISE_ENUM_OPERATORS(ProcessOptions)
+
+
 /**
 \brief  Starts a new process.
 
@@ -198,7 +209,8 @@ other characters that are considered "special" in a Windows command line.
 */
 void SpawnProcess(
     const std::string& program,
-    const std::vector<std::string>& args);
+    const std::vector<std::string>& args,
+    ProcessOptions options = ProcessOptions::none);
 
 
 /**

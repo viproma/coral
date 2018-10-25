@@ -181,7 +181,8 @@ namespace
 
 void coral::util::SpawnProcess(
     const std::string& program,
-    const std::vector<std::string>& args)
+    const std::vector<std::string>& args,
+    ProcessOptions options)
 {
 #ifdef _WIN32
     auto cmdLine = Utf8ToUtf16(program);
@@ -194,22 +195,28 @@ void coral::util::SpawnProcess(
     }
     cmdLine.push_back(0);
 
+    DWORD creationFlags = 0;
+    if ((options & ProcessOptions::createNewConsole) != ProcessOptions::none) {
+        creationFlags |= CREATE_NEW_CONSOLE;
+    }
+
     STARTUPINFOW startupInfo;
     std::memset(&startupInfo, 0, sizeof(startupInfo));
     startupInfo.cb = sizeof(startupInfo);
 
     PROCESS_INFORMATION processInfo;
-    if (CreateProcessW(
-        nullptr,
-        cmdLine.data(),
-        nullptr,
-        nullptr,
-        FALSE,
-        CREATE_NEW_CONSOLE,
-        nullptr,
-        nullptr,
-        &startupInfo,
-        &processInfo)) {
+    const auto processCreated = CreateProcessW(
+        nullptr,        // lpApplicationName
+        cmdLine.data(), // lpCommandLine
+        nullptr,        // lpProcessAttributes
+        nullptr,        // lpThreadAttributes
+        FALSE,          // bInheritHandles
+        creationFlags,  // dwCreationFlags
+        nullptr,        // lpEnvironment
+        nullptr,        // lpCurrentDirectory
+        &startupInfo,   // lpStartupInfo
+        &processInfo);  // lpProcessInformation
+    if (processCreated) {
         return;
     }
 
