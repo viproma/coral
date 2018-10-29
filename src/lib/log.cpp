@@ -6,9 +6,9 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 #include <coral/log.hpp>
 
-#include <atomic>
 #include <iostream>
 #include <mutex>
+#include <vector>
 
 
 namespace coral
@@ -19,9 +19,14 @@ namespace log
 
 namespace
 {
-    // Globals
-    std::atomic<Level> g_logLevel{error};
-    std::mutex g_clogMutex;
+    struct Sink
+    {
+        Level level;
+        std::shared_ptr<std::ostream> stream;
+    };
+    std::mutex g_mutex;
+    std::vector<Sink> g_sinks{{error, CLogPtr()}};
+    bool g_sinksAdded = false;
 
     // Returns a space-padded, human-readable string for each log level.
     const char* LevelNamePadded(Level level)
@@ -39,17 +44,24 @@ namespace
 
 
 #define CORAL_IMPLEMENT_LOG \
-    if (level >= g_logLevel) { \
-        std::lock_guard<std::mutex> lock(g_clogMutex); \
-        std::clog << '[' << LevelNamePadded(level) << "] " \
-                  << message << std::endl; \
+    std::lock_guard<std::mutex> lock(g_mutex); \
+    for (const auto& sink : g_sinks) { \
+        if (level >= sink.level) { \
+            *sink.stream \
+                << '[' << LevelNamePadded(level) << "] " \
+                << message << std::endl; \
+        } \
     }
+
 #define CORAL_IMPLEMENT_LOG_LOC \
-    if (level >= g_logLevel) { \
-        std::lock_guard<std::mutex> lock(g_clogMutex); \
-        std::clog << '[' << LevelNamePadded(level) << "] " \
-                  << message \
-                  << " (" << file << ':' << line << ')' << std::endl; \
+    std::lock_guard<std::mutex> lock(g_mutex); \
+    for (const auto& sink : g_sinks) { \
+        if (level >= sink.level) { \
+            *sink.stream \
+                << '[' << LevelNamePadded(level) << "] " \
+                << message \
+                << " (" << file << ':' << line << ')' << std::endl; \
+        } \
     }
 
 
@@ -89,9 +101,22 @@ void detail::LogLoc(Level level, const char* file, int line, const boost::format
 }
 
 
-void SetLevel(Level level) noexcept
+void AddSink(std::shared_ptr<std::ostream> stream, Level level)
 {
-    g_logLevel = level;
+    std::lock_guard<std::mutex> lock(g_mutex);
+    if (!g_sinksAdded) {
+        g_sinks.front().level = level;
+        g_sinks.front().stream = stream;
+        g_sinksAdded = true;
+    } else {
+        g_sinks.push_back({level, stream});
+    }
+}
+
+
+std::shared_ptr<std::ostream> CLogPtr() noexcept
+{
+    return std::shared_ptr<std::ostream>(&std::clog, [] (void*) { });
 }
 
 

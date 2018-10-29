@@ -175,9 +175,9 @@ int main(int argc, const char** argv)
 {
 try {
 #ifdef CORAL_LOG_TRACE_ENABLED
-    coral::log::SetLevel(coral::log::trace);
+    coral::log::AddSink(coral::log::CLogPtr(), coral::log::trace);
 #elif defined(CORAL_LOG_DEBUG_ENABLED)
-    coral::log::SetLevel(coral::log::debug);
+    coral::log::AddSink(coral::log::CLogPtr(), coral::log::debug);
 #endif
 
     const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "coral" / "cache";

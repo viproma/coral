@@ -10,6 +10,8 @@
 #ifndef CORAL_LOG_HPP
 #define CORAL_LOG_HPP
 
+#include <memory>
+#include <ostream>
 #include <string>
 #include <boost/format.hpp>
 #include <coral/config.h>
@@ -75,8 +77,23 @@ namespace detail
 #   define CORAL_LOG_DEBUG(...) ((void)0)
 #endif
 
-/// Sets the global log level, i.e., which log messages get written.
-void SetLevel(Level level) noexcept;
+
+/**
+\brief Adds a new log sink.
+
+Until the first time this function is called, the library will use a default
+sink that prints messages to `std::clog` and which filters out anything below
+level `error`.
+
+The first time this function is called, the default sink will be *replaced*
+with the new one. Subsequent calls will add new sinks.
+*/
+void AddSink(std::shared_ptr<std::ostream> stream, Level level = error);
+
+
+/// Convenience function for making a `std::shared_ptr` to `std::clog`.
+std::shared_ptr<std::ostream> CLogPtr() noexcept;
+
 
 }} // namespace
 #endif // header guard
