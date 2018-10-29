@@ -20,6 +20,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <coral/fmi/fmu.hpp>
 #include <coral/fmi/importer.hpp>
+#include <coral/log.hpp>
 #include <coral/net.hpp>
 #include <coral/net/zmqx.hpp>
 #include <coral/provider.hpp>
@@ -288,8 +289,9 @@ try {
             std::cout << "FMU loaded: " << p << std::endl;
         } catch (const std::runtime_error& e) {
             ++failedFMUS;
-            std::cerr << "Error: Failed to load FMU \"" << p
-                << "\": " << e.what() << std::endl;
+            coral::log::Log(
+                coral::log::error,
+                boost::format("Failed to load FMU \"%s\": %s") % p % e.what());
         }
     }
     std::cout << fmus.size() << " FMUs loaded";
@@ -306,7 +308,7 @@ try {
         [](std::exception_ptr e) {
             try { std::rethrow_exception(e); }
             catch (const std::exception& e) {
-                std::cerr << "Error: " << e.what() << std::endl;
+                coral::log::Log(coral::log::error, e.what());
                 std::exit(1);
             }
         }
@@ -315,7 +317,7 @@ try {
     std::cin.ignore();
     slaveProvider.Stop();
 } catch (const std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    coral::log::Log(coral::log::error, e.what());
     return 1;
 }
 return 0;

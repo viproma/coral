@@ -341,7 +341,7 @@ int Run(const std::vector<std::string>& args)
         std::cout << "Completed in " << simTime.count() << " ms." << std::endl;
         exec.Terminate();
     } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        coral::log::Log(coral::log::error, e.what());
         return 1;
     }
     return 0;
@@ -391,7 +391,7 @@ int List(const std::vector<std::string>& args)
             //CORAL_LOG_TRACE(st.description.Name());
         }
     } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        coral::log::Log(coral::log::error, e.what());
         return 1;
     }
     return 0;
@@ -511,7 +511,7 @@ int LsVars(const std::vector<std::string>& args)
             }
         }
     } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        coral::log::Log(coral::log::error, e.what());
         return 1;
     }
     return 0;
@@ -596,7 +596,7 @@ int Info(const std::vector<std::string>& args)
         }
         std::cout << "}" << std::endl;
     } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        coral::log::Log(coral::log::error, e.what());
         return 1;
     }
     return 0;
@@ -629,11 +629,13 @@ int main(int argc, const char** argv)
         else if (command == "ls-vars") return LsVars(args);
         else if (command == "info") return Info(args);
         else {
-            std::cerr << "Error: Invalid command: " << command;
+            coral::log::Log(coral::log::error, "Invalid command: " + command);
             return 1;
         }
     } catch (const std::exception& e) {
-        std::cerr << "Error: Unexpected internal error: " << e.what() << std::endl;
+        coral::log::Log(
+            coral::log::error,
+            boost::format("Unexpected internal error: %s") % e.what());
         return 255;
     }
 }
