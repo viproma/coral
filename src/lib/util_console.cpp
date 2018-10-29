@@ -10,6 +10,8 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <sstream>
 #include <utility>
 
+#include <coral/log.hpp>
+
 
 std::vector<std::string> coral::util::CommandLine(int argc, char const *const * argv)
 {
@@ -131,4 +133,26 @@ boost::optional<boost::program_options::variables_map> coral::util::ParseArgumen
     } else {
         return std::move(values);
     }
+}
+
+
+void coral::util::AddLoggingOptions(
+    boost::program_options::options_description& options)
+{
+    namespace po = boost::program_options;
+    options.add_options()
+        ("log-level", po::value<std::string>()->default_value("warning"),
+            "The lowest level of messages to log. Available levels are, from "
+            "lowest to highest: trace, debug, info, warning, error.  Note that "
+            "certain trace and debug messages are only printed if the program "
+            "itself was compiled in debug mode.");
+}
+
+
+void coral::util::UseLoggingArguments(
+    const boost::program_options::variables_map& arguments)
+{
+    const auto logLevel =
+        coral::log::ParseLevel(arguments["log-level"].as<std::string>());
+    coral::log::AddSink(coral::log::CLogPtr(), logLevel);
 }

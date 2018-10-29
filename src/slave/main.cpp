@@ -40,12 +40,6 @@ int main(int argc, const char** argv)
     std::unique_ptr<zmq::socket_t> feedbackSocket;
 
 try {
-#ifdef CORAL_LOG_TRACE_ENABLED
-    coral::log::AddSink(coral::log::CLogPtr(), coral::log::trace);
-#elif defined(CORAL_LOG_DEBUG_ENABLED)
-    coral::log::AddSink(coral::log::CLogPtr(), coral::log::debug);
-#endif
-
     namespace po = boost::program_options;
     po::options_description options("Options");
     options.add_options()
@@ -69,6 +63,7 @@ try {
         ("coralslaveprovider-endpoint", po::value<std::string>(),
             "For use by coralslaveprovider: An endpoint on which the provider "
             "is listening for status messages.");
+    coral::util::AddLoggingOptions(options);
     po::options_description positionalOptions("Arguments");
     positionalOptions.add_options()
         ("fmu", po::value<std::string>(),
@@ -84,6 +79,7 @@ try {
         "Slave (" CORAL_PROGRAM_NAME_VERSION ")\n\n"
         "Creates and executes an instance of an FMU for co-simulation.");
     if (!optionValues) return 0;
+    coral::util::UseLoggingArguments(*optionValues);
 
     if (optionValues->count("coralslaveprovider-endpoint")) {
         CORAL_LOG_DEBUG("Assuming started by slave provider");

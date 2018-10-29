@@ -34,6 +34,16 @@ enum Level
     error
 };
 
+/**
+\brief  Reads a log level from a string.
+
+This will remove leading and trailing whitespace, convert the string to
+lowercase, compare it to the names of the `Level` constants and return
+the one that matches.
+*/
+Level ParseLevel(std::string str);
+
+
 /// Writes a plain C string to the global logger.
 void Log(Level level, const char* message) noexcept;
 

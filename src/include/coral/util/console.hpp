@@ -85,5 +85,22 @@ boost::optional<boost::program_options::variables_map> ParseArguments(
     const std::string& commandDescription,
     const std::string& extraHelp = std::string());
 
+
+/// Adds options that control logging.
+void AddLoggingOptions(boost::program_options::options_description& options);
+
+
+/**
+\brief  Parses arguments that control logging (added with `AddLoggingOptions()`)
+        and takes the appropriate actions.
+
+This will at least call `coral::log::AddSink()` once, to add logging to the
+standard error stream, and it may also call it an additional time to add
+logging to a file.
+*/
+void UseLoggingArguments(
+    const boost::program_options::variables_map& arguments);
+
+
 }} // namespace
 #endif // header guard

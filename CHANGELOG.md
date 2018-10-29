@@ -16,6 +16,7 @@ list the bigger ones.
 ### Added
   - A `--no-slave-console` switch to disable creation of new console windows
     for slaves in coralslaveprovider. This only has an effect on Windows.
+  - User-settable log level via the `--log-level` switch.
 ### Changed
   - The slave provider command line interface is now a bit more well-defined.
 

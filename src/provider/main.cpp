@@ -20,7 +20,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include <coral/fmi/fmu.hpp>
 #include <coral/fmi/importer.hpp>
-#include <coral/log.hpp>
 #include <coral/net.hpp>
 #include <coral/net/zmqx.hpp>
 #include <coral/provider.hpp>
@@ -52,6 +51,7 @@ public:
         std::chrono::seconds masterInactivityTimeout,
         bool enableOutput,
         const std::string& outputDir,
+        const std::string& logLevel,
         bool createConsoles)
         : m_fmuPath{fmuPath}
         , m_fmu{importer.Import(fmuPath)}
@@ -60,6 +60,7 @@ public:
         , m_masterInactivityTimeout{masterInactivityTimeout}
         , m_enableOutput{enableOutput}
         , m_outputDir(outputDir.empty() ? "." : outputDir)
+        , m_logLevel(logLevel)
         , m_createConsoles(createConsoles)
     {
     }
@@ -88,6 +89,7 @@ public:
                 args.push_back("--no-output");
             }
             args.push_back("--output-dir=" + m_outputDir);
+            args.push_back("--log-level=" + m_logLevel);
 
             auto processOptions = coral::util::ProcessOptions::none;
             if (m_createConsoles) processOptions |= coral::util::ProcessOptions::createNewConsole;
@@ -150,7 +152,9 @@ private:
     std::chrono::seconds m_masterInactivityTimeout;
     bool m_enableOutput;
     std::string m_outputDir;
+    std::string m_logLevel;
     bool m_createConsoles;
+
     std::string m_instantiationFailureDescription;
 };
 
@@ -174,12 +178,6 @@ void ScanDirectoryForFMUs(
 int main(int argc, const char** argv)
 {
 try {
-#ifdef CORAL_LOG_TRACE_ENABLED
-    coral::log::AddSink(coral::log::CLogPtr(), coral::log::trace);
-#elif defined(CORAL_LOG_DEBUG_ENABLED)
-    coral::log::AddSink(coral::log::CLogPtr(), coral::log::debug);
-#endif
-
     const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "coral" / "cache";
     auto importer = coral::fmi::Importer::Create(fmuCacheDir);
 
@@ -210,6 +208,7 @@ try {
             "The number of seconds slaves should wait for commands from a master "
             "before assuming that the connection is broken and shutting themselves "
             "down.  The special value -1 means \"never\".");
+    coral::util::AddLoggingOptions(options);
     po::options_description positionalOptions("Arguments");
     positionalOptions.add_options()
         ("fmu",       po::value<std::vector<std::string>>(), "The FMU files and directories.");
@@ -225,6 +224,8 @@ try {
         "This program loads one or more FMUs and makes them available as\n"
         "slaves on a domain.");
     if (!optionValues) return 0;
+
+    coral::util::UseLoggingArguments(*optionValues);
     if (optionValues->count("clean-cache")) {
         importer->CleanCache();
         return 0;
@@ -242,6 +243,7 @@ try {
     if (timeout < std::chrono::seconds(-1)) {
         throw std::runtime_error("Invalid timeout value");
     }
+    const auto logLevel = (*optionValues)["log-level"].as<std::string>();
 
     std::string slaveExe;
     if (optionValues->count("slave-exe")) {
@@ -281,6 +283,7 @@ try {
                 timeout,
                 enableOutput,
                 outputDir,
+                logLevel,
                 createConsoles));
             std::cout << "FMU loaded: " << p << std::endl;
         } catch (const std::runtime_error& e) {

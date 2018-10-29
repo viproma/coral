@@ -163,6 +163,7 @@ int Run(const std::vector<std::string>& args)
             ("help-sys-config",
                 "Display a help message about the format of system configuration files "
                 "and exit.");
+        coral::util::AddLoggingOptions(options);
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("exec-config", po::value<std::string>(),
@@ -181,6 +182,7 @@ int Run(const std::vector<std::string>& args)
             self + " run",
             "Runs a simulation.");
         if (!argValues) return 0;
+        coral::util::UseLoggingArguments(*argValues);
 
         if (argValues->count("help-exec-config")) {
             PrintExecConfigHelp();
@@ -357,6 +359,7 @@ int List(const std::vector<std::string>& args)
                 "use for network communications, or \"*\" for all/any.")
             ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
                 "The UDP port used to listen for slave providers.");
+        coral::util::AddLoggingOptions(options);
         const auto argValues = coral::util::ParseArguments(
             args,
             options,
@@ -366,6 +369,7 @@ int List(const std::vector<std::string>& args)
             self + " list",
             "Lists the slave types that are available on the network.");
         if (!argValues) return 0;
+        coral::util::UseLoggingArguments(*argValues);
         const auto networkInterface = coral::net::ip::Address{
             (*argValues)["interface"].as<std::string>()};
         const auto discoveryPort = coral::net::ip::Port{
@@ -426,6 +430,7 @@ int LsVars(const std::vector<std::string>& args)
                 "The variabilities to include.  May contain one or more of the "
                 "following characters: c=constant, d=discrete, f=fixed, "
                 "t=tunable, u=continuous.");
+        coral::util::AddLoggingOptions(options);
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("slave-type",  po::value<std::string>(),
@@ -438,6 +443,7 @@ int LsVars(const std::vector<std::string>& args)
             self + " ls-vars",
             "Prints a list of variables for one slave type.");
         if (!argValues) return 0;
+        coral::util::UseLoggingArguments(*argValues);
 
         if (!argValues->count("slave-type")) throw std::runtime_error("Slave type name not specified");
         const auto slaveType =     (*argValues)["slave-type"].as<std::string>();
@@ -523,6 +529,7 @@ int Info(const std::vector<std::string>& args)
                 "use for network communications, or \"*\" for all/any.")
             ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
                 "The UDP port used to listen for slave providers.");
+        coral::util::AddLoggingOptions(options);
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("slave-type",  po::value<std::string>(), "A slave type name.");
@@ -534,6 +541,7 @@ int Info(const std::vector<std::string>& args)
             self + " info",
             "Shows detailed information about a slave type.");
         if (!argValues) return 0;
+        coral::util::UseLoggingArguments(*argValues);
 
         if (!argValues->count("slave-type")) throw std::runtime_error("Slave type name not specified");
         const auto slaveType = (*argValues)["slave-type"].as<std::string>();
@@ -597,12 +605,6 @@ int Info(const std::vector<std::string>& args)
 
 int main(int argc, const char** argv)
 {
-#ifdef CORAL_LOG_TRACE_ENABLED
-    coral::log::AddSink(coral::log::CLogPtr(), coral::log::trace);
-#elif defined(CORAL_LOG_DEBUG_ENABLED)
-    coral::log::AddSink(coral::log::CLogPtr(), coral::log::debug);
-#endif
-
     if (argc < 2) {
         std::cerr <<
             "Execution master (" CORAL_PROGRAM_NAME_VERSION ")\n\n"

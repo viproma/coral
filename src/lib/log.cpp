@@ -10,11 +10,25 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <mutex>
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
+
 
 namespace coral
 {
 namespace log
 {
+
+
+Level ParseLevel(std::string str)
+{
+    boost::trim(str);
+    if (boost::iequals(str, "trace"))        return trace;
+    else if (boost::iequals(str, "debug"))   return debug;
+    else if (boost::iequals(str, "info"))    return info;
+    else if (boost::iequals(str, "warning")) return warning;
+    else if (boost::iequals(str, "error"))   return error;
+    else throw std::runtime_error("Invalid log level: " + str);
+}
 
 
 namespace
