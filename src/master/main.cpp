@@ -182,7 +182,7 @@ int Run(const std::vector<std::string>& args)
             self + " run",
             "Runs a simulation.");
         if (!argValues) return 0;
-        coral::util::UseLoggingArguments(*argValues);
+        coral::util::UseLoggingArguments(*argValues, self);
 
         if (argValues->count("help-exec-config")) {
             PrintExecConfigHelp();
@@ -369,7 +369,7 @@ int List(const std::vector<std::string>& args)
             self + " list",
             "Lists the slave types that are available on the network.");
         if (!argValues) return 0;
-        coral::util::UseLoggingArguments(*argValues);
+        coral::util::UseLoggingArguments(*argValues, self);
         const auto networkInterface = coral::net::ip::Address{
             (*argValues)["interface"].as<std::string>()};
         const auto discoveryPort = coral::net::ip::Port{
@@ -443,7 +443,7 @@ int LsVars(const std::vector<std::string>& args)
             self + " ls-vars",
             "Prints a list of variables for one slave type.");
         if (!argValues) return 0;
-        coral::util::UseLoggingArguments(*argValues);
+        coral::util::UseLoggingArguments(*argValues, self);
 
         if (!argValues->count("slave-type")) throw std::runtime_error("Slave type name not specified");
         const auto slaveType =     (*argValues)["slave-type"].as<std::string>();
@@ -541,7 +541,7 @@ int Info(const std::vector<std::string>& args)
             self + " info",
             "Shows detailed information about a slave type.");
         if (!argValues) return 0;
-        coral::util::UseLoggingArguments(*argValues);
+        coral::util::UseLoggingArguments(*argValues, self);
 
         if (!argValues->count("slave-type")) throw std::runtime_error("Slave type name not specified");
         const auto slaveType = (*argValues)["slave-type"].as<std::string>();

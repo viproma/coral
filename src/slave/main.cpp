@@ -79,7 +79,7 @@ try {
         "Slave (" CORAL_PROGRAM_NAME_VERSION ")\n\n"
         "Creates and executes an instance of an FMU for co-simulation.");
     if (!optionValues) return 0;
-    coral::util::UseLoggingArguments(*optionValues);
+    coral::util::UseLoggingArguments(*optionValues, MY_NAME);
 
     if (optionValues->count("coralslaveprovider-endpoint")) {
         CORAL_LOG_DEBUG("Assuming started by slave provider");

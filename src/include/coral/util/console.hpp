@@ -99,7 +99,8 @@ standard error stream, and it may also call it an additional time to add
 logging to a file.
 */
 void UseLoggingArguments(
-    const boost::program_options::variables_map& arguments);
+    const boost::program_options::variables_map& arguments,
+    const std::string& logFilePrefix);
 
 
 }} // namespace

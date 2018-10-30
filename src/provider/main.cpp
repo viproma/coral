@@ -13,6 +13,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <vector>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -53,6 +54,8 @@ public:
         bool enableOutput,
         const std::string& outputDir,
         const std::string& logLevel,
+        bool enableFileLogging,
+        const std::string& logFileDir,
         bool createConsoles)
         : m_fmuPath{fmuPath}
         , m_fmu{importer.Import(fmuPath)}
@@ -62,6 +65,8 @@ public:
         , m_enableOutput{enableOutput}
         , m_outputDir(outputDir.empty() ? "." : outputDir)
         , m_logLevel(logLevel)
+        , m_enableFileLogging(enableFileLogging)
+        , m_logFileDir(logFileDir)
         , m_createConsoles(createConsoles)
     {
     }
@@ -91,6 +96,10 @@ public:
             }
             args.push_back("--output-dir=" + m_outputDir);
             args.push_back("--log-level=" + m_logLevel);
+            if (m_enableFileLogging) {
+                args.push_back("--log-file");
+                args.push_back("--log-file-dir=" + m_logFileDir);
+            }
 
             auto processOptions = coral::util::ProcessOptions::none;
             if (m_createConsoles) processOptions |= coral::util::ProcessOptions::createNewConsole;
@@ -98,6 +107,8 @@ public:
             std::cout << "\nStarting slave...\n"
                 << "  FMU       : " << m_fmuPath << '\n'
                 << std::flush;
+            CORAL_LOG_DEBUG(boost::format("Starting process: %s %s")
+                % m_slaveExe % boost::algorithm::join(args, " "));
             coral::util::SpawnProcess(m_slaveExe, args, processOptions);
 
             std::clog << "Waiting for verification..." << std::flush;
@@ -154,6 +165,8 @@ private:
     bool m_enableOutput;
     std::string m_outputDir;
     std::string m_logLevel;
+    bool m_enableFileLogging;
+    std::string m_logFileDir;
     bool m_createConsoles;
 
     std::string m_instantiationFailureDescription;
@@ -226,7 +239,7 @@ try {
         "slaves on a domain.");
     if (!optionValues) return 0;
 
-    coral::util::UseLoggingArguments(*optionValues);
+    coral::util::UseLoggingArguments(*optionValues, MY_NAME);
     if (optionValues->count("clean-cache")) {
         importer->CleanCache();
         return 0;
@@ -245,6 +258,8 @@ try {
         throw std::runtime_error("Invalid timeout value");
     }
     const auto logLevel = (*optionValues)["log-level"].as<std::string>();
+    const auto enableFileLogging = optionValues->count("log-file") > 0;
+    const auto logFileDir = (*optionValues)["log-file-dir"].as<std::string>();
 
     std::string slaveExe;
     if (optionValues->count("slave-exe")) {
@@ -285,6 +300,8 @@ try {
                 enableOutput,
                 outputDir,
                 logLevel,
+                enableFileLogging,
+                logFileDir,
                 createConsoles));
             std::cout << "FMU loaded: " << p << std::endl;
         } catch (const std::runtime_error& e) {

@@ -6,11 +6,21 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 #include <coral/util/console.hpp>
 
+#ifdef _WIN32
+#   include <process.h>
+#else
+#   include <unistd.h>
+#endif
+
 #include <cassert>
+#include <fstream>
 #include <sstream>
 #include <utility>
 
+#include <boost/filesystem.hpp>
+
 #include <coral/log.hpp>
+#include <coral/util.hpp>
 
 
 std::vector<std::string> coral::util::CommandLine(int argc, char const *const * argv)
@@ -145,14 +155,35 @@ void coral::util::AddLoggingOptions(
             "The lowest level of messages to log. Available levels are, from "
             "lowest to highest: trace, debug, info, warning, error.  Note that "
             "certain trace and debug messages are only printed if the program "
-            "itself was compiled in debug mode.");
+            "itself was compiled in debug mode.")
+        ("log-file",
+            "Enable logging to file.")
+        ("log-file-dir", po::value<std::string>()->default_value("."),
+            "Output directory for log files.")
+        ;
 }
 
 
 void coral::util::UseLoggingArguments(
-    const boost::program_options::variables_map& arguments)
+    const boost::program_options::variables_map& arguments,
+    const std::string& logFilePrefix)
 {
     const auto logLevel =
         coral::log::ParseLevel(arguments["log-level"].as<std::string>());
     coral::log::AddSink(coral::log::CLogPtr(), logLevel);
+
+    if (arguments.count("log-file")) {
+        const auto logFileDir =
+            boost::filesystem::path(arguments["log-file-dir"].as<std::string>());
+        boost::filesystem::create_directories(logFileDir);
+        const auto logFileName =
+            logFilePrefix + "_"
+            + std::to_string(getpid()) + "_"
+            + coral::util::Timestamp()
+            + ".log";
+        coral::log::AddSink(
+            std::make_shared<std::ofstream>((logFileDir/logFileName).string()),
+            logLevel);
+    }
+
 }
