@@ -175,7 +175,9 @@ void coral::util::UseLoggingArguments(
     if (arguments.count("log-file")) {
         const auto logFileDir =
             boost::filesystem::path(arguments["log-file-dir"].as<std::string>());
-        boost::filesystem::create_directories(logFileDir);
+        if (!boost::filesystem::exists(logFileDir)) {
+            boost::filesystem::create_directories(logFileDir);
+        }
         const auto logFileName =
             logFilePrefix + "_"
             + std::to_string(getpid()) + "_"
