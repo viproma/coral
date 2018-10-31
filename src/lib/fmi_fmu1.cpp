@@ -199,35 +199,28 @@ namespace
         va_end(args);
         assert(msgBuffer.back() == '\0');
 
-        std::string statusName = "UNKNOWN";
         coral::log::Level logLevel = coral::log::error;
         switch (status) {
             case fmi1_status_ok:
-                statusName = "OK";
                 logLevel = coral::log::info;
                 break;
             case fmi1_status_warning:
-                statusName = "WARNING";
                 logLevel = coral::log::warning;
                 break;
             case fmi1_status_discard:
                 // Don't know if this ever happens, but we should at least
                 // print a debug message if it does.
-                statusName = "DISCARD";
                 logLevel = coral::log::debug;
                 break;
             case fmi1_status_error:
-                statusName = "ERROR";
                 logLevel = coral::log::error;
                 break;
             case fmi1_status_fatal:
-                statusName = "FATAL";
                 logLevel = coral::log::error;
                 break;
             case fmi1_status_pending:
                 // Don't know if this ever happens, but we should at least
                 // print a debug message if it does.
-                statusName = "PENDING";
                 logLevel = coral::log::debug;
                 break;
         }
