@@ -21,6 +21,7 @@ list the bigger ones.
     switches.
 ### Changed
   - The slave provider command line interface is now a bit more well-defined.
+  - The FMI logger's "category" field is now included in the log messages.
 
 ## [0.9.1] – 2018-06-13
 ### Fixed

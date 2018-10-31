@@ -193,11 +193,14 @@ namespace
         va_start(args, message);
         const auto msgLength = std::vsnprintf(nullptr, 0, message, args);
         va_end(args);
-        auto msgBuffer = std::vector<char>(msgLength+1);
+        auto msgBuffer = std::vector<char>(msgLength);
         va_start(args, message);
         std::vsnprintf(msgBuffer.data(), msgBuffer.size(), message, args);
         va_end(args);
-        assert(msgBuffer.back() == '\0');
+
+        std::string logMessage = category;
+        logMessage.append(": ");
+        logMessage.append(msgBuffer.begin(), msgBuffer.end());
 
         coral::log::Level logLevel = coral::log::error;
         switch (status) {
@@ -227,12 +230,11 @@ namespace
 
         if (logLevel < coral::log::error) {
             // Errors are not logged; we handle them with exceptions instead.
-            coral::log::Log(logLevel, msgBuffer.data());
+            coral::log::Log(logLevel, logMessage);
         }
 
         g_logMutex.lock();
-        g_logRecords[instanceName] =
-            LogRecord{status, std::string(msgBuffer.data())};
+        g_logRecords[instanceName] = LogRecord{status, logMessage};
         g_logMutex.unlock();
     }
 
