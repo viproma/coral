@@ -3,4 +3,4 @@
 	dh $@
 
 override_dh_auto_configure:
-	dh_auto_configure -- -DCORAL_BUILD_TESTS=OFF
+	dh_auto_configure -- -DCORAL_BUILD_TESTS=OFF -DCORAL_ENABLE_DEBUG_LOGGING=ON
