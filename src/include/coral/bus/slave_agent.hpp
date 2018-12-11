@@ -2,7 +2,7 @@
 \file
 \brief Defines the coral::bus::SlaveAgent class.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -26,7 +26,14 @@
 #include <coral/net/reactor.hpp>
 #include <coral/net/zmqx.hpp>
 #include <coral/slave/instance.hpp>
+
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
 #include <execution.pb.h>
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 
 namespace coral
@@ -147,7 +154,7 @@ private:
         Timeout(
             coral::net::Reactor& reactor,
             std::chrono::milliseconds timeout);
-        ~Timeout() CORAL_NOEXCEPT;
+        ~Timeout() noexcept;
         Timeout(const Timeout&) = delete;
         Timeout& operator=(const Timeout&) = delete;
         Timeout(Timeout&&) = delete;
@@ -223,7 +230,7 @@ private:
 class Shutdown : public std::exception
 {
 public:
-    const char* what() const CORAL_NOEXCEPT override { return "Normal shutdown requested by master"; }
+    const char* what() const noexcept override { return "Normal shutdown requested by master"; }
 };
 
 

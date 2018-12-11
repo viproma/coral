@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -19,7 +19,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <iomanip>
 
 #include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/random/random_device.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
@@ -182,11 +181,12 @@ namespace
 
 void coral::util::SpawnProcess(
     const std::string& program,
-    const std::vector<std::string>& args)
+    const std::vector<std::string>& args,
+    ProcessOptions options)
 {
 #ifdef _WIN32
     auto cmdLine = Utf8ToUtf16(program);
-    BOOST_FOREACH (const auto& arg, args) {
+    for (const auto& arg : args) {
         cmdLine.push_back(' ');
         cmdLine.push_back('"');
         const auto argW = Utf8ToUtf16(arg);
@@ -195,22 +195,28 @@ void coral::util::SpawnProcess(
     }
     cmdLine.push_back(0);
 
+    DWORD creationFlags = 0;
+    if ((options & ProcessOptions::createNewConsole) != ProcessOptions::none) {
+        creationFlags |= CREATE_NEW_CONSOLE;
+    }
+
     STARTUPINFOW startupInfo;
     std::memset(&startupInfo, 0, sizeof(startupInfo));
     startupInfo.cb = sizeof(startupInfo);
 
     PROCESS_INFORMATION processInfo;
-    if (CreateProcessW(
-        nullptr,
-        cmdLine.data(),
-        nullptr,
-        nullptr,
-        FALSE,
-        CREATE_NEW_CONSOLE,
-        nullptr,
-        nullptr,
-        &startupInfo,
-        &processInfo)) {
+    const auto processCreated = CreateProcessW(
+        nullptr,        // lpApplicationName
+        cmdLine.data(), // lpCommandLine
+        nullptr,        // lpProcessAttributes
+        nullptr,        // lpThreadAttributes
+        FALSE,          // bInheritHandles
+        creationFlags,  // dwCreationFlags
+        nullptr,        // lpEnvironment
+        nullptr,        // lpCurrentDirectory
+        &startupInfo,   // lpStartupInfo
+        &processInfo);  // lpProcessInformation
+    if (processCreated) {
         return;
     }
 

@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2016-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -193,53 +193,48 @@ namespace
         va_start(args, message);
         const auto msgLength = std::vsnprintf(nullptr, 0, message, args);
         va_end(args);
-        auto msgBuffer = std::vector<char>(msgLength+1);
+        auto msgBuffer = std::vector<char>(msgLength);
         va_start(args, message);
         std::vsnprintf(msgBuffer.data(), msgBuffer.size(), message, args);
         va_end(args);
-        assert(msgBuffer.back() == '\0');
 
-        std::string statusName = "UNKNOWN";
+        std::string logMessage = category;
+        logMessage.append(": ");
+        logMessage.append(msgBuffer.begin(), msgBuffer.end());
+
         coral::log::Level logLevel = coral::log::error;
         switch (status) {
             case fmi2_status_ok:
-                statusName = "OK";
                 logLevel = coral::log::info;
                 break;
             case fmi2_status_warning:
-                statusName = "WARNING";
                 logLevel = coral::log::warning;
                 break;
             case fmi2_status_discard:
                 // Don't know if this ever happens, but we should at least
                 // print a debug message if it does.
-                statusName = "DISCARD";
                 logLevel = coral::log::debug;
                 break;
             case fmi2_status_error:
-                statusName = "ERROR";
                 logLevel = coral::log::error;
                 break;
             case fmi2_status_fatal:
-                statusName = "FATAL";
                 logLevel = coral::log::error;
                 break;
             case fmi2_status_pending:
                 // Don't know if this ever happens, but we should at least
                 // print a debug message if it does.
-                statusName = "PENDING";
                 logLevel = coral::log::debug;
                 break;
         }
 
         if (logLevel < coral::log::error) {
             // Errors are not logged; we handle them with exceptions instead.
-            coral::log::Log(logLevel, msgBuffer.data());
+            coral::log::Log(logLevel, logMessage);
         }
 
         g_logMutex.lock();
-        g_logRecords[instanceName] =
-            LogRecord{status, std::string(msgBuffer.data())};
+        g_logRecords[instanceName] = LogRecord{status, logMessage};
         g_logMutex.unlock();
     }
 
@@ -286,7 +281,7 @@ SlaveInstance2::SlaveInstance2(std::shared_ptr<coral::fmi::FMU2> fmu)
 }
 
 
-SlaveInstance2::~SlaveInstance2() CORAL_NOEXCEPT
+SlaveInstance2::~SlaveInstance2() noexcept
 {
     if (m_setupComplete) {
         if (m_simStarted) {

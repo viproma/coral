@@ -2,7 +2,7 @@
 \file
 \brief  Module header for coral::async
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -178,7 +178,7 @@ public:
     before destruction, in order to catch any errors that might have
     occurred in the background thread.
     */
-    ~CommThread() CORAL_NOEXCEPT;
+    ~CommThread() noexcept;
 
     // Copying is disabled
     CommThread(const CommThread&) = delete;
@@ -188,13 +188,13 @@ public:
     \brief Move constructor.
     \post `other.Active() == false`
     */
-    CommThread(CommThread&& other) CORAL_NOEXCEPT;
+    CommThread(CommThread&& other) noexcept;
 
     /**
     \brief Move assignment operator.
     \post `other.Active() == false`
     */
-    CommThread& operator=(CommThread&& other) CORAL_NOEXCEPT;
+    CommThread& operator=(CommThread&& other) noexcept;
 
     /**
     \brief  Executes a task asynchronously in the background thread.
@@ -223,14 +223,6 @@ public:
     will cause the background thread to terminate, and a subsequent
     call to Execute() or Shutdown() will throw a CommThreadDead exception,
     rendering the CommThread object in an inactive state.
-
-    \warning
-        Visual Studio versions prior to 2015 do not handle std::promise
-        destruction correctly.  Specifically, a destroyed std::promise
-        does not cause a "broken promise" error to be thrown by its
-        corresponding `std::future`.  Thus, if an exception is thrown in
-        the background thread when there are any unfulfilled promises,
-        calls to std::future::get() will block indefinitely.
 
     \tparam Result
         The type of the function's "return value".  The function will
@@ -284,12 +276,12 @@ public:
     run Execute() or Shutdown() and see if CommThreadDead is thrown.
     If this happens, Active() will return `false` afterwards.
     */
-    bool Active() const CORAL_NOEXCEPT;
+    bool Active() const noexcept;
 
 private:
     // Waits for the background thread to terminate and performs cleanup
     void WaitForThreadTermination();
-    void DestroySilently() CORAL_NOEXCEPT;
+    void DestroySilently() noexcept;
 
     bool m_active;
     zmq::socket_t m_socket;
@@ -309,13 +301,13 @@ class CommThreadDead : public std::exception
 {
 public:
     /// Constructor
-    CommThreadDead(std::exception_ptr originalException) CORAL_NOEXCEPT;
+    CommThreadDead(std::exception_ptr originalException) noexcept;
 
     /// Returns a pointer to the exception that caused the thread to terminate
-    std::exception_ptr OriginalException() const CORAL_NOEXCEPT;
+    std::exception_ptr OriginalException() const noexcept;
 
     /// Returns a generic error message saying that the background thread died
-    const char* what() const CORAL_NOEXCEPT override;
+    const char* what() const noexcept override;
 
 private:
     std::exception_ptr m_originalException;
@@ -337,7 +329,7 @@ namespace detail
         StackData data;
         reactor.AddSocket(
             bgSocket,
-            [nextTask, &data] (coral::net::Reactor& r, zmq::socket_t& s) {
+            [nextTask = std::move(nextTask), &data] (coral::net::Reactor& r, zmq::socket_t& s) mutable {
                 char dummy;
                 s.recv(&dummy, 1);
 
@@ -347,7 +339,7 @@ namespace detail
                 swap(*nextTask, myTask);
 
                 // Unblock foreground thread again and then run the task.
-                s.send("", 0);
+                s.send("\1", 1);
                 myTask(r, data);
             });
         reactor.Run();
@@ -361,7 +353,7 @@ namespace detail
         coral::net::Reactor reactor;
         reactor.AddSocket(
             bgSocket,
-            [nextTask] (coral::net::Reactor& r, zmq::socket_t& s) {
+            [nextTask = std::move(nextTask)] (coral::net::Reactor& r, zmq::socket_t& s) mutable {
                 char dummy;
                 s.recv(&dummy, 1);
 
@@ -371,40 +363,37 @@ namespace detail
                 swap(*nextTask, myTask);
 
                 // Unblock foreground thread again and then run the task.
-                s.send("", 0);
+                s.send("\1", 1);
                 myTask(r);
             });
         reactor.Run();
     }
 
-    // Note: Some of the parameters are only shared_ptr because VS2013 has
-    // a bug that prevents the use of move-only objects as arguments to the
-    // thread function.
     template<typename StackData>
     void CommThreadBackground(
-        std::shared_ptr<zmq::socket_t> bgSocket,
-        std::shared_ptr<std::promise<void>> statusNotifier,
+        zmq::socket_t bgSocket,
+        std::promise<void> statusNotifier,
         typename CommThreadAnyTask<StackData>::SharedPtr nextTask)
-        CORAL_NOEXCEPT
+        noexcept
     {
         try {
             CommThreadMessagingLoop<StackData>(
-                *bgSocket,
+                bgSocket,
                 std::move(nextTask));
 
             // We should possibly use set_value_at_thread_exit() and
             // set_exception_at_thread_exit() in the following, but those are
             // not supported in GCC 4.9.
-            statusNotifier->set_value();
+            statusNotifier.set_value();
         } catch (...) {
-            statusNotifier->set_exception(
+            statusNotifier.set_exception(
                 std::current_exception());
         }
 
-        // This is to avoid the potential race condition where the background
+        // This is to avoid the race condition where the background
         // thread dies after the foreground thread has sent a task notification
         // and is waiting to receive an acknowledgement.
-        bgSocket->send("", 0);
+        bgSocket.send("\0", 1);
     }
 } // namespace detail
 
@@ -416,35 +405,34 @@ CommThread<StackData>::CommThread()
     , m_threadStatus{}
     , m_nextTask{}
 {
-    auto bgSocket =
-        std::make_shared<zmq::socket_t>(coral::net::zmqx::GlobalContext(), ZMQ_PAIR);
-    bgSocket->setsockopt(ZMQ_LINGER, 0);
-    m_socket.setsockopt(ZMQ_LINGER, 0);
+    auto bgSocket = zmq::socket_t(coral::net::zmqx::GlobalContext(), ZMQ_PAIR);
+    bgSocket.setsockopt(ZMQ_LINGER, -1);
+    m_socket.setsockopt(ZMQ_LINGER, -1);
     const auto endpoint = "inproc://" + coral::util::RandomUUID();
-    bgSocket->bind(endpoint);
+    bgSocket.bind(endpoint);
     m_socket.connect(endpoint);
 
-    auto statusNotifier = std::make_shared<std::promise<void>>();
-    m_threadStatus = statusNotifier->get_future();
+    std::promise<void> statusNotifier;
+    m_threadStatus = statusNotifier.get_future();
 
     auto sharedTask =
         std::make_shared<typename detail::CommThreadAnyTask<StackData>::Type>(/*empty*/);
     m_nextTask = sharedTask;
 
     std::thread{&detail::CommThreadBackground<StackData>,
-        bgSocket, statusNotifier, sharedTask}.detach();
+        std::move(bgSocket), std::move(statusNotifier), sharedTask}.detach();
 }
 
 
 template<typename StackData>
-CommThread<StackData>::~CommThread() CORAL_NOEXCEPT
+CommThread<StackData>::~CommThread() noexcept
 {
     DestroySilently();
 }
 
 
 template<typename StackData>
-CommThread<StackData>::CommThread(CommThread&& other) CORAL_NOEXCEPT
+CommThread<StackData>::CommThread(CommThread&& other) noexcept
     : m_active{other.m_active}
     , m_socket{std::move(other.m_socket)}
     , m_threadStatus{std::move(other.m_threadStatus)}
@@ -455,8 +443,7 @@ CommThread<StackData>::CommThread(CommThread&& other) CORAL_NOEXCEPT
 
 
 template<typename StackData>
-CommThread<StackData>& CommThread<StackData>::operator=(CommThread&& other)
-    CORAL_NOEXCEPT
+CommThread<StackData>& CommThread<StackData>::operator=(CommThread&& other) noexcept
 {
     DestroySilently();
     m_active = other.m_active;
@@ -518,8 +505,10 @@ std::future<Result> CommThread<StackData>::Execute(
     auto promise = std::promise<Result>{};
     auto future = promise.get_future();
 
+    char alive = 0;
     if (auto sharedTask = m_nextTask.lock()) {
         assert(!(*sharedTask));
+        assert(sharedTask.use_count() == 2);
         *sharedTask = detail::CommThreadFunctions<StackData, Result>::WrapTask(
             std::move(task),
             std::move(promise));
@@ -527,12 +516,11 @@ std::future<Result> CommThread<StackData>::Execute(
         // Notify background thread that a task is ready and wait for it
         // to acknowledge it before returning.
         m_socket.send("", 0);
-        char dummy;
-        m_socket.recv(&dummy, 1);
-        return future;
-    } else {
-        // The weak_ptr has expired, meaning that the thread (which holds
-        // a shared_ptr to the same object) must be dead.
+        m_socket.recv(&alive, 1);
+    }
+    if (!alive) {
+        // Either the weak_ptr has expired or the background thread sent a
+        // zero message. Both mean that the background thread has died.
         WaitForThreadTermination();
 
         // The above function should have thrown.  If it didn't, it probably
@@ -543,6 +531,7 @@ std::future<Result> CommThread<StackData>::Execute(
             "unexpectedly.  Perhaps Reactor::Stop() was called?");
         std::terminate();
     }
+    return future;
 }
 
 
@@ -585,7 +574,7 @@ void CommThread<StackData>::Shutdown()
 
 
 template<typename StackData>
-bool CommThread<StackData>::Active() const CORAL_NOEXCEPT
+bool CommThread<StackData>::Active() const noexcept
 {
     return m_active;
 }
@@ -659,7 +648,7 @@ void CommThread<StackData>::WaitForThreadTermination()
 #endif
 
 template<typename StackData>
-void CommThread<StackData>::DestroySilently() CORAL_NOEXCEPT
+void CommThread<StackData>::DestroySilently() noexcept
 {
     if (Active()) {
         try {

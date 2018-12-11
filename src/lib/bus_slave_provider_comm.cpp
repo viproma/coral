@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -15,7 +15,14 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <coral/error.hpp>
 #include <coral/log.hpp>
 #include <coral/protocol/glue.hpp>
+
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
 #include <domain.pb.h>
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 
 namespace coral
@@ -235,21 +242,20 @@ SlaveProviderClient::SlaveProviderClient(
 }
 
 
-SlaveProviderClient::~SlaveProviderClient() CORAL_NOEXCEPT
+SlaveProviderClient::~SlaveProviderClient() noexcept
 {
     // Do nothing, it's all handled by ~Private().
 }
 
 
-SlaveProviderClient::SlaveProviderClient(SlaveProviderClient&& other)
-    CORAL_NOEXCEPT
+SlaveProviderClient::SlaveProviderClient(SlaveProviderClient&& other) noexcept
     : m_private(std::move(other.m_private))
 {
 }
 
 
 SlaveProviderClient& SlaveProviderClient::operator=(SlaveProviderClient&& other)
-    CORAL_NOEXCEPT
+    noexcept
 {
     m_private = std::move(other.m_private);
     return *this;
@@ -292,13 +298,13 @@ class SlaveProviderServerHandler : public coral::net::reqrep::ServerProtocolHand
 public:
     SlaveProviderServerHandler(std::shared_ptr<SlaveProviderOps> slaveProvider);
 
-    ~SlaveProviderServerHandler() CORAL_NOEXCEPT;
+    ~SlaveProviderServerHandler() noexcept;
 
     SlaveProviderServerHandler(const SlaveProviderServerHandler&) = delete;
     SlaveProviderServerHandler& operator=(const SlaveProviderServerHandler&) = delete;
 
-    SlaveProviderServerHandler(SlaveProviderServerHandler&&) CORAL_NOEXCEPT;
-    SlaveProviderServerHandler& operator=(SlaveProviderServerHandler&&) CORAL_NOEXCEPT;
+    SlaveProviderServerHandler(SlaveProviderServerHandler&&) noexcept;
+    SlaveProviderServerHandler& operator=(SlaveProviderServerHandler&&) noexcept;
 
     bool HandleRequest(
         const std::string& protocolIdentifier,
@@ -430,21 +436,21 @@ SlaveProviderServerHandler::SlaveProviderServerHandler(
 }
 
 
-SlaveProviderServerHandler::~SlaveProviderServerHandler() CORAL_NOEXCEPT
+SlaveProviderServerHandler::~SlaveProviderServerHandler() noexcept
 {
     // Do nothing, it's all handled by ~Private().
 }
 
 
 SlaveProviderServerHandler::SlaveProviderServerHandler(SlaveProviderServerHandler&& other)
-    CORAL_NOEXCEPT
+    noexcept
     : m_private(std::move(other.m_private))
 {
 }
 
 
 SlaveProviderServerHandler& SlaveProviderServerHandler::operator=(SlaveProviderServerHandler&& other)
-    CORAL_NOEXCEPT
+    noexcept
 {
     m_private = std::move(other.m_private);
     return *this;

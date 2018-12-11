@@ -2,7 +2,7 @@
 \file
 \brief  Defines the coral::bus::ExecutionManagerPrivate class
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -102,7 +102,7 @@ public:
 
     // To be called when a per-slave operation has started and completed,
     // respectively.
-    void SlaveOpStarted() CORAL_NOEXCEPT;
+    void SlaveOpStarted() noexcept;
     void SlaveOpComplete();
 
     typedef std::function<void(const std::error_code&)> AllSlaveOpsCompleteHandler;
@@ -161,7 +161,7 @@ private:
     ExecutionManagerPrivate& operator=(ExecutionManagerPrivate&&);
 
     // Performs the actual aborting of the "wait for all slave ops" thingy
-    void AbortSlaveOpWaiting() CORAL_NOEXCEPT;
+    void AbortSlaveOpWaiting() noexcept;
 
     // An object that represents, and performs the actions for, the current
     // execution state.

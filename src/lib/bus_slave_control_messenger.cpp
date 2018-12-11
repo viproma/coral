@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -46,12 +46,12 @@ public:
         assert(m_timeoutTimer == NO_TIMER);
     }
 
-    bool Active() const CORAL_NOEXCEPT;
+    bool Active() const noexcept;
 
     // Aborts an ongoing connection attempt by simply resetting the socket
     // and cancelling the timeout timer and socket listener.  The completion
     // handler does NOT get called.
-    void Destroy() CORAL_NOEXCEPT;
+    void Destroy() noexcept;
 
     // Does the same as Destroy(), except for two differences:
     //  - errors are reported (not noexcept)
@@ -63,7 +63,7 @@ private:
     void HandleHelloReply();
     void HandleTimeout();
     void OnComplete(const std::error_code& ec, SlaveControlConnection scc);
-    void CancelTimeoutTimer() CORAL_NOEXCEPT;
+    void CancelTimeoutTimer() noexcept;
 
     coral::net::Reactor& m_reactor;
     const coral::net::SlaveLocator m_slaveLocator;
@@ -102,13 +102,13 @@ PendingSlaveControlConnectionPrivate::PendingSlaveControlConnectionPrivate(
 }
 
 
-bool PendingSlaveControlConnectionPrivate::Active() const CORAL_NOEXCEPT
+bool PendingSlaveControlConnectionPrivate::Active() const noexcept
 {
     return !!m_onComplete;
 }
 
 
-void PendingSlaveControlConnectionPrivate::Destroy() CORAL_NOEXCEPT
+void PendingSlaveControlConnectionPrivate::Destroy() noexcept
 {
     if (Active()) {
         CancelTimeoutTimer();
@@ -229,7 +229,7 @@ void PendingSlaveControlConnectionPrivate::OnComplete(
 }
 
 
-void PendingSlaveControlConnectionPrivate::CancelTimeoutTimer() CORAL_NOEXCEPT
+void PendingSlaveControlConnectionPrivate::CancelTimeoutTimer() noexcept
 {
     if (m_timeoutTimer == NO_TIMER) return;
     try { m_reactor.RemoveTimer(m_timeoutTimer); }
@@ -246,24 +246,24 @@ void PendingSlaveControlConnectionPrivate::CancelTimeoutTimer() CORAL_NOEXCEPT
 // === PendingSlaveControlConnection ===
 
 PendingSlaveControlConnection::PendingSlaveControlConnection(
-    std::shared_ptr<PendingSlaveControlConnectionPrivate> p) CORAL_NOEXCEPT
+    std::shared_ptr<PendingSlaveControlConnectionPrivate> p) noexcept
     : m_private(std::move(p))
 { }
 
 PendingSlaveControlConnection::PendingSlaveControlConnection(
-    PendingSlaveControlConnection&& other) CORAL_NOEXCEPT
+    PendingSlaveControlConnection&& other) noexcept
     : m_private(std::move(other.m_private))
 { }
 
 PendingSlaveControlConnection& PendingSlaveControlConnection::operator=(
-    PendingSlaveControlConnection&& other) CORAL_NOEXCEPT
+    PendingSlaveControlConnection&& other) noexcept
 {
     if (m_private) m_private->Destroy();
     m_private = std::move(other.m_private);
     return *this;
 }
 
-PendingSlaveControlConnection::~PendingSlaveControlConnection() CORAL_NOEXCEPT
+PendingSlaveControlConnection::~PendingSlaveControlConnection() noexcept
 {
     if (m_private) m_private->Destroy();
 }
@@ -273,7 +273,7 @@ void PendingSlaveControlConnection::Close()
     if (m_private) m_private->Close();
 }
 
-PendingSlaveControlConnection::operator bool() const CORAL_NOEXCEPT
+PendingSlaveControlConnection::operator bool() const noexcept
 {
     return m_private && m_private->Active();
 }
@@ -281,32 +281,32 @@ PendingSlaveControlConnection::operator bool() const CORAL_NOEXCEPT
 
 // === SlaveControlConnection ===
 
-SlaveControlConnection::SlaveControlConnection() CORAL_NOEXCEPT
+SlaveControlConnection::SlaveControlConnection() noexcept
     : m_private()
 { }
 
 SlaveControlConnection::SlaveControlConnection(
-    std::unique_ptr<SlaveControlConnectionPrivate> p) CORAL_NOEXCEPT
+    std::unique_ptr<SlaveControlConnectionPrivate> p) noexcept
     : m_private(std::move(p))
 { }
 
 SlaveControlConnection::SlaveControlConnection(
-    SlaveControlConnection&& other) CORAL_NOEXCEPT
+    SlaveControlConnection&& other) noexcept
 {
     operator=(std::move(other));
 }
 
 SlaveControlConnection& SlaveControlConnection::operator=(
-    SlaveControlConnection&& other) CORAL_NOEXCEPT
+    SlaveControlConnection&& other) noexcept
 {
     m_private = std::move(other.m_private);
     return *this;
 }
 
-SlaveControlConnection::~SlaveControlConnection() CORAL_NOEXCEPT { }
+SlaveControlConnection::~SlaveControlConnection() noexcept { }
 
 
-SlaveControlConnection::operator bool() const CORAL_NOEXCEPT
+SlaveControlConnection::operator bool() const noexcept
 {
     return !!m_private;
 }

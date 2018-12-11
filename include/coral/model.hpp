@@ -2,7 +2,7 @@
 \file
 \brief  Main module header for coral::model.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -154,7 +154,7 @@ public:
         ConstVariablesRange;
 
     // Construction/destruction
-    SlaveTypeDescription() CORAL_NOEXCEPT;
+    SlaveTypeDescription() noexcept;
 
     template<typename VariableDescriptionRange>
     SlaveTypeDescription(
@@ -273,9 +273,9 @@ public:
     explicit Variable(SlaveID slave = INVALID_SLAVE_ID, VariableID id = 0)
         : m_slave(slave), m_id(id) { }
 
-    coral::model::SlaveID Slave() const CORAL_NOEXCEPT { return m_slave; }
-    coral::model::VariableID ID() const CORAL_NOEXCEPT { return m_id; }
-    bool Empty() const CORAL_NOEXCEPT { return m_slave == INVALID_SLAVE_ID; }
+    coral::model::SlaveID Slave() const noexcept { return m_slave; }
+    coral::model::VariableID ID() const noexcept { return m_id; }
+    bool Empty() const noexcept { return m_slave == INVALID_SLAVE_ID; }
 
 private:
     coral::model::SlaveID m_slave;
@@ -333,10 +333,10 @@ public:
         const coral::model::Variable& outputVar);
 
     /// The variable ID.
-    VariableID Variable() const CORAL_NOEXCEPT;
+    VariableID Variable() const noexcept;
 
     /// Whether the variable is to be given a value.
-    bool HasValue() const CORAL_NOEXCEPT;
+    bool HasValue() const noexcept;
 
     /**
     \brief  The variable value, if any.
@@ -345,7 +345,7 @@ public:
     const ScalarValue& Value() const;
 
     /// Whether this represents a variable connection change.
-    bool IsConnectionChange() const CORAL_NOEXCEPT;
+    bool IsConnectionChange() const noexcept;
 
     /**
     \brief  The output to which the variable is to be connected, if any.

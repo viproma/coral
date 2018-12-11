@@ -2,7 +2,7 @@
 \file
 \brief  Defines the coral::bus::SlaveControlMessengerV0 class
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -50,9 +50,9 @@ public:
         std::chrono::milliseconds timeout,
         MakeSlaveControlMessengerHandler onComplete);
 
-    ~SlaveControlMessengerV0() CORAL_NOEXCEPT;
+    ~SlaveControlMessengerV0() noexcept;
 
-    SlaveState State() const CORAL_NOEXCEPT override;
+    SlaveState State() const noexcept override;
 
     void Close() override;
 

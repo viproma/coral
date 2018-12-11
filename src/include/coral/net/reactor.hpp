@@ -2,7 +2,7 @@
 \file
 \brief Contains the coral::net::Reactor class and related functionality.
 \copyright
-    Copyright 2013-2018, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -67,7 +67,7 @@ public:
     If the given socket was never registered with AddSocket(), this function
     simply returns without doing anything.
     */
-    void RemoveSocket(zmq::socket_t& socket) CORAL_NOEXCEPT;
+    void RemoveSocket(zmq::socket_t& socket) noexcept;
 
     /// Adds a handler for the given native socket.
     void AddNativeSocket(NativeSocket socket, NativeSocketHandler handler);
@@ -82,7 +82,7 @@ public:
     If the given socket was never registered with AddNativeSocket(), this
     function simply returns without doing anything.
     */
-    void RemoveNativeSocket(NativeSocket socket) CORAL_NOEXCEPT;
+    void RemoveNativeSocket(NativeSocket socket) noexcept;
 
     /// A number which will never be returned by AddTimer().
     static const int invalidTimerID;

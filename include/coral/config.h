@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -21,7 +21,7 @@ be a valid C header.  C++-specific code should therefore be placed in
 #define CORAL_PROGRAM_NAME "Coral"
 
 #define CORAL_VERSION_MAJOR 0
-#define CORAL_VERSION_MINOR 9
+#define CORAL_VERSION_MINOR 10
 #define CORAL_VERSION_PATCH 0
 
 #define CORAL_VERSION_STRINGIFY(a, b, c) #a "." #b "." #c
@@ -31,45 +31,10 @@ be a valid C header.  C++-specific code should therefore be placed in
 
 #define CORAL_PROGRAM_NAME_VERSION CORAL_PROGRAM_NAME " " CORAL_VERSION_STRING
 
-// Unified GCC version macro
-#ifdef __GNUC__
-#   ifdef __GNUC_PATCHLEVEL__
-#       define CORAL_GNUC_VERSION (__GNUC__*100000 + __GNUC_MINOR__*100 + __GNUC_PATCHLEVEL__)
-#   else
-#       define CORAL_GNUC_VERSION (__GNUC__*100000 + __GNUC_MINOR__*100)
-#   endif
-#endif
-
-// Microsoft Visual C++ version macros
-#ifdef _MSC_VER
-#   define CORAL_MSC10_VER 1600 // VS 2010
-#   define CORAL_MSC11_VER 1700 // VS 2012
-#   define CORAL_MSC12_VER 1800 // VS 2013
-#   define CORAL_MSC14_VER 1900 // VS 2015
-#endif
-
-// Support for 'noexcept' (C++11) was introduced in Visual Studio 2015
-#ifdef __cplusplus
-#   if defined(_MSC_VER) && (_MSC_VER < CORAL_MSC14_VER)
-#       define CORAL_NOEXCEPT throw()
-#   else
-#       define CORAL_NOEXCEPT noexcept
-#   endif
-#endif
-
-// Visual Studio does not support the 'noreturn' attribute
-#ifdef __cplusplus
-#   ifdef _MSC_VER
-#       define CORAL_NORETURN __declspec(noreturn)
-#   else
-#       define CORAL_NORETURN [[noreturn]]
-#   endif
-#endif
-
-// Visual Studio (2013 and 2015, at the time of writing) supports C++11's
-// explicitly defaulted and deleted functions, BUT with the exception that
-// it cannot generate default memberwise move constructors and move assignment
-// operators (cf. https://msdn.microsoft.com/en-us/library/dn457344.aspx).
+// Visual Studio supports C++11's explicitly defaulted and deleted functions,
+// BUT with the exception that versions prior to VS2017 could not generate
+// default memberwise move constructors and move assignment operators (cf.
+// https://msdn.microsoft.com/en-us/library/dn457344.aspx).
 //
 // Therefore, we define a macro to generate memberwise move operations for
 // classes where such are appropriate.  For compilers that *do* have full
@@ -87,7 +52,7 @@ be a valid C header.  C++-specific code should therefore be placed in
 // It is crucial that *all* members be included as arguments to the macro,
 // or they will simply not be moved.
 #ifdef __cplusplus
-#   if defined(_MSC_VER)
+#   if defined(_MSC_VER) && (_MSC_VER <= 1900)
         // This is a slightly modified version of a trick which is explained
         // in detail here: http://stackoverflow.com/a/16683147
 #       define CORAL_EVALUATE_MACRO(code) code
@@ -120,9 +85,9 @@ be a valid C header.  C++-specific code should therefore be placed in
 #       define CORAL_MOVE_OPER_ASSIGNMENT_9(m1, m2, m3, m4, m5, m6, m7, m8, m)    CORAL_MOVE_OPER_ASSIGNMENT_8(m1, m2, m3, m4, m5, m6, m7, m8) m = std::move(other.m);
 
 #       define CORAL_DEFINE_DEFAULT_MOVE_CONSTRUCTOR(ClassName, ...) \
-            ClassName(ClassName&& other) CORAL_NOEXCEPT : CORAL_MOVE_CTOR_INITIALISER(__VA_ARGS__) { }
+            ClassName(ClassName&& other) noexcept : CORAL_MOVE_CTOR_INITIALISER(__VA_ARGS__) { }
 #       define CORAL_DEFINE_DEFAULT_MOVE_ASSIGNMENT(ClassName, ...) \
-            ClassName& operator=(ClassName&& other) CORAL_NOEXCEPT { CORAL_MOVE_OPER_ASSIGNMENT(__VA_ARGS__) return *this; }
+            ClassName& operator=(ClassName&& other) noexcept { CORAL_MOVE_OPER_ASSIGNMENT(__VA_ARGS__) return *this; }
 
 #   else
 #       define CORAL_DEFINE_DEFAULT_MOVE_CONSTRUCTOR(ClassName, ...) \

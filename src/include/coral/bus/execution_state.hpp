@@ -3,7 +3,7 @@
 \brief  Defines the coral::bus::ExecutionState class, along with its subclasses
         which represent the various states of an execution.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -51,8 +51,8 @@ public:
         ExecutionManagerPrivate& self,
         const std::vector<SlaveConfig>& slaveConfigs,
         std::chrono::milliseconds commTimeout,
-        ExecutionManager::ReconstituteHandler onComplete,
-        ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
+        ExecutionManager::ReconfigureHandler onComplete,
+        ExecutionManager::SlaveReconfigureHandler onSlaveComplete)
     { NotAllowed(__FUNCTION__); }
 
     virtual void ResendVars(
@@ -80,10 +80,10 @@ public:
     virtual void Terminate(ExecutionManagerPrivate& self)
     { NotAllowed(__FUNCTION__); }
 
-    virtual ~ExecutionState() CORAL_NOEXCEPT { }
+    virtual ~ExecutionState() noexcept { }
 
 private:
-    CORAL_NORETURN void NotAllowed(const std::string& func) const
+    [[noreturn]] void NotAllowed(const std::string& func) const
     {
         throw coral::error::PreconditionViolation(
             func + ": Method call not allowed in present state");
@@ -104,8 +104,8 @@ class ReadyExecutionState : public ExecutionState
         ExecutionManagerPrivate& self,
         const std::vector<SlaveConfig>& slaveConfigs,
         std::chrono::milliseconds commTimeout,
-        ExecutionManager::ReconstituteHandler onComplete,
-        ExecutionManager::SlaveReconstituteHandler onSlaveComplete) override;
+        ExecutionManager::ReconfigureHandler onComplete,
+        ExecutionManager::SlaveReconfigureHandler onSlaveComplete) override;
 
     void ResendVars(
         ExecutionManagerPrivate& self,
@@ -156,8 +156,8 @@ public:
     ReconfiguringExecutionState(
         const std::vector<SlaveConfig>& slaveConfigs,
         std::chrono::milliseconds commTimeout,
-        ExecutionManager::ReconstituteHandler onComplete,
-        ExecutionManager::SlaveReconstituteHandler onSlaveComplete);
+        ExecutionManager::ReconfigureHandler onComplete,
+        ExecutionManager::SlaveReconfigureHandler onSlaveComplete);
 
 private:
     void StateEntered(ExecutionManagerPrivate& self) override;
@@ -165,8 +165,8 @@ private:
     // Input parameters to this state
     const std::vector<SlaveConfig> m_slaveConfigs;
     const std::chrono::milliseconds m_commTimeout;
-    const ExecutionManager::ReconstituteHandler m_onComplete;
-    const ExecutionManager::SlaveReconstituteHandler m_onSlaveComplete;
+    const ExecutionManager::ReconfigureHandler m_onComplete;
+    const ExecutionManager::SlaveReconfigureHandler m_onSlaveComplete;
 };
 
 

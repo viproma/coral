@@ -2,7 +2,7 @@
 \file
 \brief  Module header for coral::net::udp
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -75,15 +75,15 @@ public:
         int flags = 0);
 
     /// Destructor
-    ~BroadcastSocket() CORAL_NOEXCEPT;
+    ~BroadcastSocket() noexcept;
 
     BroadcastSocket(const BroadcastSocket&) = delete;
     BroadcastSocket& operator=(const BroadcastSocket&) = delete;
 
     /// Move constructor
-    BroadcastSocket(BroadcastSocket&&) CORAL_NOEXCEPT;
+    BroadcastSocket(BroadcastSocket&&) noexcept;
     /// Move assignment operator
-    BroadcastSocket& operator=(BroadcastSocket&&) CORAL_NOEXCEPT;
+    BroadcastSocket& operator=(BroadcastSocket&&) noexcept;
 
     /**
     \brief  Broadcasts a message.
@@ -121,7 +121,7 @@ public:
         ip::Address* sender);
 
     /// The native socket handle.
-    NativeSocket NativeHandle() const CORAL_NOEXCEPT;
+    NativeSocket NativeHandle() const noexcept;
 
 private:
     class Private;

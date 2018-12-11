@@ -1,14 +1,26 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 #include <coral/util/console.hpp>
 
+#ifdef _WIN32
+#   include <process.h>
+#else
+#   include <unistd.h>
+#endif
+
 #include <cassert>
+#include <fstream>
 #include <sstream>
 #include <utility>
+
+#include <boost/filesystem.hpp>
+
+#include <coral/log.hpp>
+#include <coral/util.hpp>
 
 
 std::vector<std::string> coral::util::CommandLine(int argc, char const *const * argv)
@@ -131,4 +143,49 @@ boost::optional<boost::program_options::variables_map> coral::util::ParseArgumen
     } else {
         return std::move(values);
     }
+}
+
+
+void coral::util::AddLoggingOptions(
+    boost::program_options::options_description& options)
+{
+    namespace po = boost::program_options;
+    options.add_options()
+        ("log-level", po::value<std::string>()->default_value("warning"),
+            "The lowest level of messages to log. Available levels are, from "
+            "lowest to highest: trace, debug, info, warning, error.  Note that "
+            "certain trace and debug messages are only printed if the program "
+            "itself was compiled in debug mode.")
+        ("log-file",
+            "Enable logging to file.")
+        ("log-file-dir", po::value<std::string>()->default_value("."),
+            "Output directory for log files.")
+        ;
+}
+
+
+void coral::util::UseLoggingArguments(
+    const boost::program_options::variables_map& arguments,
+    const std::string& logFilePrefix)
+{
+    const auto logLevel =
+        coral::log::ParseLevel(arguments["log-level"].as<std::string>());
+    coral::log::AddSink(coral::log::CLogPtr(), logLevel);
+
+    if (arguments.count("log-file")) {
+        const auto logFileDir =
+            boost::filesystem::path(arguments["log-file-dir"].as<std::string>());
+        if (!boost::filesystem::exists(logFileDir)) {
+            boost::filesystem::create_directories(logFileDir);
+        }
+        const auto logFileName =
+            logFilePrefix + "_"
+            + std::to_string(getpid()) + "_"
+            + coral::util::Timestamp()
+            + ".log";
+        coral::log::AddSink(
+            std::make_shared<std::ofstream>((logFileDir/logFileName).string()),
+            logLevel);
+    }
+
 }

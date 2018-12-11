@@ -1,14 +1,16 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 #include <coral/log.hpp>
 
-#include <atomic>
 #include <iostream>
 #include <mutex>
+#include <vector>
+
+#include <boost/algorithm/string.hpp>
 
 
 namespace coral
@@ -17,11 +19,28 @@ namespace log
 {
 
 
+Level ParseLevel(std::string str)
+{
+    boost::trim(str);
+    if (boost::iequals(str, "trace"))        return trace;
+    else if (boost::iequals(str, "debug"))   return debug;
+    else if (boost::iequals(str, "info"))    return info;
+    else if (boost::iequals(str, "warning")) return warning;
+    else if (boost::iequals(str, "error"))   return error;
+    else throw std::runtime_error("Invalid log level: " + str);
+}
+
+
 namespace
 {
-    // Globals
-    std::atomic<Level> g_logLevel{error};
-    std::mutex g_clogMutex;
+    struct Sink
+    {
+        Level level;
+        std::shared_ptr<std::ostream> stream;
+    };
+    std::mutex g_mutex;
+    std::vector<Sink> g_sinks{{error, CLogPtr()}};
+    bool g_sinksAdded = false;
 
     // Returns a space-padded, human-readable string for each log level.
     const char* LevelNamePadded(Level level)
@@ -39,59 +58,79 @@ namespace
 
 
 #define CORAL_IMPLEMENT_LOG \
-    if (level >= g_logLevel) { \
-        std::lock_guard<std::mutex> lock(g_clogMutex); \
-        std::clog << '[' << LevelNamePadded(level) << "] " \
-                  << message << std::endl; \
+    std::lock_guard<std::mutex> lock(g_mutex); \
+    for (const auto& sink : g_sinks) { \
+        if (level >= sink.level) { \
+            *sink.stream \
+                << '[' << LevelNamePadded(level) << "] " \
+                << message << std::endl; \
+        } \
     }
+
 #define CORAL_IMPLEMENT_LOG_LOC \
-    if (level >= g_logLevel) { \
-        std::lock_guard<std::mutex> lock(g_clogMutex); \
-        std::clog << '[' << LevelNamePadded(level) << "] " \
-                  << message \
-                  << " (" << file << ':' << line << ')' << std::endl; \
+    std::lock_guard<std::mutex> lock(g_mutex); \
+    for (const auto& sink : g_sinks) { \
+        if (level >= sink.level) { \
+            *sink.stream \
+                << '[' << LevelNamePadded(level) << "] " \
+                << message \
+                << " (" << file << ':' << line << ')' << std::endl; \
+        } \
     }
 
 
-void Log(Level level, const char* message) CORAL_NOEXCEPT
+void Log(Level level, const char* message) noexcept
 {
     CORAL_IMPLEMENT_LOG
 }
 
 
-void Log(Level level, const std::string& message) CORAL_NOEXCEPT
+void Log(Level level, const std::string& message) noexcept
 {
     CORAL_IMPLEMENT_LOG
 }
 
 
-void Log(Level level, const boost::format& message) CORAL_NOEXCEPT
+void Log(Level level, const boost::format& message) noexcept
 {
     CORAL_IMPLEMENT_LOG
 }
 
 
-void detail::LogLoc(Level level, const char* file, int line, const char* message) CORAL_NOEXCEPT
+void detail::LogLoc(Level level, const char* file, int line, const char* message) noexcept
 {
     CORAL_IMPLEMENT_LOG_LOC
 }
 
 
-void detail::LogLoc(Level level, const char* file, int line, const std::string& message) CORAL_NOEXCEPT
+void detail::LogLoc(Level level, const char* file, int line, const std::string& message) noexcept
 {
     CORAL_IMPLEMENT_LOG_LOC
 }
 
 
-void detail::LogLoc(Level level, const char* file, int line, const boost::format& message) CORAL_NOEXCEPT
+void detail::LogLoc(Level level, const char* file, int line, const boost::format& message) noexcept
 {
     CORAL_IMPLEMENT_LOG_LOC
 }
 
 
-void SetLevel(Level level) CORAL_NOEXCEPT
+void AddSink(std::shared_ptr<std::ostream> stream, Level level)
 {
-    g_logLevel = level;
+    std::lock_guard<std::mutex> lock(g_mutex);
+    if (!g_sinksAdded) {
+        g_sinks.front().level = level;
+        g_sinks.front().stream = stream;
+        g_sinksAdded = true;
+    } else {
+        g_sinks.push_back({level, stream});
+    }
+}
+
+
+std::shared_ptr<std::ostream> CLogPtr() noexcept
+{
+    return std::shared_ptr<std::ostream>(&std::clog, [] (void*) { });
 }
 
 

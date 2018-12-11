@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -39,13 +39,13 @@ Runner::Runner(
 }
 
 
-Runner::Runner(Runner&& other) CORAL_NOEXCEPT
+Runner::Runner(Runner&& other) noexcept
     : m_slaveInstance(std::move(other.m_slaveInstance)),
       m_reactor(std::move(other.m_reactor)),
       m_slaveAgent(std::move(other.m_slaveAgent))
 {
 }
-Runner& Runner::operator=(Runner&& other) CORAL_NOEXCEPT
+Runner& Runner::operator=(Runner&& other) noexcept
 {
     m_slaveInstance = std::move(other.m_slaveInstance);
     m_reactor = std::move(other.m_reactor);

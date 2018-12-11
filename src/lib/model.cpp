@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -26,10 +26,10 @@ namespace
     class DataTypeOfVisitor : public boost::static_visitor<DataType>
     {
     public:
-        DataType operator()(double)      const CORAL_NOEXCEPT { return REAL_DATATYPE; }
-        DataType operator()(int)         const CORAL_NOEXCEPT { return INTEGER_DATATYPE; }
-        DataType operator()(bool)        const CORAL_NOEXCEPT { return BOOLEAN_DATATYPE; }
-        DataType operator()(std::string) const CORAL_NOEXCEPT { return STRING_DATATYPE; }
+        DataType operator()(double)      const noexcept { return REAL_DATATYPE; }
+        DataType operator()(int)         const noexcept { return INTEGER_DATATYPE; }
+        DataType operator()(bool)        const noexcept { return BOOLEAN_DATATYPE; }
+        DataType operator()(std::string) const noexcept { return STRING_DATATYPE; }
     };
 }
 
@@ -91,7 +91,7 @@ coral::model::Variability VariableDescription::Variability() const
 // SlaveTypeDescription
 // =============================================================================
 
-SlaveTypeDescription::SlaveTypeDescription() CORAL_NOEXCEPT
+SlaveTypeDescription::SlaveTypeDescription() noexcept
 {
 }
 
@@ -248,13 +248,13 @@ VariableSetting::VariableSetting(
 }
 
 
-VariableID VariableSetting::Variable() const CORAL_NOEXCEPT
+VariableID VariableSetting::Variable() const noexcept
 {
     return m_variable;
 }
 
 
-bool VariableSetting::HasValue() const CORAL_NOEXCEPT
+bool VariableSetting::HasValue() const noexcept
 {
     return m_hasValue;
 }
@@ -267,7 +267,7 @@ const ScalarValue& VariableSetting::Value() const
 }
 
 
-bool VariableSetting::IsConnectionChange() const CORAL_NOEXCEPT
+bool VariableSetting::IsConnectionChange() const noexcept
 {
     return m_isConnectionChange;
 }

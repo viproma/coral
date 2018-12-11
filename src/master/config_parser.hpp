@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -59,7 +59,7 @@ class SetVariablesException : public std::runtime_error
 {
 public:
     SetVariablesException();
-    const char* what() const CORAL_NOEXCEPT override;
+    const char* what() const noexcept override;
     void AddSlaveError(const std::string& slaveName, const std::string& errMsg);
 private:
     std::string m_msg;

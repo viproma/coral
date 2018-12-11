@@ -2,7 +2,7 @@
 \file
 \brief  Defines the coral::bus::ExecutionManager class
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -49,7 +49,7 @@ struct AddedSlave
     std::string name;
 
     /// Default constructor
-    AddedSlave() CORAL_NOEXCEPT { }
+    AddedSlave() noexcept { }
 
     /// Constructor which sets the `#locator` and `#name` fields.
     AddedSlave(coral::net::SlaveLocator locator_, std::string name_)
@@ -66,7 +66,7 @@ struct SlaveConfig
     coral::model::SlaveID slaveID;
     std::vector<coral::model::VariableSetting> variableSettings;
 
-    SlaveConfig() CORAL_NOEXCEPT { }
+    SlaveConfig() noexcept { }
     SlaveConfig(
         coral::model::SlaveID slaveID_,
         std::vector<coral::model::VariableSetting> variableSettings_)
@@ -104,7 +104,10 @@ public:
     typedef std::function<void(const std::error_code&)> ReconstituteHandler;
 
     /// Per-slave completion handler type for Reconstitute()
-    typedef std::function<void(const std::error_code&, coral::model::SlaveID, std::size_t)>
+    typedef std::function<void(
+            const std::error_code&,
+            const coral::model::SlaveDescription&,
+            std::size_t)>
         SlaveReconstituteHandler;
 
     /**
@@ -203,9 +206,6 @@ public:
 
     /// Terminates the entire execution and all associated slaves.
     void Terminate();
-
-    /// Gets the name of the slave with the given ID.
-    const std::string& SlaveName(coral::model::SlaveID id) const;
 
 private:
     std::unique_ptr<ExecutionManagerPrivate> m_private;

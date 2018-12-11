@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -35,7 +35,7 @@ namespace net
 // Endpoint
 // =============================================================================
 
-Endpoint::Endpoint() CORAL_NOEXCEPT { }
+Endpoint::Endpoint() noexcept { }
 
 
 Endpoint::Endpoint(const std::string& url)
@@ -56,19 +56,19 @@ Endpoint::Endpoint(const std::string& transport, const std::string& address)
 }
 
 
-std::string Endpoint::Transport() const CORAL_NOEXCEPT
+std::string Endpoint::Transport() const noexcept
 {
     return m_transport;
 }
 
 
-std::string Endpoint::Address() const CORAL_NOEXCEPT
+std::string Endpoint::Address() const noexcept
 {
     return m_address;
 }
 
 
-std::string Endpoint::URL() const CORAL_NOEXCEPT
+std::string Endpoint::URL() const noexcept
 {
     return m_transport + "://" + m_address;
 }
@@ -104,7 +104,7 @@ namespace
 namespace ip
 {
 
-Address::Address() CORAL_NOEXCEPT
+Address::Address() noexcept
 {
     ParseAddressString("*", m_strAddr, m_inAddr);
 }
@@ -122,25 +122,25 @@ Address::Address(const char* address)
 }
 
 
-Address::Address(in_addr address) CORAL_NOEXCEPT
+Address::Address(in_addr address) noexcept
     : m_inAddr(address)
 {
 }
 
 
-bool Address::IsAnyAddress() const CORAL_NOEXCEPT
+bool Address::IsAnyAddress() const noexcept
 {
     return m_strAddr.empty() && m_inAddr.s_addr == INADDR_ANY;
 }
 
 
-bool Address::IsName() const CORAL_NOEXCEPT
+bool Address::IsName() const noexcept
 {
     return !m_strAddr.empty();
 }
 
 
-std::string Address::ToString() const CORAL_NOEXCEPT
+std::string Address::ToString() const noexcept
 {
     if (m_strAddr.empty()) {
         if (m_inAddr.s_addr == INADDR_ANY) {
@@ -183,7 +183,7 @@ namespace
     const std::int32_t ANY_PORT = -1;
     const std::int32_t MAX_PORT = 65535;
 
-    bool IsInternetPortNumber(std::int32_t port) CORAL_NOEXCEPT
+    bool IsInternetPortNumber(std::int32_t port) noexcept
     {
         return port >= 0 && port <= MAX_PORT;
     }
@@ -202,7 +202,7 @@ namespace
 namespace ip
 {
 
-Port::Port(std::uint16_t port) CORAL_NOEXCEPT
+Port::Port(std::uint16_t port) noexcept
     : m_port{port}
 {
 }
@@ -220,13 +220,13 @@ Port::Port(const char* port)
 }
 
 
-bool Port::IsNumber() const CORAL_NOEXCEPT
+bool Port::IsNumber() const noexcept
 {
     return IsInternetPortNumber(m_port);
 }
 
 
-bool Port::IsAnyPort() const CORAL_NOEXCEPT
+bool Port::IsAnyPort() const noexcept
 {
     return m_port == ANY_PORT;
 }
@@ -239,7 +239,7 @@ std::uint16_t Port::ToNumber() const
 }
 
 
-std::string Port::ToString() const CORAL_NOEXCEPT
+std::string Port::ToString() const noexcept
 {
     if (m_port == ANY_PORT) {
         return "*";
@@ -255,7 +255,7 @@ std::uint16_t Port::ToNetworkByteOrder() const
 }
 
 
-Port Port::FromNetworkByteOrder(std::uint16_t nPort) CORAL_NOEXCEPT
+Port Port::FromNetworkByteOrder(std::uint16_t nPort) noexcept
 {
     return Port(ntohs(nPort));
 }
@@ -270,13 +270,13 @@ Port Port::FromNetworkByteOrder(std::uint16_t nPort) CORAL_NOEXCEPT
 namespace ip
 {
 
-Endpoint::Endpoint() CORAL_NOEXCEPT
+Endpoint::Endpoint() noexcept
 {
 }
 
 
 Endpoint::Endpoint(const ip::Address& address, const ip::Port& port)
-    CORAL_NOEXCEPT
+    noexcept
     : m_address{address}
     , m_port{port}
 {
@@ -310,31 +310,31 @@ Endpoint::Endpoint(const sockaddr& sa)
 }
 
 
-const ip::Address& Endpoint::Address() const CORAL_NOEXCEPT
+const ip::Address& Endpoint::Address() const noexcept
 {
     return m_address;
 }
 
 
-void Endpoint::SetAddress(const ip::Address& value) CORAL_NOEXCEPT
+void Endpoint::SetAddress(const ip::Address& value) noexcept
 {
     m_address = value;
 }
 
 
-const ip::Port& Endpoint::Port() const CORAL_NOEXCEPT
+const ip::Port& Endpoint::Port() const noexcept
 {
     return m_port;
 }
 
 
-void Endpoint::SetPort_(const ip::Port& value) CORAL_NOEXCEPT
+void Endpoint::SetPort_(const ip::Port& value) noexcept
 {
     m_port = value;
 }
 
 
-std::string Endpoint::ToString() const CORAL_NOEXCEPT
+std::string Endpoint::ToString() const noexcept
 {
     return m_address.ToString() + ':' + m_port.ToString();
 }
@@ -370,20 +370,20 @@ sockaddr_in Endpoint::ToSockaddrIn() const
 SlaveLocator::SlaveLocator(
     const Endpoint& controlEndpoint,
     const Endpoint& dataPubEndpoint)
-    CORAL_NOEXCEPT
+    noexcept
     : m_controlEndpoint{controlEndpoint},
       m_dataPubEndpoint{dataPubEndpoint}
 {
 }
 
 
-const Endpoint& SlaveLocator::ControlEndpoint() const CORAL_NOEXCEPT
+const Endpoint& SlaveLocator::ControlEndpoint() const noexcept
 {
     return m_controlEndpoint;
 }
 
 
-const Endpoint& SlaveLocator::DataPubEndpoint() const CORAL_NOEXCEPT
+const Endpoint& SlaveLocator::DataPubEndpoint() const noexcept
 {
     return m_dataPubEndpoint;
 }

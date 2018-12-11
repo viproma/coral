@@ -2,7 +2,7 @@
 \file
 \brief  Module header for coral::util::zip
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -73,7 +73,7 @@ class Archive
 {
 public:
     /// Default constructor; does not associate the object with an archive file.
-    Archive() CORAL_NOEXCEPT;
+    Archive() noexcept;
 
     /**
     \brief  Constructor which opens a ZIP archive.
@@ -93,12 +93,12 @@ public:
     Archive& operator=(const Archive&) = delete;
 
     /// Move constructor.
-    Archive(Archive&&) CORAL_NOEXCEPT;
+    Archive(Archive&&) noexcept;
     /// Move assignment operator.
-    Archive& operator=(Archive&&) CORAL_NOEXCEPT;
+    Archive& operator=(Archive&&) noexcept;
 
     /// Destructor; calls Discard().
-    ~Archive() CORAL_NOEXCEPT;
+    ~Archive() noexcept;
 
     /**
     \brief  Opens a ZIP archive.
@@ -117,10 +117,10 @@ public:
 
     If no archive is open, this function has no effect.
     */
-    void Discard() CORAL_NOEXCEPT;
+    void Discard() noexcept;
 
     /// Returns whether this object refers to an open ZIP archive.
-    bool IsOpen() const CORAL_NOEXCEPT;
+    bool IsOpen() const noexcept;
 
     /**
     \brief  Returns the number of entries in the archive.
@@ -232,13 +232,13 @@ class Exception : public std::runtime_error
 {
 public:
     // Creates an exception with the given message
-    Exception(const std::string& msg) CORAL_NOEXCEPT;
+    Exception(const std::string& msg) noexcept;
 
     // Creates an exception for the last error for the given archive
-    Exception(::zip* archive) CORAL_NOEXCEPT;
+    Exception(::zip* archive) noexcept;
 
     // Creates an exception for the last error for the given file
-    Exception(zip_file* file) CORAL_NOEXCEPT;
+    Exception(zip_file* file) noexcept;
 };
 
 

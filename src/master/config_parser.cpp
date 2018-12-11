@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,7 +13,6 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <utility>
 #include <vector>
 
-#include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/property_tree/info_parser.hpp>
@@ -73,7 +72,7 @@ namespace
     SlaveTypeMap SlaveTypesByName(coral::master::ProviderCluster& providers)
     {
         SlaveTypeMap types;
-        BOOST_FOREACH (const auto& st, providers.GetSlaveTypes(std::chrono::seconds(1))) {
+        for (const auto& st : providers.GetSlaveTypes(std::chrono::seconds(1))) {
             types.insert(std::make_pair(st.description.Name(), st));
         }
         return types;
@@ -153,7 +152,7 @@ namespace
         if (cachedSlaveTypeIt == cache.end()) {
             // Slave type not found in cache, so add it.
             VarDescriptionCacheEntry vars;
-            BOOST_FOREACH(const auto& v, slaveType->description.Variables()) {
+            for (const auto& v : slaveType->description.Variables()) {
                 vars[v.Name()] = &v;
             }
             cachedSlaveTypeIt = cache.insert(
@@ -187,11 +186,8 @@ namespace
     {
         assert(slaves.empty());
         assert(variables.empty());
-        // NOTE: For some reason, if we put the get_child() call inside the
-        // BOOST_FOREACH macro invocation, we get a segfault if the child node
-        // does not exist.
         const auto slaveTree = ptree.get_child("slaves", boost::property_tree::ptree());
-        BOOST_FOREACH (const auto& slaveNode, slaveTree) {
+        for (const auto& slaveNode : slaveTree) {
             const auto slaveName = slaveNode.first;
             if (slaves.count(slaveName)) {
                 throw std::runtime_error(
@@ -212,7 +208,7 @@ namespace
             slaves[slaveName] = &slaveType;
 
             const auto initTree = slaveData.get_child("init", boost::property_tree::ptree());
-            BOOST_FOREACH (const auto& initNode, initTree) {
+            for (const auto& initNode : initTree) {
                 const auto varName = initNode.first;
                 const auto varDesc = GetCachedVarDescription(&slaveType, varName, varDescriptionCache);
                 VariableValue v;
@@ -313,11 +309,11 @@ namespace
         assert(scenario.empty());
         assert(scenarioEventSlaveName.empty());
         const auto scenTree = ptree.get_child("scenario", boost::property_tree::ptree());
-        BOOST_FOREACH (const auto& scenNode, scenTree) {
+        for (const auto& scenNode : scenTree) {
             // Iterate elements of the form: timePoint { ... }
             try {
                 const auto timePoint = boost::lexical_cast<coral::model::TimePoint>(scenNode.first);
-                BOOST_FOREACH (const auto& varChangeNode, scenNode.second) {
+                for (const auto& varChangeNode : scenNode.second) {
                     // Iterate elements of the form: varName varValue
                     const auto varSpec = SplitVarSpec(varChangeNode.first);
                     const auto& affectedSlaveName = varSpec.first;
@@ -391,7 +387,7 @@ void ParseSystemConfig(
 
     // Instantiate the slaves
     std::vector<coral::master::AddedSlave> slavesToAdd;
-    BOOST_FOREACH (const auto& slave, slaves) {
+    for (const auto& slave : slaves) {
         slavesToAdd.emplace_back();
         slavesToAdd.back().locator = providers.InstantiateSlave(
             slave.second->providers.front(),
@@ -419,8 +415,8 @@ void ParseSystemConfig(
     std::map<std::string, coral::model::SlaveID> slaveIDs;
     std::map<coral::model::SlaveID, std::string> slaveNames;
     for (const auto& addedSlave : slavesToAdd) {
-        slaveIDs[addedSlave.name] = addedSlave.id;
-        slaveNames[addedSlave.id] = addedSlave.name;
+        slaveIDs[addedSlave.name] = addedSlave.info.ID();
+        slaveNames[addedSlave.info.ID()] = addedSlave.name;
     }
 
     // Using the name-ID mapping, build lists of variable settings from the
@@ -507,7 +503,7 @@ SetVariablesException::SetVariablesException()
 }
 
 
-const char* SetVariablesException::what() const CORAL_NOEXCEPT
+const char* SetVariablesException::what() const noexcept
 {
     return m_msg.c_str();
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -47,7 +47,7 @@ namespace
         ZipFile(ZipFile&&) = delete;
         ZipFile& operator=(ZipFile&&) = delete;
 
-        ~ZipFile() CORAL_NOEXCEPT
+        ~ZipFile() noexcept
         {
             if (m_file) zip_fclose(m_file);
         }
@@ -70,7 +70,7 @@ namespace
 }
 
 
-Archive::Archive() CORAL_NOEXCEPT
+Archive::Archive() noexcept
     : m_archive{nullptr}
 {
 }
@@ -83,14 +83,14 @@ Archive::Archive(const boost::filesystem::path& path)
 }
 
 
-Archive::Archive(Archive&& other) CORAL_NOEXCEPT
+Archive::Archive(Archive&& other) noexcept
     : m_archive{other.m_archive}
 {
     other.m_archive = nullptr;
 }
 
 
-Archive& Archive::operator=(Archive&& other) CORAL_NOEXCEPT
+Archive& Archive::operator=(Archive&& other) noexcept
 {
     Discard();
     m_archive = other.m_archive;
@@ -99,7 +99,7 @@ Archive& Archive::operator=(Archive&& other) CORAL_NOEXCEPT
 }
 
 
-Archive::~Archive() CORAL_NOEXCEPT
+Archive::~Archive() noexcept
 {
     Discard();
 }
@@ -128,7 +128,7 @@ does not save changes.  Since this module currently only supports non-modifying
 operations, there would be no practical difference, but this way we keep the
 door open for adding this functionality in the future.
 */
-void Archive::Discard() CORAL_NOEXCEPT
+void Archive::Discard() noexcept
 {
     if (m_archive) {
         zip_discard(m_archive);
@@ -137,7 +137,7 @@ void Archive::Discard() CORAL_NOEXCEPT
 }
 
 
-bool Archive::IsOpen() const CORAL_NOEXCEPT
+bool Archive::IsOpen() const noexcept
 {
     return m_archive != nullptr;
 }
@@ -284,17 +284,17 @@ boost::filesystem::path Archive::ExtractFileTo(
 // Exception
 // =============================================================================
 
-Exception::Exception(const std::string& msg) CORAL_NOEXCEPT
+Exception::Exception(const std::string& msg) noexcept
     : std::runtime_error{msg}
 {
 }
 
-Exception::Exception(::zip* archive) CORAL_NOEXCEPT
+Exception::Exception(::zip* archive) noexcept
     : std::runtime_error{zip_strerror(archive)}
 {
 }
 
-Exception::Exception(zip_file* file) CORAL_NOEXCEPT
+Exception::Exception(zip_file* file) noexcept
     : std::runtime_error{zip_file_strerror(file)}
 {
 }

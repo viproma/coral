@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,6 +13,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <string>
 #include <vector>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -51,7 +52,11 @@ public:
         const std::string& slaveExe,
         std::chrono::seconds masterInactivityTimeout,
         bool enableOutput,
-        const std::string& outputDir)
+        const std::string& outputDir,
+        const std::string& logLevel,
+        bool enableFileLogging,
+        const std::string& logFileDir,
+        bool createConsoles)
         : m_fmuPath{fmuPath}
         , m_fmu{importer.Import(fmuPath)}
         , m_networkInterface{networkInterface}
@@ -59,6 +64,10 @@ public:
         , m_masterInactivityTimeout{masterInactivityTimeout}
         , m_enableOutput{enableOutput}
         , m_outputDir(outputDir.empty() ? "." : outputDir)
+        , m_logLevel(logLevel)
+        , m_enableFileLogging(enableFileLogging)
+        , m_logFileDir(logFileDir)
+        , m_createConsoles(createConsoles)
     {
     }
 
@@ -78,18 +87,29 @@ public:
             const auto slaveStatusEp = "tcp://localhost:" + boost::lexical_cast<std::string>(slaveStatusPort);
 
             std::vector<std::string> args;
-            args.push_back(slaveStatusEp);
             args.push_back(m_fmuPath.string());
-            args.push_back(m_networkInterface.ToString());
-            args.push_back(std::to_string(m_masterInactivityTimeout.count()));
-            if (m_enableOutput) {
-                args.push_back(m_outputDir);
+            args.push_back("--coralslaveprovider-endpoint=" + slaveStatusEp);
+            args.push_back("--hangaround-time=" + std::to_string(m_masterInactivityTimeout.count()));
+            args.push_back("--interface=" + m_networkInterface.ToString());
+            if (!m_enableOutput) {
+                args.push_back("--no-output");
             }
+            args.push_back("--output-dir=" + m_outputDir);
+            args.push_back("--log-level=" + m_logLevel);
+            if (m_enableFileLogging) {
+                args.push_back("--log-file");
+                args.push_back("--log-file-dir=" + m_logFileDir);
+            }
+
+            auto processOptions = coral::util::ProcessOptions::none;
+            if (m_createConsoles) processOptions |= coral::util::ProcessOptions::createNewConsole;
 
             std::cout << "\nStarting slave...\n"
                 << "  FMU       : " << m_fmuPath << '\n'
                 << std::flush;
-            coral::util::SpawnProcess(m_slaveExe, args);
+            CORAL_LOG_DEBUG(boost::format("Starting process: %s %s")
+                % m_slaveExe % boost::algorithm::join(args, " "));
+            coral::util::SpawnProcess(m_slaveExe, args, processOptions);
 
             std::clog << "Waiting for verification..." << std::flush;
             std::vector<zmq::message_t> slaveStatus;
@@ -144,6 +164,11 @@ private:
     std::chrono::seconds m_masterInactivityTimeout;
     bool m_enableOutput;
     std::string m_outputDir;
+    std::string m_logLevel;
+    bool m_enableFileLogging;
+    std::string m_logFileDir;
+    bool m_createConsoles;
+
     std::string m_instantiationFailureDescription;
 };
 
@@ -167,12 +192,6 @@ void ScanDirectoryForFMUs(
 int main(int argc, const char** argv)
 {
 try {
-#ifdef CORAL_LOG_TRACE_ENABLED
-    coral::log::SetLevel(coral::log::trace);
-#elif defined(CORAL_LOG_DEBUG_ENABLED)
-    coral::log::SetLevel(coral::log::debug);
-#endif
-
     const auto fmuCacheDir = boost::filesystem::temp_directory_path() / "coral" / "cache";
     auto importer = coral::fmi::Importer::Create(fmuCacheDir);
 
@@ -180,13 +199,18 @@ try {
     po::options_description options("Options");
     options.add_options()
         ("clean-cache",
-            "Clear the cache which contains previously unpacked FMU contents."
+            "Clear the cache which contains previously unpacked FMU contents. "
             "The program will exit immediately after performing this action.")
         ("interface", po::value<std::string>()->default_value(DEFAULT_NETWORK_INTERFACE),
             "The IP address or (OS-specific) name of the network interface to "
             "use for network communications, or \"*\" for all/any.")
         ("no-output",
             "Disable file output of variable values.")
+        ("no-slave-console",
+            "Don't create new console windows for slaves. Their output will "
+            "be printed to the slave provider's console instead.  This only has "
+            "an effect on Windows, as it is already the default behaviour on "
+            "other platforms.")
         ("output-dir,o", po::value<std::string>()->default_value("."),
             "The directory where output files should be written.")
         ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
@@ -198,6 +222,7 @@ try {
             "The number of seconds slaves should wait for commands from a master "
             "before assuming that the connection is broken and shutting themselves "
             "down.  The special value -1 means \"never\".");
+    coral::util::AddLoggingOptions(options);
     po::options_description positionalOptions("Arguments");
     positionalOptions.add_options()
         ("fmu",       po::value<std::vector<std::string>>(), "The FMU files and directories.");
@@ -213,6 +238,8 @@ try {
         "This program loads one or more FMUs and makes them available as\n"
         "slaves on a domain.");
     if (!optionValues) return 0;
+
+    coral::util::UseLoggingArguments(*optionValues, MY_NAME);
     if (optionValues->count("clean-cache")) {
         importer->CleanCache();
         return 0;
@@ -222,6 +249,7 @@ try {
     const auto networkInterface = coral::net::ip::Address{
         (*optionValues)["interface"].as<std::string>()};
     const auto enableOutput = !optionValues->count("no-output");
+    const auto createConsoles = !optionValues->count("no-slave-console");
     const auto outputDir = (*optionValues)["output-dir"].as<std::string>();
     const auto discoveryPort = coral::net::ip::Port{
         (*optionValues)["port"].as<std::uint16_t>()};
@@ -229,6 +257,9 @@ try {
     if (timeout < std::chrono::seconds(-1)) {
         throw std::runtime_error("Invalid timeout value");
     }
+    const auto logLevel = (*optionValues)["log-level"].as<std::string>();
+    const auto enableFileLogging = optionValues->count("log-file") > 0;
+    const auto logFileDir = (*optionValues)["log-file-dir"].as<std::string>();
 
     std::string slaveExe;
     if (optionValues->count("slave-exe")) {
@@ -267,12 +298,17 @@ try {
                 slaveExe,
                 timeout,
                 enableOutput,
-                outputDir));
+                outputDir,
+                logLevel,
+                enableFileLogging,
+                logFileDir,
+                createConsoles));
             std::cout << "FMU loaded: " << p << std::endl;
         } catch (const std::runtime_error& e) {
             ++failedFMUS;
-            std::cerr << "Error: Failed to load FMU \"" << p
-                << "\": " << e.what() << std::endl;
+            coral::log::Log(
+                coral::log::error,
+                boost::format("Failed to load FMU \"%s\": %s") % p % e.what());
         }
     }
     std::cout << fmus.size() << " FMUs loaded";
@@ -289,7 +325,7 @@ try {
         [](std::exception_ptr e) {
             try { std::rethrow_exception(e); }
             catch (const std::exception& e) {
-                std::cerr << "Error: " << e.what() << std::endl;
+                coral::log::Log(coral::log::error, e.what());
                 std::exit(1);
             }
         }
@@ -298,7 +334,7 @@ try {
     std::cin.ignore();
     slaveProvider.Stop();
 } catch (const std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    coral::log::Log(coral::log::error, e.what());
     return 1;
 }
 return 0;

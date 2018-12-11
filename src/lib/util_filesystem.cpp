@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -30,14 +30,14 @@ coral::util::TempDir::TempDir(const boost::filesystem::path& parent)
     boost::filesystem::create_directories(m_path);
 }
 
-coral::util::TempDir::TempDir(TempDir&& other) CORAL_NOEXCEPT
+coral::util::TempDir::TempDir(TempDir&& other) noexcept
     : m_path{std::move(other.m_path)}
 {
     // This doesn't seem to be guaranteed by path's move constructor:
     other.m_path.clear();
 }
 
-coral::util::TempDir& coral::util::TempDir::operator=(TempDir&& other) CORAL_NOEXCEPT
+coral::util::TempDir& coral::util::TempDir::operator=(TempDir&& other) noexcept
 {
     DeleteNoexcept();
     m_path = std::move(other.m_path);
@@ -56,7 +56,7 @@ const boost::filesystem::path& coral::util::TempDir::Path() const
     return m_path;
 }
 
-void coral::util::TempDir::DeleteNoexcept() CORAL_NOEXCEPT
+void coral::util::TempDir::DeleteNoexcept() noexcept
 {
     if (!m_path.empty()) {
         boost::system::error_code ignoreErrors;

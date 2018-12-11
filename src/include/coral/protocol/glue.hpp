@@ -2,7 +2,7 @@
 \file
 \brief  Glue code that relates public APIs and internal communication protocols.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -11,11 +11,17 @@
 #define CORAL_PROTOCOL_GLUE_HPP
 
 #include <coral/model.hpp>
+#include <coral/net.hpp>
+
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
+#include <domain.pb.h>
 #include <model.pb.h>
 #include <net.pb.h>
-
-#include <coral/net.hpp>
-#include <domain.pb.h>
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 
 namespace coral

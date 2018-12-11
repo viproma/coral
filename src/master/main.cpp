@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -163,6 +163,7 @@ int Run(const std::vector<std::string>& args)
             ("help-sys-config",
                 "Display a help message about the format of system configuration files "
                 "and exit.");
+        coral::util::AddLoggingOptions(options);
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("exec-config", po::value<std::string>(),
@@ -181,6 +182,7 @@ int Run(const std::vector<std::string>& args)
             self + " run",
             "Runs a simulation.");
         if (!argValues) return 0;
+        coral::util::UseLoggingArguments(*argValues, self);
 
         if (argValues->count("help-exec-config")) {
             PrintExecConfigHelp();
@@ -339,7 +341,7 @@ int Run(const std::vector<std::string>& args)
         std::cout << "Completed in " << simTime.count() << " ms." << std::endl;
         exec.Terminate();
     } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        coral::log::Log(coral::log::error, e.what());
         return 1;
     }
     return 0;
@@ -357,6 +359,7 @@ int List(const std::vector<std::string>& args)
                 "use for network communications, or \"*\" for all/any.")
             ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
                 "The UDP port used to listen for slave providers.");
+        coral::util::AddLoggingOptions(options);
         const auto argValues = coral::util::ParseArguments(
             args,
             options,
@@ -366,6 +369,7 @@ int List(const std::vector<std::string>& args)
             self + " list",
             "Lists the slave types that are available on the network.");
         if (!argValues) return 0;
+        coral::util::UseLoggingArguments(*argValues, self);
         const auto networkInterface = coral::net::ip::Address{
             (*argValues)["interface"].as<std::string>()};
         const auto discoveryPort = coral::net::ip::Port{
@@ -387,7 +391,7 @@ int List(const std::vector<std::string>& args)
             //CORAL_LOG_TRACE(st.description.Name());
         }
     } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        coral::log::Log(coral::log::error, e.what());
         return 1;
     }
     return 0;
@@ -426,6 +430,7 @@ int LsVars(const std::vector<std::string>& args)
                 "The variabilities to include.  May contain one or more of the "
                 "following characters: c=constant, d=discrete, f=fixed, "
                 "t=tunable, u=continuous.");
+        coral::util::AddLoggingOptions(options);
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("slave-type",  po::value<std::string>(),
@@ -438,6 +443,7 @@ int LsVars(const std::vector<std::string>& args)
             self + " ls-vars",
             "Prints a list of variables for one slave type.");
         if (!argValues) return 0;
+        coral::util::UseLoggingArguments(*argValues, self);
 
         if (!argValues->count("slave-type")) throw std::runtime_error("Slave type name not specified");
         const auto slaveType =     (*argValues)["slave-type"].as<std::string>();
@@ -505,7 +511,7 @@ int LsVars(const std::vector<std::string>& args)
             }
         }
     } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        coral::log::Log(coral::log::error, e.what());
         return 1;
     }
     return 0;
@@ -523,6 +529,7 @@ int Info(const std::vector<std::string>& args)
                 "use for network communications, or \"*\" for all/any.")
             ("port", po::value<std::uint16_t>()->default_value(DEFAULT_DISCOVERY_PORT),
                 "The UDP port used to listen for slave providers.");
+        coral::util::AddLoggingOptions(options);
         po::options_description positionalOptions("Arguments");
         positionalOptions.add_options()
             ("slave-type",  po::value<std::string>(), "A slave type name.");
@@ -534,6 +541,7 @@ int Info(const std::vector<std::string>& args)
             self + " info",
             "Shows detailed information about a slave type.");
         if (!argValues) return 0;
+        coral::util::UseLoggingArguments(*argValues, self);
 
         if (!argValues->count("slave-type")) throw std::runtime_error("Slave type name not specified");
         const auto slaveType = (*argValues)["slave-type"].as<std::string>();
@@ -588,7 +596,7 @@ int Info(const std::vector<std::string>& args)
         }
         std::cout << "}" << std::endl;
     } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        coral::log::Log(coral::log::error, e.what());
         return 1;
     }
     return 0;
@@ -597,12 +605,6 @@ int Info(const std::vector<std::string>& args)
 
 int main(int argc, const char** argv)
 {
-#ifdef CORAL_LOG_TRACE_ENABLED
-    coral::log::SetLevel(coral::log::trace);
-#elif defined(CORAL_LOG_DEBUG_ENABLED)
-    coral::log::SetLevel(coral::log::debug);
-#endif
-
     if (argc < 2) {
         std::cerr <<
             "Execution master (" CORAL_PROGRAM_NAME_VERSION ")\n\n"
@@ -627,11 +629,13 @@ int main(int argc, const char** argv)
         else if (command == "ls-vars") return LsVars(args);
         else if (command == "info") return Info(args);
         else {
-            std::cerr << "Error: Invalid command: " << command;
+            coral::log::Log(coral::log::error, "Invalid command: " + command);
             return 1;
         }
     } catch (const std::exception& e) {
-        std::cerr << "Error: Unexpected internal error: " << e.what() << std::endl;
+        coral::log::Log(
+            coral::log::error,
+            boost::format("Unexpected internal error: %s") % e.what());
         return 255;
     }
 }

@@ -2,7 +2,7 @@
 \file
 \brief Defines the coral::master::ProviderCluster class and related functionality.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -74,17 +74,17 @@ public:
         coral::net::ip::Port discoveryPort);
 
     /// Destructor.
-    ~ProviderCluster() CORAL_NOEXCEPT;
+    ~ProviderCluster() noexcept;
 
     // Disable copying
     ProviderCluster(const ProviderCluster&) = delete;
     ProviderCluster& operator=(const ProviderCluster&) = delete;
 
     /// Move constructor
-    ProviderCluster(ProviderCluster&&) CORAL_NOEXCEPT;
+    ProviderCluster(ProviderCluster&&) noexcept;
 
     /// Move assignment operator
-    ProviderCluster& operator=(ProviderCluster&&) CORAL_NOEXCEPT;
+    ProviderCluster& operator=(ProviderCluster&&) noexcept;
 
     /**
      *  \brief

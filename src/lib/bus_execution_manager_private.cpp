@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -190,7 +190,7 @@ void ExecutionManagerPrivate::AdvanceSimTime(coral::model::TimeDuration delta)
 }
 
 
-void ExecutionManagerPrivate::SlaveOpStarted() CORAL_NOEXCEPT
+void ExecutionManagerPrivate::SlaveOpStarted() noexcept
 {
     assert(m_operationCount >= 0);
     ++m_operationCount;
@@ -234,7 +234,7 @@ std::unique_ptr<ExecutionState> ExecutionManagerPrivate::SwapState(
 }
 
 
-void ExecutionManagerPrivate::AbortSlaveOpWaiting() CORAL_NOEXCEPT
+void ExecutionManagerPrivate::AbortSlaveOpWaiting() noexcept
 {
     if (m_allSlaveOpsCompleteHandler) {
         coral::util::LastCall(m_allSlaveOpsCompleteHandler,

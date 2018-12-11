@@ -1,0 +1,33 @@
+# First try to locate Protobuf using its own config file (only works for
+# v3.4 upwards), and if that fails, use the CMake-supplied find module
+# and define an import target based on its results.
+cmake_minimum_required(VERSION 3.6)
+
+set (protobuf_MODULE_COMPATIBLE ON)
+find_package(protobuf CONFIG)
+if (NOT protobuf_FOUND)
+    find_package(Protobuf REQUIRED MODULE)
+    if (NOT TARGET protobuf::libprotobuf)
+        string(REGEX MATCH "[.]so$" _soExtension Protobuf_LIBRARY)
+        if (_soExtension)
+            add_library(protobuf::libprotobuf SHARED IMPORTED)
+        else ()
+            add_library(protobuf::libprotobuf STATIC IMPORTED)
+        endif ()
+        set_property(TARGET protobuf::libprotobuf PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${Protobuf_INCLUDE_DIRS})
+
+        if (Protobuf_LIBRARY)
+            set_property(TARGET protobuf::libprotobuf APPEND PROPERTY IMPORTED_CONFIGURATIONS "RELEASE")
+            set_property(TARGET protobuf::libprotobuf APPEND PROPERTY IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX")
+            set_property(TARGET protobuf::libprotobuf PROPERTY IMPORTED_LOCATION_RELEASE "${Protobuf_LIBRARY}")
+        endif ()
+        if (Protobuf_LIBRARY_DEBUG)
+            set_property(TARGET protobuf::libprotobuf APPEND PROPERTY IMPORTED_CONFIGURATIONS "DEBUG")
+            set_property(TARGET protobuf::libprotobuf APPEND PROPERTY IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX")
+            set_property(TARGET protobuf::libprotobuf PROPERTY IMPORTED_LOCATION_DEBUG "${Protobuf_LIBRARY_DEBUG}")
+        endif ()
+        if (UNIX)
+            set_property(TARGET protobuf::libprotobuf PROPERTY INTERFACE_LINK_LIBRARIES "-lpthread")
+        endif ()
+    endif ()
+endif ()

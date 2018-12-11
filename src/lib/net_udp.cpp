@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -147,7 +147,7 @@ public:
     }
 
 
-    ~Private() CORAL_NOEXCEPT
+    ~Private() noexcept
     {
         CLOSE_NATIVE_SOCKET(m_socket);
 #ifdef _WIN32
@@ -228,7 +228,7 @@ public:
     }
 
 
-    NativeSocket NativeHandle() const CORAL_NOEXCEPT
+    NativeSocket NativeHandle() const noexcept
     {
         return m_socket;
     }
@@ -250,20 +250,18 @@ BroadcastSocket::BroadcastSocket(
 }
 
 
-BroadcastSocket::~BroadcastSocket() CORAL_NOEXCEPT
+BroadcastSocket::~BroadcastSocket() noexcept
 {
 }
 
 
-BroadcastSocket::BroadcastSocket(BroadcastSocket&& other)
-    CORAL_NOEXCEPT
+BroadcastSocket::BroadcastSocket(BroadcastSocket&& other) noexcept
     : m_private(std::move(other.m_private))
 {
 }
 
 
-BroadcastSocket& BroadcastSocket::operator=(BroadcastSocket&& other)
-    CORAL_NOEXCEPT
+BroadcastSocket& BroadcastSocket::operator=(BroadcastSocket&& other) noexcept
 {
     m_private = std::move(other.m_private);
     return *this;
@@ -285,8 +283,7 @@ std::size_t BroadcastSocket::Receive(
 }
 
 
-BroadcastSocket::NativeSocket BroadcastSocket::NativeHandle()
-    const CORAL_NOEXCEPT
+BroadcastSocket::NativeSocket BroadcastSocket::NativeHandle() const noexcept
 {
     return m_private->NativeHandle();
 }

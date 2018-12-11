@@ -2,7 +2,7 @@
 \file
 \brief Main header file for coral::util.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -189,6 +189,17 @@ template<typename Action>
 ScopeGuard<Action> OnScopeExit(Action action) { return ScopeGuard<Action>(action); }
 
 
+/// Options that control how new processes are created.
+enum class ProcessOptions
+{
+    none = 0,
+
+    /// Create a new console window for the process (Windows only)
+    createNewConsole = 1
+};
+CORAL_DEFINE_BITWISE_ENUM_OPERATORS(ProcessOptions)
+
+
 /**
 \brief  Starts a new process.
 
@@ -198,7 +209,8 @@ other characters that are considered "special" in a Windows command line.
 */
 void SpawnProcess(
     const std::string& program,
-    const std::vector<std::string>& args);
+    const std::vector<std::string>& args,
+    ProcessOptions options = ProcessOptions::none);
 
 
 /**

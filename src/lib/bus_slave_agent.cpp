@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -71,7 +71,7 @@ SlaveAgent::SlaveAgent(
     CORAL_LOG_TRACE("Slave bound to control endpoint: " + BoundControlEndpoint().URL());
 
     m_publisher.Bind(dataPubEndpoint);
-    CORAL_LOG_TRACE("Slave bound to data publisher endpoint: " + BoundControlEndpoint().URL());
+    CORAL_LOG_TRACE("Slave bound to data publisher endpoint: " + BoundDataPubEndpoint().URL());
 
     reactor.AddSocket(
         m_control.Socket(),
@@ -424,7 +424,7 @@ SlaveAgent::Timeout::Timeout(
 }
 
 
-SlaveAgent::Timeout::~Timeout() CORAL_NOEXCEPT
+SlaveAgent::Timeout::~Timeout() noexcept
 {
     SetTimeout(std::chrono::milliseconds(-1));
 }

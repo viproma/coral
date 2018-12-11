@@ -2,7 +2,7 @@
 \file
 \brief  Module header for coral::net::reqrep.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -69,7 +69,7 @@ public:
     Client& operator=(const Client&) = delete;
     Client& operator=(Client&&) = delete;
 
-    ~Client() CORAL_NOEXCEPT;
+    ~Client() noexcept;
 
     /**
     \brief  A callback type for Request().
@@ -336,13 +336,13 @@ public:
         coral::net::Reactor& reactor,
         const coral::net::Endpoint& endpoint);
 
-    ~Server() CORAL_NOEXCEPT;
+    ~Server() noexcept;
 
     Server(const Server&) = delete;
     Server& operator=(const Server&) = delete;
 
-    Server(Server&&) CORAL_NOEXCEPT;
-    Server& operator=(Server&&) CORAL_NOEXCEPT;
+    Server(Server&&) noexcept;
+    Server& operator=(Server&&) noexcept;
 
     /**
     \brief  Adds a protocol handler for the protocol with the given identifier

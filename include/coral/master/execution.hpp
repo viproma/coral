@@ -2,7 +2,7 @@
 \file
 \brief Defines the coral::master::Execution class and related functionality.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -50,10 +50,12 @@ enum class StepResult
  *  errors that may have occurred in the process).
  *
  *  Before an object of this type is passed to `Reconstitute()`, the `#locator`
- *  and `#name` fields must be set.  After `Reconstitute()` has completed
- *  successfully, the `#id` field contains the ID number of the new slave.
+ *  field must be set, and optionally `#name`.  After `Reconstitute()` has
+ *  completed successfully, the `#info` field contains information about the
+ *  new slave, such as its unique ID, its name and its type.
+ *
  *  If the function throws, the `#error` field may be queried to figure out
- *  whether this particular slave is the source of the failure, and if so, why.
+ *  whether this particular slave is the source of the failure.
  */
 struct AddedSlave
 {
@@ -66,18 +68,19 @@ struct AddedSlave
      *
      *  Slave names may only consist of letters (a-z, A-Z), digits (0-9)
      *  and underscores (_). The first character must be a letter.
-     *  If the string is empty, a unique name will be generated.
+     *  If the string is empty, a unique name will be generated and stored
+     *  in `info`.
      */
     std::string name;
 
-    /// [Output] The slave's unique ID.
-    coral::model::SlaveID id = coral::model::INVALID_SLAVE_ID;
+    /// [Output] Information about the added slave.
+    coral::model::SlaveDescription info;
 
     /// [Output] The error reported by the slave, if any.
     std::error_code error;
 
     /// Default constructor.
-    AddedSlave() CORAL_NOEXCEPT { }
+    AddedSlave() noexcept { }
 
     /// Constructor which sets the `#locator` and `#name` fields.
     AddedSlave(coral::net::SlaveLocator locator_, std::string name_)
@@ -117,7 +120,7 @@ struct SlaveConfig
     std::error_code error;
 
     /// Default constructor.
-    SlaveConfig() CORAL_NOEXCEPT { }
+    SlaveConfig() noexcept { }
 
     /// Constructor which sets the `#slaveID` and `#variableSettings` fields.
     SlaveConfig(
@@ -155,16 +158,16 @@ public:
         const ExecutionOptions& options = ExecutionOptions{});
 
     /// Destructor
-    ~Execution() CORAL_NOEXCEPT;
+    ~Execution() noexcept;
 
     Execution(const Execution&) = delete;
     Execution& operator=(const Execution&) = delete;
 
     /// Move constructor
-    Execution(Execution&&) CORAL_NOEXCEPT;
+    Execution(Execution&&) noexcept;
 
     /// Move assignment operator
-    Execution& operator=(Execution&&) CORAL_NOEXCEPT;
+    Execution& operator=(Execution&&) noexcept;
 
     /**
      *  \brief

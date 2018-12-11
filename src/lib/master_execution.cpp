@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -35,7 +35,7 @@ namespace
         std::promise<void> promise,
         const std::string& errMsg)
     {
-        // Note: This is because VS2013 doesn't support moving into lambdas.
+        // Note: This is because std::function must be copyable.
         auto sharedPromise =
             std::make_shared<decltype(promise)>(std::move(promise));
         return [=] (const std::error_code& ec)
@@ -112,11 +112,13 @@ public:
                                         ErrMsg("Failed to perform reconstitution", ec)));
                             }
                         },
-                        [&slavesToAdd]
-                            (const std::error_code& ec, coral::model::SlaveID id, std::size_t index)
+                        [&slavesToAdd] (
+                            const std::error_code& ec,
+                            const coral::model::SlaveDescription& info,
+                            std::size_t index)
                         {
+                            slavesToAdd[index].info = info;
                             slavesToAdd[index].error = ec;
-                            slavesToAdd[index].id = id;
                         });
                 } catch (...) {
                     sharedPromise->set_exception(std::current_exception());
@@ -284,19 +286,19 @@ coral::master::Execution::Execution(
 }
 
 
-coral::master::Execution::~Execution() CORAL_NOEXCEPT
+coral::master::Execution::~Execution() noexcept
 {
 }
 
 
-coral::master::Execution::Execution(Execution&& other) CORAL_NOEXCEPT
+coral::master::Execution::Execution(Execution&& other) noexcept
     : m_private(std::move(other.m_private))
 {
 }
 
 
 coral::master::Execution& coral::master::Execution::operator=(Execution&& other)
-    CORAL_NOEXCEPT
+    noexcept
 {
     m_private = std::move(other.m_private);
     return *this;

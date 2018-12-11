@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -37,7 +37,7 @@ namespace
         {
         }
 
-        int GetSlaveTypeCount() const CORAL_NOEXCEPT override
+        int GetSlaveTypeCount() const noexcept override
         {
             return boost::numeric_cast<int>(m_slaveTypes.size());
         }
@@ -154,7 +154,7 @@ SlaveProvider::SlaveProvider(
 
 // This is just here so we can declare m_killSocket to be a std::unique_ptr
 // to an incomplete type in the header.
-SlaveProvider::~SlaveProvider() CORAL_NOEXCEPT { }
+SlaveProvider::~SlaveProvider() noexcept { }
 
 
 void SlaveProvider::Stop()

@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0.0)
+cmake_minimum_required (VERSION 3.5)
 
 # CMake guidelines/tips for this project:
 #
@@ -11,6 +11,12 @@ cmake_minimum_required (VERSION 3.0.0)
 #
 project ("coral")
 set (projectSummary "A C++ library for distributed co-simulation")
+
+if(WIN32)
+    set(onOnWindows "ON")
+else()
+    set(onOnWindows "OFF")
+endif()
 
 option (CORAL_BUILD_PRIVATE_API_DOCS
         "Whether to generate API documentation for the non-public API"
@@ -27,6 +33,15 @@ option (FMILIB_USE_SHARED_LIB
 option (CORAL_BUILD_TESTS
         "Whether to build tests"
         ON)
+option (CORAL_INSTALL_RUNTIME_LIBS
+        "Whether to install compiler-provided runtime libraries"
+        ${onOnWindows})
+option (CORAL_INSTALL_DEBUG_RUNTIME_LIBS
+        "Whether to install debug versions of compiler-provided runtime libraries"
+        OFF)
+option (CORAL_INSTALL_DEPENDENCIES
+        "Whether to install the shared libraries that this software depends on"
+        ${onOnWindows})
 
 # ==============================================================================
 # Common variables
@@ -103,7 +118,6 @@ endif()
 # subdirectories/targets.
 set (Boost_USE_MULTITHREADED ON)
 set (Boost_USE_STATIC_LIBS ON)
-add_definitions("-DBOOST_ALL_NO_LIB") # Disables Boost's auto-linking feature.
 add_definitions("-DBOOST_SYSTEM_NO_DEPRECATED") # Disable some deprecated stuff.
 
 # Workaround to enable compilation of Google Test 1.7.0 on VS2012
@@ -131,14 +145,30 @@ set (versionPatch "${CMAKE_MATCH_1}")
 cmake_policy (SET CMP0022 NEW)
 
 if (CORAL_BUILD_TESTS)
-    # Enable testing and load Google Test
     enable_testing ()
-    set (gtest_force_shared_crt ON CACHE INTERNAL "Google Test setting override")
-    add_subdirectory ("external/gtest-1.7.0")
 endif ()
 
 # Allow local CMake modules (e.g. find scripts) under cmake/
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+# ==============================================================================
+# Dependencies
+# ==============================================================================
+if (CORAL_BUILD_TESTS)
+    find_package (GTest REQUIRED)
+    set (testBoostLibs chrono thread)
+else ()
+    set (testBoostLibs)
+endif ()
+
+find_package (Boost
+    REQUIRED
+    COMPONENTS filesystem program_options random ${testBoostLibs}
+)
+find_package (CPPZMQ REQUIRED)
+find_package (FMILIB REQUIRED)
+find_package (LIBZIP REQUIRED)
+include("CompatFindProtobuf")
 
 # ==============================================================================
 # Subdirectories
@@ -193,6 +223,12 @@ install (FILES ${versionFile} DESTINATION ${cmakeFilesInstallDir})
 # Installation of remaining files
 # ==============================================================================
 
+# Runtime libraries
+if (CORAL_INSTALL_RUNTIME_LIBS)
+    set (CMAKE_INSTALL_DEBUG_LIBRARIES ${CORAL_INSTALL_DEBUG_RUNTIME_LIBS})
+    include ("InstallRequiredSystemLibraries")
+endif ()
+
 # Public headers
 install (DIRECTORY "${publicHeaderDir}/" DESTINATION ${headerInstallDir})
 
@@ -204,14 +240,11 @@ set (readmeFile "${CMAKE_SOURCE_DIR}/README.md")
 install (FILES ${readmeFile} DESTINATION ${docInstallDir})
 set (licenceFile "${CMAKE_SOURCE_DIR}/LICENCE.txt")
 install (FILES ${licenceFile} DESTINATION ${docInstallDir})
-install (DIRECTORY "${CMAKE_SOURCE_DIR}/manuals/" DESTINATION ${docInstallDir})
 
 install (FILES
-        "cmake/FindBoostTarget.cmake"
         "cmake/FindFMILIB.cmake"
         "cmake/FindLIBZIP.cmake"
-        "cmake/FindProtobufTarget.cmake"
-        "cmake/FindZMQ.cmake"
+        "cmake/FindZeroMQ.cmake"
     DESTINATION
         "${cmakeFilesInstallDir}"
 )

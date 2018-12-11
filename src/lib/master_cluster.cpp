@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -21,7 +21,13 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <coral/protocol/glue.hpp>
 #include <coral/util.hpp>
 
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
 #include <domain.pb.h>
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 
 namespace coral
@@ -50,7 +56,7 @@ namespace
         std::chrono::milliseconds timeout,
         SlaveProviderMap& slaveProviders,
         std::promise<std::vector<coral::master::ProviderCluster::SlaveType>> promise)
-        CORAL_NOEXCEPT;
+        noexcept;
     void HandleInstantiateSlave(
         const std::string& slaveProviderID,
         const std::string& slaveTypeUUID,
@@ -58,7 +64,7 @@ namespace
         std::chrono::milliseconds commTimeout,
         SlaveProviderMap& slaveProviders,
         std::promise<coral::net::SlaveLocator> promise)
-        CORAL_NOEXCEPT;
+        noexcept;
 
 
 }
@@ -163,19 +169,19 @@ ProviderCluster::ProviderCluster(
 }
 
 
-ProviderCluster::~ProviderCluster() CORAL_NOEXCEPT
+ProviderCluster::~ProviderCluster() noexcept
 {
     // Do nothing, everything's handled by ~Private().
 }
 
 
-ProviderCluster::ProviderCluster(ProviderCluster&& other) CORAL_NOEXCEPT
+ProviderCluster::ProviderCluster(ProviderCluster&& other) noexcept
     : m_private{std::move(other.m_private)}
 {
 }
 
 
-ProviderCluster& ProviderCluster::operator=(ProviderCluster&& other) CORAL_NOEXCEPT
+ProviderCluster& ProviderCluster::operator=(ProviderCluster&& other) noexcept
 {
     m_private = std::move(other.m_private);
     return *this;
@@ -294,7 +300,7 @@ void HandleGetSlaveTypes(
     std::chrono::milliseconds timeout,
     SlaveProviderMap& slaveProviders,
     std::promise<std::vector<coral::master::ProviderCluster::SlaveType>> promise)
-    CORAL_NOEXCEPT
+    noexcept
 {
     if (slaveProviders.empty()) {
         promise.set_value(std::vector<coral::master::ProviderCluster::SlaveType>{});
@@ -380,7 +386,7 @@ void HandleInstantiateSlave(
     std::chrono::milliseconds commTimeout,
     SlaveProviderMap& slaveProviders,
     std::promise<coral::net::SlaveLocator> promise)
-    CORAL_NOEXCEPT
+    noexcept
 {
     const auto sharedPromise =
         std::make_shared<decltype(promise)>(std::move(promise));

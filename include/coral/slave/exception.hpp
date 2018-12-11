@@ -2,7 +2,7 @@
 \file
 \brief Exceptions specific to coral::slave.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -26,7 +26,7 @@ namespace slave
 class TimeoutException : public std::runtime_error
 {
 public:
-    explicit TimeoutException(std::chrono::milliseconds timeoutDuration) CORAL_NOEXCEPT
+    explicit TimeoutException(std::chrono::milliseconds timeoutDuration) noexcept
         : std::runtime_error("Slave timed out due to lack of communication"),
           m_timeoutDuration(timeoutDuration)
     {
@@ -34,7 +34,7 @@ public:
 
     TimeoutException(
         const std::string& message,
-        std::chrono::milliseconds timeoutDuration) CORAL_NOEXCEPT
+        std::chrono::milliseconds timeoutDuration) noexcept
         : std::runtime_error(
             message + " (timeout: " + std::to_string(timeoutDuration.count()) + " ms)")
         , m_timeoutDuration(timeoutDuration)
@@ -42,7 +42,7 @@ public:
     }
 
     /// The duration of the timeout that was reached.
-    std::chrono::milliseconds TimeoutDuration() const CORAL_NOEXCEPT
+    std::chrono::milliseconds TimeoutDuration() const noexcept
     {
         return m_timeoutDuration;
     }

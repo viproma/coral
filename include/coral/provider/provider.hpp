@@ -2,7 +2,7 @@
 \file
 \brief Defines the coral::provider::SlaveProvider class and related functionality.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -78,7 +78,7 @@ public:
     If the background thread has not been terminated with Stop() when the
     destructor runs, std::terminate() is called.
     */
-    ~SlaveProvider() CORAL_NOEXCEPT;
+    ~SlaveProvider() noexcept;
 
     /**
     \brief  Stops the slave provider.

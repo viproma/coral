@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -179,8 +179,8 @@ void ReadyExecutionState::Reconfigure(
     ExecutionManagerPrivate& self,
     const std::vector<SlaveConfig>& slaveConfigs,
     std::chrono::milliseconds commTimeout,
-    ExecutionManager::ReconstituteHandler onComplete,
-    ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
+    ExecutionManager::ReconfigureHandler onComplete,
+    ExecutionManager::SlaveReconfigureHandler onSlaveComplete)
 {
     if (slaveConfigs.empty()) {
         onComplete(std::error_code{});
@@ -278,21 +278,19 @@ namespace
             }
         }
 
-        const auto selfPtr = &self; // For use in lambdas
-
         // Once we have connected the slave, we want to immediately request some
         // info from it.  We define the handler for that operation here, for
         // readability's sake.
         SlaveController::GetDescriptionHandler onDescriptionReceived =
-            [selfPtr, onComplete, id]
+            [&self, onComplete, id]
             (const std::error_code& ec, const coral::model::SlaveDescription& sd)
         {
             if (!ec) {
-                selfPtr->slaves.at(id).description
+                self.slaves.at(id).description
                     .SetTypeDescription(sd.TypeDescription());
                 onComplete(ec, id);
             } else {
-                selfPtr->slaves.at(id).slave->Terminate();
+                self.slaves.at(id).slave->Terminate();
                 onComplete(ec, coral::model::INVALID_SLAVE_ID);
             }
         };
@@ -300,15 +298,15 @@ namespace
         // This is the handler for the connection operation. Note that we pass
         // onDescriptionReceived into it and use it if the connection succeeds.
         SlaveController::ConnectHandler onConnected =
-            [selfPtr, commTimeout, onComplete, id, onDescriptionReceived]
+            [&self, commTimeout, onComplete, id, onDescriptionReceived]
             (const std::error_code& ec)
         {
             if (!ec) {
-                selfPtr->slaves.at(id).slave->GetDescription(
+                self.slaves.at(id).slave->GetDescription(
                     commTimeout,
                     std::move(onDescriptionReceived));
             } else {
-                assert(selfPtr->slaves.at(id).slave->State() == SLAVE_NOT_CONNECTED);
+                assert(self.slaves.at(id).slave->State() == SLAVE_NOT_CONNECTED);
                 onComplete(ec, coral::model::INVALID_SLAVE_ID);
             }
         };
@@ -363,27 +361,27 @@ void ReconstitutingExecutionState::StateEntered(
     // per-slave operations fail in the AddSlave() step, the per-slave handler
     // is called with an error code and the corresponding m_addedSlaves
     // element is reset to INVALID_SLAVE_ID.
-    const auto selfPtr = &self;
     const auto opTally = std::make_shared<OpTally>();
     for (std::size_t index = 0; index < m_slavesToAdd.size(); ++index) {
         auto addedSlaveID = AddSlave(
             self,
             m_slavesToAdd[index],
             m_commTimeout,
-            [selfPtr, opTally, index, this]
+            [&self, opTally, index, this]
                 (const std::error_code& ec, coral::model::SlaveID id)
             {
                 --(opTally->ongoing);
                 if (ec) {
                     ++(opTally->failed);
                     m_addedSlaves[index] = coral::model::INVALID_SLAVE_ID;
-                    m_onSlaveComplete(ec, coral::model::INVALID_SLAVE_ID, index);
+                    m_onSlaveComplete(
+                        ec, coral::model::SlaveDescription{}, index);
                 }
                 if (opTally->ongoing == 0) {
                     if (opTally->failed == 0) {
-                        AllSlavesAdded(*selfPtr);
+                        AllSlavesAdded(self);
                     } else {
-                        Failed(*selfPtr);
+                        Failed(self);
                     }
                 }
             });
@@ -413,14 +411,13 @@ void ReconstitutingExecutionState::AllSlavesAdded(
     //
     // When all per-slave operations are done, we move to the final stage
     // by calling Completed() if all went well, otherwise we call Failed().
-    const auto selfPtr = &self;
     const auto opTally = std::make_shared<OpTally>();
     for (auto& slave : self.slaves) {
         const auto slaveName = slave.second.description.Name();
         slave.second.slave->SetPeers(
             peers,
             m_commTimeout,
-            [selfPtr, opTally, slaveName, this] (const std::error_code& ec)
+            [&self, opTally, slaveName, this] (const std::error_code& ec)
             {
                 --(opTally->ongoing);
                 if (ec) {
@@ -431,9 +428,9 @@ void ReconstitutingExecutionState::AllSlavesAdded(
                 }
                 if (opTally->ongoing == 0) {
                     if (opTally->failed == 0) {
-                        Completed(*selfPtr);
+                        Completed(self);
                     } else {
-                        Failed(*selfPtr);
+                        Failed(self);
                     }
                 }
             });
@@ -451,7 +448,10 @@ void ReconstitutingExecutionState::Completed(
     for (std::size_t index = 0; index < m_addedSlaves.size(); ++index) {
         const auto id = m_addedSlaves[index];
         if (id != coral::model::INVALID_SLAVE_ID) {
-            m_onSlaveComplete(std::error_code{}, id, index);
+            m_onSlaveComplete(
+                std::error_code{},
+                self.slaves.at(id).description,
+                index);
         }
     }
     m_onComplete(std::error_code{});
@@ -470,7 +470,7 @@ void ReconstitutingExecutionState::Failed(
         if (id != coral::model::INVALID_SLAVE_ID) {
             m_onSlaveComplete(
                 make_error_code(coral::error::generic_error::operation_failed),
-                coral::model::INVALID_SLAVE_ID,
+                coral::model::SlaveDescription{},
                 index);
         }
     }
@@ -485,8 +485,8 @@ void ReconstitutingExecutionState::Failed(
 ReconfiguringExecutionState::ReconfiguringExecutionState(
     const std::vector<SlaveConfig>& slaveConfigs,
     std::chrono::milliseconds commTimeout,
-    ExecutionManager::ReconstituteHandler onComplete,
-    ExecutionManager::SlaveReconstituteHandler onSlaveComplete)
+    ExecutionManager::ReconfigureHandler onComplete,
+    ExecutionManager::SlaveReconfigureHandler onSlaveComplete)
     : m_slaveConfigs(slaveConfigs)
     , m_commTimeout{commTimeout}
     , m_onComplete{std::move(onComplete)}
@@ -499,14 +499,13 @@ ReconfiguringExecutionState::ReconfiguringExecutionState(
 void ReconfiguringExecutionState::StateEntered(
     ExecutionManagerPrivate& self)
 {
-    const auto selfPtr = &self;
     const auto opTally = std::make_shared<OpTally>();
     for (std::size_t index = 0; index < m_slaveConfigs.size(); ++index) {
         const auto slaveID = m_slaveConfigs[index].slaveID;
         self.slaves.at(slaveID).slave->SetVariables(
             m_slaveConfigs[index].variableSettings,
             m_commTimeout,
-            [selfPtr, opTally, index, slaveID, this] (const std::error_code& ec)
+            [&self, opTally, index, slaveID, this] (const std::error_code& ec)
             {
                 --(opTally->ongoing);
                 if (ec) {
@@ -518,11 +517,11 @@ void ReconfiguringExecutionState::StateEntered(
                     if (opTally->failed == 0) {
                         // No errors
                         m_onComplete(std::error_code{});
-                        selfPtr->SwapState(std::make_unique<ReadyExecutionState>());
+                        self.SwapState(std::make_unique<ReadyExecutionState>());
                     } else {
                         m_onComplete(make_error_code(
                             coral::error::generic_error::operation_failed));
-                        selfPtr->SwapState(std::make_unique<FatalErrorExecutionState>());
+                        self.SwapState(std::make_unique<FatalErrorExecutionState>());
                     }
                 }
             });
@@ -568,12 +567,11 @@ void PrimingExecutionState::StateEntered(ExecutionManagerPrivate& self)
 
 void PrimingExecutionState::Try(ExecutionManagerPrivate& self, int attemptsLeft)
 {
-    const auto selfPtr = &self;
     auto opTally = std::make_shared<ResendVarsOpTally>();
     for (const auto& slave : self.slaves) {
         slave.second.slave->ResendVars(
             m_commTimeout,
-            [attemptsLeft, selfPtr, opTally, this]
+            [attemptsLeft, &self, opTally, this]
                 (const std::error_code& ec)
             {
                 --(opTally->ongoing);
@@ -586,16 +584,16 @@ void PrimingExecutionState::Try(ExecutionManagerPrivate& self, int attemptsLeft)
                 if (opTally->ongoing == 0) {
                     if (opTally->otherFailures > 0) {
                         CORAL_LOG_TRACE("RESEND_VARS failed");
-                        Fail(*selfPtr, make_error_code(coral::error::generic_error::operation_failed));
+                        Fail(self, make_error_code(coral::error::generic_error::operation_failed));
                     } else if (opTally->timeouts > 0 && attemptsLeft == 1) {
                         CORAL_LOG_TRACE("RESEND_VARS operation timed out, no attempts left");
-                        Fail(*selfPtr, make_error_code(coral::error::sim_error::data_timeout));
+                        Fail(self, make_error_code(coral::error::sim_error::data_timeout));
                     } else if (opTally->timeouts > 0) {
                         CORAL_LOG_TRACE("RESEND_VARS operation timed out, retrying");
-                        Try(*selfPtr, attemptsLeft - 1);
+                        Try(self, attemptsLeft - 1);
                     } else {
                         CORAL_LOG_TRACE("All RESEND_VARS operations succeeded");
-                        Succeed(*selfPtr);
+                        Succeed(self);
                     }
                 }
             });
@@ -640,7 +638,6 @@ SteppingExecutionState::SteppingExecutionState(
 void SteppingExecutionState::StateEntered(ExecutionManagerPrivate& self)
 {
     const auto stepID = self.NextStepID();
-    const auto selfPtr = &self; // Because we can't capture references in lambdas
     for (auto it = begin(self.slaves); it != end(self.slaves); ++it) {
         const auto slaveID = it->first;
         it->second.slave->Step(
@@ -648,19 +645,19 @@ void SteppingExecutionState::StateEntered(ExecutionManagerPrivate& self)
             self.CurrentSimTime(),
             m_stepSize,
             m_timeout,
-            [selfPtr, slaveID, this] (const std::error_code& ec) {
-                const auto onExit = coral::util::OnScopeExit([=]() {
-                    selfPtr->SlaveOpComplete();
+            [&self, slaveID, this] (const std::error_code& ec) {
+                const auto onExit = coral::util::OnScopeExit([&self]() {
+                    self.SlaveOpComplete();
                 });
                 if (m_onSlaveStepComplete) m_onSlaveStepComplete(ec, slaveID);
             });
         self.SlaveOpStarted();
     }
-    self.WhenAllSlaveOpsComplete([selfPtr, this] (const std::error_code& ec) {
+    self.WhenAllSlaveOpsComplete([&self, this] (const std::error_code& ec) {
         assert(!ec);
         bool stepFailed = false;
         bool fatalError = false;
-        for (auto it = begin(selfPtr->slaves); it != end(selfPtr->slaves); ++it) {
+        for (auto it = begin(self.slaves); it != end(self.slaves); ++it) {
             if (it->second.slave->State() == SLAVE_STEP_OK) {
                 // do nothing
             } else if (it->second.slave->State() == SLAVE_STEP_FAILED) {
@@ -672,17 +669,17 @@ void SteppingExecutionState::StateEntered(ExecutionManagerPrivate& self)
             }
         }
         if (fatalError) {
-            const auto keepMeAlive = selfPtr->SwapState(
+            const auto keepMeAlive = self.SwapState(
                 std::make_unique<FatalErrorExecutionState>());
             assert(keepMeAlive.get() == this);
             m_onComplete(make_error_code(coral::error::generic_error::operation_failed));
         } else if (stepFailed) {
-            const auto keepMeAlive = selfPtr->SwapState(
+            const auto keepMeAlive = self.SwapState(
                 std::make_unique<StepFailedExecutionState>());
             assert(keepMeAlive.get() == this);
             m_onComplete(coral::error::sim_error::cannot_perform_timestep);
         } else {
-            const auto keepMeAlive = selfPtr->SwapState(
+            const auto keepMeAlive = self.SwapState(
                 std::make_unique<StepOkExecutionState>(m_stepSize));
             assert(keepMeAlive.get() == this);
             m_onComplete(std::error_code());
@@ -734,14 +731,13 @@ AcceptingExecutionState::AcceptingExecutionState(
 
 void AcceptingExecutionState::StateEntered(ExecutionManagerPrivate& self)
 {
-    const auto selfPtr = &self; // Because we can't capture references in lambdas
     for (auto it = begin(self.slaves); it != end(self.slaves); ++it) {
         const auto slaveID = it->first;
         it->second.slave->AcceptStep(
             m_timeout,
-            [selfPtr, slaveID, this] (const std::error_code& ec) {
-                const auto onExit = coral::util::OnScopeExit([=]() {
-                    selfPtr->SlaveOpComplete();
+            [&self, slaveID, this] (const std::error_code& ec) {
+                const auto onExit = coral::util::OnScopeExit([&self]() {
+                    self.SlaveOpComplete();
                 });
                 if (m_onSlaveAcceptStepComplete) {
                     m_onSlaveAcceptStepComplete(ec, slaveID);
@@ -749,10 +745,10 @@ void AcceptingExecutionState::StateEntered(ExecutionManagerPrivate& self)
             });
         self.SlaveOpStarted();
     }
-    self.WhenAllSlaveOpsComplete([selfPtr, this] (const std::error_code& ec) {
+    self.WhenAllSlaveOpsComplete([&self, this] (const std::error_code& ec) {
         assert(!ec);
         bool error = false;
-        for (auto it = begin(selfPtr->slaves); it != end(selfPtr->slaves); ++it) {
+        for (auto it = begin(self.slaves); it != end(self.slaves); ++it) {
             if (it->second.slave->State() != SLAVE_READY) {
                 assert(it->second.slave->State() == SLAVE_NOT_CONNECTED);
                 error = true;
@@ -760,13 +756,13 @@ void AcceptingExecutionState::StateEntered(ExecutionManagerPrivate& self)
             }
         }
         if (error) {
-            const auto keepMeAlive = selfPtr->SwapState(
+            const auto keepMeAlive = self.SwapState(
                 std::make_unique<FatalErrorExecutionState>());
             assert(keepMeAlive.get() == this);
             m_onComplete(make_error_code(coral::error::generic_error::operation_failed));
             return;
         } else {
-            const auto keepMeAlive = selfPtr->SwapState(
+            const auto keepMeAlive = self.SwapState(
                 std::make_unique<ReadyExecutionState>());
             assert(keepMeAlive.get() == this);
             m_onComplete(std::error_code());

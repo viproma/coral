@@ -2,7 +2,7 @@
 \file
 \brief  Main header file for coral::log (but also contains a few macros).
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,6 +10,8 @@
 #ifndef CORAL_LOG_HPP
 #define CORAL_LOG_HPP
 
+#include <memory>
+#include <ostream>
 #include <string>
 #include <boost/format.hpp>
 #include <coral/config.h>
@@ -32,22 +34,32 @@ enum Level
     error
 };
 
+/**
+\brief  Reads a log level from a string.
+
+This will remove leading and trailing whitespace, convert the string to
+lowercase, compare it to the names of the `Level` constants and return
+the one that matches.
+*/
+Level ParseLevel(std::string str);
+
+
 /// Writes a plain C string to the global logger.
-void Log(Level level, const char* message) CORAL_NOEXCEPT;
+void Log(Level level, const char* message) noexcept;
 
 /// Writes a plain C++ string to the global logger.
-void Log(Level level, const std::string& message) CORAL_NOEXCEPT;
+void Log(Level level, const std::string& message) noexcept;
 
 /// Writes a formatted message to the global logger.
-void Log(Level level, const boost::format& message) CORAL_NOEXCEPT;
+void Log(Level level, const boost::format& message) noexcept;
 
 
 namespace detail
 {
     // These are intended for use in the macros below
-    void LogLoc(Level level, const char* file, int line, const char* message) CORAL_NOEXCEPT;
-    void LogLoc(Level level, const char* file, int line, const std::string& message) CORAL_NOEXCEPT;
-    void LogLoc(Level level, const char* file, int line, const boost::format& message) CORAL_NOEXCEPT;
+    void LogLoc(Level level, const char* file, int line, const char* message) noexcept;
+    void LogLoc(Level level, const char* file, int line, const std::string& message) noexcept;
+    void LogLoc(Level level, const char* file, int line, const boost::format& message) noexcept;
 }
 
 
@@ -75,8 +87,23 @@ namespace detail
 #   define CORAL_LOG_DEBUG(...) ((void)0)
 #endif
 
-/// Sets the global log level, i.e., which log messages get written.
-void SetLevel(Level level) CORAL_NOEXCEPT;
+
+/**
+\brief Adds a new log sink.
+
+Until the first time this function is called, the library will use a default
+sink that prints messages to `std::clog` and which filters out anything below
+level `error`.
+
+The first time this function is called, the default sink will be *replaced*
+with the new one. Subsequent calls will add new sinks.
+*/
+void AddSink(std::shared_ptr<std::ostream> stream, Level level = error);
+
+
+/// Convenience function for making a `std::shared_ptr` to `std::clog`.
+std::shared_ptr<std::ostream> CLogPtr() noexcept;
+
 
 }} // namespace
 #endif // header guard

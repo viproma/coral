@@ -2,7 +2,7 @@
 \file
 \brief  Utilities for writing console applications
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -84,6 +84,24 @@ boost::optional<boost::program_options::variables_map> ParseArguments(
     const std::string& commandName,
     const std::string& commandDescription,
     const std::string& extraHelp = std::string());
+
+
+/// Adds options that control logging.
+void AddLoggingOptions(boost::program_options::options_description& options);
+
+
+/**
+\brief  Parses arguments that control logging (added with `AddLoggingOptions()`)
+        and takes the appropriate actions.
+
+This will at least call `coral::log::AddSink()` once, to add logging to the
+standard error stream, and it may also call it an additional time to add
+logging to a file.
+*/
+void UseLoggingArguments(
+    const boost::program_options::variables_map& arguments,
+    const std::string& logFilePrefix);
+
 
 }} // namespace
 #endif // header guard

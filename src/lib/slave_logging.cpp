@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -136,7 +136,7 @@ bool LoggingInstance::DoStep(
 {
     const auto ret = m_instance->DoStep(currentT, deltaT);
 
-    m_outputStream << (currentT + deltaT);
+    m_outputStream << std::fixed << (currentT + deltaT) << std::defaultfloat;
     const auto typeDescription = TypeDescription();
     for (const auto& var : typeDescription.Variables()) {
         PrintVariable(m_outputStream, var, *this);

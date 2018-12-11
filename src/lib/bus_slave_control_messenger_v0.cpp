@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -17,7 +17,14 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #include <coral/protocol/execution.hpp>
 #include <coral/protocol/glue.hpp>
 #include <coral/util.hpp>
+
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
 #include <execution.pb.h>
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 
 namespace coral
@@ -96,7 +103,7 @@ SlaveControlMessengerV0::SlaveControlMessengerV0(
 }
 
 
-SlaveControlMessengerV0::~SlaveControlMessengerV0() CORAL_NOEXCEPT
+SlaveControlMessengerV0::~SlaveControlMessengerV0() noexcept
 {
     CheckInvariant();
     if (m_attachedToReactor) {
@@ -108,7 +115,7 @@ SlaveControlMessengerV0::~SlaveControlMessengerV0() CORAL_NOEXCEPT
 }
 
 
-SlaveState SlaveControlMessengerV0::State() const CORAL_NOEXCEPT
+SlaveState SlaveControlMessengerV0::State() const noexcept
 {
     return m_state;
 }

@@ -35,15 +35,13 @@ TEST(coral_async, CommThread)
     auto delayedReturn = thread.Execute<int>(
         [] (coral::net::Reactor& reactor, MyData& data, std::promise<int> promise)
         {
-            // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
                 std::make_shared<std::promise<int>>(std::move(promise));
-
             reactor.AddTimer(
                 std::chrono::milliseconds(10),
                 -1,
                 [&data, promisePtr]
-                    (coral::net::Reactor& reactor, int self) mutable
+                    (coral::net::Reactor& reactor, int self)
                 {
                     if (data.eventCount > 5) {
                         reactor.RemoveTimer(self);
@@ -58,15 +56,13 @@ TEST(coral_async, CommThread)
     auto delayedThrow = thread.Execute<int>(
         [] (coral::net::Reactor& reactor, MyData& data, std::promise<int> promise)
         {
-            // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
                 std::make_shared<std::promise<int>>(std::move(promise));
-
             reactor.AddTimer(
                 std::chrono::milliseconds(10),
                 -1,
                 [&data, promisePtr]
-                    (coral::net::Reactor& reactor, int self) mutable
+                    (coral::net::Reactor& reactor, int self)
                 {
                     if (data.eventCount > 10) {
                         reactor.RemoveTimer(self);
@@ -100,15 +96,7 @@ TEST(coral_async, CommThread)
         {
             throw std::underflow_error{""};
         });
-#if defined(_MSC_VER) && (_MSC_VER < CORAL_MSC14_VER)
-    // VS2013 does not abandon the shared state upon promise destruction.
-    // See:  https://connect.microsoft.com/VisualStudio/feedback/details/809632
-    // As a workaround, we simply sleep for a little while, to give the thread
-    // some time to die and unwind its stack.
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-#else
     EXPECT_THROW(brokenFuture.get(), std::future_error); // broken promise
-#endif
     ASSERT_TRUE(thread.Active());
     try {
         thread.Execute<void>([] (coral::net::Reactor&, MyData&, std::promise<void>) { });
@@ -184,15 +172,13 @@ TEST(coral_async, CommThread_void)
     auto delayedReturn = thread.Execute<int>(
         [&eventCount] (coral::net::Reactor& reactor, std::promise<int> promise)
         {
-            // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
                 std::make_shared<std::promise<int>>(std::move(promise));
-
             reactor.AddTimer(
                 std::chrono::milliseconds(10),
                 -1,
                 [&eventCount, promisePtr]
-                    (coral::net::Reactor& reactor, int self) mutable
+                    (coral::net::Reactor& reactor, int self)
                 {
                     if (eventCount > 5) {
                         reactor.RemoveTimer(self);
@@ -207,15 +193,13 @@ TEST(coral_async, CommThread_void)
     auto delayedThrow = thread.Execute<int>(
         [&eventCount] (coral::net::Reactor& reactor, std::promise<int> promise)
         {
-            // Hack: VS2013 doesn't support moving into lambdas
             auto promisePtr =
                 std::make_shared<std::promise<int>>(std::move(promise));
-
             reactor.AddTimer(
                 std::chrono::milliseconds(10),
                 -1,
                 [&eventCount, promisePtr]
-                    (coral::net::Reactor& reactor, int self) mutable
+                    (coral::net::Reactor& reactor, int self)
                 {
                     if (eventCount > 10) {
                         reactor.RemoveTimer(self);
@@ -249,15 +233,7 @@ TEST(coral_async, CommThread_void)
         {
             throw std::underflow_error{""};
         });
-#if defined(_MSC_VER) && (_MSC_VER < CORAL_MSC14_VER)
-    // VS2013 does not abandon the shared state upon promise destruction.
-    // See:  https://connect.microsoft.com/VisualStudio/feedback/details/809632
-    // As a workaround, we simply sleep for a little while, to give the thread
-    // some time to die and unwind its stack.
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-#else
     EXPECT_THROW(brokenFuture.get(), std::future_error); // broken promise
-#endif
     ASSERT_TRUE(thread.Active());
     try {
         thread.Execute<void>([] (coral::net::Reactor&, std::promise<void>) { });

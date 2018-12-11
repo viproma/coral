@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -63,7 +63,7 @@ void SlaveController::Close()
 }
 
 
-SlaveState SlaveController::State() const CORAL_NOEXCEPT
+SlaveState SlaveController::State() const noexcept
 {
     if (m_messenger) return m_messenger->State();
     else if (m_pendingConnection) return SLAVE_BUSY;

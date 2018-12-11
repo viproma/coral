@@ -2,7 +2,7 @@
 \file
 \brief  Defines the coral::bus::SlaveController class
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -115,7 +115,7 @@ public:
     void Close();
 
     /// Returns the current state of the slave.
-    SlaveState State() const CORAL_NOEXCEPT;
+    SlaveState State() const noexcept;
 
     /// Completion handler type for GetDescription()
     typedef std::function<void(const std::error_code&, const coral::model::SlaveDescription&)>

@@ -2,7 +2,7 @@
 \file
 \brief Classes for dealing with FMI 2.0 FMUs.
 \copyright
-    Copyright 2016-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2016-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -126,7 +126,7 @@ public:
     SlaveInstance2(SlaveInstance2&&) = delete;
     SlaveInstance2& operator=(SlaveInstance2&&) = delete;
 
-    ~SlaveInstance2() CORAL_NOEXCEPT;
+    ~SlaveInstance2() noexcept;
 
     // coral::slave::Instance methods
     coral::model::SlaveTypeDescription TypeDescription() const override;

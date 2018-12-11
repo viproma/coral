@@ -2,7 +2,7 @@
 \file
 \brief Main header file for coral::protocol::domain.
 \copyright
-    Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+    Copyright 2013-present, SINTEF Ocean.
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,7 +13,14 @@
 #include <string>
 #include <vector>
 #include <zmq.hpp>
+
+#ifdef _MSC_VER
+#   pragma warning(push, 0)
+#endif
 #include <google/protobuf/message_lite.h>
+#ifdef _MSC_VER
+#  pragma warning(pop)
+#endif
 
 
 namespace coral

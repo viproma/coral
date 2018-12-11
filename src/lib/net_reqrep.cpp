@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -57,7 +57,7 @@ Client::Client(
 }
 
 
-Client::~Client() CORAL_NOEXCEPT
+Client::~Client() noexcept
 {
     m_reactor.RemoveSocket(m_socket.Socket());
     if (m_timeoutTimerID != NO_TIMER) CancelTimer();
@@ -278,7 +278,7 @@ public:
             });
     }
 
-    ~Private() CORAL_NOEXCEPT
+    ~Private() noexcept
     {
         m_reactor.RemoveSocket(m_socket.Socket());
     }
@@ -442,19 +442,19 @@ Server::Server(
 }
 
 
-Server::~Server() CORAL_NOEXCEPT
+Server::~Server() noexcept
 {
     // Do nothing, rely on ~Private().
 }
 
 
-Server::Server(Server&& other) CORAL_NOEXCEPT
+Server::Server(Server&& other) noexcept
     : m_private(std::move(other.m_private))
 {
 }
 
 
-Server& Server::operator=(Server&& other) CORAL_NOEXCEPT
+Server& Server::operator=(Server&& other) noexcept
 {
     m_private = std::move(other.m_private);
     return *this;

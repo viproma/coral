@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2018, SINTEF Ocean and the Coral contributors.
+Copyright 2013-present, SINTEF Ocean.
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -35,7 +35,7 @@ void Reactor::AddSocket(zmq::socket_t& socket, SocketHandler handler)
 }
 
 
-void Reactor::RemoveSocket(zmq::socket_t& socket) CORAL_NOEXCEPT
+void Reactor::RemoveSocket(zmq::socket_t& socket) noexcept
 {
     // Actual removal is deferred to the next rebuild.  At this stage, we just
     // replace the socket pointer with null.
@@ -66,7 +66,7 @@ namespace
 }
 
 
-void Reactor::RemoveNativeSocket(NativeSocket socket) CORAL_NOEXCEPT
+void Reactor::RemoveNativeSocket(NativeSocket socket) noexcept
 {
     // Actual removal is deferred to the next rebuild.  At this stage, we just
     // replace the file descriptor with an invalid value.
