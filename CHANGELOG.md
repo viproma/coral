@@ -12,7 +12,7 @@ all new versions must be expected to contain backwards-incompatible changes.
 We don't guarantee that they'll all be documented here, but we'll try to
 list the bigger ones.
 
-## [Unreleased]
+## [0.10.0] – 2018-12-11
 ### Added
   - A `--no-slave-console` switch to disable creation of new console windows
     for slaves in coralslaveprovider. This only has an effect on Windows.
@@ -65,7 +65,7 @@ This will be the last release which supports Visual Studio 2013.
 ## 0.7.0 – 2017-02-07
 First public release.
 
-[Unreleased]: https://github.com/viproma/coral/compare/v0.9.1...master
+[0.10.0]: https://github.com/viproma/coral/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/viproma/coral/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/viproma/coral/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/viproma/coral/compare/v0.7.1...v0.8.0
