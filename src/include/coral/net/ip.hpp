@@ -45,7 +45,7 @@ struct NetworkInterfaceInfo
 };
 
 /**
-\brief  Returns information about available network interfaces.
+\brief  Returns information about available active network interfaces.
 
 \note
     On Windows, the loopback interface (typically 127.0.0.1) does not have

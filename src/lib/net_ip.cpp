@@ -24,8 +24,12 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #   ifdef __linux__
 #       include <net/if.h>
 #   endif
+#   include <sys/ioctl.h>
 #   include <sys/socket.h>
 
+#   include <cstring>
+
+#   include <coral/log.hpp>
 #   include <coral/util.hpp>
 #endif
 
@@ -110,6 +114,26 @@ std::vector<NetworkInterfaceInfo> GetNetworkInterfaces()
 
 #else // Linux or BSD-like
 
+namespace
+{
+    bool InterfaceIsUp(const char* name)
+    {
+        ifreq ifRequest;
+        std::memset(&ifRequest, 0, sizeof(ifRequest));
+        const auto sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+        std::strncpy(ifRequest.ifr_name, name, IFNAMSIZ);
+        if (ioctl(sock, SIOCGIFFLAGS, &ifRequest) < 0) {
+            log::Log(
+                log::warning,
+                boost::format("Failed to get status of network interface: %s")
+                    % name);
+        }
+        close(sock);
+        return !!(ifRequest.ifr_flags & IFF_UP);
+    }
+}
+
+
 std::vector<NetworkInterfaceInfo> GetNetworkInterfaces()
 {
     ifaddrs* ifAddrs = nullptr;
@@ -123,7 +147,7 @@ std::vector<NetworkInterfaceInfo> GetNetworkInterfaces()
     auto interfaces = std::vector<NetworkInterfaceInfo>{};
     const ifaddrs* a = ifAddrs;
     while (a) {
-        if (a->ifa_addr->sa_family == AF_INET) {
+        if (a->ifa_addr->sa_family == AF_INET && InterfaceIsUp(a->ifa_name)) {
             NetworkInterfaceInfo nif;
             nif.name = a->ifa_name;
             nif.address =
