@@ -121,7 +121,8 @@ namespace
         ifreq ifRequest;
         std::memset(&ifRequest, 0, sizeof(ifRequest));
         const auto sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-        std::strncpy(ifRequest.ifr_name, name, IFNAMSIZ);
+        std::strncpy(ifRequest.ifr_name, name, IFNAMSIZ-1);
+        ifRequest.ifr_name[IFNAMSIZ-1] = '\0';
         if (ioctl(sock, SIOCGIFFLAGS, &ifRequest) < 0) {
             log::Log(
                 log::warning,
