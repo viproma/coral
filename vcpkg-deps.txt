@@ -11,6 +11,7 @@ boost-program-options
 boost-property-tree
 boost-uuid
 cppzmq
+fmilib
 libzip
 protobuf
 zeromq
