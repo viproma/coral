@@ -245,6 +245,7 @@ install (FILES
         "cmake/FindFMILIB.cmake"
         "cmake/FindLIBZIP.cmake"
         "cmake/FindZeroMQ.cmake"
+        "cmake/CompatFindProtobuf.cmake"
     DESTINATION
         "${cmakeFilesInstallDir}"
 )
