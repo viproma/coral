@@ -1,8 +1,10 @@
+**NOTE:** Coral is no longer maintained, as it has been superseded by the [_Open Simulation Platform_](https://opensimulationplatform.com). More specifically, the library part of Coral has been superseded by [_libcosim_](https://github.com/open-simulation-platform/libcosim), while the [_cosim_](https://github.com/open-simulation-platform/cosim-cli) CLI is a replacement for _coralmaster_. (_coralslave_ and _coralslaveprovider_ don't have direct equivalents, as _cosim_ does things slightly differently.)
+
 Coral
 =====
 Coral is **free and open-source co-simulation software** built from the ground up with support for [FMI](https://fmi-standard.org) and distributed simulations in mind. It is primarily a **C++ library** that can be embedded into any application that needs to perform co-simulations. However, we've also made some simple **command-line applications** for testing, demonstration and research purposes.
 
-Coral was developed as part of the R&D project [Virtual Prototyping of Maritime Systems and Operations](http://viproma.no) (ViProMa), and is currently maintained by [SINTEF Ocean](http://www.sintef.no/en/ocean/).
+Coral was developed as part of the R&D project [Virtual Prototyping of Maritime Systems and Operations](http://viproma.no) (ViProMa) and maintained by [SINTEF Ocean](http://www.sintef.no/en/ocean/).
 
 Terms of use
 ------------
